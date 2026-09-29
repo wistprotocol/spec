@@ -13,14 +13,24 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from link_extraction import normalize_url
 from verify_collection_vectors import (
     VerifierError, authority, b64u_canonical, b64u_encode, canonical_host, check_keys_block, collection_named,
-    collection_names, entry_covers, log_seconds, log_timestamp, public_raw, publisher_instant, require_accepted,
-    signature_verifies, strict_load, url_host, usable_public, DEFAULT_PARAMETERS)
+    collection_names, entry_covers, public_raw, require_accepted, signature_verifies, strict_load, url_host,
+    usable_public, DEFAULT_PARAMETERS)
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 SAFE_INTEGER = 2 ** 53 - 1
 REGISTRY_SIZE_CAPS = {"url_cap_bytes": 2048, "extract_cap_bytes": 32768, "links_cap_bytes": 4096,
                       "link_url_cap_bytes": 2048, "summary_cap_bytes": 2048}
+SUITE_CLOCK_SKEW_SECONDS = 600
+SUITE_CATALOG_REFRESH_SECONDS = 604800
+REMOVAL_RETENTION_SECONDS = 180 * 86400
+ITEM_BOUND_OCTETS = 16384
+CATALOG_JSON_READ_OCTETS = 16384
+PARAMETER_FLOORS = {"catalog_items_max": 16777216, "tree_file_cap_bytes": 65536, "tree_depth_max": 16}
+
+PUBLISHER_TS = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})"
+                          r"(?:\.([0-9]+))?(?:[Zz]|([+-])([0-9]{2}):([0-9]{2}))")
+LOG_TS = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-5][0-9])Z")
 
 VERSION = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
 HASH = re.compile(r"sha256:[0-9a-f]{64}")
@@ -135,18 +145,81 @@ def shown(verdict):
     return verdict if verdict == ACCEPTED else " or ".join(sorted(verdict))
 
 
-def publisher_ts(value):
-    try:
-        return publisher_instant(value)
-    except VerifierError:
+def days_from_civil(year, month, day):
+    year -= month <= 2
+    era = year // 400
+    yoe = year - era * 400
+    doy = (153 * (month + (-3 if month > 2 else 9)) + 2) // 5 + day - 1
+    doe = yoe * 365 + yoe // 4 - yoe // 100 + doy
+    return era * 146097 + doe - 719468
+
+
+def civil_from_days(days):
+    days += 719468
+    era = days // 146097
+    doe = days - era * 146097
+    yoe = (doe - doe // 1460 + doe // 36524 - doe // 146096) // 365
+    doy = doe - (365 * yoe + yoe // 4 - yoe // 100)
+    mp = (5 * doy + 2) // 153
+    day = doy - (153 * mp + 2) // 5 + 1
+    month = mp + 3 if mp < 10 else mp - 9
+    return yoe + era * 400 + (month <= 2), month, day
+
+
+def gregorian_seconds(year, month, day, hour, minute, second):
+    leap = year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+    lengths = [31, 29 if leap else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    if not 1 <= month <= 12 or not 1 <= day <= lengths[month - 1] or hour > 23 or minute > 59 or second > 59:
         return None
+    return days_from_civil(year, month, day) * 86400 + hour * 3600 + minute * 60 + second
+
+
+def publisher_ts(value):
+    match = PUBLISHER_TS.fullmatch(value) if isinstance(value, str) else None
+    if match is None:
+        return None
+    year, month, day, hour, minute, second = (int(match.group(i)) for i in range(1, 7))
+    seconds = gregorian_seconds(year, month, day, hour, minute, second)
+    if seconds is None:
+        return None
+    if match.group(8):
+        offset_hours, offset_minutes = int(match.group(9)), int(match.group(10))
+        if offset_hours > 23 or offset_minutes > 59:
+            return None
+        offset = offset_hours * 3600 + offset_minutes * 60
+        seconds -= offset if match.group(8) == "+" else -offset
+    return seconds, (match.group(7) or "").rstrip("0")
 
 
 def log_instant(value):
-    try:
-        return log_seconds(value)
-    except VerifierError:
+    match = LOG_TS.fullmatch(value) if isinstance(value, str) else None
+    if match is None:
         return None
+    return gregorian_seconds(*(int(match.group(i)) for i in range(1, 7)))
+
+
+def publisher_time(value):
+    instant = publisher_ts(value)
+    if instant is None:
+        raise VerifierError(f"not a Publisher timestamp: {value!r}")
+    return instant
+
+
+def log_time(value):
+    seconds = log_instant(value)
+    if seconds is None:
+        raise VerifierError(f"not a whole-second Log timestamp: {value!r}")
+    return seconds, ""
+
+
+def shifted(instant, seconds):
+    return instant[0] + seconds, instant[1]
+
+
+def log_timestamp(seconds):
+    year, month, day = civil_from_days(seconds // 86400)
+    rest = seconds % 86400
+    return f"{year:04d}-{month:02d}-{day:02d}T{rest // 3600:02d}:{rest % 3600 // 60:02d}:{rest % 60:02d}Z"
 
 
 def b64u_bytes(value):
@@ -249,11 +322,14 @@ def judge_item(item, inner, publisher, parameters):
     if normalize_url(url, "") != url or url_host(url) not in authority(publisher) \
             or not covered(publisher, inner["collection"], url):
         codes.add("WIST1-E03")
-    if len(jcs(url)) > parameters["url_cap_bytes"]:
+    page = "removed" not in item
+    if page and len(jcs(url)) > parameters["url_cap_bytes"]:
         codes.add("WIST1-E11")
-    if "removed" not in item and integer(item["payload"]["bytes"]) > derived_cap(parameters):
+    if page and integer(item["payload"]["bytes"]) > derived_cap(parameters):
         codes.add("WIST1-E04")
-    if publisher_instant(item["observed_at"]) > log_seconds(inner["generated_at"]):
+    if len(jcs(item)) > ITEM_BOUND_OCTETS + parameters["url_cap_bytes"]:
+        codes.add("WIST1-E04")
+    if publisher_time(item["observed_at"]) > log_time(inner["generated_at"]):
         codes.add("WIST1-E06")
     if item["publisher"] != inner["publisher"]:
         codes.add("WIST2-E03")
@@ -339,7 +415,7 @@ def catalog_inner_form(inner):
 def binding_code(publisher, inner, sig):
     if inner["publisher"] != publisher["domain"]:
         return "WIST1-E02"
-    instant = log_seconds(inner["generated_at"])
+    instant = log_instant(inner["generated_at"])
     entries = list(publisher["keys"])
     named = collection_named(publisher, inner["collection"])
     if named is not None:
@@ -356,7 +432,14 @@ def binding_code(publisher, inner, sig):
     return None
 
 
+def check_floors(parameters):
+    for name, floor in PARAMETER_FLOORS.items():
+        if name in parameters and parameters[name] < floor:
+            raise VerifierError(f"{name} amended below {floor}")
+
+
 def judge_catalog(case, publisher):
+    check_floors(case["parameters"])
     if "catalog_json" in case:
         try:
             envelope = parse_json_text(case["catalog_json"])
@@ -380,7 +463,7 @@ def judge_catalog(case, publisher):
     binding = binding_code(publisher, inner, envelope["sig"])
     if binding:
         codes.add(binding)
-    if log_seconds(inner["generated_at"]) > publisher_instant(case["clock"]) + parameters["clock_skew_seconds"]:
+    if log_time(inner["generated_at"]) > shifted(publisher_time(case["clock"]), parameters["clock_skew_seconds"]):
         codes.add("WIST1-E06")
     return outcome(codes), inner
 
@@ -433,7 +516,7 @@ def judge_body(body, inner):
         codes.add("WIST2-E03")
     if normalize_url(item["url"], "") != item["url"]:
         codes.add("WIST1-E03")
-    if publisher_instant(item["observed_at"]) > log_seconds(inner["generated_at"]):
+    if publisher_time(item["observed_at"]) > log_time(inner["generated_at"]):
         codes.add("WIST1-E06")
     if not proof_holds(body["proof"], leaf_of(item), inner):
         codes.add("WIST1-E17")
@@ -441,6 +524,7 @@ def judge_body(body, inner):
 
 
 def walk_tree(inner, files, parameters):
+    check_floors(parameters)
     listed = []
 
     def visit(name, prefix, level, count):
@@ -519,71 +603,86 @@ def walk_tree(inner, files, parameters):
 
 
 def derive_list(case, publisher):
+    if case["parameters"] != REGISTRY_SIZE_CAPS:
+        raise VerifierError("the part that signs reads the size caps at their suite values")
     domain, collection = publisher["domain"], case["collection"]
-    generated = log_seconds(case["generated_at"])
-    retention = case["parameters"]["removal_retention_days"] * 86400
+    generated = log_time(case["generated_at"])
     held = case["served"]["payloads"]
     publications = {p["url"]: p for p in case["publications"]}
+    served = {item["url"]: item for item in case["served"]["list"]}
     salts = {s["url"]: s["salt"] for s in case["salts"]}
-    listed, payloads, served_urls = [], {}, set()
+    if len(publications) != len(case["publications"]) or len(served) != len(case["served"]["list"]):
+        raise VerifierError("a URL repeats among the publications or the served list")
+    if any(not covered(publisher, collection, url) for url in publications):
+        raise VerifierError("a publication outside the Collection's Scope: the stream is refused")
+    listed, payloads = [], {}
 
-    def new_item(publication):
-        salt = salts[publication["url"]]
+    def removed_now(url):
+        listed.append({"publisher": domain, "url": url, "observed_at": case["generated_at"], "removed": True})
+
+    for url, publication in publications.items():
+        item = served.get(url)
+        own = item_id(item) if item is not None else None
+        if item is not None and item["publisher"] == domain and "removed" not in item \
+                and item["meta"]["lang"] == publication["lang"] and own in held \
+                and judge_payload(held[own], item, REGISTRY_SIZE_CAPS) == ACCEPTED \
+                and jcs(held[own]["content"]) == jcs(publication["content"]):
+            listed.append(item)
+            payloads[own] = held[own]
+            continue
+        salt = salts[url]
         message = jcs(publication["content"])
         digest = hmac.new(b64u_bytes(salt), message, hashlib.sha256).hexdigest()
-        item = {"publisher": domain, "url": publication["url"], "observed_at": publication["modified"],
-                "payload": {"commitment": "hmac-sha256:" + digest, "alg": "HMAC-SHA256", "bytes": len(message)},
-                "meta": {"lang": publication["lang"]}}
-        listed.append(item)
-        payloads[item_id(item)] = {"wist_version": case["wist_version"], "salt": salt,
-                                   "content": publication["content"]}
-
-    for item in case["served"]["list"]:
-        url = item["url"]
-        served_urls.add(url)
-        if not covered(publisher, collection, url):
+        new = {"publisher": domain, "url": url, "observed_at": publication["modified"],
+               "payload": {"commitment": "hmac-sha256:" + digest, "alg": "HMAC-SHA256", "bytes": len(message)},
+               "meta": {"lang": publication["lang"]}}
+        listed.append(new)
+        payloads[item_id(new)] = {"wist_version": case["wist_version"], "salt": salt,
+                                  "content": publication["content"]}
+    for url, item in served.items():
+        if url in publications:
             continue
-        own_publisher = item["publisher"] == domain
-        publication = publications.get(url)
-        if publication is not None:
-            own = item_id(item)
-            if own_publisher and "removed" not in item and item["meta"]["lang"] == publication["lang"] \
-                    and own in held and judge_payload(held[own], item, case["parameters"]) == ACCEPTED \
-                    and jcs(held[own]["content"]) == jcs(publication["content"]):
-                listed.append(item)
-                payloads[own] = held[own]
-            else:
-                new_item(publication)
-        elif "removed" not in item or not own_publisher:
-            listed.append({"publisher": domain, "url": url, "observed_at": case["generated_at"], "removed": True})
-        elif generated < publisher_instant(item["observed_at"]) + retention:
+        if "removed" not in item or item["publisher"] != domain:
+            removed_now(url)
+        elif generated < shifted(publisher_time(item["observed_at"]), REMOVAL_RETENTION_SECONDS):
             listed.append(item)
-    for publication in case["publications"]:
-        if publication["url"] not in served_urls:
-            new_item(publication)
-    if any(publisher_instant(item["observed_at"]) > generated for item in listed):
+    for url in dict.fromkeys(case["removals"]):
+        if url not in publications and url not in served:
+            removed_now(url)
+    if any(publisher_time(item["observed_at"]) > generated for item in listed):
         return {"refused": "item-instant"}
     listed.sort(key=lambda item: key_of(item["url"]))
     return {"list": listed, "payloads": payloads}
 
 
 def next_instant(case):
-    cut = math.floor(publisher_instant(case["clock"]))
-    instant = cut if case["served"] is None else max(cut, log_seconds(case["served"]) + 1)
-    if instant > cut + case["clock_skew_seconds"]:
+    if case["clock_skew_seconds"] != SUITE_CLOCK_SKEW_SECONDS:
+        raise VerifierError("the part that signs reads clock_skew_seconds at its suite value")
+    cut = publisher_time(case["clock"])[0]
+    instant = cut if case["served"] is None else max(cut, log_time(case["served"])[0] + 1)
+    if instant > cut + SUITE_CLOCK_SKEW_SECONDS:
         return {"refused": "catalog-instant"}
     return {"generated_at": log_timestamp(instant)}
 
 
+def due(case):
+    if case["catalog_refresh_seconds"] != SUITE_CATALOG_REFRESH_SECONDS:
+        raise VerifierError("the part that signs reads catalog_refresh_seconds at its suite value")
+    if case["served"] is None:
+        return {"due": True}
+    cut = publisher_time(case["clock"])[0]
+    return {"due": cut >= log_time(case["served"])[0] + SUITE_CATALOG_REFRESH_SECONDS}
+
+
 def pull_order(case):
-    fetched, wanted, last = case["fetched"], case["fetched_for"], case["last_accepted"]
+    fetched, wanted = case["fetched"], case["fetched_for"]
     if fetched["publisher"] != wanted["publisher"] or fetched["collection"] != wanted["collection"]:
         return "WIST2-E04"
-    if last is None:
-        return ACCEPTED
-    if catalog_id(fetched) == catalog_id(last):
+    known = [c for c in (case["last_accepted"], case["latest"]) if c is not None]
+    if any(catalog_id(fetched) == catalog_id(c) for c in known):
         return "idempotent"
-    if log_seconds(fetched["generated_at"]) <= log_seconds(last["generated_at"]):
+    last = case["last_accepted"]
+    if last is not None and log_time(fetched["generated_at"]) <= log_time(last["generated_at"]):
         return "WIST2-E05"
     return ACCEPTED
 
@@ -696,10 +795,24 @@ def family_item_roots(data, report):
 def family_catalog_fields(data, report):
     publishers = declarations(data)
     for case in data["cases"]:
-        report.run(case["name"], lambda c=case: report.verdict(
-            c["name"], c["expected"], judge_catalog(c, publishers[c["declaration"]])[0]))
+        def one(c=case):
+            verdict, inner = judge_catalog(c, publishers[c["declaration"]])
+            report.verdict(c["name"], c["expected"], verdict)
+            if "catalog_id" in c:
+                report.equal(f"{c['name']} catalog_id", c["catalog_id"], None if inner is None else catalog_id(inner))
+        report.run(case["name"], one)
     for case in data["id_cases"]:
         report.run(case["name"], lambda c=case: report.equal(c["name"], c["catalog_id"], catalog_id(c["catalog"])))
+    for case in data["read_cases"]:
+        def one(c=case):
+            octets = len(c["catalog_json"].encode("utf-8"))
+            if octets != c["octets"]:
+                raise VerifierError(f"catalog_json holds {octets} octets, not {c['octets']}")
+            if octets > CATALOG_JSON_READ_OCTETS:
+                report.equal(c["name"], c["expected"], "failed")
+            else:
+                report.verdict(c["name"], c["expected"], judge_catalog(c, publishers[c["declaration"]])[0])
+        report.run(case["name"], one)
 
 
 def family_catalog_order(data, report):
@@ -707,6 +820,8 @@ def family_catalog_order(data, report):
         report.run(case["name"], lambda c=case: report.equal(c["name"], c["expected"], pull_order(c)))
     for case in data["next_cases"]:
         report.run(case["name"], lambda c=case: report.equal(c["name"], c["expected"], next_instant(c)))
+    for case in data["due_cases"]:
+        report.run(case["name"], lambda c=case: report.equal(c["name"], c["expected"], due(c)))
 
 
 def family_catalog_tree(data, report):
@@ -759,24 +874,56 @@ def family_item_lists(data, report):
             c["name"], c["expected"], derive_list(c, publishers[c["declaration"]])))
 
 
+SIGNED = {"keys", "declarations"}
 FAMILIES = [
-    ("item-fields", "wist1/item-fields.json", family_item_fields),
-    ("item-roots", "wist1/item-roots.json", family_item_roots),
-    ("catalog-fields", "wist1/catalog-fields.json", family_catalog_fields),
-    ("catalog-order", "wist2/catalog-order.json", family_catalog_order),
-    ("catalog-tree", "wist2/catalog-tree.json", family_catalog_tree),
-    ("catalog-items", "wist2/catalog-items.json", family_catalog_items),
-    ("item-lists", "wist2/item-lists.json", family_item_lists),
+    ("item-fields", "wist1/item-fields.json", family_item_fields, SIGNED, {
+        "item_cases": {"name", "declaration", "catalog", "parameters", "item", "expected"},
+        "known_answers": {"name", "item", "item_id", "key", "leaf", "payload"},
+        "payload_cases": {"name", "item", "payload_path", "parameters", "payload", "expected"}}),
+    ("item-roots", "wist1/item-roots.json", family_item_roots, {"payloads"}, {
+        "root_cases": {"name", "items", "keys", "leaves", "root"},
+        "proof_cases": {"name", "catalog", "item", "proof", "proof_json", "expected"},
+        "body_cases": {"name", "catalog", "body", "expected"}}),
+    ("catalog-fields", "wist1/catalog-fields.json", family_catalog_fields, SIGNED, {
+        "cases": {"name", "declaration", "clock", "parameters", "catalog", "catalog_json", "catalog_id", "expected"},
+        "id_cases": {"name", "catalog", "catalog_id"},
+        "read_cases": {"name", "declaration", "clock", "parameters", "octets", "catalog_json", "expected"}}),
+    ("catalog-order", "wist2/catalog-order.json", family_catalog_order, set(), {
+        "pull_cases": {"name", "fetched_for", "last_accepted", "latest", "fetched", "expected"},
+        "next_cases": {"name", "clock", "served", "clock_skew_seconds", "expected"},
+        "due_cases": {"name", "clock", "served", "catalog_refresh_seconds", "expected"}}),
+    ("catalog-tree", "wist2/catalog-tree.json", family_catalog_tree, set(), {
+        "cases": {"name", "catalog", "parameters", "tree_files", "expected"}}),
+    ("catalog-items", "wist2/catalog-items.json", family_catalog_items, SIGNED, {
+        "cases": {"name", "declaration", "clock", "parameters", "catalog", "tree_files", "expected"}}),
+    ("item-lists", "wist2/item-lists.json", family_item_lists, SIGNED, {
+        "cases": {"name", "declaration", "collection", "generated_at", "wist_version", "parameters", "served",
+                  "publications", "removals", "salts", "expected"}}),
 ]
+
+
+def unread_members(data, other, arrays):
+    unread = [f"top-level member {k!r}" for k in data if k != "note" and k not in other and k not in arrays]
+    for array, members in arrays.items():
+        cases = data.get(array)
+        if not isinstance(cases, list):
+            unread.append(f"array {array!r} missing")
+            continue
+        for case in cases:
+            extra = set(case) - members if isinstance(case, dict) else {"<not an object>"}
+            if extra:
+                unread.append(f"{case.get('name', '?')}: member {', '.join(sorted(extra))}")
+    return unread
 
 
 def main(argv):
     base = pathlib.Path(argv[1]) if len(argv) > 1 else ROOT / "vectors"
     failed = False
-    for family, relative, check in FAMILIES:
+    for family, relative, check, other, arrays in FAMILIES:
         report = Report()
         try:
             data = strict_load(base / relative)
+            report.failures.extend(("unread", what) for what in unread_members(data, other, arrays))
             keys = []
             check_keys_block(data, keys)
             report.failures.extend(keys)

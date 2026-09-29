@@ -1,4 +1,5 @@
 import base64
+import copy
 import hashlib
 import json
 import pathlib
@@ -20,6 +21,7 @@ SAFE_INTEGER = 2 ** 53 - 1
 NUMERIC_DATE_MAX = 253402300799
 ENTRY_OCTETS_MAX = 65535
 DEFAULT_PARAMETERS = {"collections_max": 16, "scope_entries_max": 32, "url_cap_bytes": 2048}
+UNAMENDED = {"recovery_window_days": 7, "declaration_activation_epochs": 24}
 
 
 class Rejected(Exception):
@@ -310,7 +312,7 @@ def _check_collections(value, parameters):
             url = entry["url"]
             if not isinstance(url, str) or normalize_url(url, url) != url:
                 _e14("Scope entry url is not its own Normalized URL")
-            if len(jcs(url)) > parameters["url_cap_bytes"]:
+            if parameters is not None and len(jcs(url)) > parameters["url_cap_bytes"]:
                 _e14("Scope entry url above url_cap_bytes")
         if "keys" in collection:
             _check_key_array(collection["keys"], nonempty=False)
@@ -558,22 +560,42 @@ def _pub(state, label):
     return state["decls"][label]["publisher"]
 
 
+def check_parameter_map(parameters):
+    # ADR-0051 Size: no Log amends collections_max below 16 or scope_entries_max below 32.
+    if parameters["collections_max"] < 16 or parameters["scope_entries_max"] < 32:
+        raise VerifierError(f"a parameter map amends a count below its suite value: {parameters}")
+    return parameters
+
+
+def repeats_head(state, envelopes):
+    publisher_bytes = [jcs(member["publisher"]) for member in envelopes]
+    for head in (state["current"], state["pending"]):
+        if head is not None and all(item == jcs(_pub(state, head)) for item in publisher_bytes):
+            return True
+    return False
+
+
 def apply_group(state, labels, height, sealed_at, parameters):
     envelopes = [state["decls"][label] for label in labels]
     label, envelope = labels[0], envelopes[0]
+    for member in envelopes:
+        field_check(member, None)
     incoming = envelope["publisher"]
     for member in envelopes[1:]:
         if member["publisher"]["domain"] != incoming["domain"]:
             raise VerifierError("one group spans two domains")
-    publisher_bytes = [jcs(member["publisher"]) for member in envelopes]
     if state["current"] is not None:
         if incoming["domain"] != _pub(state, state["current"])["domain"]:
             raise VerifierError("a Declaration of another domain")
-        for head in (state["current"], state["pending"]):
-            if head is not None and all(item == jcs(_pub(state, head)) for item in publisher_bytes):
-                return {"kind": "idempotent", "declaration": label, "class": "idempotent"}
+        # ADR-0051 Size: a repeat of the current Declaration or the pending head is idempotent under any map.
+        if repeats_head(state, envelopes):
+            return {"kind": "idempotent", "declaration": label, "class": "idempotent"}
+    for member in envelopes:
+        field_check(member, parameters)
     if any(jcs(member) != jcs(envelope) for member in envelopes[1:]):
         raise Rejected("WIST1-E08", "conflicting same-sequence Declaration group")
+    semantic_check(envelope, parameters)
+    prior = state["current"]
     if state["current"] is None:
         if incoming["seq"] != 0 or "prev_declaration" in incoming:
             raise Rejected("WIST1-E08", "first Declaration is not seq 0")
@@ -610,7 +632,7 @@ def apply_group(state, labels, height, sealed_at, parameters):
         state["pending"], state["activation"] = None, None
         state["current"] = label
         if result == "recovery_rotation":
-            open_window(state, label, sealed_at, parameters)
+            open_recovery_window(state, label, prior, sealed_at, parameters)
         return {"kind": "reversal_" + result, "declaration": label, "class": result,
                 "narrows": result == "ordinary_rotation"}
     if result == "fresh_identity":
@@ -619,19 +641,23 @@ def apply_group(state, labels, height, sealed_at, parameters):
         return {"kind": "fresh_identity_pending", "declaration": label, "class": result}
     state["current"] = label
     if result == "recovery_rotation":
-        open_window(state, label, sealed_at, parameters)
+        open_recovery_window(state, label, prior, sealed_at, parameters)
         return {"kind": "recovery_rotation", "declaration": label, "class": result}
     return {"kind": "ordinary_rotation", "declaration": label, "class": result, "narrows": True}
 
 
 def open_window(state, label, sealed_at, parameters):
-    if sealed_at is None:
-        state["window"] = {"end": None, "head": label}
-        return
-    end = sealed_at + parameters["recovery_window_days"] * 86400
-    if end > LOG_TIME_MAX:
-        raise Rejected("WIST1-E08", "recovery window would end after the last Log instant")
-    state["window"] = {"end": end, "head": label}
+    window = {"end": None, "head": label, "owner": label}
+    if sealed_at is not None:
+        window["end"] = sealed_at + parameters["recovery_window_days"] * 86400
+        if window["end"] > LOG_TIME_MAX:
+            raise Rejected("WIST1-E08", "recovery window would end after the last Log instant")
+    state["window"] = window
+
+
+def open_recovery_window(state, label, before, sealed_at, parameters):
+    open_window(state, label, sealed_at, parameters)
+    state["window"]["before"] = before
 
 
 def record_key(record):
@@ -652,62 +678,86 @@ def narrow(live, publisher):
     return sorted(removed, key=record_key)
 
 
-def replay(history):
-    parameters = history["parameters"]
-    state = new_state()
-    state["decls"] = dict(history["declarations"])
-    live = {}
+def epoch_parameters(history, epoch):
+    return check_parameter_map({**UNAMENDED, **history.get("parameters", {}), **epoch.get("parameters", {})})
+
+
+def settle_due(state, sealed_at, live, transitions):
+    window = state["window"]
+    if window is not None and window["end"] is not None and sealed_at >= window["end"]:
+        head = window["head"]
+        state["current"], state["window"] = head, None
+        transitions.append({"kind": "settlement", "declaration": head, "narrows": True,
+                            "removed": narrow(live, _pub(state, head))})
+
+
+def apply_epoch(state, epoch, parameters, live):
+    height, sealed_at = epoch["height"], log_seconds(epoch["sealed_at"])
+    transitions = []
+    settle_due(state, sealed_at, live, transitions)
+    activate_due(state, height, live, transitions)
+    groups = {}
+    for label in epoch["declarations"]:
+        groups.setdefault(state["decls"][label]["publisher"]["seq"], []).append(label)
+    for seq in sorted(groups):
+        outcome = apply_group(state, groups[seq], height, sealed_at, parameters)
+        narrows = outcome.get("narrows", False)
+        transitions.append({"kind": outcome["kind"], "declaration": outcome["declaration"], "narrows": narrows,
+                            "removed": narrow(live, _pub(state, outcome["declaration"])) if narrows else []})
+    activate_due(state, height, live, transitions)
+    sealed, rejected = [], []
+    for record in epoch["records"]:
+        members_read(record, {"url", "collection"})
+        if state["window"] is not None:
+            raise VerifierError("a record sealed inside an open recovery window")
+        if state["current"] is None:
+            raise VerifierError("a record sealed before any Declaration")
+        code = scope_verdict(_pub(state, state["current"]), record["collection"], record["url"])
+        if code:
+            rejected.append({"url": record["url"], "collection": record["collection"], "code": code})
+        else:
+            live[record["url"]] = (record["collection"], height)
+            sealed.append({"url": record["url"], "collection": record["collection"]})
+    return {
+        "height": height,
+        "current_declaration": state["current"],
+        "pending_head": state["pending"],
+        "activation_height": state["activation"],
+        "window_end": None if state["window"] is None or state["window"]["end"] is None
+        else log_timestamp(state["window"]["end"]),
+        "transitions": transitions,
+        "records_sealed": sorted(sealed, key=record_key),
+        "records_rejected": sorted(rejected, key=record_key),
+    }
+
+
+def replay_epochs(state, history, epoch_members, live):
     produced = []
     previous_height = None
     for epoch in history["epochs"]:
-        height, sealed_at = epoch["height"], log_seconds(epoch["sealed_at"])
-        if previous_height is not None and height != previous_height + 1:
+        members_read(epoch, epoch_members)
+        if previous_height is not None and epoch["height"] != previous_height + 1:
             raise VerifierError("Epoch heights are not consecutive")
-        previous_height = height
-        transitions = []
-        window = state["window"]
-        if window is not None and sealed_at >= window["end"]:
-            head = window["head"]
-            state["current"], state["window"] = head, None
-            transitions.append({"kind": "settlement", "declaration": head, "narrows": True,
-                                "removed": narrow(live, _pub(state, head))})
-        activate_due(state, height, live, transitions)
-        for label in epoch["declarations"]:
-            validate(state["decls"][label], parameters)
-        groups = {}
-        for label in epoch["declarations"]:
-            groups.setdefault(state["decls"][label]["publisher"]["seq"], []).append(label)
-        for seq in sorted(groups):
-            outcome = apply_group(state, groups[seq], height, sealed_at, parameters)
-            narrows = outcome.get("narrows", False)
-            transitions.append({"kind": outcome["kind"], "declaration": outcome["declaration"], "narrows": narrows,
-                                "removed": narrow(live, _pub(state, outcome["declaration"])) if narrows else []})
-        activate_due(state, height, live, transitions)
-        sealed, rejected = [], []
-        for record in epoch["records"]:
-            if state["window"] is not None:
-                raise VerifierError("a record sealed inside an open recovery window")
-            if state["current"] is None:
-                raise VerifierError("a record sealed before any Declaration")
-            code = scope_verdict(_pub(state, state["current"]), record["collection"], record["url"])
-            if code:
-                rejected.append({"url": record["url"], "collection": record["collection"], "code": code})
-            else:
-                live[record["url"]] = (record["collection"], height)
-                sealed.append({"url": record["url"], "collection": record["collection"]})
-        produced.append({
-            "height": height,
-            "current_declaration": state["current"],
-            "pending_head": state["pending"],
-            "activation_height": state["activation"],
-            "window_end": None if state["window"] is None else log_timestamp(state["window"]["end"]),
-            "transitions": transitions,
-            "records_sealed": sorted(sealed, key=record_key),
-            "records_rejected": sorted(rejected, key=record_key),
-        })
+        previous_height = epoch["height"]
+        trial_state, trial_live = copy.deepcopy(state), dict(live)
+        try:
+            produced.append(apply_epoch(trial_state, epoch, epoch_parameters(history, epoch), trial_live))
+        except Rejected as rejection:
+            return produced, {"height": epoch["height"], "code": rejection.code}
+        state.update(trial_state)
+        live.clear()
+        live.update(trial_live)
+    return produced, None
+
+
+def replay(history, epoch_members):
+    state = new_state()
+    state["decls"] = dict(history["declarations"])
+    live = {}
+    produced, rejected = replay_epochs(state, history, epoch_members, live)
     live_records = sorted(({"url": url, "collection": collection, "sealed_height": sealed_height}
                            for url, (collection, sealed_height) in live.items()), key=record_key)
-    return {"epochs": produced, "live_records": live_records}
+    return {"epochs": produced, "live_records": live_records, "rejected": rejected}
 
 
 def activate_due(state, height, live, transitions):
@@ -730,7 +780,6 @@ def pull(case):
     state = state_with_current(known)
     state["decls"]["fetched"] = case["fetched"]
     try:
-        validate(case["fetched"], DEFAULT_PARAMETERS)
         outcome = apply_group(state, ["fetched"], None, None, DEFAULT_PARAMETERS)
     except Rejected as rejection:
         return rejection.code, False, []
@@ -742,6 +791,76 @@ def pull(case):
         names += [name for name in collection_names(case["fetched"]["publisher"]) if name not in names]
         return result, True, names
     return result, True, collection_names(known["publisher"])
+
+
+def fetch_declaration(state, label, height, sealed_at, parameters):
+    envelope = state["decls"][label]
+    field_check(envelope, None)
+    if state["current"] is not None and repeats_head(state, [envelope]):
+        return "idempotent"
+    window = state["window"]
+    # ADR-0051 Reaching the Log: the recovery-chain head of the admission window, open from the
+    # discovery of the recovery rotation, served again changes no source.
+    if window is not None and jcs(envelope["publisher"]) == jcs(_pub(state, window["head"])):
+        return "recovery_chain_head"
+    return apply_group(state, [label], height, sealed_at, parameters)["kind"]
+
+
+def pull_sources(state):
+    window = state["window"]
+    if window is not None:
+        return [window["before"], window["owner"]]
+    return [state["current"]]
+
+
+def pulled_collections(state, sources):
+    names = []
+    for label in sources:
+        names += [name for name in collection_names(_pub(state, label)) if name not in names]
+    return names
+
+
+def state_pull(case):
+    state = new_state()
+    state["decls"] = dict(case["declarations"])
+    live = {}
+    epochs, rejected = replay_epochs(state, case, STATE_PULL_EPOCH_MEMBERS, live)
+    if rejected is not None:
+        raise VerifierError(f"a supplied Epoch is rejected: {rejected}")
+    request = case["pull"]
+    members_read(request, {"height", "sealed_at", "parameters", "fetch_outcome", "fetched"})
+    if epochs and request["height"] != epochs[-1]["height"] + 1:
+        raise VerifierError("the pull is not at the height after the supplied Epochs")
+    parameters = epoch_parameters({}, request)
+    admission = epoch_parameters({}, case["epochs"][-1]) if case["epochs"] else parameters
+    for label in case["discovered"]:
+        trial = copy.deepcopy(state)
+        try:
+            apply_group(trial, [label], None, None, admission)
+        except Rejected:
+            continue
+        state.update(trial)
+    first_contact = state["current"] is None
+    transitions = []
+    settle_due(state, log_seconds(request["sealed_at"]), live, transitions)
+    activate_due(state, request["height"], live, transitions)
+    stopped = {"proceeds": False, "sources": [], "collections_pulled": [],
+               "disposition": "WIST2-E04" if first_contact else "WIST2-E01", "noise": first_contact}
+    outcome = request["fetch_outcome"]
+    if outcome in ("failed", "timed_out"):
+        if request["fetched"] is not None:
+            raise VerifierError("a failed fetch names a Declaration")
+        return {"acceptance": "not_fetched", **stopped}
+    if outcome not in ("new_octets", "same_octets", "not_modified"):
+        raise VerifierError(f"unknown fetch outcome {outcome!r}")
+    try:
+        acceptance = fetch_declaration(state, request["fetched"], request["height"],
+                                       log_seconds(request["sealed_at"]), parameters)
+    except Rejected as rejection:
+        return {"acceptance": rejection.code, **stopped}
+    sources = pull_sources(state)
+    return {"acceptance": acceptance, "proceeds": True, "sources": sources,
+            "collections_pulled": pulled_collections(state, sources), "disposition": None, "noise": False}
 
 
 _IMPLICIT_ENTRY = ("implicit", "default")
@@ -788,6 +907,54 @@ def reductions(predecessor, declaration):
     return found
 
 
+HISTORY_EPOCH_MEMBERS = {"height", "sealed_at", "declarations", "records"}
+PARAMETER_EPOCH_MEMBERS = HISTORY_EPOCH_MEMBERS | {"parameters"}
+STATE_PULL_EPOCH_MEMBERS = PARAMETER_EPOCH_MEMBERS
+DOCUMENTATION = {"note", "parameter_note", "state_pull_note"}
+FILE_ARRAYS = {
+    "collection-fields": {"cases": {"name", "envelope", "parameters", "expected"}},
+    "collection-scope": {
+        "coverage_cases": {"name", "declaration", "collection", "url", "covered"},
+        "disjointness_cases": {"name", "envelope", "parameters", "expected"},
+        "publication_cases": {"name", "declaration", "probe", "expected"},
+    },
+    "collection-keys": {
+        "uniqueness_cases": {"name", "envelope", "parameters", "expected"},
+        "publication_cases": {"name", "declaration", "probe", "expected"},
+        "signer_cases": {"name", "stored", "fetched", "expected"},
+        "commitment_cases": {"name", "stored", "fetched", "expected"},
+        "fingerprint_cases": {"name", "publisher", "fingerprint"},
+    },
+    "collection-narrowing": {
+        "histories": {"name", "why", "parameters", "declarations", "epochs", "expected"},
+        "parameter_histories": {"name", "why", "declarations", "epochs", "expected"},
+    },
+    "declaration-pull": {
+        "pull_cases": {"name", "known", "fetch_outcome", "fetched", "acceptance", "proceeds", "collections_pulled"},
+        "reduction_cases": {"name", "predecessor", "declaration", "discovery_height", "record_seal_epochs",
+                            "reduces_authority", "reductions", "last_seal_height"},
+        "state_pull_cases": {"name", "declarations", "epochs", "discovered", "pull", "expected"},
+    },
+}
+
+
+def members_read(value, expected):
+    if not isinstance(value, dict) or set(value) != set(expected):
+        found = set(value) if isinstance(value, dict) else set()
+        raise VerifierError(f"members {sorted(found ^ set(expected))} differ from those this verifier reads")
+
+
+def check_file_members(family, data):
+    arrays = FILE_ARRAYS[family]
+    members_read(data, set(arrays) | {"keys", "note"} | (DOCUMENTATION & set(data)))
+    for name, members in arrays.items():
+        for case in data[name]:
+            members_read(case, members)
+    for key in data["keys"].values():
+        members_read(key, {"seed_hex", "x", "kid"})
+    return sum(len(data[name]) for name in arrays)
+
+
 def check_keys_block(data, failures):
     for name, key in data.get("keys", {}).items():
         raw = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(key["seed_hex"])).public_key().public_bytes_raw()
@@ -812,7 +979,7 @@ def run_case(failures, label, fn):
 def family_fields(data, failures):
     for case in data["cases"]:
         run_case(failures, case["name"], lambda c=case: compare(
-            failures, c["name"], c["expected"], standalone(c["envelope"], c["parameters"])))
+            failures, c["name"], c["expected"], standalone(c["envelope"], check_parameter_map(c["parameters"]))))
 
 
 def family_scope(data, failures):
@@ -823,7 +990,7 @@ def family_scope(data, failures):
         run_case(failures, case["name"], one)
     for case in data["disjointness_cases"]:
         run_case(failures, case["name"], lambda c=case: compare(
-            failures, c["name"], c["expected"], standalone(c["envelope"], c["parameters"])))
+            failures, c["name"], c["expected"], standalone(c["envelope"], check_parameter_map(c["parameters"]))))
     publication_cases(data["publication_cases"], failures)
 
 
@@ -838,7 +1005,7 @@ def publication_cases(cases, failures):
 def family_keys(data, failures):
     for case in data["uniqueness_cases"]:
         run_case(failures, case["name"], lambda c=case: compare(
-            failures, c["name"], c["expected"], standalone(c["envelope"], c["parameters"])))
+            failures, c["name"], c["expected"], standalone(c["envelope"], check_parameter_map(c["parameters"]))))
     publication_cases(data["publication_cases"], failures)
     for case in data["signer_cases"] + data["commitment_cases"]:
         def one(c=case):
@@ -846,7 +1013,6 @@ def family_keys(data, failures):
             state = state_with_current(c["stored"])
             state["decls"]["fetched"] = c["fetched"]
             try:
-                validate(c["fetched"], DEFAULT_PARAMETERS)
                 actual = apply_group(state, ["fetched"], None, None, DEFAULT_PARAMETERS)["class"]
             except Rejected as rejection:
                 actual = rejection.code
@@ -859,22 +1025,34 @@ def family_keys(data, failures):
         run_case(failures, case["name"], one)
 
 
+def compare_replay(failures, name, expected, actual, members):
+    if set(expected) != members:
+        raise VerifierError(f"expected members {sorted(expected)} differ from {sorted(members)}")
+    if len(expected["epochs"]) != len(actual["epochs"]):
+        failures.append((name, f"Epoch count differs: expected {len(expected['epochs'])}, got {len(actual['epochs'])}"))
+        return
+    for want, got in zip(expected["epochs"], actual["epochs"]):
+        for field in want.keys() | got.keys():
+            if want.get(field) != got.get(field):
+                failures.append((name, f"height {want.get('height')} {field}: expected "
+                                 f"{json.dumps(want.get(field))}, got {json.dumps(got.get(field))}"))
+                return
+    for field in sorted(members - {"epochs"}):
+        compare(failures, f"{name} {field}", expected[field], actual[field])
+
+
 def family_narrowing(data, failures):
     for history in data["histories"]:
         def one(h=history):
-            actual = replay(h)
-            expected = h["expected"]
-            if len(expected["epochs"]) != len(actual["epochs"]):
-                failures.append((h["name"], "Epoch count differs"))
-                return
-            for want, got in zip(expected["epochs"], actual["epochs"]):
-                for field in want.keys() | got.keys():
-                    if want.get(field) != got.get(field):
-                        failures.append((h["name"], f"height {want.get('height')} {field}: expected "
-                                         f"{json.dumps(want.get(field))}, got {json.dumps(got.get(field))}"))
-                        return
-            compare(failures, h["name"] + " live_records", expected["live_records"], actual["live_records"])
+            check_parameter_map(h["parameters"])
+            actual = replay(h, HISTORY_EPOCH_MEMBERS)
+            if actual["rejected"] is not None:
+                raise VerifierError(f"an Epoch is rejected: {actual['rejected']}")
+            compare_replay(failures, h["name"], h["expected"], actual, {"epochs", "live_records"})
         run_case(failures, history["name"], one)
+    for history in data["parameter_histories"]:
+        run_case(failures, history["name"], lambda h=history: compare_replay(
+            failures, h["name"], h["expected"], replay(h, PARAMETER_EPOCH_MEMBERS), {"epochs", "rejected"}))
 
 
 def family_pull(data, failures):
@@ -897,6 +1075,8 @@ def family_pull(data, failures):
                      "last_seal_height": c["last_seal_height"]},
                     {"reduces_authority": bool(found), "reductions": found, "last_seal_height": last})
         run_case(failures, case["name"], one)
+    for case in data["state_pull_cases"]:
+        run_case(failures, case["name"], lambda c=case: compare(failures, c["name"], c["expected"], state_pull(c)))
 
 
 FAMILIES = [
@@ -909,12 +1089,15 @@ FAMILIES = [
 
 
 def main(argv):
+    sys.set_int_max_str_digits(0)
     base = pathlib.Path(argv[1]) if len(argv) > 1 else ROOT / "vectors"
     failed = False
     for family, relative, check in FAMILIES:
         failures = []
+        count = 0
         try:
             data = strict_load(base / relative)
+            count = check_file_members(family, data)
             check_keys_block(data, failures)
             check(data, failures)
         except (OSError, VerifierError, KeyError, TypeError, ValueError) as error:
@@ -923,9 +1106,9 @@ def main(argv):
             failed = True
             label, what = failures[0]
             more = f" (+{len(failures) - 1} more)" if len(failures) > 1 else ""
-            print(f"FAIL {family}: {label}: {what}{more}")
+            print(f"FAIL {family}: {count} cases: {label}: {what}{more}")
         else:
-            print(f"PASS {family}")
+            print(f"PASS {family}: {count} cases recomputed")
     return 1 if failed else 0
 
 

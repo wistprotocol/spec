@@ -7,15 +7,26 @@ import sys
 
 import rfc8785
 
-from link_extraction import extract_links, extract_text, links_member, normalize_url
+from link_extraction import normalize_url
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
+DEFAULT_PARAMETERS = {"url_cap_bytes": 2048, "extract_cap_bytes": 32768, "links_cap_bytes": 4096,
+                      "link_url_cap_bytes": 2048, "summary_cap_bytes": 2048}
 HEADER_MEMBERS = frozenset({"wist_emission", "publisher", "collection", "mode"})
 TRAILER_MEMBERS = frozenset({"end", "count"})
 MAX_COUNT = 9007199254740991
 JSON_WS = " \t\n\r"
 HTML_WS = b" \t\n\f\r"
+TRIMMED = "\t\n\f\r "
+TEXT_WS = re.compile(r"[\t\n\f\r ]+")
+CHARACTER_REFERENCE = re.compile(r"&(?:(amp|lt|gt|quot|apos)|#([0-9]+)|#x([0-9A-Fa-f]+));")
+NAMED_REFERENCES = {"amp": "&", "lt": "<", "gt": ">", "quot": '"', "apos": "'"}
+RAW_TEXT = (b"script", b"style", b"textarea")
+TAG_OPENERS = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/!?"
+ASCII_UPPER = bytes(range(0x41, 0x5B))
+ASCII_LOWER = bytes(range(0x61, 0x7B))
+LOWER_A_TO_Z = bytes.maketrans(ASCII_UPPER, ASCII_LOWER)
 
 LANG = re.compile(r"[a-z]{2,3}(?:-[A-Za-z0-9]{1,8})*", re.ASCII)
 LANG_BYTES = re.compile(rb"[a-z]{2,3}(?:-[A-Za-z0-9]{1,8})*")
@@ -252,25 +263,166 @@ def keep_link(url, domain, params):
     return url is not None and jcs_len(url) <= params["link_url_cap_bytes"] and not internal(url, domain)
 
 
+def decode_utf8(octets):
+    # Unicode 16.0 section 3.9, Table 3-7 and U+FFFD Substitution of Maximal Subparts.
+    out = []
+    i, n = 0, len(octets)
+    while i < n:
+        lead = octets[i]
+        if lead < 0x80:
+            out.append(chr(lead))
+            i += 1
+            continue
+        if 0xC2 <= lead <= 0xDF:
+            ranges = [(0x80, 0xBF)]
+        elif lead == 0xE0:
+            ranges = [(0xA0, 0xBF), (0x80, 0xBF)]
+        elif 0xE1 <= lead <= 0xEC or 0xEE <= lead <= 0xEF:
+            ranges = [(0x80, 0xBF), (0x80, 0xBF)]
+        elif lead == 0xED:
+            ranges = [(0x80, 0x9F), (0x80, 0xBF)]
+        elif lead == 0xF0:
+            ranges = [(0x90, 0xBF), (0x80, 0xBF), (0x80, 0xBF)]
+        elif 0xF1 <= lead <= 0xF3:
+            ranges = [(0x80, 0xBF), (0x80, 0xBF), (0x80, 0xBF)]
+        elif lead == 0xF4:
+            ranges = [(0x80, 0x8F), (0x80, 0xBF), (0x80, 0xBF)]
+        else:
+            out.append("�")
+            i += 1
+            continue
+        j = 1
+        for low, high in ranges:
+            if i + j < n and low <= octets[i + j] <= high:
+                j += 1
+            else:
+                break
+        if j == len(ranges) + 1:
+            value = lead & (0x7F >> j)
+            for k in range(1, j):
+                value = (value << 6) | (octets[i + k] & 0x3F)
+            out.append(chr(value))
+        else:
+            out.append("�")
+        i += j
+    return "".join(out)
+
+
+def reference_value(match):
+    if match.group(1):
+        return NAMED_REFERENCES[match.group(1)]
+    digits, base = (match.group(2), 10) if match.group(2) else (match.group(3), 16)
+    digits = digits.lstrip("0") or "0"
+    if len(digits) > 7:
+        return None
+    code = int(digits, base)
+    if code > 0x10FFFF or 0xD800 <= code <= 0xDFFF:
+        return None
+    return chr(code)
+
+
+def decode_candidate(value):
+    out, at = [], 0
+    for match in CHARACTER_REFERENCE.finditer(value):
+        decoded = reference_value(match)
+        if decoded is None:
+            return None
+        out.append(value[at:match.start()])
+        out.append(decoded)
+        at = match.end()
+    out.append(value[at:])
+    return "".join(out)
+
+
+def decode_text_references(value):
+    def one(match):
+        decoded = reference_value(match)
+        return match.group() if decoded is None else decoded
+    return CHARACTER_REFERENCE.sub(one, value)
+
+
+def link_of(candidate, base, domain, params):
+    url = normalize_url(candidate.strip(TRIMMED), base)
+    return url if keep_link(url, domain, params) else None
+
+
+def distinct(urls):
+    seen, out = set(), []
+    for url in urls:
+        if url is not None and url not in seen:
+            seen.add(url)
+            out.append(url)
+    return out
+
+
+def html_links(octets, base, domain, params):
+    _, tags = scan_page(octets, (b"a",))
+    found = []
+    for _, attrs, _ in tags:
+        href = first_attr(attrs, b"href")
+        if href is None:
+            continue
+        candidate = decode_candidate(href.decode("utf-8"))
+        if candidate is not None:
+            found.append(link_of(candidate, base, domain, params))
+    return distinct(found)
+
+
+def declared_links(members, base, domain, params):
+    return distinct(link_of(member, base, domain, params) for member in members)
+
+
+def links_object(urls, cap):
+    kept = 0
+    while kept < len(urls) and jcs_len({"total": len(urls), "urls": urls[:kept + 1]}) <= cap:
+        kept += 1
+    return {"total": len(urls), "urls": urls[:kept]}
+
+
+def observed_text(octets):
+    low = octets.lower()
+    n = len(octets)
+    stripped = bytearray()
+    i = 0
+    while i < n:
+        if octets.startswith(b"<!--", i):
+            close = octets.find(b"-->", i + 4)
+            stripped += b" "
+            i = n if close == -1 else close + 3
+            continue
+        raw = next((t for t in RAW_TEXT if name_at(low, i, t)), None)
+        if raw is not None:
+            close = low.find(b"</" + raw, read_attributes(octets, low, i + 1 + len(raw))[1])
+            stripped += b" "
+            i = n if close == -1 else close
+            continue
+        stripped.append(octets[i])
+        i += 1
+    source, low, n = bytes(stripped), bytes(stripped).lower(), len(stripped)
+    text = bytearray()
+    i = 0
+    while i < n:
+        if source[i:i + 1] == b"<" and i + 1 < n and source[i + 1] in TAG_OPENERS:
+            text += b" "
+            i = read_attributes(source, low, i + 1)[1]
+            continue
+        text.append(source[i])
+        i += 1
+    return TEXT_WS.sub(" ", decode_text_references(decode_utf8(bytes(text)))).strip(" ")
+
+
 def derive(emission, url, domain, params):
     if "html" in emission:
         octets = emission["html"].encode("utf-8")
-        found, _ = extract_links(octets, url, domain)
-        urls = [u for u in found if keep_link(u, domain, params)]
-        extract = extract_text(octets)
+        urls = html_links(octets, url, domain, params)
+        extract = observed_text(octets)
     else:
-        urls, seen = [], set()
-        for member in emission.get("links", []):
-            u = normalize_url(member, url)
-            if keep_link(u, domain, params) and u not in seen:
-                seen.add(u)
-                urls.append(u)
+        urls = declared_links(emission.get("links", []), url, domain, params)
         extract = emission["text"]
     summary = {"title": emission["title"]}
     if "abstract" in emission:
         summary["abstract"] = emission["abstract"]
-    links = links_member(urls, len(urls), params["links_cap_bytes"])
-    return {"extract": extract, "links": links, "summary": summary}
+    return {"extract": extract, "links": links_object(urls, params["links_cap_bytes"]), "summary": summary}
 
 
 def emission_form_ok(obj, mode):
@@ -381,19 +533,12 @@ def apply_stream(octets, declaration, collection, params, published):
         mode, entries = read_stream(octets, declaration, collection, params)
     except Refusal as r:
         return {"refusal": r.name, "line": r.line}
-    base, removed = {}, []
-    for p in published:
-        if covers(declaration, collection, p["url"]):
-            base[p["url"]] = p
-        else:
-            removed.append(p["url"])
+    base = {p["url"]: p for p in published if covers(declaration, collection, p["url"])}
     added, changed, unchanged = [], [], []
     result = {} if mode == "complete" else dict(base)
     for url, pub in entries:
         if pub is None:
-            if url in result:
-                del result[url]
-                removed.append(url)
+            result.pop(url, None)
             continue
         if url in base and same_publication(base[url], pub):
             result[url] = base[url]
@@ -401,27 +546,12 @@ def apply_stream(octets, declaration, collection, params, published):
         else:
             (changed if url in base else added).append(url)
             result[url] = pub
-    if mode == "complete":
-        removed.extend(u for u in base if u not in result)
+    removed = [p["url"] for p in published if p["url"] not in result]
     return {
         "state": [result[u] for u in sorted(result, key=url_key)],
         "plan": {name: sorted(urls, key=url_key) for name, urls in
                  (("added", added), ("changed", changed), ("unchanged", unchanged), ("removed", removed))},
     }
-
-
-def tag_end(page, j):
-    n = len(page)
-    while j < n:
-        c = page[j:j + 1]
-        if c in (b'"', b"'"):
-            close = page.find(c, j + 1)
-            j = n if close == -1 else close + 1
-            continue
-        if c == b">":
-            return j
-        j += 1
-    return n
 
 
 def name_at(low, i, name):
@@ -466,7 +596,7 @@ def first_attr(attrs, name):
     return next((v for k, v in attrs if k == name), None)
 
 
-def scan_page(page):
+def scan_page(page, names=(b"a", b"meta", b"title", b"html")):
     low = page.lower()
     n = len(page)
     comments, tags = [], []
@@ -478,12 +608,12 @@ def scan_page(page):
             comments.append((i, end, page[i:end]))
             i = end
             continue
-        raw = next((t for t in (b"script", b"style", b"textarea") if name_at(low, i, t)), None)
+        raw = next((t for t in RAW_TEXT if name_at(low, i, t)), None)
         if raw is not None:
-            close = low.find(b"</" + raw, tag_end(page, i + 1 + len(raw)))
+            close = low.find(b"</" + raw, read_attributes(page, low, i + 1 + len(raw))[1])
             i = n if close == -1 else close
             continue
-        tag = next((t for t in (b"a", b"meta", b"title", b"html") if name_at(low, i, t)), None)
+        tag = next((t for t in names if name_at(low, i, t)), None)
         if tag is not None:
             attrs, end = read_attributes(page, low, i + 1 + len(tag))
             tags.append((tag, attrs, end))
@@ -509,21 +639,22 @@ def marked_emission(page, url, modified):
     if title_tag is not None:
         stop = page.lower().find(b"</title", title_tag[2])
         if stop != -1:
-            title = extract_text(page[title_tag[2]:stop])
+            title = observed_text(page[title_tag[2]:stop])
     lang = "und"
     html_tag = next((t for t in tags if t[0] == b"html"), None)
     if html_tag is not None:
         value = first_attr(html_tag[1], b"lang")
         if value is not None:
             dash = value.find(b"-")
-            value = value.lower() if dash == -1 else value[:dash].lower() + value[dash:]
+            primary, rest = (value, b"") if dash == -1 else (value[:dash], value[dash:])
+            value = primary.translate(LOWER_A_TO_Z) + rest
             if LANG_BYTES.fullmatch(value):
                 lang = value.decode("ascii")
     emission = {"url": url, "lang": lang, "modified": modified, "title": title}
     description = next((a for a in metas if first_attr(a, b"name") == b"description"), None)
     if description is not None and first_attr(description, b"content") is not None:
-        emission["abstract"] = extract_text(first_attr(description, b"content"))
-    emission["html"] = page[opening[1]:closing[0]].decode("utf-8", errors="replace")
+        emission["abstract"] = observed_text(first_attr(description, b"content"))
+    emission["html"] = decode_utf8(page[opening[1]:closing[0]])
     return emission
 
 
@@ -577,32 +708,79 @@ def octets_of(case, key):
     return case[key].encode("utf-8")
 
 
+class Unread(Exception):
+    pass
+
+
+def members_read(case, required, optional=frozenset(), one_of=()):
+    keys = set(case)
+    if not required <= keys:
+        raise Unread(f"missing members {sorted(required - keys)}")
+    for group in one_of:
+        if len(keys & group) != 1:
+            raise Unread(f"exactly one of {sorted(group)} expected")
+    extra = keys - required - optional - set().union(*one_of)
+    if extra:
+        raise Unread(f"members this verifier does not read: {sorted(extra)}")
+
+
+def declaration_read(declaration):
+    members_read(declaration, {"domain"}, {"subdomain_scope", "collections"})
+    for collection in declaration.get("collections", []):
+        members_read(collection, {"name", "scope"})
+        for entry in collection["scope"]:
+            members_read(entry, {"url", "match"})
+
+
+def default_parameters(case):
+    # ADR-0050 Streams: the reading uses every parameter at its WIST-4 section 5 default.
+    if case["parameters"] != DEFAULT_PARAMETERS:
+        raise Unread("parameters are not the WIST-4 section 5 defaults")
+    return DEFAULT_PARAMETERS
+
+
 def check_streams(case):
+    members_read(case, {"label", "publisher", "collection", "parameters", "published", "expected"},
+                 one_of=({"stream", "stream_base64"},))
+    declaration_read(case["publisher"])
+    for publication in case["published"]:
+        members_read(publication, {"url", "lang", "modified", "content"})
     actual = apply_stream(octets_of(case, "stream"), case["publisher"], case["collection"],
-                          case["parameters"], case["published"])
+                          default_parameters(case), case["published"])
     return difference(case["expected"], actual)
 
 
 def check_derivation(case):
-    declaration, params, emission = case["publisher"], case["parameters"], case["emission"]
+    members_read(case, {"label", "publisher", "collection", "parameters", "emission", "expected"},
+                 {"log_parameters", "page", "page_links", "page_extract"})
+    declaration_read(case["publisher"])
+    page_members = {"page", "page_links", "page_extract"} & set(case)
+    if page_members and len(page_members) != 3:
+        raise Unread("page, page_links and page_extract come together")
+    if "log_parameters" in case and set(case["log_parameters"]) != set(DEFAULT_PARAMETERS):
+        raise Unread("log_parameters is not a map of the five caps")
+    declaration, params, emission = case["publisher"], default_parameters(case), case["emission"]
     found = difference(case["expected"], publication_of(declaration, case["collection"], emission, params))
     if found or "page" not in case:
         return found
     page = case["page"].encode("utf-8")
-    domain = declaration["domain"]
     url = normalize_url(emission["url"], "")
-    urls = [u for u in extract_links(page, url, domain)[0] if keep_link(u, domain, params)]
-    found = difference(case["page_links"], links_member(urls, len(urls), params["links_cap_bytes"]), "$.page_links")
-    return found or difference(case["page_extract"], extract_text(page), "$.page_extract")
+    links = links_object(html_links(page, url, declaration["domain"], params), params["links_cap_bytes"])
+    found = difference(case["page_links"], links, "$.page_links")
+    return found or difference(case["page_extract"], observed_text(page), "$.page_extract")
 
 
 def check_marked(case):
+    members_read(case, {"label", "publisher", "url", "modified", "parameters", "expected"},
+                 one_of=({"page", "page_base64"},))
+    declaration_read(case["publisher"])
+    members_read(case["expected"], {"emission", "publication"})
     emission = marked_emission(octets_of(case, "page"), case["url"], case["modified"])
     found = difference(case["expected"]["emission"], emission, "$.emission")
     if found:
         return found
     publication = None if emission is None else publication_of(
-        case["publisher"], "default", emission, case["parameters"])
+        case["publisher"], "default", emission, default_parameters(case))
     return difference(case["expected"]["publication"], publication, "$.publication")
 
 
@@ -611,6 +789,7 @@ FAMILIES = (
     ("emission-derivation", check_derivation),
     ("marked-pages", check_marked),
 )
+FILE_MEMBERS = {"cases", "default_parameters", "note"}
 
 
 def main():
@@ -618,20 +797,26 @@ def main():
     failed = False
     for family, check in FAMILIES:
         failures = []
-        for case in json.loads((directory / f"{family}.json").read_text("utf-8"))["cases"]:
+        data = json.loads((directory / f"{family}.json").read_text("utf-8"))
+        if set(data) != FILE_MEMBERS:
+            failures.append(("file", f"members {sorted(set(data) ^ FILE_MEMBERS)} differ from {sorted(FILE_MEMBERS)}"))
+        elif data["default_parameters"] != DEFAULT_PARAMETERS:
+            failures.append(("file", "default_parameters are not the WIST-4 section 5 defaults"))
+        cases = data.get("cases", [])
+        for case in cases:
             try:
                 found = check(case)
             except Exception as e:
                 found = f"{type(e).__name__}: {e}"
             if found:
-                failures.append((case["label"], found))
+                failures.append((case.get("label"), found))
         if failures:
             failed = True
             label, found = failures[0]
             more = f" (and {len(failures) - 1} more failing cases)" if len(failures) > 1 else ""
-            print(f"FAIL {family}: {label}: {found}{more}")
+            print(f"FAIL {family}: {len(cases)} cases: {label}: {found}{more}")
         else:
-            print(f"PASS {family}")
+            print(f"PASS {family}: {len(cases)} cases recomputed")
     return 1 if failed else 0
 
 

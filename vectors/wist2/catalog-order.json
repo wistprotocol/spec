@@ -1,5 +1,5 @@
 {
-  "note": "ADR-0052 Catalog order. pull_cases judge the inner object `fetched`, pulled for the Publisher and Collection of `fetched_for`, against `last_accepted`, the inner object of that Collection's last accepted Catalog or null: WIST2-E04 when fetched.publisher or fetched.collection differs from `fetched_for`; `idempotent` when its Catalog ID (sha256: + hex(SHA-256(JCS(catalog)))) equals the last accepted one's, replacing nothing; WIST2-E05 when its generated_at is at or before the last accepted one's under another Catalog ID; `accepted` otherwise, the Catalog then replacing the last accepted one. Only these rules are judged, and each rejected case fails exactly one of them. next_cases give the generated_at a Publisher signs for a Collection whose served Catalog has generated_at `served` (null when none is served), at clock `clock` (a Publisher timestamp, WIST-1 section 3.4): the later of the clock cut to the whole second and served plus one second, as {\"generated_at\": ...}; when that instant is more than clock_skew_seconds after the clock cut to the whole second, the part that signs refuses, {\"refused\": \"catalog-instant\"}, and signs nothing.",
+  "note": "ADR-0052 Catalog order. pull_cases judge the inner object `fetched`, pulled for the Publisher and Collection of `fetched_for`, against `last_accepted`, the inner object of that Collection's last accepted Catalog or null, and `latest`, the inner object of its latest Catalog or null: WIST2-E04 when fetched.publisher or fetched.collection differs from `fetched_for`; `idempotent` when its Catalog ID (sha256: + hex(SHA-256(JCS(catalog)))) equals the last accepted one's or the latest one's, replacing nothing; WIST2-E05 when its generated_at is at or before the last accepted one's and it is no idempotent re-serve; `accepted` otherwise, the Catalog then replacing the last accepted one. Only these rules are judged, and each rejected case fails exactly one of them. next_cases give the generated_at a Publisher signs for a Collection whose served Catalog has generated_at `served` (null when none is served), at clock `clock` (a Publisher timestamp, WIST-1 section 3.4): the later of the clock cut to the whole second and served plus one second, as {\"generated_at\": ...}; when that instant is more than clock_skew_seconds after the clock cut to the whole second, the part that signs refuses, {\"refused\": \"catalog-instant\"}, and signs nothing. The part that signs reads clock_skew_seconds at its suite value, 600. due_cases give whether a Catalog of a Collection whose served Catalog has generated_at `served` is due at clock `clock`, whether or not its list changed: {\"due\": true} once the clock cut to the whole second is at or after served plus catalog_refresh_seconds, read at its suite value, 604 800 seconds, whatever a Log has amended, and at any clock when `served` is null, no Catalog being served.",
   "pull_cases": [
     {
       "name": "no Catalog accepted before",
@@ -8,6 +8,7 @@
         "collection": "journal"
       },
       "last_accepted": null,
+      "latest": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -26,6 +27,15 @@
         "collection": "journal"
       },
       "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
         "collection": "journal",
@@ -60,6 +70,15 @@
         "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -78,6 +97,15 @@
         "collection": "journal"
       },
       "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
         "collection": "journal",
@@ -112,6 +140,15 @@
         "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -130,6 +167,15 @@
         "collection": "journal"
       },
       "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
         "collection": "journal",
@@ -164,6 +210,15 @@
         "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -182,6 +237,15 @@
         "collection": "journal"
       },
       "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
         "collection": "journal",
@@ -216,6 +280,15 @@
         "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -234,6 +307,7 @@
         "collection": "journal"
       },
       "last_accepted": null,
+      "latest": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -244,6 +318,111 @@
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
       "expected": "WIST2-E04"
+    },
+    {
+      "name": "the latest Catalog, earlier than the last accepted one: an idempotent re-serve",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "expected": "idempotent"
+    },
+    {
+      "name": "earlier than the last accepted one with another Catalog ID than the latest Catalog's",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:01Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "expected": "WIST2-E05"
+    },
+    {
+      "name": "the last accepted Catalog while another is the latest Catalog: an idempotent re-serve",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "idempotent"
     }
   ],
   "next_cases": [
@@ -362,6 +541,80 @@
       "clock_skew_seconds": 600,
       "expected": {
         "refused": "catalog-instant"
+      }
+    }
+  ],
+  "due_cases": [
+    {
+      "name": "clock one second before the served instant plus catalog_refresh_seconds",
+      "clock": "2026-10-08T11:59:59Z",
+      "served": "2026-10-01T12:00:00Z",
+      "catalog_refresh_seconds": 604800,
+      "expected": {
+        "due": false
+      }
+    },
+    {
+      "name": "clock a fraction before the served instant plus catalog_refresh_seconds",
+      "clock": "2026-10-08T11:59:59.999Z",
+      "served": "2026-10-01T12:00:00Z",
+      "catalog_refresh_seconds": 604800,
+      "expected": {
+        "due": false
+      }
+    },
+    {
+      "name": "clock at the served instant plus catalog_refresh_seconds",
+      "clock": "2026-10-08T12:00:00Z",
+      "served": "2026-10-01T12:00:00Z",
+      "catalog_refresh_seconds": 604800,
+      "expected": {
+        "due": true
+      }
+    },
+    {
+      "name": "clock a fraction after the served instant plus catalog_refresh_seconds",
+      "clock": "2026-10-08T12:00:00.5Z",
+      "served": "2026-10-01T12:00:00Z",
+      "catalog_refresh_seconds": 604800,
+      "expected": {
+        "due": true
+      }
+    },
+    {
+      "name": "clock at the served instant plus catalog_refresh_seconds, at an offset",
+      "clock": "2026-10-08T14:00:00+02:00",
+      "served": "2026-10-01T12:00:00Z",
+      "catalog_refresh_seconds": 604800,
+      "expected": {
+        "due": true
+      }
+    },
+    {
+      "name": "clock one second after the served instant plus catalog_refresh_seconds",
+      "clock": "2026-10-08T12:00:01Z",
+      "served": "2026-10-01T12:00:00Z",
+      "catalog_refresh_seconds": 604800,
+      "expected": {
+        "due": true
+      }
+    },
+    {
+      "name": "clock at the served instant",
+      "clock": "2026-10-01T12:00:00Z",
+      "served": "2026-10-01T12:00:00Z",
+      "catalog_refresh_seconds": 604800,
+      "expected": {
+        "due": false
+      }
+    },
+    {
+      "name": "no Catalog served: due at any clock",
+      "clock": "2026-10-01T12:00:00Z",
+      "served": null,
+      "catalog_refresh_seconds": 604800,
+      "expected": {
+        "due": true
       }
     }
   ]

@@ -117,6 +117,12 @@ WIST-5 assigns the codes.
 
 A removal's URL is read for `url` and `duplicate` alone.
 
+The part that reads a stream or signs reads every parameter at its
+default in WIST-4 §5, `url_cap_bytes`, `extract_cap_bytes`,
+`summary_cap_bytes`, `links_cap_bytes` and `link_url_cap_bytes`
+included, whatever a Log has amended, since a Publisher reads no Log's
+parameters.
+
 Each Emission yields one publication: its URL, `lang`, `modified` and
 the Payload's `content` (WIST-1 §3.6), whose `summary` carries `title`
 and, where present, `abstract`, unchanged.
@@ -125,8 +131,10 @@ A stream is applied to the Collection's published publications, from
 which those the Scope no longer covers are first taken out. A complete
 stream leaves exactly its own publications. An incremental stream
 replaces or adds the publication of each Emission and takes out the
-one each removal names; a removal that names no published URL has no
-effect. A publication whose `lang` and `JCS(content)` equal the
+one each removal names; a removal that names no published URL changes
+no publication and is in no list of the plan, and the list of a
+Catalog takes an Item of kind `removed` for its URL where ADR-0052
+(From publications to Items) gives one. A publication whose `lang` and `JCS(content)` equal the
 published one's is unchanged and keeps the published `modified`.
 
 The application states its plan in four lists of URLs. `added`,
@@ -134,7 +142,8 @@ The application states its plan in four lists of URLs. `added`,
 the published publications, after those outside the Scope were taken
 out, lack it, hold it with another `lang` or `content`, or hold it
 unchanged. `removed` holds each published URL the result lacks. A
-publication an incremental stream does not name is in no list.
+publication an incremental stream does not name and the result holds
+is in no list.
 
 ### `links`
 
@@ -151,12 +160,17 @@ WIST-2 §11 and §12 remain the suite's deterministic procedures. They
 apply to the content a Publisher emits, and to a served page only for a
 party that chooses to compare the page with the publication.
 
-Both procedures read the UTF-8 octets of `html`. §11 step 5 resolves
-against the Emission's URL, and step 7 reads the header's `publisher`.
-An `extract` derived from `text` is `text`, unchanged. Each member of
-an Emission's `links` passes §11 steps 5 to 8, without the character
+Both procedures read the UTF-8 octets of `html`. Each member of an
+Emission's `links` passes §11 steps 5 to 8, without the character
 references of step 4; an Emission of `text` without `links` declares
-`{"total": 0, "urls": []}`.
+`{"total": 0, "urls": []}`. Before step 5, every leading and trailing
+tab, LF, FF, CR and space (0x09, 0x0A, 0x0C, 0x0D, 0x20) is removed
+from the candidate, and no other character: the candidate is the
+decoded `href` value for an HTML fragment and the member as spelled
+for an Emission's `links`, so that one string declares the same link
+in both forms. Step 5 resolves against the Emission's URL, and step 7
+reads the header's `publisher`. An `extract` derived from `text` is
+`text`, unchanged.
 
 A link whose `JCS` serialization exceeds `link_url_cap_bytes` (WIST-1
 §3.6) is discarded at step 6 with the links that have no Normalized
@@ -180,16 +194,21 @@ of `a`. The start tags it reads so are those of `a`, `meta`, `title`
 and `html`; a comment opens inside any other tag as §11 step 1 has it
 open anywhere. Attribute values are compared and taken as octets,
 before any character reference is decoded, and an attribute without a
-value has the empty value.
+value has the empty value. Where the profile decodes octets as UTF-8,
+in the `html` row and at WIST-2 §12 step 3 for `title` and `abstract`,
+each maximal subpart of an ill-formed subsequence (Unicode 16.0 §3.9,
+"U+FFFD Substitution of Maximal Subparts") is replaced by one U+FFFD.
+The octets of an Emission's `html` are well-formed UTF-8 by the form
+of a stream, so §12 step 3 replaces nothing in them.
 
 | Part | Source in the page |
 |---|---|
 | Marker | A `meta` start tag whose first `name` attribute is `wist` and whose first `content` attribute is `publish` |
 | Region | The octets between the first comment `<!--wist:content-->` and the first comment `<!--/wist:content-->` after it, both found outside raw-text elements |
-| `html` | The region, decoded as UTF-8 with each invalid sequence replaced by U+FFFD |
+| `html` | The region, decoded as UTF-8 |
 | `title` | §12 applied to the octets between the first `title` start tag and the next `</title` in the octets after it, inside a comment or not, compared without case; the empty string where the page has no such start tag or no `</title` after it |
 | `abstract` | §12 applied to the first `content` attribute of the first `meta` start tag whose first `name` attribute is `description`; absent where the page has no such tag or that tag has no `content` |
-| `lang` | The first `lang` attribute of the first `html` start tag, with the letters before its first `-` in lowercase, where the result is in the profile of WIST-1 §3.7; `und` otherwise |
+| `lang` | The first `lang` attribute of the first `html` start tag, with each of the letters A to Z (0x41 to 0x5A) before its first `-`, or in the whole value where it has none, mapped to a to z and no other character mapped, where the result is in the profile of WIST-1 §3.7; `und` otherwise |
 | `modified` | The instant the Emitter's source gives for the page's last change, or the instant of reading; never the page |
 
 A page with the marker and without a whole region is not emitted. A
@@ -245,10 +264,18 @@ carries it.
 
 Vectors carry: an Emission whose HTML fragment holds links the page
 around it does not; an Emission of text with declared links; declared
-links truncated at `links_cap_bytes`; a complete stream and an
+links truncated at `links_cap_bytes`; an `href` and a declared link,
+each with a leading and a trailing space, yielding the link the same
+value without them yields, and a candidate that begins with U+00A0,
+trimmed in neither form; an `extract` of a fragment holding U+3000,
+U+00A0 and U+000B between words, each kept; a complete stream and an
 incremental one that reach the same publications; an Emission refused
-for a URL outside its Scope; a marked page, the same page without its
-marker, and a marked page whose region is empty.
+for a URL outside its Scope; a published URL the Scope no longer
+covers, which an incremental stream does not name, in `removed`; a
+marked page, the same page without its marker, and a marked page whose
+region is empty; a region holding the octets `F0 80 80`, which give
+three U+FFFD, and `E2 82 41`, which give U+FFFD then `A`; a `lang` of
+`Ko` spelled with U+212A, which gives `und`.
 
 They are `vectors/wist5/emission-streams.json`,
 `emission-derivation.json` and `marked-pages.json`, generated by

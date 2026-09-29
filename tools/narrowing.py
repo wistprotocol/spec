@@ -1,4 +1,5 @@
 import calendar
+import copy
 import datetime
 import re
 
@@ -32,9 +33,9 @@ def public_raw(entry):
     return rules.canonical_b64url(entry["x"], 32)
 
 
-def validated(envelope, parameters):
+def validated(envelope, parameters, read_parameters=True):
     try:
-        rules.validate_declaration(envelope, parameters)
+        rules.validate_declaration(envelope, parameters, read_parameters)
     except rules.RuleViolation as violation:
         raise HistoryRejected(violation.code, violation.reason) from None
     return envelope["publisher"]
@@ -80,10 +81,11 @@ def check_continuity(predecessor, incoming, classification, signer):
 
 def evaluate_replacement(predecessor_envelope, envelope, parameters=None):
     try:
-        predecessor = validated(predecessor_envelope, parameters)
-        incoming = validated(envelope, parameters)
+        predecessor = validated(predecessor_envelope, parameters, read_parameters=False)
+        incoming = validated(envelope, parameters, read_parameters=False)
         if rfc8785.dumps(incoming) == rfc8785.dumps(predecessor):
             return "idempotent"
+        validated(envelope, parameters)
         if incoming["seq"] <= predecessor["seq"]:
             raise HistoryRejected("WIST1-E08", "seq not above the accepted floor")
         if incoming.get("prev_declaration") != rules.declaration_hash(predecessor):
@@ -130,11 +132,11 @@ class Replay:
         transitions.append({"kind": kind, "declaration": rules.declaration_hash(publisher),
                             "narrows": False, "removed": []})
 
-    def open_window(self, publisher, sealed_at):
+    def open_window(self, before, publisher, sealed_at):
         end = sealed_at + self.recovery_window_days * DAY_S
         if end > LOG_TIMESTAMP_MAX_S:
             raise HistoryRejected("WIST1-E08", "recovery window end beyond the last Log timestamp")
-        self.window = {"end": end, "chain_head": publisher}
+        self.window = {"end": end, "chain_head": publisher, "before": before, "owner": publisher}
 
     def activate(self, height, transitions):
         head = self.pending["head"]
@@ -142,19 +144,39 @@ class Replay:
         self.pending = None
         self.narrow("activation", head, height, transitions)
 
+    def served_again(self, publisher):
+        digest = rules.declaration_hash(publisher)
+        heads = [self.current] + ([self.pending["head"]] if self.pending else [])
+        return any(head is not None and digest == rules.declaration_hash(head) for head in heads)
+
+    def chain_head_served_again(self, publisher):
+        return (self.window is not None and not self.served_again(publisher)
+                and rules.declaration_hash(publisher) == rules.declaration_hash(self.window["chain_head"]))
+
+    def sources(self):
+        if self.window:
+            return [self.window["before"], self.window["owner"]]
+        return [self.current] if self.current is not None else []
+
+    def fetch(self, envelope, height, sealed_at, transitions):
+        incoming = validated(envelope, self.parameters, read_parameters=False)
+        if self.chain_head_served_again(incoming):
+            self.still("recovery_chain_head", incoming, transitions)
+            return
+        self.apply(envelope, height, sealed_at, transitions)
+
     def apply(self, envelope, height, sealed_at, transitions):
-        incoming = validated(envelope, self.parameters)
-        digest = rules.declaration_hash(incoming)
+        incoming = validated(envelope, self.parameters, read_parameters=False)
+        if self.current is not None and self.served_again(incoming):
+            self.still("idempotent", incoming, transitions)
+            return
+        validated(envelope, self.parameters)
         if self.current is None:
             if incoming["seq"] != 0 or "prev_declaration" in incoming:
                 raise HistoryRejected("WIST1-E08", "the first Declaration of a history is not seq 0")
             authenticate(None, envelope)
             self.current, self.floor = incoming, 0
             self.still("initial", incoming, transitions)
-            return
-        if digest == rules.declaration_hash(self.current) or (
-                self.pending and digest == rules.declaration_hash(self.pending["head"])):
-            self.still("idempotent", incoming, transitions)
             return
         if incoming["seq"] <= self.floor:
             raise HistoryRejected("WIST1-E08", "seq not above the accepted floor")
@@ -180,7 +202,7 @@ class Replay:
             if classification == "ordinary_rotation":
                 self.narrow("reversal_ordinary_rotation", incoming, height, transitions)
             else:
-                self.open_window(incoming, sealed_at)
+                self.open_window(predecessor, incoming, sealed_at)
                 self.still("reversal_recovery_rotation", incoming, transitions)
             return
         if self.window:
@@ -196,7 +218,7 @@ class Replay:
             self.narrow("ordinary_rotation", incoming, height, transitions)
         elif classification == "recovery_rotation":
             self.current = incoming
-            self.open_window(incoming, sealed_at)
+            self.open_window(predecessor, incoming, sealed_at)
             self.still("recovery_rotation", incoming, transitions)
         else:
             self.pending = {"head": incoming, "activation_height": height + self.declaration_activation_epochs}
@@ -278,11 +300,40 @@ def pull_sources(known_envelope, fetch_outcome, fetched_envelope, parameters=Non
     return acceptance, []
 
 
-def collections_pulled(known_envelope, fetch_outcome, fetched_envelope, parameters=None):
-    acceptance, sources = pull_sources(known_envelope, fetch_outcome, fetched_envelope, parameters)
+def collection_names(sources):
     names = []
     for publisher in sources:
         for collection in rules.collections_of(publisher):
             if collection["name"] not in names:
                 names.append(collection["name"])
-    return acceptance, names
+    return names
+
+
+def collections_pulled(known_envelope, fetch_outcome, fetched_envelope, parameters=None):
+    acceptance, sources = pull_sources(known_envelope, fetch_outcome, fetched_envelope, parameters)
+    return acceptance, collection_names(sources)
+
+
+def stopped_pull(replay, acceptance):
+    first_contact = replay.current is None
+    return {"acceptance": acceptance, "proceeds": False, "sources": [], "collections_pulled": [],
+            "disposition": "WIST2-E04" if first_contact else "WIST2-E01", "noise": first_contact}
+
+
+def pull(replay, fetch_outcome, fetched_envelope, height, sealed_at, discovered=()):
+    if not rules.pull_proceeds(fetch_outcome):
+        return stopped_pull(replay, "not_fetched")
+    state = copy.deepcopy(replay)
+    for envelope in discovered:
+        try:
+            state.apply(envelope, height, sealed_at, [])
+        except HistoryRejected:
+            continue
+    transitions = []
+    try:
+        state.fetch(fetched_envelope, height, sealed_at, transitions)
+    except HistoryRejected as rejection:
+        return stopped_pull(replay, rejection.code)
+    sources = state.sources()
+    return {"acceptance": transitions[0]["kind"], "proceeds": True, "sources": sources,
+            "collections_pulled": collection_names(sources), "disposition": None, "noise": False}

@@ -40,6 +40,13 @@ class Queue:
         self.first = {}
         self.frozen = {}
 
+    @property
+    def opened(self):
+        return self.end is not None
+
+    def open(self, end):
+        self.end = end
+
     def sources(self):
         return [self.before, self.owner]
 
@@ -56,8 +63,11 @@ class Queue:
         return "accepted"
 
     def enqueue(self, name, key, entry):
-        self.held[(name, key)] = {**entry, "key": key}
-        self.first.setdefault(name, entry["place"])
+        if name not in self.first or entry["place"] < self.first[name]:
+            self.first[name] = entry["place"]
+        queued = self.held.get((name, key))
+        if queued is None or order_key(entry) > order_key(queued):
+            self.held[(name, key)] = {**entry, "key": key}
 
     def names(self):
         return sorted({name for name, _ in self.held}, key=str.encode)
@@ -72,6 +82,8 @@ class Queue:
             if code is None and (name not in survivors or order_key(entry) > order_key(survivors[name])):
                 survivors[name] = entry
         for result in results:
-            if result["outcome"] == "survivor" and survivors[result["collection"]]["catalog"] != result["catalog"]:
+            taken = survivors.get(result["collection"])
+            if result["outcome"] == "survivor" and (taken["catalog"], taken["key"]) != (result["catalog"],
+                                                                                          result["key"]):
                 result["outcome"] = "not_latest"
         return results, survivors

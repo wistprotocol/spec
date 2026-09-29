@@ -1,5 +1,4 @@
 import catalogs
-import items
 
 
 def order_key(generated_at, catalog_id):
@@ -22,8 +21,7 @@ def combined_state(states):
     held = {log: state for log, state in states.items() if state is not None}
     if not held:
         return None
-    latest = max(held.values(), key=state_key)
-    logs = sorted(log for log, state in held.items() if state_key(state) == state_key(latest))
-    if any(items.jcs(held[log]) != items.jcs(latest) for log in logs):
-        raise ValueError("two states proved against one Catalog differ")
+    latest = max(held.values(), key=lambda state: (state_key(state), state["item"].encode()))
+    logs = sorted(log for log, state in held.items()
+                  if state_key(state) == state_key(latest) and state["item"] == latest["item"])
     return {"state": latest, "logs": logs}

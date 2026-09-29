@@ -2877,9 +2877,11 @@ NON_CONTENT_VALUES = {
 
 PULL_FIXTURE_CATALOG_NAMES = {
     "vectors/wist3/catalog-waiting.json": (
-        "B1", "J1", "J1b", "J1c", "J1m", "J2", "J2x", "J2y", "J3", "J4", "S1", "S2", "S3"),
+        "B1", "J1", "J1b", "J1c", "J1m", "J2", "J2x", "J2y", "J3", "J4", "S1", "S2", "S3",
+        "J1 a.example.com", "J1 b.example.com", "J2 a.example.com", "J2 b.example.com",
+        "S1 a.example.com", "S1 b.example.com", "S2 a.example.com", "S2 b.example.com"),
     "vectors/wist1/catalog-recovery.json": (
-        "D1", "J1", "J2", "J3", "J4", "J4j", "S0", "S1", "S1b", "S2", "So"),
+        "D1", "J0", "J0b", "J1", "J1r", "J2", "J2b", "J2e", "J3", "J4", "J4j", "S0", "S1", "S1b", "S2", "So", "W1"),
     "vectors/wist2/collection-pull.json": ("Da", "Db", "J1", "J1j", "J2", "J3", "S1"),
 }
 
@@ -2907,6 +2909,9 @@ for _rel, _names in PULL_FIXTURE_CATALOG_NAMES.items():
         for name in _names})
 for _rel in ("vectors/wist3/catalog-waiting.json", "vectors/wist2/collection-pull.json"):
     NON_CONTENT_VALUES[(_rel, "outcome")] = "a Declaration outcome name, no page content"
+for _rel in ("vectors/wist3/catalog-sealing.json", "vectors/wist2/collection-pull.json"):
+    NON_CONTENT_VALUES[(_rel, "delta_id")] = ("the Item ID a payload_withdrawal names (ADR-0052): SHA-256 over an Item "
+                                              "that carries only a salted commitment")
 
 
 def _spec_derived_constants():

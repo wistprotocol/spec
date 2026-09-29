@@ -1,5 +1,5 @@
 {
-  "note": "ADR-0051 Collections: the form, count and size rules of a Declaration's `collections` member. Each case validates `envelope` under `parameters` (collections_max, scope_entries_max, url_cap_bytes); `expected` is `accepted` or the rejection code. Entry size is the octet length of JCS({\"type\": \"publisher_declaration\", \"body\": envelope}) (WIST-3 section 3.3). An entry's host is compared without its port. Each rejected case fails exactly one rule, so no precedence among codes is exercised. Keys derive from the stated test-only seeds.",
+  "note": "ADR-0051 Collections: the form, count and size rules of a Declaration's `collections` member. Each case validates `envelope` under `parameters` (collections_max, scope_entries_max, url_cap_bytes), a map that amends neither count below 16 and 32; `expected` is `accepted` or the rejection code. Entry size is the octet length of JCS({\"type\": \"publisher_declaration\", \"body\": envelope}) (WIST-3 section 3.3). An entry's host is compared without its port. Each rejected case fails exactly one rule, so no precedence among codes is exercised. Keys derive from the stated test-only seeds.",
   "keys": {
     "owner": {
       "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
@@ -1265,10 +1265,10 @@
       "expected": "WIST1-E16"
     },
     {
-      "name": "lowered bounds: two Collections, three entries",
+      "name": "raised bounds: twenty-four Collections, one of forty-eight entries",
       "parameters": {
-        "collections_max": 2,
-        "scope_entries_max": 3,
+        "collections_max": 24,
+        "scope_entries_max": 48,
         "url_cap_bytes": 2048
       },
       "envelope": {
@@ -1300,37 +1300,406 @@
           ],
           "collections": [
             {
-              "name": "journal",
+              "name": "c01",
               "scope": [
                 {
-                  "url": "https://example.com/journal/",
+                  "url": "https://example.com/c01/",
                   "match": "prefix"
-                }
-              ],
-              "keys": [
-                {
-                  "kty": "OKP",
-                  "crv": "Ed25519",
-                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
-                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
-                  "nbf": 1788220800
                 }
               ]
             },
             {
-              "name": "store",
+              "name": "c02",
               "scope": [
                 {
-                  "url": "https://example.com/store/",
+                  "url": "https://example.com/c02/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c03",
+              "scope": [
+                {
+                  "url": "https://example.com/c03/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c04",
+              "scope": [
+                {
+                  "url": "https://example.com/c04/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c05",
+              "scope": [
+                {
+                  "url": "https://example.com/c05/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c06",
+              "scope": [
+                {
+                  "url": "https://example.com/c06/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c07",
+              "scope": [
+                {
+                  "url": "https://example.com/c07/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c08",
+              "scope": [
+                {
+                  "url": "https://example.com/c08/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c09",
+              "scope": [
+                {
+                  "url": "https://example.com/c09/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c10",
+              "scope": [
+                {
+                  "url": "https://example.com/c10/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c11",
+              "scope": [
+                {
+                  "url": "https://example.com/c11/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c12",
+              "scope": [
+                {
+                  "url": "https://example.com/c12/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c13",
+              "scope": [
+                {
+                  "url": "https://example.com/c13/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c14",
+              "scope": [
+                {
+                  "url": "https://example.com/c14/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c15",
+              "scope": [
+                {
+                  "url": "https://example.com/c15/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c16",
+              "scope": [
+                {
+                  "url": "https://example.com/c16/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c17",
+              "scope": [
+                {
+                  "url": "https://example.com/c17/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c18",
+              "scope": [
+                {
+                  "url": "https://example.com/c18/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c19",
+              "scope": [
+                {
+                  "url": "https://example.com/c19/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c20",
+              "scope": [
+                {
+                  "url": "https://example.com/c20/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c21",
+              "scope": [
+                {
+                  "url": "https://example.com/c21/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c22",
+              "scope": [
+                {
+                  "url": "https://example.com/c22/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c23",
+              "scope": [
+                {
+                  "url": "https://example.com/c23/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c24",
+              "scope": [
+                {
+                  "url": "https://example.com/c24/e01",
                   "match": "prefix"
                 },
                 {
-                  "url": "https://example.com/cart",
-                  "match": "exact"
+                  "url": "https://example.com/c24/e02",
+                  "match": "prefix"
                 },
                 {
-                  "url": "https://example.com/checkout",
-                  "match": "exact"
+                  "url": "https://example.com/c24/e03",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e04",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e05",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e06",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e07",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e08",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e09",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e10",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e11",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e12",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e13",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e14",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e15",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e16",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e17",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e18",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e19",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e20",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e21",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e22",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e23",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e24",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e25",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e26",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e27",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e28",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e29",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e30",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e31",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e32",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e33",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e34",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e35",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e36",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e37",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e38",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e39",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e40",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e41",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e42",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e43",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e44",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e45",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e46",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e47",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e48",
+                  "match": "prefix"
                 }
               ]
             }
@@ -1339,16 +1708,16 @@
         "sig": {
           "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
           "alg": "Ed25519",
-          "value": "DaYSSpf23kxvjVM6lUb9qSBwdkM04oW40C7bA1jlw_lfAwTRdhDbtjrwALgQm16Ve2yplR9VV1tcom4eh5PYBw"
+          "value": "4js306fLYMPCpBC8z9KfPYPAadNvA3yStLUE7sqETwvh5sAIS6HyYliUBLj_sA0zbQFlNHFRgt6NhNnxjFK_Cg"
         }
       },
       "expected": "accepted"
     },
     {
-      "name": "lowered bounds: three Collections",
+      "name": "raised bounds: seventeen Collections",
       "parameters": {
-        "collections_max": 2,
-        "scope_entries_max": 3,
+        "collections_max": 24,
+        "scope_entries_max": 48,
         "url_cap_bytes": 2048
       },
       "envelope": {
@@ -1380,45 +1749,278 @@
           ],
           "collections": [
             {
-              "name": "journal",
+              "name": "c01",
               "scope": [
                 {
-                  "url": "https://example.com/journal/",
+                  "url": "https://example.com/c01/",
                   "match": "prefix"
-                }
-              ],
-              "keys": [
-                {
-                  "kty": "OKP",
-                  "crv": "Ed25519",
-                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
-                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
-                  "nbf": 1788220800
                 }
               ]
             },
             {
-              "name": "store",
+              "name": "c02",
               "scope": [
                 {
-                  "url": "https://example.com/store/",
+                  "url": "https://example.com/c02/",
                   "match": "prefix"
-                },
-                {
-                  "url": "https://example.com/cart",
-                  "match": "exact"
-                },
-                {
-                  "url": "https://example.com/checkout",
-                  "match": "exact"
                 }
               ]
             },
             {
-              "name": "docs",
+              "name": "c03",
               "scope": [
                 {
-                  "url": "https://example.com/docs/",
+                  "url": "https://example.com/c03/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c04",
+              "scope": [
+                {
+                  "url": "https://example.com/c04/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c05",
+              "scope": [
+                {
+                  "url": "https://example.com/c05/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c06",
+              "scope": [
+                {
+                  "url": "https://example.com/c06/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c07",
+              "scope": [
+                {
+                  "url": "https://example.com/c07/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c08",
+              "scope": [
+                {
+                  "url": "https://example.com/c08/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c09",
+              "scope": [
+                {
+                  "url": "https://example.com/c09/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c10",
+              "scope": [
+                {
+                  "url": "https://example.com/c10/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c11",
+              "scope": [
+                {
+                  "url": "https://example.com/c11/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c12",
+              "scope": [
+                {
+                  "url": "https://example.com/c12/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c13",
+              "scope": [
+                {
+                  "url": "https://example.com/c13/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c14",
+              "scope": [
+                {
+                  "url": "https://example.com/c14/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c15",
+              "scope": [
+                {
+                  "url": "https://example.com/c15/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c16",
+              "scope": [
+                {
+                  "url": "https://example.com/c16/e01",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e02",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e03",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e04",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e05",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e06",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e07",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e08",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e09",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e10",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e11",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e12",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e13",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e14",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e15",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e16",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e17",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e18",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e19",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e20",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e21",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e22",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e23",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e24",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e25",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e26",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e27",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e28",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e29",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e30",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e31",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e32",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c17",
+              "scope": [
+                {
+                  "url": "https://example.com/c17/",
                   "match": "prefix"
                 }
               ]
@@ -1428,16 +2030,665 @@
         "sig": {
           "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
           "alg": "Ed25519",
-          "value": "zxIRN3ZazbydPhciVTtaGkRsDFCIG4fVmZiJ8UWz__PwcETIg73wfCrpYxL25kM-hDdjBfeOTt_aeD22R7dGDw"
+          "value": "4MPBDsmXCqU5oEjq4o-TKwOpcTOZXJr4n4p7Ti-EgWdOJdoj_TxDlU5Qn1b2idP-cZUoEp5I_s1whxuJlId9AA"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "raised bounds: thirty-three entries in one Scope",
+      "parameters": {
+        "collections_max": 24,
+        "scope_entries_max": 48,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "c01",
+              "scope": [
+                {
+                  "url": "https://example.com/c01/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c16",
+              "scope": [
+                {
+                  "url": "https://example.com/c16/e01",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e02",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e03",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e04",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e05",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e06",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e07",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e08",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e09",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e10",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e11",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e12",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e13",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e14",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e15",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e16",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e17",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e18",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e19",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e20",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e21",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e22",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e23",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e24",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e25",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e26",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e27",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e28",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e29",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e30",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e31",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e32",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c16/e33",
+                  "match": "exact"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "565VySIRVfCYt67CflBqwIbPlcTMERhWC_lIaevmBj25E-G0kRosauuM1CJPMgLusWEZXhmItSkYzRRo2Ea1Dg"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "raised bounds: twenty-five Collections",
+      "parameters": {
+        "collections_max": 24,
+        "scope_entries_max": 48,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "c01",
+              "scope": [
+                {
+                  "url": "https://example.com/c01/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c02",
+              "scope": [
+                {
+                  "url": "https://example.com/c02/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c03",
+              "scope": [
+                {
+                  "url": "https://example.com/c03/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c04",
+              "scope": [
+                {
+                  "url": "https://example.com/c04/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c05",
+              "scope": [
+                {
+                  "url": "https://example.com/c05/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c06",
+              "scope": [
+                {
+                  "url": "https://example.com/c06/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c07",
+              "scope": [
+                {
+                  "url": "https://example.com/c07/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c08",
+              "scope": [
+                {
+                  "url": "https://example.com/c08/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c09",
+              "scope": [
+                {
+                  "url": "https://example.com/c09/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c10",
+              "scope": [
+                {
+                  "url": "https://example.com/c10/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c11",
+              "scope": [
+                {
+                  "url": "https://example.com/c11/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c12",
+              "scope": [
+                {
+                  "url": "https://example.com/c12/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c13",
+              "scope": [
+                {
+                  "url": "https://example.com/c13/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c14",
+              "scope": [
+                {
+                  "url": "https://example.com/c14/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c15",
+              "scope": [
+                {
+                  "url": "https://example.com/c15/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c16",
+              "scope": [
+                {
+                  "url": "https://example.com/c16/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c17",
+              "scope": [
+                {
+                  "url": "https://example.com/c17/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c18",
+              "scope": [
+                {
+                  "url": "https://example.com/c18/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c19",
+              "scope": [
+                {
+                  "url": "https://example.com/c19/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c20",
+              "scope": [
+                {
+                  "url": "https://example.com/c20/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c21",
+              "scope": [
+                {
+                  "url": "https://example.com/c21/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c22",
+              "scope": [
+                {
+                  "url": "https://example.com/c22/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c23",
+              "scope": [
+                {
+                  "url": "https://example.com/c23/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c24",
+              "scope": [
+                {
+                  "url": "https://example.com/c24/e01",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e02",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e03",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e04",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e05",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e06",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e07",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e08",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e09",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e10",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e11",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e12",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e13",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e14",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e15",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e16",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e17",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e18",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e19",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e20",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e21",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e22",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e23",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e24",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e25",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e26",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e27",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e28",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e29",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e30",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e31",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e32",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e33",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e34",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e35",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e36",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e37",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e38",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e39",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e40",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e41",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e42",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e43",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e44",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e45",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e46",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e47",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e48",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c25",
+              "scope": [
+                {
+                  "url": "https://example.com/c25/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "LB1O2eywFW-WL-tzFOK_BG26XdUfhjzRPnOFp04p5_SDsvkCwGMg1s-EPbxS-eX6yJHAQYj5BX4IJMiiHl1GBA"
         }
       },
       "expected": "WIST1-E16"
     },
     {
-      "name": "lowered bounds: four entries",
+      "name": "raised bounds: forty-nine entries in one Scope",
       "parameters": {
-        "collections_max": 2,
-        "scope_entries_max": 3,
+        "collections_max": 24,
+        "scope_entries_max": 48,
         "url_cap_bytes": 2048
       },
       "envelope": {
@@ -1469,40 +2720,409 @@
           ],
           "collections": [
             {
-              "name": "journal",
+              "name": "c01",
               "scope": [
                 {
-                  "url": "https://example.com/journal/",
+                  "url": "https://example.com/c01/",
                   "match": "prefix"
-                }
-              ],
-              "keys": [
-                {
-                  "kty": "OKP",
-                  "crv": "Ed25519",
-                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
-                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
-                  "nbf": 1788220800
                 }
               ]
             },
             {
-              "name": "store",
+              "name": "c02",
               "scope": [
                 {
-                  "url": "https://example.com/store/",
+                  "url": "https://example.com/c02/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c03",
+              "scope": [
+                {
+                  "url": "https://example.com/c03/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c04",
+              "scope": [
+                {
+                  "url": "https://example.com/c04/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c05",
+              "scope": [
+                {
+                  "url": "https://example.com/c05/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c06",
+              "scope": [
+                {
+                  "url": "https://example.com/c06/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c07",
+              "scope": [
+                {
+                  "url": "https://example.com/c07/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c08",
+              "scope": [
+                {
+                  "url": "https://example.com/c08/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c09",
+              "scope": [
+                {
+                  "url": "https://example.com/c09/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c10",
+              "scope": [
+                {
+                  "url": "https://example.com/c10/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c11",
+              "scope": [
+                {
+                  "url": "https://example.com/c11/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c12",
+              "scope": [
+                {
+                  "url": "https://example.com/c12/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c13",
+              "scope": [
+                {
+                  "url": "https://example.com/c13/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c14",
+              "scope": [
+                {
+                  "url": "https://example.com/c14/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c15",
+              "scope": [
+                {
+                  "url": "https://example.com/c15/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c16",
+              "scope": [
+                {
+                  "url": "https://example.com/c16/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c17",
+              "scope": [
+                {
+                  "url": "https://example.com/c17/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c18",
+              "scope": [
+                {
+                  "url": "https://example.com/c18/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c19",
+              "scope": [
+                {
+                  "url": "https://example.com/c19/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c20",
+              "scope": [
+                {
+                  "url": "https://example.com/c20/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c21",
+              "scope": [
+                {
+                  "url": "https://example.com/c21/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c22",
+              "scope": [
+                {
+                  "url": "https://example.com/c22/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c23",
+              "scope": [
+                {
+                  "url": "https://example.com/c23/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "c24",
+              "scope": [
+                {
+                  "url": "https://example.com/c24/e01",
                   "match": "prefix"
                 },
                 {
-                  "url": "https://example.com/cart",
-                  "match": "exact"
+                  "url": "https://example.com/c24/e02",
+                  "match": "prefix"
                 },
                 {
-                  "url": "https://example.com/checkout",
-                  "match": "exact"
+                  "url": "https://example.com/c24/e03",
+                  "match": "prefix"
                 },
                 {
-                  "url": "https://example.com/orders",
+                  "url": "https://example.com/c24/e04",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e05",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e06",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e07",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e08",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e09",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e10",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e11",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e12",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e13",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e14",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e15",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e16",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e17",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e18",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e19",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e20",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e21",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e22",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e23",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e24",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e25",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e26",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e27",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e28",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e29",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e30",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e31",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e32",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e33",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e34",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e35",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e36",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e37",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e38",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e39",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e40",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e41",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e42",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e43",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e44",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e45",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e46",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e47",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e48",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/c24/e49",
                   "match": "exact"
                 }
               ]
@@ -1512,7 +3132,7 @@
         "sig": {
           "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
           "alg": "Ed25519",
-          "value": "7NcMLI6IQ75bK4wpXqzxUPInr6QQv5NUR8KIA_iVQ1VtGwDL28Dw-kysSCWqV_S_AY0nc4IW9s5gAqG6qupTBw"
+          "value": "UGAyJ5R0VoobHpPmp5Iuudqnqrd-y2Z9VBnN66yMq_ahcIQu5U6BmwVZUu3-XN20L6Gek35NGSfWjxr5tNg8Cg"
         }
       },
       "expected": "WIST1-E16"

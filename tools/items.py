@@ -18,10 +18,11 @@ DEFAULT_PARAMETERS = {
     "links_cap_bytes": 4096,
     "link_url_cap_bytes": 2048,
     "summary_cap_bytes": 2048,
-    "removal_retention_days": 180,
 }
 SAFE_INTEGER_MAX = 2**53 - 1
 DAY_SECONDS = 86400
+REMOVAL_RETENTION_DAYS = 180
+ITEM_BOUND_OCTETS = 16384
 CONTENT_STRUCTURE_OCTETS = 32
 PAYLOAD_VERSION = "1.0.0"
 
@@ -221,10 +222,12 @@ def judge_item(item, catalog, publisher, parameters):
     reason = url_disposition(item["url"], publisher, catalog["collection"])
     if reason is not None:
         raise Refused("WIST1-E03", reason)
-    if len(jcs(item["url"])) > parameters["url_cap_bytes"]:
+    if kind(item) == "page" and len(jcs(item["url"])) > parameters["url_cap_bytes"]:
         raise Refused("WIST1-E11", "JCS(url) above url_cap_bytes")
     if "payload" in item and item["payload"]["bytes"] > derived_payload_cap(parameters):
         raise Refused("WIST1-E04", "payload.bytes above the derived cap")
+    if len(jcs(item)) > ITEM_BOUND_OCTETS + parameters["url_cap_bytes"]:
+        raise Refused("WIST1-E04", "JCS(item) above 16 384 + url_cap_bytes octets")
     if instant(item["observed_at"]) > instant(catalog["generated_at"]):
         raise Refused("WIST1-E06", "observed_at later than generated_at")
     if item["publisher"] != catalog["publisher"]:
@@ -409,8 +412,8 @@ def new_page_item(publisher_domain, publication, salt, wist_version=PAYLOAD_VERS
     return item, {"wist_version": wist_version, "salt": salt, "content": content}
 
 
-def retention_seconds(parameters):
-    return parameters["removal_retention_days"] * DAY_SECONDS
+def retention_seconds(parameters=None):
+    return REMOVAL_RETENTION_DAYS * DAY_SECONDS
 
 
 def held_payload(item, served_payloads, publisher_domain, parameters):
@@ -422,48 +425,49 @@ def held_payload(item, served_payloads, publisher_domain, parameters):
     return payload
 
 
+def removed_item(publisher_domain, url, generated_at):
+    return {"publisher": publisher_domain, "url": url, "observed_at": generated_at, "removed": True}
+
+
 def derive_list(served, served_payloads, publications, publisher, collection_name, generated_at, salts,
-                wist_version, parameters=None):
-    parameters = {**DEFAULT_PARAMETERS, **(parameters or {})}
+                wist_version, parameters=None, removals=()):
+    parameters = dict(DEFAULT_PARAMETERS)
     now = instant(generated_at)
     by_url = {p["url"]: p for p in publications}
     if len(by_url) != len(publications):
         raise ValueError("two publications of one URL")
     collection = rules.collection_named(publisher, collection_name)
+    domain = publisher["domain"]
     out, payloads = [], {}
-
-    def covered(url):
-        return collection is not None and rules.scope_covers(publisher, collection, url)
-
     served_by_url = {}
     for item in served:
         url = item["url"]
-        if not covered(url):
-            continue
         served_by_url[url] = item
         if url in by_url:
             continue
-        if kind(item) == "page" or item["publisher"] != publisher["domain"]:
-            out.append({"publisher": publisher["domain"], "url": url, "observed_at": generated_at, "removed": True})
-        elif now < instant(item["observed_at"]) + retention_seconds(parameters):
+        if kind(item) == "page" or item["publisher"] != domain:
+            out.append(removed_item(domain, url, generated_at))
+        elif now < instant(item["observed_at"]) + retention_seconds():
             out.append(item)
     for url, publication in by_url.items():
-        if not covered(url):
+        if collection is None or not rules.scope_covers(publisher, collection, url):
             raise ValueError("a publication outside the Collection's Scope")
         prior = served_by_url.get(url)
-        prior_payload = held_payload(prior, served_payloads, publisher["domain"], parameters) if prior is not None else None
+        prior_payload = held_payload(prior, served_payloads, domain, parameters) if prior is not None else None
         if prior_payload is not None:
             if (prior["meta"]["lang"] == publication["lang"]
                     and jcs(prior_payload["content"]) == jcs(publication["content"])):
                 out.append(prior)
                 payloads[item_id(prior)] = prior_payload
                 continue
-        item, payload = new_page_item(publisher["domain"], publication, salts[url], wist_version)
+        item, payload = new_page_item(domain, publication, salts[url], wist_version)
         out.append(item)
         payloads[item_id(item)] = payload
+    for url in dict.fromkeys(removals):
+        if url not in by_url and url not in served_by_url:
+            out.append(removed_item(domain, url, generated_at))
     if any(instant(item["observed_at"]) > now for item in out):
         return {"refused": "item-instant"}
     ordered = in_list_order(out)
     return {"list": ordered,
             "payloads": {item_id(i): payloads[item_id(i)] for i in ordered if item_id(i) in payloads}}
-

@@ -82,8 +82,8 @@ def removal(url):
     return {"url": url, "removed": True}
 
 
-def publication(e, domain="example.com", parameters=None):
-    return emissions.derive_publication(e, domain, parameters or PARAMETERS)
+def publication(e, domain="example.com"):
+    return emissions.derive_publication(e, domain)
 
 
 def stream_field(stream):
@@ -96,10 +96,10 @@ def stream_field(stream):
 
 
 def stream_case(label, stream, expect, publisher=WITH_COLLECTIONS, collection="journal",
-                published=(), parameters=None, line_number=None):
-    parameters = dict(parameters or PARAMETERS)
+                published=(), line_number=None):
+    parameters = dict(PARAMETERS)
     octets = stream if isinstance(stream, bytes) else stream.encode("utf-8")
-    result = emissions.apply_stream(octets, publisher, collection, list(published), parameters)
+    result = emissions.apply_stream(octets, publisher, collection, list(published))
     if expect == "accepted":
         assert "refusal" not in result, (label, result)
     else:
@@ -481,14 +481,17 @@ def precedence_cases():
     ]
 
 
-def derivation_case(label, e, parameters=None, **extra):
-    parameters = dict(parameters or PARAMETERS)
+def derivation_case(label, e, log_parameters=None, **extra):
+    parameters = dict(PARAMETERS)
     octets = framed("complete", [e], collection="default").encode("utf-8")
-    result = emissions.read_stream(octets, IMPLICIT_DEFAULT, "default", parameters)
-    derived = publication(e, parameters=parameters)
+    result = emissions.read_stream(octets, IMPLICIT_DEFAULT, "default")
+    derived = publication(e)
     assert result["publications"] == [derived], label
     case = {"label": label, "publisher": IMPLICIT_DEFAULT, "collection": "default",
-            "parameters": parameters, "emission": e}
+            "parameters": parameters}
+    if log_parameters is not None:
+        case["log_parameters"] = dict(PARAMETERS, **log_parameters)
+    case["emission"] = e
     case.update(extra)
     case["expected"] = derived
     return case
@@ -534,9 +537,32 @@ def derivation_cases():
                         emission("/notes/empty", "Empty", text="None.", links=[])),
         derivation_case("links-truncated-at-default-cap",
                         emission("/notes/many", "Many", text="References.", links=many)),
-        derivation_case("links-truncated-at-reduced-cap",
+        derivation_case("links-read-at-default-cap-whatever-log-amended",
                         emission("/notes/many", "Many", text="References.", links=many[:10]),
-                        parameters=dict(PARAMETERS, links_cap_bytes=128)),
+                        log_parameters={"links_cap_bytes": 128}),
+        derivation_case("href-with-leading-and-trailing-space-yields-bare-link",
+                        emission("/notes/spaced", "Spaced",
+                                 html='<a href=" https://example.org/spaced ">spaced</a>'
+                                      '<a href="https://example.org/spaced">bare</a>')),
+        derivation_case("declared-link-with-leading-and-trailing-space-yields-bare-link",
+                        emission("/notes/spaced", "Spaced", text="Spaced.",
+                                 links=[" https://example.org/spaced ", "https://example.org/spaced"])),
+        derivation_case("href-with-each-ascii-whitespace-trimmed",
+                        emission("/notes/whitespace", "Whitespace",
+                                 html='<a href="\t\n\f\r https://example.org/ws \r\f\n\t">ws</a>')),
+        derivation_case("declared-link-with-each-ascii-whitespace-trimmed",
+                        emission("/notes/whitespace", "Whitespace", text="Whitespace.",
+                                 links=["\t\n\f\r https://example.org/ws \r\f\n\t"])),
+        derivation_case("href-beginning-with-no-break-space-not-trimmed",
+                        emission("/notes/nbsp", "No-break space",
+                                 html='<a href="\u00a0https://example.org/nbsp">nbsp</a>'
+                                      '<a href="&#xA0;https://example.org/nbsp-ref">ref</a>')),
+        derivation_case("declared-link-beginning-with-no-break-space-not-trimmed",
+                        emission("/notes/nbsp", "No-break space", text="No-break space.",
+                                 links=["\u00a0https://example.org/nbsp"])),
+        derivation_case("extract-keeps-ideographic-no-break-and-vertical-tab-spaces",
+                        emission("/notes/spaces", "Spaces",
+                                 html="<p>one\u3000two\u00a0three\u000bfour \t\n five</p>")),
         derivation_case("link-above-link-url-cap-discarded-uncounted",
                         emission("/notes/long", "Long", text="Long links.",
                                  links=[link_at + "k", link_at, "https://example.net/short"])),
@@ -644,6 +670,10 @@ def marked_page_cases():
                                "<!--wist:content--><p>Second.</p><!--/wist:content-->"), True),
         page_case("invalid-utf8-inside-region",
                   page_of().encode("utf-8").replace(b"Body with", b"Body \xc3( with"), True),
+        page_case("region-octets-f0-80-80-give-three-replacement-characters",
+                  page_of().encode("utf-8").replace(b"Body with", b"Body \xf0\x80\x80 with"), True),
+        page_case("region-octets-e2-82-41-give-one-replacement-character-then-a",
+                  page_of().encode("utf-8").replace(b"Body with", b"Body \xe2\x82\x41 with"), True),
         page_case("title-absent", page_of(head=MARKER), True),
         page_case("title-without-end-tag",
                   page_of(head=MARKER + "<title>Never closed"), True),
@@ -669,6 +699,10 @@ def marked_page_cases():
         page_case("lang-malformed",
                   page_of(html_open='<html lang="en_US">'), True),
         page_case("lang-absent", page_of(html_open="<html>"), True),
+        page_case("lang-with-kelvin-sign-gives-und",
+                  page_of(html_open='<html lang="\u212ao">'), True),
+        page_case("lang-without-subtag-lowercased-whole",
+                  page_of(html_open='<html lang="PT">'), True),
         page_case("lang-not-utf8",
                   page_of(html_open='<html lang="en-\xff">').encode("utf-8")
                   .replace(b"en-\xc3\xbf", b"en-\xff"), True),
@@ -694,7 +728,9 @@ def main():
     })
     write_json(OUT / "emission-derivation.json", {
         "note": ("Each Emission is accepted as the only line of a complete stream for the "
-                 "Collection; expected is the publication it yields. page, page_links and "
+                 "Collection; expected is the publication it yields under parameters, the "
+                 "defaults of WIST-4 section 5; log_parameters, where present, is a map a Log "
+                 "has amended, which the reading does not use. page, page_links and "
                  "page_extract show the whole page around an HTML fragment, which the "
                  "publication does not read. No case here is refused; in a refusal "
                  "elsewhere, line is the 1-based line number, null for a missing trailer and "

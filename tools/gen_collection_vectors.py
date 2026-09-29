@@ -168,16 +168,21 @@ def field_vectors():
     case("thirty-three entries in one Scope", with_collections(
         sixteen[:1] + [collection("c16", thirty_two["scope"] + [exact("https://example.com/c16/e33")])]),
         "WIST1-E16")
-    lowered = {"collections_max": 2, "scope_entries_max": 3}
-    three_entries = collection("store", [prefix("https://example.com/store/"), exact("https://example.com/cart"),
-                                         exact("https://example.com/checkout")])
-    case("lowered bounds: two Collections, three entries", with_collections([JOURNAL, three_entries]),
-         "accepted", lowered)
-    case("lowered bounds: three Collections", with_collections(
-        [JOURNAL, three_entries, collection("docs", [prefix("https://example.com/docs/")])]), "WIST1-E16", lowered)
-    case("lowered bounds: four entries", with_collections(
-        [JOURNAL, collection("store", three_entries["scope"] + [exact("https://example.com/orders")])]),
-        "WIST1-E16", lowered)
+    raised = {"collections_max": 24, "scope_entries_max": 48}
+    twenty_three = [collection(f"c{i:02d}", [prefix(f"https://example.com/c{i:02d}/")]) for i in range(1, 24)]
+    forty_eight = collection("c24", [prefix(f"https://example.com/c24/e{j:02d}") for j in range(1, 49)])
+    case("raised bounds: twenty-four Collections, one of forty-eight entries",
+         with_collections(twenty_three + [forty_eight]), "accepted", raised)
+    case("raised bounds: seventeen Collections", with_collections(
+        sixteen + [thirty_two, collection("c17", [prefix("https://example.com/c17/")])]), "accepted", raised)
+    case("raised bounds: thirty-three entries in one Scope", with_collections(
+        sixteen[:1] + [collection("c16", thirty_two["scope"] + [exact("https://example.com/c16/e33")])]),
+        "accepted", raised)
+    case("raised bounds: twenty-five Collections", with_collections(
+        twenty_three + [forty_eight, collection("c25", [prefix("https://example.com/c25/")])]), "WIST1-E16", raised)
+    case("raised bounds: forty-nine entries in one Scope", with_collections(
+        twenty_three + [collection("c24", forty_eight["scope"] + [exact("https://example.com/c24/e49")])]),
+        "WIST1-E16", raised)
 
     case("empty collections", with_collections([]), "WIST1-E14")
     case("collections an object", with_collections({"journal": JOURNAL}), "WIST1-E14")
@@ -252,7 +257,8 @@ def field_vectors():
 
     return {"note": ("ADR-0051 Collections: the form, count and size rules of a Declaration's `collections` "
                      "member. Each case validates `envelope` under `parameters` (collections_max, "
-                     "scope_entries_max, url_cap_bytes); `expected` is `accepted` or the rejection code. "
+                     "scope_entries_max, url_cap_bytes), a map that amends neither count below 16 and 32; `expected` is "
+                     "`accepted` or the rejection code. "
                      "Entry size is the octet length of JCS({\"type\": \"publisher_declaration\", \"body\": "
                      "envelope}) (WIST-3 section 3.3). An entry's host is compared without its port. Each "
                      "rejected case fails exactly one rule, so no precedence among codes is exercised. Keys "
@@ -442,6 +448,15 @@ def key_vectors():
                 "WIST1-E02")
     publication("journal key after its exp", probe("journal", "journal", journal_url, "2027-01-01T00:00:00Z"),
                 "WIST1-E02")
+    nines, zeros = "9" * 5000, "0" * 5000
+    publication("journal key a fraction of 5 000 digits before its exp",
+                probe("journal", "journal", journal_url, f"2026-11-30T23:59:59.{nines}Z"), "accepted")
+    publication("journal key at its exp with a fraction of 5 000 zero digits",
+                probe("journal", "journal", journal_url, f"2026-12-01T00:00:00.{zeros}Z"), "WIST1-E02")
+    publication("journal key a fraction of 5 000 digits before its nbf",
+                probe("journal", "journal", journal_url, f"2026-08-31T23:59:59.{nines}Z"), "WIST1-E02")
+    publication("journal key at its nbf with a fraction of 5 000 zero digits",
+                probe("journal", "journal", journal_url, f"2026-09-01T00:00:00.{zeros}Z"), "accepted")
     corrupted = probe("journal", "journal", journal_url)
     corrupted["sig"]["value"] = probe("journal", "journal", journal_url + "x")["sig"]["value"]
     publication("corrupted signature under an eligible journal key", corrupted, "WIST1-E01")
@@ -514,7 +529,8 @@ def key_vectors():
     return {"note": ("ADR-0051 keys. uniqueness_cases validate `envelope` under `parameters`. publication_cases "
                      "judge `probe` against `declaration`: candidates are the entries of `keys` and of the named "
                      "Collection's `keys` whose kid equals sig.key_id, time-eligible when nbf <= instant and, with "
-                     "exp, instant < exp; none is WIST1-E02, none verifying is WIST1-E01, then the Scope rule. "
+                     "exp, instant < exp, compared as exact instants however many fraction digits they carry; none is "
+                     "WIST1-E02, none verifying is WIST1-E01, then the Scope rule. "
                      "signer_cases and commitment_cases evaluate `fetched` against the accepted `stored` as "
                      "vectors/wist1/declaration-binding.json does: `expected` is the classification or the "
                      "rejection code. fingerprint_cases give the Key Set fingerprint (WIST-1 section 5.1) of "
@@ -720,6 +736,45 @@ def narrowing_vectors():
         {2: [("recovery_rotation", [])], 5: [("settlement", [J2["url"]]), ("ordinary_rotation", [S1["url"]])]},
         times))
 
+    split_scope = declaration(collections=[
+        collection("journal", [prefix("https://example.com/j/a/"), prefix("https://example.com/j/b/")])])
+    dropped_entry = successor(split_scope, collections=[collection("journal", [prefix("https://example.com/j/b/")])])
+    restoring = successor(dropped_entry, keys=[key("owner2")], collections=split_scope["collections"])
+    end, times = recovery_times(2, {5: 0})
+    histories.append(history(
+        "ordinary rotation applied before the recovery rotation of the Epoch that opens a window narrows",
+        "Height 2 seals O, an ordinary rotation that drops the /j/a/ entry, and then R, a recovery rotation "
+        "naming O that restores it. O is a predecessor of R and sealed outside the window: the /j/a/ record "
+        "leaves at height 2 and does not return when settlement makes R current.",
+        {"G": ("owner", split_scope), "O": ("owner", dropped_entry), "R": ("recovery", restoring)}, 6,
+        {0: (["G"], [record("journal", "https://example.com/j/a/1"), record("journal", "https://example.com/j/b/1")]),
+         2: (["O", "R"], [])},
+        {2: [("ordinary_rotation", ["https://example.com/j/a/1"]), ("recovery_rotation", [])],
+         5: [("settlement", [])]}, times,
+        live=[("https://example.com/j/b/1", "journal")]))
+
+    journal_moved = [collection("journal", [prefix("https://example.com/journal/")], []),
+                     *copy.deepcopy(N_G["collections"][1:])]
+    histories.append(history(
+        "Declaration signed by a Collection key outside a recovery window is pending",
+        "P lists the journal key in its own keys and is signed by it: neither keys nor recovery_keys of G "
+        "list the signer, so P is a fresh identity, pending until height 26.",
+        {"G": ("owner", N_G), "P": ("journal", successor(N_G, keys=[key("owner"), key("journal")],
+                                                         collections=journal_moved))}, 4,
+        {0: (["G"], base_records), 2: (["P"], [])},
+        {2: [("fresh_identity_pending", [])]}))
+    in_window = successor(wide_recovery, keys=[key("owner2"), key("journal")],
+                          collections=[collection("journal", [prefix("https://example.com/journal/2026/")], [])])
+    end, times = recovery_times(2, {5: 0})
+    histories.append(history(
+        "Declaration signed by a Collection key inside a recovery window is a competitor, never pending",
+        "C names the recovery rotation R, lists the former journal key in its own keys and is signed by it, "
+        "inside the window R opened: a competitor that becomes current, is never a pending head and removes "
+        "nothing. Settlement makes R current and removes nothing, since R keeps every Scope.",
+        {"G": ("owner", N_G), "R": ("recovery", wide_recovery), "C": ("journal", in_window)}, 6,
+        {0: (["G"], base_records), 2: (["R"], []), 3: (["C"], [])},
+        {2: [("recovery_rotation", [])], 3: [("in_window_competitor", [])], 5: [("settlement", [])]}, times))
+
     introduced = successor(plain, collections=[
         collection("default", [exact("https://example.com/about"), prefix("https://example.com/pages/")]),
         collection("journal", [prefix("https://example.com/journal/")], [key("journal")]),
@@ -768,7 +823,64 @@ def narrowing_vectors():
                      "sealing a URL again replaces its record. Lists of records are in ascending octet order of "
                      "url, then collection. `parameters` carry recovery_window_days and declaration_activation_epochs as "
                      "trusted fixture input."),
-            "keys": KEYS_MEMBER, "histories": histories}
+            "parameter_note": (
+                "parameter_histories replay `epochs` as histories do, each Epoch under the `parameters` map in force "
+                "at its sealed_at (collections_max, scope_entries_max, url_cap_bytes). `expected.epochs` give the "
+                "state after each accepted Epoch as in histories; `expected.rejected` is null, or the height of the "
+                "first Epoch whose Declaration fails its checks under that Epoch's map with the code, after which "
+                "nothing is replayed."),
+            "keys": KEYS_MEMBER, "histories": histories, "parameter_histories": parameter_histories()}
+
+
+def parameter_history(name, why, declarations, epochs, expected_rejection):
+    signed = {label: sign(signer, "publisher", inner) for label, (signer, inner) in declarations.items()}
+    labels = {rules.declaration_hash(envelope["publisher"]): label for label, envelope in signed.items()}
+    replay = narrowing.Replay(HISTORY_DEFAULTS["recovery_window_days"],
+                              HISTORY_DEFAULTS["declaration_activation_epochs"], DEFAULTS)
+    written, results, rejected = [], [], None
+    for height, (sealed, parameters) in enumerate(epochs):
+        parameters = {**DEFAULTS, **(parameters or {})}
+        epoch = {"height": height, "sealed_at": timestamp(T0 + height * HOUR), "parameters": parameters,
+                 "declarations": list(sealed), "records": []}
+        written.append(epoch)
+        if rejected is not None:
+            continue
+        replay.parameters = parameters
+        try:
+            result = replay.epoch(dict(epoch, declarations=[signed[label] for label in sealed]))
+        except narrowing.HistoryRejected as rejection:
+            rejected = {"height": height, "code": rejection.code}
+            continue
+        for member in ("current_declaration", "pending_head"):
+            if result[member] is not None:
+                result[member] = labels[result[member]]
+        for transition in result["transitions"]:
+            transition["declaration"] = labels[transition["declaration"]]
+        results.append(result)
+    assert rejected == expected_rejection, (name, rejected)
+    return {"name": name, "why": why, "declarations": signed, "epochs": written,
+            "expected": {"epochs": results, "rejected": rejected}}
+
+
+def parameter_histories():
+    twenty = successor(N_G, collections=N_G["collections"] + [
+        collection(f"c{i:02d}", [prefix(f"https://example.com/c{i:02d}/")]) for i in range(4, 21)])
+    other = successor(twenty, contact="mailto:owner@example.com")
+    raised = {"collections_max": 24}
+    return [
+        parameter_history(
+            "Declaration of 20 Collections sealed again under a collections_max lowered from 24 to 16 is idempotent",
+            "D, sealed at height 1 under collections_max 24, is current; height 2, under 16, seals D again: an "
+            "idempotent re-serve under any parameter map, the Epoch accepted and no state changed.",
+            {"G": ("owner", N_G), "D": ("owner", twenty)},
+            [(["G"], None), (["D"], raised), (["D"], None)], None),
+        parameter_history(
+            "another Declaration of 20 Collections sealed under a collections_max lowered from 24 to 16 is WIST1-E16",
+            "D, sealed at height 1 under collections_max 24, is current; height 2, under 16, seals E, a successor "
+            "of D with 20 Collections, which the lowered count rejects.",
+            {"G": ("owner", N_G), "D": ("owner", twenty), "E": ("owner", other)},
+            [(["G"], None), (["D"], raised), (["E"], None)], {"height": 2, "code": "WIST1-E16"}),
+    ]
 
 
 def pull_vectors():
@@ -887,6 +999,8 @@ def pull_vectors():
     reduction("a subdomain_scope host removed with collections unchanged", N_G, ["subdomain_scope"],
               subdomain_scope=["www.example.com"])
 
+    state_pull_cases = state_pulls()
+
     return {"note": ("ADR-0051 reaching the Log. pull_cases: an Aggregator whose current Declaration is `known`, "
                      "with no open recovery window and no pending head, fetches the Declaration at the start of a "
                      "pull and applies `fetched` against `known` under WIST-1 section 5.2; `acceptance` is the "
@@ -901,7 +1015,161 @@ def pull_vectors():
                      "lists in the same member with a later nbf, an earlier exp, or an exp where P has none; when it does, the last height at which its "
                      "publisher_declaration Entry may seal is discovery_height + record_seal_epochs, counted as "
                      "WIST-1 section 5.2 counts a recovery Declaration's deadline, and null otherwise."),
-            "keys": KEYS_MEMBER, "pull_cases": pull_cases, "reduction_cases": reduction_cases}
+            "state_pull_note": (
+                "state_pull_cases: an Aggregator's view of one Publisher when a pull starts. `epochs` are the Epochs "
+                "sealed before it, applied as vectors/wist1/collection-narrowing.json applies them, each under the "
+                "`parameters` map in force at its sealed_at. `discovered` lists, in discovery order, Declarations "
+                "accepted and not yet sealed, applied after the Epochs; one that no longer applies there has left "
+                "the eligible sealing set and is skipped. The pull then fetches the Declaration at `pull.sealed_at` "
+                "under `pull.parameters`, as the next Epoch at `pull.height` would apply it; `pull.fetched` names the "
+                "Declaration the answer carries, for `not_modified` the one the cached validator stands for, and is "
+                "null when the fetch failed. `expected.acceptance` is the transition kind of the fetched Declaration "
+                "(`recovery_chain_head` for the recovery-chain head of an open window served while another "
+                "Declaration is current), the rejection code, or `not_fetched`; `sources` name the Declarations the "
+                "pull reads, `collections_pulled` their Collections in pull order, and a pull that does not proceed "
+                "carries its `disposition` and whether it is `noise` against the Ping quota (WIST-2 section 4)."),
+            "keys": KEYS_MEMBER, "pull_cases": pull_cases, "reduction_cases": reduction_cases,
+            "state_pull_cases": state_pull_cases}
+
+
+def state_pull(name, declarations, epochs, pull, discovered=()):
+    signed = {label: sign(signer, "publisher", inner) for label, (signer, inner) in declarations.items()}
+    labels = {rules.declaration_hash(envelope["publisher"]): label for label, envelope in signed.items()}
+    replay = narrowing.Replay(HISTORY_DEFAULTS["recovery_window_days"],
+                              HISTORY_DEFAULTS["declaration_activation_epochs"], DEFAULTS)
+    written, at = [], T0 - HOUR
+    for height, (sealed, parameters, *explicit) in enumerate(epochs):
+        at = explicit[0] if explicit else at + HOUR
+        parameters = {**DEFAULTS, **(parameters or {})}
+        replay.parameters = parameters
+        epoch = {"height": height, "sealed_at": timestamp(at), "declarations": list(sealed), "records": []}
+        replay.epoch(dict(epoch, declarations=[signed[label] for label in sealed]))
+        written.append(dict(epoch, parameters=parameters))
+    height, at = len(epochs), at + HOUR
+    pull_parameters = {**DEFAULTS, **(pull.get("parameters") or {})}
+    replay.parameters = pull_parameters
+    fetched = pull.get("fetched")
+    result = narrowing.pull(replay, pull["fetch_outcome"], signed[fetched] if fetched else None, height, at,
+                            [signed[label] for label in discovered])
+    expected = dict(result, sources=[labels[rules.declaration_hash(p)] for p in result["sources"]])
+    for member, value in pull.get("expect", {}).items():
+        assert expected[member] == value, (name, member, expected[member])
+    return {"name": name, "declarations": signed, "epochs": written, "discovered": list(discovered),
+            "pull": {"height": height, "sealed_at": timestamp(at), "parameters": pull_parameters,
+                     "fetch_outcome": pull["fetch_outcome"], "fetched": fetched},
+            "expected": expected}
+
+
+def state_pulls():
+    cases = []
+    docs = collection("docs", [prefix("https://example.com/docs/")], [key("docs")])
+    recovery = successor(N_G, keys=[key("owner2")], collections=N_G["collections"] + [docs])
+    competitor = successor(recovery, keys=[key("fresh")], collections=NARROW_2026)
+    frozen = ["journal", "store", "default", "docs"]
+    for outcome in ("new_octets", "not_modified"):
+        cases.append(state_pull(
+            f"recovery-chain head served again while a competitor is current, {outcome}: a success under the "
+            "two frozen sources",
+            {"G": ("owner", N_G), "R": ("recovery", recovery), "C": ("fresh", competitor)},
+            [(["G"], None), ([], None), (["R"], None), (["C"], None)],
+            {"fetch_outcome": outcome, "fetched": "R",
+             "expect": {"acceptance": "recovery_chain_head", "sources": ["G", "R"], "collections_pulled": frozen}}))
+    cases.append(state_pull(
+        "recovery-chain head served again while a competitor is current, the recovery rotation discovered and not "
+        "yet sealed: a success under the two frozen sources",
+        {"G": ("owner", N_G), "R": ("recovery", recovery), "C": ("fresh", competitor)},
+        [(["G"], None)],
+        {"fetch_outcome": "new_octets", "fetched": "R",
+         "expect": {"acceptance": "recovery_chain_head", "sources": ["G", "R"], "collections_pulled": frozen}},
+        discovered=["R", "C"]))
+    follower = successor(recovery, contact="mailto:owner@example.com")
+    follower_competitor = successor(follower, keys=[key("fresh")], collections=NARROW_2026)
+    cases.append(state_pull(
+        "recovery-chain head that follows the recovery rotation served again: the sources stay the Declaration "
+        "before the recovery and the recovery rotation that owns the window",
+        {"G": ("owner", N_G), "R": ("recovery", recovery), "F": ("owner2", follower),
+         "C": ("fresh", follower_competitor)},
+        [(["G"], None), (["R"], None), (["F"], None), (["C"], None)],
+        {"fetch_outcome": "new_octets", "fetched": "F",
+         "expect": {"acceptance": "recovery_chain_head", "sources": ["G", "R"]}}))
+
+    twenty = successor(N_G, collections=N_G["collections"] + [
+        collection(f"c{i:02d}", [prefix(f"https://example.com/c{i:02d}/")]) for i in range(4, 21)])
+    raised = {"collections_max": 24}
+    for outcome in ("same_octets", "not_modified"):
+        cases.append(state_pull(
+            f"current Declaration of 20 Collections served again under a collections_max lowered from 24 to 16, "
+            f"{outcome}: idempotent, every Collection pulled",
+            {"G": ("owner", N_G), "D": ("owner", twenty)},
+            [(["G"], None), (["D"], raised)],
+            {"fetch_outcome": outcome, "fetched": "D",
+             "expect": {"acceptance": "idempotent", "sources": ["D"],
+                        "collections_pulled": [c["name"] for c in twenty["collections"]]}}))
+    cases.append(state_pull(
+        "Declaration of 20 Collections fetched for the first time under collections_max 16: rejected, no pull",
+        {"G": ("owner", N_G), "D": ("owner", twenty)},
+        [(["G"], None)],
+        {"fetch_outcome": "new_octets", "fetched": "D",
+         "expect": {"acceptance": "WIST1-E16", "proceeds": False, "disposition": "WIST2-E01", "noise": False}}))
+
+    cases.append(state_pull(
+        "recovery rotation discovered and not yet sealed: pulled under the two frozen sources",
+        {"G": ("owner", N_G), "R": ("recovery", recovery)},
+        [(["G"], None)],
+        {"fetch_outcome": "new_octets", "fetched": "R",
+         "expect": {"acceptance": "recovery_rotation", "sources": ["G", "R"], "collections_pulled": frozen}}))
+    cases.append(state_pull(
+        "Declaration fetched after an unsealed recovery rotation is not read",
+        {"G": ("owner", N_G), "R": ("recovery", recovery), "F": ("owner2", successor(recovery, collections=NARROW_2026))},
+        [(["G"], None)],
+        {"fetch_outcome": "new_octets", "fetched": "F",
+         "expect": {"acceptance": "in_window_chain", "sources": ["G", "R"], "collections_pulled": frozen}},
+        discovered=["R"]))
+    fresh = successor(N_G, keys=[key("fresh")], collections=NARROW_2026)
+    reversing = successor(fresh, keys=[key("owner2")], collections=N_G["collections"] + [docs])
+    reversing["seq"] = 2
+    reversing["prev_declaration"] = rules.declaration_hash(N_G)
+    cases.append(state_pull(
+        "recovery rotation discovered beside a pending head: pulled under the two frozen sources",
+        {"G": ("owner", N_G), "P": ("fresh", fresh), "R": ("recovery", reversing)},
+        [(["G"], None), (["P"], None)],
+        {"fetch_outcome": "new_octets", "fetched": "R",
+         "expect": {"acceptance": "reversal_recovery_rotation", "sources": ["G", "R"], "collections_pulled": frozen}}))
+    cases.append(state_pull(
+        "pending head served again: pulled under the current Declaration alone",
+        {"G": ("owner", N_G), "P": ("fresh", fresh)},
+        [(["G"], None), (["P"], None)],
+        {"fetch_outcome": "same_octets", "fetched": "P",
+         "expect": {"acceptance": "idempotent", "sources": ["G"], "collections_pulled": ["journal", "store", "default"]}}))
+
+    rival = successor(competitor, keys=[key("store2")])
+    settles = T0 + 2 * HOUR + 7 * DAY
+    cases.append(state_pull(
+        "recovery rotation superseded unsealed at settlement: pulled under the settled Declaration",
+        {"G": ("owner", N_G), "R": ("recovery", recovery), "C": ("fresh", competitor), "X": ("recovery", rival)},
+        [(["G"], None), ([], None), (["R"], None), (["C"], None), ([], None, settles)],
+        {"fetch_outcome": "same_octets", "fetched": "R",
+         "expect": {"acceptance": "idempotent", "sources": ["R"], "collections_pulled": frozen}},
+        discovered=["X"]))
+
+    for label, epochs, outcome, fetched, acceptance, disposition in (
+            ("fetch failed at first contact", [], "failed", None, "not_fetched", "WIST2-E04"),
+            ("Declaration rejected at first contact", [], "new_octets", "B", "WIST1-E16", "WIST2-E04"),
+            ("fetch failed after first contact", [(["G"], None)], "timed_out", None, "not_fetched", "WIST2-E01"),
+            ("superseded Declaration served again", [(["G"], None), (["N"], None)], "new_octets", "G", "WIST1-E08",
+             "WIST2-E01")):
+        cases.append(state_pull(
+            f"{label}: the pull stops with {disposition}",
+            {"G": ("owner", N_G), "N": ("owner", successor(N_G, collections=NARROW_2026)),
+             "B": ("owner", declaration(collections=[JOURNAL, collection("journal", [prefix("https://example.com/store/")])]))},
+            epochs, {"fetch_outcome": outcome, "fetched": fetched,
+                     "expect": {"acceptance": acceptance, "proceeds": False, "disposition": disposition,
+                                "noise": disposition == "WIST2-E04"}}))
+    cases.append(state_pull(
+        "first contact: pulled under the fetched Declaration",
+        {"G": ("owner", N_G)}, [], {"fetch_outcome": "new_octets", "fetched": "G",
+                                    "expect": {"acceptance": "initial", "sources": ["G"]}}))
+    return cases
 
 
 write_json(WIST1 / "collection-fields.json", field_vectors())

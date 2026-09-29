@@ -7,11 +7,31 @@ import merkle
 import narrowing
 
 ENTRY_GROUPS = ("publisher_declaration", "registry_update", "publisher_catalog", "publisher_item", "label", "dispute")
-REPLAYED_TYPES = ("publisher_declaration", "publisher_catalog", "publisher_item")
+REPLAYED_TYPES = ("publisher_declaration", "registry_update", "publisher_catalog", "publisher_item")
 OUT_OF_PLACE = "WIST3-E06"
 EPOCH_REJECTED = "WIST3-E03"
 DAY_SECONDS = 86400
 DECLARATION_PARAMETERS = tuple(rules.DEFAULT_PARAMETERS)
+REFRESH_BOUNDS = (1, items.REMOVAL_RETENTION_DAYS * DAY_SECONDS)
+WITHDRAWAL = "payload_withdrawal"
+CONTRACT_FAILED = "WIST4-E04"
+
+
+def check_parameters(parameters):
+    if "removal_retention_days" in parameters:
+        raise ValueError("removal_retention_days is a constant that no Log amends")
+    low, high = REFRESH_BOUNDS
+    if not low <= parameters["catalog_refresh_seconds"] <= high:
+        raise ValueError("catalog_refresh_seconds is amended outside 1 to 15 552 000")
+    rules.parameter_map({k: parameters[k] for k in DECLARATION_PARAMETERS})
+    return parameters
+
+
+def withdrawal_act(entry):
+    update = entry["body"].get("update") if isinstance(entry["body"], dict) else None
+    if not isinstance(update, dict) or update.get("action") != WITHDRAWAL:
+        raise ValueError("a registry_update this replay does not carry")
+    return update["details"]["delta_id"], update["subject"]
 
 
 def entry_leaf(entry):
@@ -85,6 +105,10 @@ class Sealing:
         self.latest = {}
         self.records = {}
         self.removals = {}
+        self.withdrawals = {}
+        self.sealed_items = {}
+        self.duties = {}
+        self.sealed_at = None
 
     def declaration(self, domain):
         replay = self.replays.get(domain)
@@ -122,7 +146,7 @@ class Sealing:
                           "records": []})
             for publisher, url in sorted(self.records):
                 if publisher == domain and url not in replay.live:
-                    del self.records[(publisher, url)]
+                    self.remove_record((publisher, url), parameters)
                     removed.append({"publisher": publisher, "url": url, "cause": "narrowing"})
 
     def judge_catalog(self, envelope, sealed_at, parameters):
@@ -152,25 +176,54 @@ class Sealing:
                 failed.append(("C4", OUT_OF_PLACE))
         return failed
 
-    def is_base(self, catalog, parameters):
+    def is_base(self, catalog):
         latest = self.latest.get((catalog["publisher"], catalog["collection"]))
         if latest is None:
             return False
         floor = catalogs.log_seconds(latest["envelope"]["catalog"]["generated_at"])
-        return catalogs.log_seconds(catalog["generated_at"]) > floor + parameters["removal_retention_days"] * DAY_SECONDS
+        return catalogs.log_seconds(catalog["generated_at"]) > floor + items.retention_seconds()
+
+    def withdrawn_below(self, item, height):
+        withdrawn = self.withdrawals.get(items.item_id(item))
+        return withdrawn is not None and withdrawn < height
+
+    def start_duty(self, item):
+        identifier = items.item_id(item)
+        if identifier not in self.withdrawals:
+            duty = self.duties.setdefault(identifier, {"publisher": item["publisher"], "url": item["url"],
+                                                       "until": None, "record": True})
+            duty["record"] = True
+
+    def end_duty(self, item, parameters):
+        duty = self.duties.get(items.item_id(item))
+        if duty is not None:
+            end = narrowing.log_seconds(self.sealed_at) + parameters["payload_window_days"] * DAY_SECONDS
+            duty["record"] = False
+            duty["until"] = end if duty["until"] is None else max(duty["until"], end)
+
+    def remove_record(self, slot, parameters):
+        record = self.records.pop(slot)
+        self.end_duty(record["item"], parameters)
+
+    def apply_withdrawal(self, item_id, subject, height):
+        if subject not in self.sealed_items.get(item_id, set()):
+            return [("contract", CONTRACT_FAILED)]
+        self.withdrawals.setdefault(item_id, height)
+        self.duties.pop(item_id, None)
+        return []
 
     def apply_catalog(self, envelope, height, parameters, removed):
         catalog = envelope["catalog"]
-        base = self.is_base(catalog, parameters)
+        base = self.is_base(catalog)
         self.latest[(catalog["publisher"], catalog["collection"])] = {"envelope": envelope, "height": height,
                                                                       "base": base}
         if base:
             for publisher, url in sorted(self.records):
                 if publisher == catalog["publisher"] and self.records[(publisher, url)]["collection"] == catalog["collection"]:
-                    del self.records[(publisher, url)]
+                    self.remove_record((publisher, url), parameters)
                     removed.append({"publisher": publisher, "url": url, "cause": "base"})
 
-    def judge_item(self, body, parameters):
+    def judge_item(self, body, height, parameters):
         form = refusal(item_body_form, body)
         if form is not None:
             return [("I1", form)], None
@@ -200,23 +253,29 @@ class Sealing:
             failed.append(("I6", code))
         record = self.records.get((catalog["publisher"], item["url"]))
         if items.kind(item) == "page":
-            if record is not None and items.item_id(record["item"]) == items.item_id(item):
+            if (record is not None and items.item_id(record["item"]) == items.item_id(item)) or self.withdrawn_below(
+                    item, height):
                 failed.append(("I7", OUT_OF_PLACE))
         elif record is None:
             failed.append(("I7", OUT_OF_PLACE))
         return failed, named
 
-    def apply_item(self, body, named, height, removed):
+    def apply_item(self, body, named, height, parameters, removed):
         item = body["item"]
         catalog = named["envelope"]["catalog"]
         slot = (catalog["publisher"], item["url"])
         if items.kind(item) == "page":
+            self.sealed_items.setdefault(items.item_id(item), set()).add(catalog["publisher"])
+        if slot in self.records:
+            self.remove_record(slot, parameters)
+        if items.kind(item) == "page":
             self.records[slot] = {"item": item, "collection": body["collection"], "catalog": body["catalog"],
                                   "generated_at": catalog["generated_at"], "height": height}
             self.removals.pop(slot, None)
+            self.start_duty(item)
             return
-        del self.records[slot]
-        self.removals[slot] = {"catalog": body["catalog"], "generated_at": catalog["generated_at"]}
+        self.removals[slot] = {"item": items.item_id(item), "catalog": body["catalog"],
+                               "generated_at": catalog["generated_at"]}
         removed.append({"publisher": slot[0], "url": slot[1], "cause": "removed_item"})
 
     def rejection_code(self, entries, parameters):
@@ -229,7 +288,7 @@ class Sealing:
         return None
 
     def epoch(self, epoch):
-        height, sealed_at, parameters = epoch["height"], epoch["sealed_at"], epoch["parameters"]
+        height, sealed_at, parameters = epoch["height"], epoch["sealed_at"], check_parameters(epoch["parameters"])
         entries = epoch["entries"]
         if any(e["type"] not in REPLAYED_TYPES for e in entries):
             raise ValueError("an Entry type this replay does not carry")
@@ -239,12 +298,14 @@ class Sealing:
         if rejected is not None:
             return {"height": height, "status": "rejected", "code": rejected[0], "reason": rejected[1]}
         saved = copy.deepcopy(self.__dict__)
+        self.sealed_at = sealed_at
         removed, dispositions = [], {}
         try:
             self.apply_declarations(entries, height, sealed_at, parameters, removed)
         except narrowing.HistoryRejected as rejection:
             self.__dict__ = saved
             return {"height": height, "status": "rejected", "code": rejection.code, "reason": rejection.reason}
+        acts = {index: withdrawal_act(entry) for index, entry in enumerate(entries) if entry["type"] == "registry_update"}
         for index, entry in enumerate(entries):
             if entry["type"] != "publisher_catalog":
                 continue
@@ -255,10 +316,12 @@ class Sealing:
         for index, entry in enumerate(entries):
             if entry["type"] != "publisher_item":
                 continue
-            failed, named = self.judge_item(entry["body"], parameters)
+            failed, named = self.judge_item(entry["body"], height, parameters)
             dispositions[index] = disposition(failed)
             if not failed:
-                self.apply_item(entry["body"], named, height, removed)
+                self.apply_item(entry["body"], named, height, parameters, removed)
+        for index, (item_id, subject) in sorted(acts.items()):
+            dispositions[index] = disposition(self.apply_withdrawal(item_id, subject, height))
         return {"height": height, "status": "accepted",
                 "entries": [dispositions.get(i) for i in range(len(entries))],
                 "records_removed": removed}
@@ -281,10 +344,19 @@ class Sealing:
                          "generated_at": record["generated_at"]}
                         for (publisher, url), record in sorted(self.records.items(),
                                                                key=lambda kv: (kv[0][0].encode(), kv[0][1].encode()))],
-            "removals": [{"publisher": publisher, "url": url, "catalog": state["catalog"],
+            "removals": [{"publisher": publisher, "url": url, "item": state["item"], "catalog": state["catalog"],
                           "generated_at": state["generated_at"]}
                          for (publisher, url), state in sorted(self.removals.items(),
                                                                key=lambda kv: (kv[0][0].encode(), kv[0][1].encode()))]}
+
+    def payload_duties(self):
+        now = narrowing.log_seconds(self.sealed_at)
+        return [{"publisher": duty["publisher"], "url": duty["url"], "item": identifier,
+                 "until": None if duty["record"] else narrowing.log_timestamp(duty["until"])}
+                for identifier, duty in sorted(self.duties.items(),
+                                               key=lambda kv: (kv[1]["publisher"].encode(), kv[1]["url"].encode(),
+                                                               kv[0].encode()))
+                if duty["record"] or duty["until"] > now]
 
     def url_state(self, publisher, url):
         record = self.records.get((publisher, url))
@@ -293,7 +365,8 @@ class Sealing:
                     "catalog": record["catalog"], "generated_at": record["generated_at"]}
         removal = self.removals.get((publisher, url))
         if removal is not None:
-            return {"state": "removed", "catalog": removal["catalog"], "generated_at": removal["generated_at"]}
+            return {"state": "removed", "item": removal["item"], "catalog": removal["catalog"],
+                    "generated_at": removal["generated_at"]}
         return None
 
 
@@ -306,6 +379,7 @@ def replay(epochs):
             raise ValueError("Epochs must have consecutive heights and increasing sealed_at")
         result = sealing.epoch(epoch)
         result["state"] = sealing.state()
+        result["payload_duties"] = sealing.payload_duties()
         results.append(result)
         previous = epoch
     return results, sealing

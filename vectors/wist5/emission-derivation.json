@@ -1,5 +1,5 @@
 {
-  "note": "Each Emission is accepted as the only line of a complete stream for the Collection; expected is the publication it yields. page, page_links and page_extract show the whole page around an HTML fragment, which the publication does not read. No case here is refused; in a refusal elsewhere, line is the 1-based line number, null for a missing trailer and a wrong count. Plan lists and states are ordered by the octets of the URL.",
+  "note": "Each Emission is accepted as the only line of a complete stream for the Collection; expected is the publication it yields under parameters, the defaults of WIST-4 section 5; log_parameters, where present, is a map a Log has amended, which the reading does not use. page, page_links and page_extract show the whole page around an HTML fragment, which the publication does not read. No case here is refused; in a refusal elsewhere, line is the 1-based line number, null for a missing trailer and a wrong count. Plan lists and states are ordered by the octets of the URL.",
   "default_parameters": {
     "url_cap_bytes": 2048,
     "extract_cap_bytes": 32768,
@@ -502,7 +502,7 @@
       }
     },
     {
-      "label": "links truncated at reduced cap",
+      "label": "links read at default cap whatever log amended",
       "publisher": {
         "domain": "example.com",
         "subdomain_scope": [
@@ -511,6 +511,13 @@
       },
       "collection": "default",
       "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "log_parameters": {
         "url_cap_bytes": 2048,
         "extract_cap_bytes": 32768,
         "links_cap_bytes": 128,
@@ -546,11 +553,310 @@
             "total": 10,
             "urls": [
               "https://example.org/reference/000",
-              "https://example.org/reference/001"
+              "https://example.org/reference/001",
+              "https://example.org/reference/002",
+              "https://example.org/reference/003",
+              "https://example.org/reference/004",
+              "https://example.org/reference/005",
+              "https://example.org/reference/006",
+              "https://example.org/reference/007",
+              "https://example.org/reference/008",
+              "https://example.org/reference/009"
             ]
           },
           "summary": {
             "title": "Many"
+          }
+        }
+      }
+    },
+    {
+      "label": "href with leading and trailing space yields bare link",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/spaced",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Spaced",
+        "html": "<a href=\" https://example.org/spaced \">spaced</a><a href=\"https://example.org/spaced\">bare</a>"
+      },
+      "expected": {
+        "url": "https://example.com/notes/spaced",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "spaced bare",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/spaced"
+            ]
+          },
+          "summary": {
+            "title": "Spaced"
+          }
+        }
+      }
+    },
+    {
+      "label": "declared link with leading and trailing space yields bare link",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/spaced",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Spaced",
+        "links": [
+          " https://example.org/spaced ",
+          "https://example.org/spaced"
+        ],
+        "text": "Spaced."
+      },
+      "expected": {
+        "url": "https://example.com/notes/spaced",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Spaced.",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/spaced"
+            ]
+          },
+          "summary": {
+            "title": "Spaced"
+          }
+        }
+      }
+    },
+    {
+      "label": "href with each ascii whitespace trimmed",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/whitespace",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Whitespace",
+        "html": "<a href=\"\t\n\f\r https://example.org/ws \r\f\n\t\">ws</a>"
+      },
+      "expected": {
+        "url": "https://example.com/notes/whitespace",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "ws",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/ws"
+            ]
+          },
+          "summary": {
+            "title": "Whitespace"
+          }
+        }
+      }
+    },
+    {
+      "label": "declared link with each ascii whitespace trimmed",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/whitespace",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Whitespace",
+        "links": [
+          "\t\n\f\r https://example.org/ws \r\f\n\t"
+        ],
+        "text": "Whitespace."
+      },
+      "expected": {
+        "url": "https://example.com/notes/whitespace",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Whitespace.",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/ws"
+            ]
+          },
+          "summary": {
+            "title": "Whitespace"
+          }
+        }
+      }
+    },
+    {
+      "label": "href beginning with no break space not trimmed",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/nbsp",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "No-break space",
+        "html": "<a href=\"\u00a0https://example.org/nbsp\">nbsp</a><a href=\"&#xA0;https://example.org/nbsp-ref\">ref</a>"
+      },
+      "expected": {
+        "url": "https://example.com/notes/nbsp",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "nbsp ref",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "No-break space"
+          }
+        }
+      }
+    },
+    {
+      "label": "declared link beginning with no break space not trimmed",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/nbsp",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "No-break space",
+        "links": [
+          "\u00a0https://example.org/nbsp"
+        ],
+        "text": "No-break space."
+      },
+      "expected": {
+        "url": "https://example.com/notes/nbsp",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "No-break space.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "No-break space"
+          }
+        }
+      }
+    },
+    {
+      "label": "extract keeps ideographic no break and vertical tab spaces",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/spaces",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Spaces",
+        "html": "<p>one\u3000two\u00a0three\u000bfour \t\n five</p>"
+      },
+      "expected": {
+        "url": "https://example.com/notes/spaces",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "one\u3000two\u00a0three\u000bfour five",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Spaces"
           }
         }
       }

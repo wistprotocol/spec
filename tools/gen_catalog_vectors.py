@@ -46,7 +46,7 @@ JOURNAL_EXP = seconds("2026-12-01T00:00:00Z")
 DAY = 86400
 GENERATED_AT = "2026-10-01T12:00:00Z"
 CLOCK = GENERATED_AT
-ITEM_PARAMETERS = {k: v for k, v in items.DEFAULT_PARAMETERS.items() if k != "removal_retention_days"}
+ITEM_PARAMETERS = dict(items.DEFAULT_PARAMETERS)
 CATALOG_PARAMETERS = dict(catalogs.DEFAULT_PARAMETERS)
 TREE_PARAMETERS = dict(tree_files.DEFAULT_PARAMETERS)
 PULL_PARAMETERS = {**CATALOG_PARAMETERS, **TREE_PARAMETERS, **ITEM_PARAMETERS}
@@ -153,6 +153,26 @@ def hexes(values):
 
 
 REMOVE = object()
+
+
+def lang_padding(octets):
+    chunks, rest = divmod(octets, 9)
+    if rest == 1:
+        chunks, tail = chunks - 1, ["-" + "x" * 4] * 2
+    else:
+        tail = ["-" + "x" * (rest - 1)] if rest else []
+    return "".join(["-" + "x" * 8] * chunks + tail)
+
+
+def padded_to(item, octets):
+    lang = item["meta"]["lang"]
+    padded = changed(item, ["meta", "lang"], lang + lang_padding(octets - len(rfc8785.dumps(item))))
+    assert len(rfc8785.dumps(padded)) == octets
+    return padded
+
+
+def item_bound(parameters):
+    return items.ITEM_BOUND_OCTETS + parameters["url_cap_bytes"]
 
 
 def changed(obj, path, value):
@@ -269,7 +289,18 @@ def item_field_vectors():
     case("JCS(url) at url_cap_bytes", changed(base, ["url"], at_cap), "accepted", small_url)
     case("JCS(url) one octet above url_cap_bytes", changed(base, ["url"], at_cap + "a"), "WIST1-E11", small_url)
     case("removed Item with JCS(url) one octet above url_cap_bytes", changed(gone, ["url"], at_cap + "a"),
-         "WIST1-E11", small_url)
+         "accepted", small_url)
+    bound = item_bound(ITEM_PARAMETERS)
+    case("page Item whose JCS(item) is at 16 384 + url_cap_bytes octets", padded_to(base, bound), "accepted")
+    case("page Item whose JCS(item) is one octet above 16 384 + url_cap_bytes octets", padded_to(base, bound + 1),
+         "WIST1-E04")
+    small_bound = item_bound({**ITEM_PARAMETERS, **small_url})
+    long_gone = changed(gone, ["url"], stem + "x" * (small_bound - len(rfc8785.dumps(changed(gone, ["url"], stem)))))
+    assert len(rfc8785.dumps(long_gone)) == small_bound
+    case("removed Item whose JCS(item) is at 16 384 + url_cap_bytes octets through its url", long_gone, "accepted",
+         small_url)
+    case("removed Item whose JCS(item) is one octet above 16 384 + url_cap_bytes octets through its url",
+         changed(long_gone, ["url"], long_gone["url"] + "x"), "WIST1-E04", small_url)
     small_caps = {"extract_cap_bytes": 100, "links_cap_bytes": 50, "summary_cap_bytes": 50}
     cap = items.derived_payload_cap({**ITEM_PARAMETERS, **small_caps})
     assert cap == 232
@@ -294,6 +325,12 @@ def item_field_vectors():
             ("one minute before generated_at by offset +00:01", "2026-10-01T12:00:00+00:01", "accepted"),
             ("on the next day at offset -12:00", "2026-10-02T00:00:00-12:00", "WIST1-E06")):
         case(f"observed_at {label}", changed(base, ["observed_at"], observed), expected)
+    long_zero = "2026-10-01T12:00:00." + "0" * 5000 + "Z"
+    long_later = "2026-10-01T12:00:00." + "0" * 4999 + "1Z"
+    case("observed_at equal to generated_at with a fraction of 5 000 zero digits",
+         changed(base, ["observed_at"], long_zero), "accepted")
+    case("observed_at later than generated_at by a fraction of 5 000 digits ending in 1",
+         changed(base, ["observed_at"], long_later), "WIST1-E06")
     case("removed Item observed_at one second after generated_at",
          changed(gone, ["observed_at"], "2026-10-01T12:00:01Z"), "WIST1-E06")
     other = changed(base, ["url"], "https://blog.example.com/journal/first")
@@ -347,8 +384,10 @@ def item_field_vectors():
         "WIST1-E11 and a nonnegative safe-integer payload.bytes above the derived cap (extract_cap_bytes + "
         "links_cap_bytes + summary_cap_bytes + 32) keeps WIST1-E04. WIST1-E03: url not byte-identical to its "
         "Normalized URL, host (without port) outside domain and subdomain_scope, or url outside the Scope of the "
-        "Catalog's Collection. WIST1-E11: JCS(url) above url_cap_bytes. WIST1-E06: observed_at later than "
-        "generated_at as exact instants. WIST2-E03: publisher other than the Catalog's. Each rejected case fails "
+        "Catalog's Collection. WIST1-E11: in a page Item, JCS(url) above url_cap_bytes; a removed Item is not held "
+        "to url_cap_bytes. WIST1-E04 as well: JCS(item) above 16 384 + url_cap_bytes octets, for either kind. "
+        "WIST1-E06: observed_at later than generated_at as exact instants, however many fraction digits "
+        "observed_at carries. WIST2-E03: publisher other than the Catalog's. Each rejected case fails "
         "exactly one rule, with one exception: a missing or malformed publisher is also other than the Catalog's, "
         "and those cases exercise the ADR's rule that the WIST1-E14 conditions are checked first. known_answers give Item ID = sha256: + "
         "hex(SHA-256(JCS(item))), key = SHA-256(JCS([\"page\", url])) and leaf = SHA-256(0x00 || key || "
@@ -597,11 +636,11 @@ def catalog_field_vectors():
          sign("owner", "catalog", changed(base, ["generated_at"], stamp(seconds(CLOCK) + 601))), "WIST1-E06",
          clock="2026-10-01T14:00:00+02:00")
 
-    small = {"catalog_items_max": 4}
-    case("size at catalog_items_max", sign("owner", "catalog", changed(base, ["size"], 4)), "accepted",
-         parameters=small)
-    case("size one above catalog_items_max", sign("owner", "catalog", changed(base, ["size"], 5)), "WIST1-E04",
-         parameters=small)
+    raised = {"catalog_items_max": 16777217}
+    case("size at a catalog_items_max amended above its value",
+         sign("owner", "catalog", changed(base, ["size"], 16777217)), "accepted", parameters=raised)
+    case("size one above a catalog_items_max amended above its value",
+         sign("owner", "catalog", changed(base, ["size"], 16777218)), "WIST1-E04", parameters=raised)
     case("size at the default catalog_items_max", sign("owner", "catalog", changed(base, ["size"], 16777216)),
          "accepted")
     case("size one above the default catalog_items_max",
@@ -663,6 +702,26 @@ def catalog_field_vectors():
         assert cases[-1]["catalog_id"] == catalogs.catalog_id(base)
     case("Envelope followed by a second document", None, "WIST1-E05", raw=text + "{}")
 
+    read_cases = []
+
+    def read_case(name, raw, expected):
+        octets = raw.encode("utf-8")
+        got = catalogs.fetched_catalog_disposition(octets, publisher_of("collections"), CLOCK, CATALOG_PARAMETERS)
+        assert got == expected, (name, got, expected)
+        read_cases.append({"name": name, "declaration": "collections", "clock": CLOCK,
+                           "parameters": CATALOG_PARAMETERS, "octets": len(octets), "catalog_json": raw,
+                           "expected": expected})
+
+    compact = rfc8785.dumps(sign("owner", "catalog", base)).decode("utf-8")
+    read_bound = catalogs.CATALOG_READ_OCTETS
+    read_case("catalog.json of 16 384 octets, a valid Envelope followed by spaces",
+              compact + " " * (read_bound - len(compact)), "accepted")
+    read_case("catalog.json of 16 385 octets, a valid Envelope followed by spaces: a failed fetch",
+              compact + " " * (read_bound + 1 - len(compact)), "failed")
+    read_case("catalog.json of 16 385 octets that is not valid JCS input: a failed fetch",
+              compact[:-1] + " " * (read_bound + 1 - len(compact) + 1), "failed")
+    read_case("catalog.json that is not the JCS serialization of its Envelope", text, "accepted")
+
     id_cases = []
     empty, _ = catalog_inner([])
     for name, inner in (("journal Catalog", base), ("store Catalog", store), ("empty Collection", empty),
@@ -691,8 +750,14 @@ def catalog_field_vectors():
         "instants. Every signed case is signed over its own inner object, so each rejected case fails exactly one "
         "rule, with one exception: a missing or malformed collection is also one the Declaration does not name, "
         "and those cases exercise the ADR's rule that the WIST1-E14 conditions are checked first. id_cases give Catalog ID = sha256: + "
-        "hex(SHA-256(JCS(catalog))). " + DECLARATIONS_NOTE + " " + KEYS_NOTE),
-        "keys": KEYS_MEMBER, "declarations": DECLARATIONS, "cases": cases, "id_cases": id_cases}
+        "hex(SHA-256(JCS(catalog))). read_cases fetch `catalog_json`, the octets of catalog.json as UTF-8 text, "
+        "`octets` long, at a pull: an Aggregator reads at most 16 384 octets of catalog.json, and a larger answer "
+        "is `failed`, a failed fetch of the Catalog retried as WIST-2 section 7 retries a Feed that cannot be "
+        "fetched, neither a refusal nor an acceptance, whatever the octets hold; octets within the bound are judged "
+        "as in `cases`, and need only be valid JCS input, not the JCS serialization of the Envelope. "
+        + DECLARATIONS_NOTE + " " + KEYS_NOTE),
+        "keys": KEYS_MEMBER, "declarations": DECLARATIONS, "cases": cases, "id_cases": id_cases,
+        "read_cases": read_cases}
 
 
 def catalog_order_vectors():
@@ -707,7 +772,8 @@ def catalog_order_vectors():
     last = at(GENERATED_AT)
     fetched_for = {"publisher": "example.com", "collection": "journal"}
     pull_cases = []
-    for name, previous, fetched, expected in (
+    older = at("2026-09-30T12:00:00Z", other_list)
+    for name, previous, fetched, expected, *latest in (
             ("no Catalog accepted before", None, last, "accepted"),
             ("later by one second", last, at("2026-10-01T12:00:01Z"), "accepted"),
             ("later by one day with another list", last, at("2026-10-02T12:00:00Z", other_list), "accepted"),
@@ -719,11 +785,18 @@ def catalog_order_vectors():
              "WIST2-E04"),
             ("fetched for another Collection", last, at("2026-10-01T12:00:01Z", collection="store"), "WIST2-E04"),
             ("fetched for another Collection with none accepted before", None, at(GENERATED_AT, collection="store"),
-             "WIST2-E04")):
-        got = catalogs.pull_order(fetched, fetched_for, previous)
+             "WIST2-E04"),
+            ("the latest Catalog, earlier than the last accepted one: an idempotent re-serve", last,
+             copy.deepcopy(older), "idempotent", older),
+            ("earlier than the last accepted one with another Catalog ID than the latest Catalog's", last,
+             at("2026-09-30T12:00:01Z", other_list), "WIST2-E05", older),
+            ("the last accepted Catalog while another is the latest Catalog: an idempotent re-serve", last,
+             copy.deepcopy(last), "idempotent", older)):
+        latest = latest[0] if latest else previous
+        got = catalogs.pull_order(fetched, fetched_for, previous, latest)
         assert got == expected, (name, got)
-        pull_cases.append({"name": name, "fetched_for": fetched_for, "last_accepted": previous, "fetched": fetched,
-                           "expected": expected})
+        pull_cases.append({"name": name, "fetched_for": fetched_for, "last_accepted": previous, "latest": latest,
+                           "fetched": fetched, "expected": expected})
 
     next_cases = []
     for name, clock, served, expected in (
@@ -756,20 +829,44 @@ def catalog_order_vectors():
         next_cases.append({"name": name, "clock": clock, "served": served, "clock_skew_seconds": 600,
                            "expected": {"generated_at": got} if got else {"refused": "catalog-instant"}})
 
+    due_cases = []
+    served_at = "2026-10-01T12:00:00Z"
+    for name, clock, expected in (
+            ("clock one second before the served instant plus catalog_refresh_seconds", "2026-10-08T11:59:59Z", False),
+            ("clock a fraction before the served instant plus catalog_refresh_seconds", "2026-10-08T11:59:59.999Z",
+             False),
+            ("clock at the served instant plus catalog_refresh_seconds", "2026-10-08T12:00:00Z", True),
+            ("clock a fraction after the served instant plus catalog_refresh_seconds", "2026-10-08T12:00:00.5Z", True),
+            ("clock at the served instant plus catalog_refresh_seconds, at an offset", "2026-10-08T14:00:00+02:00",
+             True),
+            ("clock one second after the served instant plus catalog_refresh_seconds", "2026-10-08T12:00:01Z", True),
+            ("clock at the served instant", served_at, False),
+            ("no Catalog served: due at any clock", "2026-10-01T12:00:00Z", True)):
+        served = None if name.startswith("no Catalog served") else served_at
+        got = catalogs.catalog_due(clock, served)
+        assert got == expected, (name, got)
+        due_cases.append({"name": name, "clock": clock, "served": served,
+                          "catalog_refresh_seconds": catalogs.CATALOG_REFRESH_SECONDS, "expected": {"due": got}})
+
     return {"note": (
         "ADR-0052 Catalog order. pull_cases judge the inner object `fetched`, pulled for the Publisher and "
         "Collection of `fetched_for`, against `last_accepted`, the inner object of that Collection's last "
-        "accepted Catalog or null: WIST2-E04 when fetched.publisher or fetched.collection differs from "
-        "`fetched_for`; `idempotent` when its Catalog ID (sha256: + hex(SHA-256(JCS(catalog)))) equals the last "
-        "accepted one's, replacing nothing; WIST2-E05 when its generated_at is at or before the last accepted "
-        "one's under another Catalog ID; `accepted` otherwise, the Catalog then replacing the last accepted one. "
+        "accepted Catalog or null, and `latest`, the inner object of its latest Catalog or null: WIST2-E04 when "
+        "fetched.publisher or fetched.collection differs from `fetched_for`; `idempotent` when its Catalog ID "
+        "(sha256: + hex(SHA-256(JCS(catalog)))) equals the last accepted one's or the latest one's, replacing "
+        "nothing; WIST2-E05 when its generated_at is at or before the last accepted one's and it is no idempotent "
+        "re-serve; `accepted` otherwise, the Catalog then replacing the last accepted one. "
         "Only these rules are judged, and each rejected case fails exactly one of them. next_cases give the "
         "generated_at a Publisher signs for a Collection whose served Catalog has generated_at `served` (null when "
         "none is served), at clock `clock` (a Publisher timestamp, WIST-1 section 3.4): the later of the clock cut "
         "to the whole second and served plus one second, as {\"generated_at\": ...}; when that instant is more "
         "than clock_skew_seconds after the clock cut to the whole second, the part that signs refuses, "
-        "{\"refused\": \"catalog-instant\"}, and signs nothing."),
-        "pull_cases": pull_cases, "next_cases": next_cases}
+        "{\"refused\": \"catalog-instant\"}, and signs nothing. The part that signs reads clock_skew_seconds at its "
+        "suite value, 600. due_cases give whether a Catalog of a Collection whose served Catalog has generated_at "
+        "`served` is due at clock `clock`, whether or not its list changed: {\"due\": true} once the clock cut to "
+        "the whole second is at or after served plus catalog_refresh_seconds, read at its suite value, 604 800 "
+        "seconds, whatever a Log has amended, and at any clock when `served` is null, no Catalog being served."),
+        "pull_cases": pull_cases, "next_cases": next_cases, "due_cases": due_cases}
 
 
 POOL = [f"https://example.com/journal/t{i:03d}" for i in range(4000)]
@@ -887,10 +984,39 @@ def catalog_tree_vectors():
         node["children"][0]["node"]["omit"] = True
     refused("tree file unavailable", two_node, two_list, omit_first_bucket)
 
-    longest = max(len(o) for o in root_files.values())
-    case("tree file at tree_file_cap_bytes", root_catalog, root_files, root_list, {"tree_file_cap_bytes": longest})
-    case("tree file one octet above tree_file_cap_bytes", root_catalog, root_files, None,
-         {"tree_file_cap_bytes": longest - 1})
+    file_cap = tree_files.DEFAULT_PARAMETERS["tree_file_cap_bytes"]
+    wide_urls = [f"https://example.com/journal/w{i:02d}/" for i in range(16)]
+    wide_urls = [u + "x" * (2000 - 2 - len(u)) for u in wide_urls]
+    assert all(len(rfc8785.dumps(u)) == 2000 for u in wide_urls)
+    wide = items.in_list_order([page(u, "2026-09-20T08:00:00Z", label=f"wide {i}")[0]
+                                for i, u in enumerate(wide_urls)])
+
+    def bucket_of(octets):
+        listed = copy.deepcopy(wide)
+        short = len(rfc8785.dumps({"items": listed}))
+        per_item, rest = divmod(octets - short, len(listed))
+        for i, item in enumerate(listed):
+            listed[i] = padded_to(item, len(rfc8785.dumps(item)) + per_item + (rest if i == 0 else 0))
+        listed = items.in_list_order(listed)
+        assert len(rfc8785.dumps({"items": listed})) == octets
+        return listed
+
+    at_file_cap = bucket_of(file_cap)
+    catalog, files = tree_catalog(bucket(at_file_cap), at_file_cap)
+    case("bucket of tree_file_cap_bytes octets", catalog, files, at_file_cap)
+    above_file_cap = bucket_of(file_cap + 1)
+    catalog, files = tree_catalog(bucket(above_file_cap), above_file_cap)
+    case("bucket one octet above tree_file_cap_bytes", catalog, files, None)
+    catalog, files = tree_catalog(bucket(at_file_cap), at_file_cap)
+    case("bucket of tree_file_cap_bytes octets under a tree_file_cap_bytes amended above its value", catalog, files,
+         at_file_cap, {"tree_file_cap_bytes": file_cap + 1})
+    catalog, files = tree_catalog(bucket(above_file_cap), above_file_cap)
+    case("bucket one octet above tree_file_cap_bytes under a tree_file_cap_bytes amended to its size", catalog,
+         files, above_file_cap, {"tree_file_cap_bytes": file_cap + 1})
+    divided_node, divided_catalog, divided_files = reference(above_file_cap, tree_files.BUCKET_CAPACITY)
+    assert "children" in divided_node and all(len(o) <= file_cap for o in divided_files.values())
+    case("sixteen Items whose one bucket would exceed tree_file_cap_bytes, divided by the reference writer",
+         divided_catalog, divided_files, above_file_cap)
 
     def swap_stored(node):
         other = rfc8785.dumps({"items": node["children"][1]["node"]["items"]})
@@ -1044,11 +1170,23 @@ def catalog_tree_vectors():
                                   root_list)
     case("bucket element that is not an object", catalog, files, None)
 
-    case("inner file at level tree_depth_max", three_catalog, three_files, None, {"tree_depth_max": 2})
-    case("bucket at level tree_depth_max", three_catalog, three_files, three_list, {"tree_depth_max": 3})
-    case("two levels with tree_depth_max 2", two_catalog, two_files, two_list, {"tree_depth_max": 2})
-    case("root inner file with tree_depth_max 1", two_catalog, two_files, None, {"tree_depth_max": 1})
-    case("root bucket with tree_depth_max 1", root_catalog, root_files, root_list, {"tree_depth_max": 1})
+    depth_max = tree_files.DEFAULT_PARAMETERS["tree_depth_max"]
+    deep = root_list[:1]
+    deep_key = items.item_key(deep[0]["url"]).hex()
+
+    def chain(bucket_level):
+        node = bucket(deep)
+        for level in range(bucket_level - 1, 0, -1):
+            node = inner((deep_key[:level], node))
+        return node
+
+    catalog, files = tree_catalog(chain(depth_max), deep)
+    case("bucket at level tree_depth_max below a chain of inner files", catalog, files, deep)
+    catalog, files = tree_catalog(chain(depth_max + 1), deep)
+    case("inner file at level tree_depth_max", catalog, files, None)
+    catalog, files = tree_catalog(chain(depth_max + 1), deep)
+    case("inner file at level tree_depth_max under a tree_depth_max amended above its value", catalog, files, deep,
+         {"tree_depth_max": depth_max + 1})
 
     catalog, files = tree_catalog(bucket(root_list), root_list, size=len(root_list) + 1)
     case("size one above the number of Items listed", catalog, files, None)
@@ -1076,7 +1214,10 @@ def catalog_tree_vectors():
         "change the root of the list; an uppercase prefix digit leaves no key in its subtree beginning with it; "
         "size above the Items listed also breaks the root file's count). A count spelled 2.0 has the value 2 and "
         "is refused only because the file's octets are not the JCS serialization of its object. Where a tree divides is the Publisher's "
-        "choice; the walk reads the tree as served."),
+        "choice; the walk reads the tree as served. tree_file_cap_bytes and tree_depth_max are not amended below "
+        "65 536 and 16, so each case supplies those values or values amended above them. The reference writer "
+        "divides a bucket that lists more than 16 Items or whose file would exceed tree_file_cap_bytes, down to "
+        "tree_depth_max; the case of sixteen Items of 2 000-octet URLs is a tree it wrote."),
         "cases": cases}
 
 
@@ -1143,6 +1284,19 @@ def catalog_item_vectors():
          default_files, "accepted", {i["url"]: o for i, o in default_listing})
     case("journal Catalog signed by the store key", "collections", sign("store", "catalog", journal), journal_files,
          "WIST1-E02")
+    bound = item_bound(PULL_PARAMETERS)
+    long_url = "https://example.com/journal/long-" + "x" * 2020
+    assert len(rfc8785.dumps(long_url)) > PULL_PARAMETERS["url_cap_bytes"]
+    sized_listing = [
+        (page("https://example.com/journal/a", "2026-09-30T10:00:00Z")[0], "accepted"),
+        (padded_to(page("https://example.com/journal/at-bound", "2026-09-30T10:00:00Z")[0], bound), "accepted"),
+        (padded_to(page("https://example.com/journal/above-bound", "2026-09-30T10:00:00Z")[0], bound + 1),
+         "WIST1-E04"),
+        (removed(long_url, "2026-09-30T11:00:00Z"), "accepted"),
+        (page(long_url + "-page", "2026-09-30T10:00:00Z")[0], "WIST1-E11")]
+    sized, sized_files = catalog_inner([i for i, _ in sized_listing])
+    case("journal Catalog listing Items at and above the Item bound and above url_cap_bytes", "collections",
+         sign("journal", "catalog", sized), sized_files, "accepted", {i["url"]: o for i, o in sized_listing})
     docs, docs_files = catalog_inner(journal_items, "docs")
     case("Catalog naming a Collection the Declaration lacks", "collections", sign("owner", "catalog", docs),
          docs_files, "WIST1-E03")
@@ -1155,12 +1309,14 @@ def catalog_item_vectors():
         "walked from `tree_files` as vectors/wist2/catalog-tree.json does (every walk here succeeds), and "
         "`expected.items` gives, in list order, each Item's url, Item ID and outcome under the Item conditions "
         "of ADR-0052 (vectors/wist1/item-fields.json): `accepted` or its code. A refused Item stays in the list "
-        "and its leaf in the root. " + DECLARATIONS_NOTE + " " + KEYS_NOTE),
+        "and its leaf in the root, and the other Items proceed: a page Item one octet above 16 384 + url_cap_bytes "
+        "octets of JCS(item) is WIST1-E04 beside one at that bound, and a removed Item whose JCS(url) is above "
+        "url_cap_bytes is accepted beside a page Item that is WIST1-E11. " + DECLARATIONS_NOTE + " " + KEYS_NOTE),
         "keys": KEYS_MEMBER, "declarations": DECLARATIONS, "cases": cases}
 
 
 def item_list_vectors():
-    parameters = {**ITEM_PARAMETERS, "removal_retention_days": items.DEFAULT_PARAMETERS["removal_retention_days"]}
+    parameters = dict(ITEM_PARAMETERS)
     generated = GENERATED_AT
     cases = []
 
@@ -1173,11 +1329,12 @@ def item_list_vectors():
         return items.in_list_order(listed), payloads
 
     def case(name, served_pairs, publications, expected_list, generated_at=generated, signs=True,
-             wist_version="1.0.0"):
+             wist_version="1.0.0", removals=()):
         served, payloads = served_of(served_pairs)
         salts = [{"url": p["url"], "salt": salt_for("fresh " + p["url"])} for p in publications]
         got = items.derive_list(served, payloads, publications, publisher_of("collections"), "journal",
-                                generated_at, {s["url"]: s["salt"] for s in salts}, wist_version, parameters)
+                                generated_at, {s["url"]: s["salt"] for s in salts}, wist_version, parameters,
+                                removals=removals)
         if signs:
             assert "refused" not in got, name
             assert got["list"] == items.in_list_order(expected_list), (name, got["list"], expected_list)
@@ -1186,7 +1343,7 @@ def item_list_vectors():
         cases.append({"name": name, "declaration": "collections", "collection": "journal",
                       "generated_at": generated_at, "wist_version": wist_version, "parameters": parameters,
                       "served": {"list": served, "payloads": payloads}, "publications": publications,
-                      "salts": salts, "expected": got})
+                      "removals": list(removals), "salts": salts, "expected": got})
 
     def fresh(p, wist_version="1.0.0"):
         return items.new_page_item("example.com", p, salt_for("fresh " + p["url"]), wist_version)[0]
@@ -1242,14 +1399,32 @@ def item_list_vectors():
     case("a removed URL published again", [(removed(b_url, "2026-09-15T00:00:00Z"), None)], [again], [fresh(again)])
     outside = page("https://example.com/store/x", "2026-09-01T08:00:00Z")
     outside_removed = removed("https://example.com/about", "2026-09-20T00:00:00Z")
-    case("served Items outside the Collection's Scope leave the list", [outside, (outside_removed, None)], [], [])
+    case("served Items outside the Collection's Scope: the page Item becomes removed at generated_at, the removed "
+         "Item is kept", [outside, (outside_removed, None)], [],
+         [removed(outside[0]["url"], generated), outside_removed])
+    outside_ended = removed("https://example.com/about", stamp(end))
+    case("served removed Item outside the Collection's Scope at the retention end is dropped",
+         [(outside_ended, None)], [], [])
+    e_url = "https://example.com/journal/e"
+    case("URL a removal names with no publication and no served Item becomes removed at generated_at", [], [],
+         [removed(e_url, generated)], removals=[e_url])
+    served_gone = removed(e_url, "2026-09-15T00:00:00Z")
+    case("URL a removal names with a served removed Item keeps the served Item", [(served_gone, None)], [],
+         [served_gone], removals=[e_url])
+    case("URL a removal names with a served page Item becomes removed at generated_at", [a], [],
+         [removed(a_url, generated)], removals=[a_url])
+    case("URL a removal names with a served removed Item at the retention end is dropped", [(at_end, None)], [],
+         [], removals=[b_url])
+    case("URL a removal names outside the Collection's Scope becomes removed at generated_at", [], [],
+         [removed("https://example.com/store/y", generated)], removals=["https://example.com/store/y"])
     c = page(c_url, "2026-09-02T08:00:00Z")
     d_url = "https://blog.example.com/journal/d"
     pub_d = publication(d_url, "2026-09-29T00:00:00Z")
     case("every row at once",
          [a, c, outside, (removed(b_url, "2026-09-15T00:00:00Z"), None), (at_end | {"url": d_url + "-old"}, None)],
          [later_a, pub_d, publication(b_url, "2026-09-30T09:00:00Z")],
-         [a[0], removed(c_url, generated), fresh(pub_d), fresh(publication(b_url, "2026-09-30T09:00:00Z"))])
+         [a[0], removed(c_url, generated), removed(outside[0]["url"], generated), fresh(pub_d),
+          fresh(publication(b_url, "2026-09-30T09:00:00Z")), removed(e_url, generated)], removals=[e_url])
     future = publication(c_url, "2026-10-01T12:00:01Z")
     case("publication whose modified is later than generated_at: no Catalog is signed", [a], [pub_a, future], [],
          signs=False)
@@ -1260,11 +1435,15 @@ def item_list_vectors():
         "ADR-0052 From publications to Items, for the Collection `collection` under the Declaration named by "
         "`declaration`. Inputs: the served list `served.list` with `served.payloads` (the Payload of each served "
         "page Item, keyed by Item ID), the publications a stream's application leaves ({url, lang, modified, "
-        "content}, ADR-0050), the Catalog's `generated_at` and `wist_version`, `parameters` "
-        "(removal_retention_days and the size caps url_cap_bytes, extract_cap_bytes, links_cap_bytes, "
-        "link_url_cap_bytes and summary_cap_bytes those Payload checks read) and `salts`, the salt a new Item for that url takes. A served Item whose "
-        "publisher is not the Publisher's domain is read as a page Item whose Payload is not held. The first row a served Item or publication meets decides: a "
-        "served Item whose url the Collection's Scope does not cover yields nothing; a publication whose url has a "
+        "content}, ADR-0050), `removals`, the URLs the removals of an incremental stream name, the Catalog's "
+        "`generated_at` and `wist_version`, `parameters` (the size caps url_cap_bytes, extract_cap_bytes, "
+        "links_cap_bytes, link_url_cap_bytes and summary_cap_bytes those Payload checks read, at their suite "
+        "values, since the part that signs reads no Log's parameters) and `salts`, the salt a new Item for that url "
+        "takes. removal_retention_days is the constant 180 and is read from no parameter map. The publications lie "
+        "inside the Collection's Scope; a served Item outside it has no publication and the served rows below "
+        "decide it. A served Item whose "
+        "publisher is not the Publisher's domain is read as a page Item whose Payload is not held. The first row "
+        "a served Item, publication or removed URL meets decides: a publication whose url has a "
         "served page Item with meta.lang equal to its lang and a held Payload that passes WIST-1 section 7's Payload "
         "checks against the Item's payload (the Payload's form and version spelling, WIST1-E14; a supported major, "
         "WIST1-E15; the caps under `parameters`, WIST1-E04; JCS(content) exactly payload.bytes octets and "
@@ -1276,7 +1455,9 @@ def item_list_vectors():
         "the Payload {wist_version: the Catalog's wist_version, salt, content}; a served page Item whose url has no publication yields "
         "{publisher: the Publisher's domain, url, observed_at: generated_at, removed: true}; a served removed Item whose url has no "
         "publication is kept unchanged while generated_at is earlier than its observed_at plus "
-        "removal_retention_days of 86 400 seconds, compared as exact instants, and yields nothing from then on. "
+        "180 days of 86 400 seconds, compared as exact instants, and yields nothing from then on; a url of "
+        "`removals` with no publication and no served Item yields {publisher: the Publisher's domain, url, "
+        "observed_at: generated_at, removed: true}, whether or not the Collection's Scope covers it. "
         "A served page Item whose Payload is absent from served.payloads does not meet the second row. The "
         "Publisher's domain is the Declaration's `domain`. `expected` is {list (ascending octet order of key), "
         "payloads (keyed by Item ID)}, or {\"refused\": \"item-instant\"} when an Item of the new list has an "

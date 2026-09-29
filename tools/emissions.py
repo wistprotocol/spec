@@ -4,7 +4,7 @@ import urllib.parse
 
 import rfc8785
 
-from link_extraction import _external, _iter_hrefs, extract_text, links_member, normalize_url
+from link_extraction import _external, _iter_hrefs, extract_text, links_member, normalize_url, trim_candidate
 
 DEFAULT_PARAMETERS = {
     "url_cap_bytes": 2048,
@@ -169,7 +169,7 @@ def covers(publisher, collection, url):
 def _surviving_links(candidates, base_url, publisher_domain, link_url_cap_bytes):
     seen, urls = set(), []
     for candidate in candidates:
-        url = normalize_url(candidate, base_url)
+        url = normalize_url(trim_candidate(candidate), base_url)
         if url is None or _jcs_length(url) > link_url_cap_bytes:
             continue
         if not _external(url, publisher_domain) or url in seen:
@@ -180,15 +180,15 @@ def _surviving_links(candidates, base_url, publisher_domain, link_url_cap_bytes)
 
 
 def fragment_links(html_octets, base_url, publisher_domain, link_url_cap_bytes):
-    return _surviving_links((c.strip() for c in _iter_hrefs(html_octets)),
-                            base_url, publisher_domain, link_url_cap_bytes)
+    return _surviving_links(_iter_hrefs(html_octets), base_url, publisher_domain, link_url_cap_bytes)
 
 
 def declared_links(links, base_url, publisher_domain, link_url_cap_bytes):
     return _surviving_links(links, base_url, publisher_domain, link_url_cap_bytes)
 
 
-def derive_content(emission, url, publisher_domain, parameters):
+def derive_content(emission, url, publisher_domain):
+    parameters = DEFAULT_PARAMETERS
     if "html" in emission:
         octets = emission["html"].encode("utf-8")
         extract = extract_text(octets)
@@ -205,11 +205,10 @@ def derive_content(emission, url, publisher_domain, parameters):
             "summary": summary}
 
 
-def derive_publication(emission, publisher_domain, parameters=None):
-    parameters = parameters or DEFAULT_PARAMETERS
+def derive_publication(emission, publisher_domain):
     url = normalize_url(emission["url"], "")
     return {"url": url, "lang": emission["lang"], "modified": emission["modified"],
-            "content": derive_content(emission, url, publisher_domain, parameters)}
+            "content": derive_content(emission, url, publisher_domain)}
 
 
 def _emission_form_ok(line):
@@ -233,7 +232,8 @@ def _removal_form_ok(line, mode):
             and isinstance(line["url"], str) and mode == "incremental")
 
 
-def _over_cap(publication, emission, parameters):
+def _over_cap(publication, emission):
+    parameters = DEFAULT_PARAMETERS
     content = publication["content"]
     return (_jcs_length(publication["url"]) > parameters["url_cap_bytes"]
             or _jcs_length(content["extract"]) > parameters["extract_cap_bytes"]
@@ -267,8 +267,7 @@ def _valid_trailer(trailer):
             and int(count.lexeme) <= COUNT_MAX)
 
 
-def read_stream(octets, publisher, collection, parameters=None):
-    parameters = parameters or DEFAULT_PARAMETERS
+def read_stream(octets, publisher, collection):
     if octets.startswith(_BOM):
         raise Refusal("stream-form", 1)
     lines = split_lines(octets)
@@ -306,8 +305,8 @@ def read_stream(octets, publisher, collection, parameters=None):
         if not covers(publisher, collection, url):
             raise Refusal("scope", number)
         publication = {"url": url, "lang": line["lang"], "modified": line["modified"],
-                       "content": derive_content(line, url, publisher["domain"], parameters)}
-        if _over_cap(publication, line, parameters):
+                       "content": derive_content(line, url, publisher["domain"])}
+        if _over_cap(publication, line):
             raise Refusal("cap", number)
         publications.append(publication)
     if trailer is None or int(trailer["count"].lexeme) != len(lines) - 2:
@@ -324,9 +323,9 @@ def _same(publication, published):
             and rfc8785.dumps(publication["content"]) == rfc8785.dumps(published["content"]))
 
 
-def apply_stream(octets, publisher, collection, published, parameters=None):
+def apply_stream(octets, publisher, collection, published):
     try:
-        stream = read_stream(octets, publisher, collection, parameters)
+        stream = read_stream(octets, publisher, collection)
     except Refusal as refusal:
         return {"refusal": refusal.code, "line": refusal.line}
     current = {p["url"]: p for p in published}

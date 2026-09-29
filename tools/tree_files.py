@@ -19,14 +19,16 @@ def key_hex(item):
     return items.item_key(item["url"]).hex()
 
 
-def plan(ordered, capacity=BUCKET_CAPACITY, depth_max=DEFAULT_PARAMETERS["tree_depth_max"], prefix="", level=1):
-    if len(ordered) <= capacity or level == depth_max:
+def plan(ordered, capacity=BUCKET_CAPACITY, depth_max=DEFAULT_PARAMETERS["tree_depth_max"], prefix="", level=1,
+         file_cap=DEFAULT_PARAMETERS["tree_file_cap_bytes"]):
+    fits = len(ordered) <= capacity and len(items.jcs({"items": list(ordered)})) <= file_cap
+    if fits or level == depth_max:
         return {"items": list(ordered)}
     groups = {}
     for item in ordered:
         groups.setdefault(key_hex(item)[len(prefix)], []).append(item)
     return {"children": [{"prefix": prefix + digit, "count": len(groups[digit]),
-                          "node": plan(groups[digit], capacity, depth_max, prefix + digit, level + 1)}
+                          "node": plan(groups[digit], capacity, depth_max, prefix + digit, level + 1, file_cap)}
                          for digit in HEX_DIGITS if digit in groups]}
 
 
@@ -42,9 +44,10 @@ def emit(node, files):
     return digest
 
 
-def write_tree(listed, capacity=BUCKET_CAPACITY, depth_max=DEFAULT_PARAMETERS["tree_depth_max"]):
+def write_tree(listed, capacity=BUCKET_CAPACITY, depth_max=DEFAULT_PARAMETERS["tree_depth_max"],
+               file_cap=DEFAULT_PARAMETERS["tree_file_cap_bytes"]):
     files = {}
-    tree = emit(plan(items.in_list_order(listed), capacity, depth_max), files)
+    tree = emit(plan(items.in_list_order(listed), capacity, depth_max, file_cap=file_cap), files)
     return "sha256:" + tree, files
 
 

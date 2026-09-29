@@ -24,8 +24,8 @@ WIST3 = ROOT / "vectors" / "wist3"
 MULTILOG = ROOT / "vectors" / "multilog"
 
 KEY_NAMES = ("owner", "owner2", "recovery", "recovery2", "fresh", "journal", "journal2",
-             "store", "store2", "docs")
-USED_KEYS = ("owner", "owner2", "recovery", "fresh", "journal", "journal2", "store", "store2", "docs")
+             "store", "store2", "docs", "log")
+USED_KEYS = ("owner", "owner2", "recovery", "fresh", "journal", "journal2", "store", "store2", "docs", "log")
 SEEDS = {name: bytes([0xC1 + i]) * 32 for i, name in enumerate(KEY_NAMES)}
 PRIVATE = {name: Ed25519PrivateKey.from_private_bytes(SEEDS[name]) for name in USED_KEYS}
 X = {name: rules.b64u(key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw))
@@ -52,7 +52,7 @@ S = "https://example.com/store/"
 BLOG = "blog.example.com"
 DEFAULT_MAP = {
     "clock_skew_seconds": 600, "catalog_items_max": 16777216, "catalog_refresh_seconds": 604800,
-    "removal_retention_days": 180, "domain_epoch_entries_max": 10000, "url_cap_bytes": 2048,
+    "payload_window_days": 180, "domain_epoch_entries_max": 10000, "url_cap_bytes": 2048,
     "extract_cap_bytes": 32768, "links_cap_bytes": 4096, "link_url_cap_bytes": 2048, "summary_cap_bytes": 2048,
     "collections_max": 16, "scope_entries_max": 32, "recovery_window_days": 7, "declaration_activation_epochs": 24}
 
@@ -168,12 +168,24 @@ def cat(signer, catalog):
     return {"type": "publisher_catalog", "body": sign(signer, "catalog", catalog.inner)}
 
 
+def withdrawal(withdrawn, sealed_at, subject=None):
+    update = {"wist_version": "1.0.0", "action": "payload_withdrawal", "subject": subject or withdrawn["publisher"],
+              "effective_at": stamp(sealed_at),
+              "details": {"delta_id": items.item_id(withdrawn), "legal_basis": "court order 12/2026",
+                          "jurisdiction": "BR"}}
+    return {"type": "registry_update", "body": sign("log", "update", update)}
+
+
 def item(catalog, url, **changes):
     listed = next(i for i in catalog.listed if i["url"] == url)
     body = items.publisher_item_body(listed, catalog.inner, catalog.listed)
     for member, value in changes.items():
         body[member] = value
     return {"type": "publisher_item", "body": body}
+
+
+def item_at(catalog, listed):
+    return {"type": "publisher_item", "body": items.publisher_item_body(listed, catalog.inner, catalog.listed)}
 
 
 def at(height, offset=-60):
@@ -198,7 +210,7 @@ def expected_disposition(value):
     return {"disposition": "ignored", "failed": failed, "codes": [code]}
 
 
-def run(epochs, expect, rejected, label):
+def run(epochs, expect, rejected, label, duties=False):
     results, state = sealing.replay([{"height": e["height"], "sealed_at": e["sealed_at"],
                                       "parameters": e["parameters"],
                                       "entries": [n["entry"] for n in e["entries"]]} for e in epochs])
@@ -223,6 +235,8 @@ def run(epochs, expect, rejected, label):
                 assert got == wanted, (label, named["name"], got, wanted)
                 entry["entries"].append({"name": named["name"], **got})
             entry["records_removed"] = result["records_removed"]
+        if duties:
+            entry["payload_duties"] = result["payload_duties"]
         declared = result["state"]["declarations"]
         for d in declared:
             for member in ("current", "pending_head"):
@@ -233,13 +247,13 @@ def run(epochs, expect, rejected, label):
     return out, state
 
 
-def history(name, why, spec, expect, rejected=None, check=None):
+def history(name, why, spec, expect, rejected=None, check=None, duties=False):
     epochs = build_epochs(spec)
     for epoch in epochs:
         for named in epoch["entries"]:
-            if named["entry"]["type"] != "publisher_declaration":
+            if named["entry"]["type"] in ("registry_update", "publisher_catalog", "publisher_item"):
                 assert named["name"] in expect, (name, named["name"])
-    results, state = run(epochs, expect, rejected or {}, name)
+    results, state = run(epochs, expect, rejected or {}, name, duties)
     if check is not None:
         check(results)
     return {"name": name, "why": why, "epochs": epochs, "expected": results}
@@ -512,7 +526,8 @@ def sealing_vectors():
     q3 = Cat([pa2, pb, rx], at(4))
 
     def removal_check(results):
-        assert results[3]["state"]["removals"] == [{"publisher": "example.com", "url": J + "b", "catalog": q2.id,
+        assert results[3]["state"]["removals"] == [{"publisher": "example.com", "url": J + "b",
+                                                   "item": items.item_id(rb), "catalog": q2.id,
                                                    "generated_at": q2.inner["generated_at"]}]
         assert results[4]["state"]["removals"] == []
         assert records_of(results, 4) == [(J + "a", q2.id), (J + "b", q3.id)]
@@ -627,15 +642,15 @@ def sealing_vectors():
 
     b1 = Cat([pa, pb], at(1))
     tb = seconds(b1.inner["generated_at"])
+    retention = items.REMOVAL_RETENTION_DAYS * DAY
 
-    def base_history(name, why, gap, map2, base):
+    def base_history(name, why, gap, base):
         b2 = Cat([pa, rb], tb + gap)
-        spec = [{"entries": [("G", decl("owner", G))], "parameters": {"removal_retention_days": 2}},
-                {"entries": [("J1", cat("journal", b1)), ("a@J1", item(b1, J + "a")), ("b@J1", item(b1, J + "b"))],
-                 "parameters": {"removal_retention_days": 2}},
+        spec = [{"entries": [("G", decl("owner", G))]},
+                {"entries": [("J1", cat("journal", b1)), ("a@J1", item(b1, J + "a")), ("b@J1", item(b1, J + "b"))]},
                 {"entries": [("J2", cat("journal", b2)), ("a@J2", item(b2, J + "a")),
                              ("b removed@J2", item(b2, J + "b"))],
-                 "sealed_at": tb + gap + 60, "parameters": {"removal_retention_days": map2}}]
+                 "sealed_at": tb + gap + 60}]
         expect = {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "J2": "valid"}
         if base:
             expect.update({"a@J2": "valid", "b removed@J2": (E06, ["I7"])})
@@ -651,42 +666,203 @@ def sealing_vectors():
 
     histories.append(base_history(
         "base: a gap of exactly removal_retention_days",
-        "removal_retention_days is 2. J2 is exactly two days of 86 400 seconds after the floor: not a base. The "
-        "records stay, so a against J2 is the record's Item and fails I7, and the removed b removes b's record.",
-        2 * DAY, 2, False))
+        "removal_retention_days is the constant 180. J2 is exactly 180 days of 86 400 seconds after the floor: not a "
+        "base. The records stay, so a against J2 is the record's Item and fails I7, and the removed b removes b's "
+        "record.",
+        retention, False))
     histories.append(base_history(
         "base: a gap of removal_retention_days and one second",
         "J2 is one second later than in the previous history: a base. Before the Items apply, the records of a "
         "and b are removed; a against J2 restores a's record and the removed b has no record and fails I7.",
-        2 * DAY + 1, 2, True))
-    histories.append(base_history(
-        "base: removal_retention_days read from the map of the Catalog's Epoch",
-        "The gap is two days and one second as in the previous history, but the map in force at J2's Epoch says "
-        "3 days: J2 is not a base.",
-        2 * DAY + 1, 3, False))
+        retention + 1, True))
+
+    longest = {"catalog_refresh_seconds": retention}
+
+    def refresh_bound(name, why, gap, base):
+        again = b1.with_instant(tb + gap)
+        spec = [{"entries": [("G", decl("owner", G))], "parameters": longest},
+                {"entries": [("J1", cat("journal", b1)), ("a@J1", item(b1, J + "a")), ("b@J1", item(b1, J + "b"))],
+                 "parameters": longest},
+                {"entries": [("J1 unchanged, one second short", cat("journal", b1.with_instant(tb + retention - 1)))],
+                 "sealed_at": tb + retention - 1 + 60, "parameters": longest},
+                {"entries": [("J1 unchanged", cat("journal", again)), ("a@J1 unchanged", item(again, J + "a"))],
+                 "sealed_at": tb + gap + 60, "parameters": longest}]
+        expect = {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "J1 unchanged, one second short": (E06, ["C4"]),
+                  "J1 unchanged": "valid", "a@J1 unchanged": "valid" if base else (E06, ["I7"])}
+
+        def check(results):
+            assert results[3]["state"]["catalogs"][0]["base"] is base
+            assert [r["cause"] for r in results[3]["records_removed"]] == (["base", "base"] if base else [])
+
+        return history(name, why, spec, expect, check=check)
+
+    histories.append(refresh_bound(
+        "C4 and the base at the largest catalog_refresh_seconds",
+        "catalog_refresh_seconds is 15 552 000, the length of removal_retention_days in seconds, in every Epoch. "
+        "J1's list one second short of the floor plus that interval fails C4. At exactly the floor plus 15 552 000 "
+        "seconds it passes C4 and is not a base: the records stay, and a against it is the record's Item and fails "
+        "I7.",
+        retention, False))
+    histories.append(refresh_bound(
+        "C4 and the base one second after the largest catalog_refresh_seconds",
+        "The same list one second later than in the previous history passes C4 and is a base: the records of a and "
+        "b are removed before the Items apply, and a against it is valid again.",
+        retention + 1, True))
+
+    px, pv, py, pz = page(J + "old/x"), page(J + "old/v"), page(J + "new/y"), page(J + "new/z")
+    pw, pu = page(J + "old/w"), page(J + "new/u")
+    wl = Cat([px, pv, py, pz, pw, pu], at(1))
+    only_new = successor(G, collections=[collection("journal", [prefix(J + "new/")], [key("journal")]), STORE])
+    all_again = successor(only_new, collections=[JOURNAL, STORE])
+
+    def withdrawn_check(results):
+        assert [r["url"] for r in results[2]["state"]["records"]] == urls_of(results, 1)
+        assert {d["url"] for d in results[2]["payload_duties"]} == {J + "old/v", J + "new/y", J + "old/w"}
+        assert [(r["url"], r["cause"]) for r in results[3]["records_removed"]] == [
+            (J + "old/v", "narrowing"), (J + "old/w", "narrowing"), (J + "old/x", "narrowing")]
+        assert {d["url"]: d["until"] for d in results[3]["payload_duties"]} == {
+            J + "old/v": stamp(T0 + 3 * HOUR + 180 * DAY), J + "old/w": stamp(T0 + 3 * HOUR + 180 * DAY),
+            J + "new/y": None, J + "new/u": None}
+        assert all(d["until"] is None for d in results[4]["payload_duties"])
+        assert items.item_id(pz) not in [d["item"] for d in results[5]["payload_duties"]]
+        assert J + "new/z" in urls_of(results, 5)
+
+    histories.append(history(
+        "I7: a withdrawn Payload",
+        "J1 lists old/x, old/v, old/w, new/y, new/z and new/u. x, v, w and y become records at height 1. At "
+        "height 2 three payload_withdrawal acts are sealed: one of x, which meets its details contract, so x's "
+        "record stays and its serving duty ends; one of w whose subject is blog.example.com, not the Publisher of "
+        "the Catalog w was sealed against, and one of u, which no Entry sealed at or below height 2 carries: both "
+        "break the contract (WIST4-E04), are ignored and block nothing. u is sealed at height 3 with D1, which "
+        "narrows the journal to new/ and removes the records of x, v and w; D2, at height 4, widens it again. "
+        "Against the unchanged J1, v and w are sealed again, while x fails I7 (WIST3-E06) since a withdrawal "
+        "sealed below height 4 names its Item ID. At height 5 a withdrawal of z is sealed with z's Entry: the act "
+        "meets its contract, since z is sealed in its Epoch, z is valid, since the withdrawal is not sealed below "
+        "z's Epoch, and z has no serving duty.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", wl)), ("x@J1", item(wl, J + "old/x")), ("v@J1", item(wl, J + "old/v")),
+                      ("w@J1", item(wl, J + "old/w")), ("y@J1", item(wl, J + "new/y"))]},
+         {"entries": [("withdrawal of x", withdrawal(px, T0 + 2 * HOUR)),
+                      ("withdrawal of w under another subject", withdrawal(pw, T0 + 2 * HOUR, BLOG)),
+                      ("withdrawal of u never sealed", withdrawal(pu, T0 + 2 * HOUR))]},
+         {"entries": [("D1", decl("owner", only_new)), ("u@J1", item(wl, J + "new/u"))]},
+         {"entries": [("D2", decl("owner", all_again)), ("x@J1 after widening", item(wl, J + "old/x")),
+                      ("v@J1 after widening", item(wl, J + "old/v")),
+                      ("w@J1 after widening", item(wl, J + "old/w"))]},
+         {"entries": [("withdrawal of z", withdrawal(pz, T0 + 5 * HOUR)), ("z@J1", item(wl, J + "new/z"))]}],
+        {"J1": "valid", "x@J1": "valid", "v@J1": "valid", "w@J1": "valid", "y@J1": "valid",
+         "withdrawal of x": "valid", "withdrawal of w under another subject": ("WIST4-E04", ["contract"]),
+         "withdrawal of u never sealed": ("WIST4-E04", ["contract"]), "u@J1": "valid",
+         "x@J1 after widening": (E06, ["I7"]), "v@J1 after widening": "valid", "w@J1 after widening": "valid",
+         "withdrawal of z": "valid", "z@J1": "valid"}, check=withdrawn_check, duties=True))
+
+    rk1 = Cat([pa, pb], at(1))
+    rk2 = Cat([pa, rb], at(2))
+    histories.append(history(
+        "a withdrawal that names an Item of kind removed",
+        "J1's a and b become records at height 1; the removed b against J2 removes b's record at height 2. At "
+        "height 3 a payload_withdrawal names the Item ID of that removed b: a valid publisher_item Entry sealed "
+        "it, but an Item of kind removed has no Payload, so the act breaks its details contract (WIST4-E04) and is "
+        "ignored; the twin, a withdrawal of a, a sealed Item of kind page, meets it.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", rk1)), ("a@J1", item(rk1, J + "a")), ("b@J1", item(rk1, J + "b"))]},
+         {"entries": [("J2", cat("journal", rk2)), ("b removed@J2", item(rk2, J + "b"))]},
+         {"entries": [("withdrawal of the removed b", withdrawal(rb, T0 + 3 * HOUR)),
+                      ("withdrawal of a", withdrawal(pa, T0 + 3 * HOUR))]}],
+        {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "J2": "valid", "b removed@J2": "valid",
+         "withdrawal of the removed b": ("WIST4-E04", ["contract"]), "withdrawal of a": "valid"}))
+
+    pk = page(J + "old/k")
+    kl = Cat([pk, py], at(1))
+    narrowed_again = successor(all_again, collections=only_new["collections"])
+    first_stop = T0 + 2 * HOUR
+    second_stop = T0 + 4 * HOUR
+
+    def union_check(results):
+        def until(height):
+            return {d["url"]: d["until"] for d in results[height]["payload_duties"]}.get(J + "old/k", "none")
+
+        assert until(2) == stamp(first_stop + 180 * DAY) and until(3) is None
+        assert until(4) == stamp(first_stop + 180 * DAY) and until(5) == stamp(first_stop + 180 * DAY)
+
+    histories.append(history(
+        "the serving duty of an Item that stopped being the record twice",
+        "k is a record from height 1. D1 removes it by narrowing at height 2, under payload_window_days 180; D2 "
+        "widens the journal and k is sealed again at height 3; D3 narrows again at height 4, under "
+        "payload_window_days 30. The first window ends 180 days after height 2 and the second 30 days after "
+        "height 4, earlier. At height 5, 31 days after height 4, k's duty still holds, since it holds while the "
+        "window of either Epoch does.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", kl)), ("k@J1", item(kl, J + "old/k")), ("y@J1", item(kl, J + "new/y"))]},
+         {"entries": [("D1", decl("owner", only_new))], "sealed_at": first_stop},
+         {"entries": [("D2", decl("owner", all_again)), ("k@J1 again", item(kl, J + "old/k"))]},
+         {"entries": [("D3", decl("owner", narrowed_again))], "sealed_at": second_stop,
+          "parameters": {"payload_window_days": 30}},
+         {"entries": [], "sealed_at": second_stop + 31 * DAY, "parameters": {"payload_window_days": 30}}],
+        {"J1": "valid", "k@J1": "valid", "y@J1": "valid", "k@J1 again": "valid"}, check=union_check, duties=True))
+
+    pb3 = page(J + "b", "b three")
+    duty_base = Cat([pa, pb3], tb + retention + 1)
+    base_at = tb + retention + 1 + 60
+
+    def duty_check(results):
+        assert [(d["url"], d["until"]) for d in results[2]["payload_duties"]] == [
+            (J + "a", stamp(base_at + retention)), (J + "b", stamp(base_at + retention))]
+        assert sorted((d["item"], d["until"]) for d in results[3]["payload_duties"]) == sorted(
+            [(items.item_id(pa), None), (items.item_id(pb), stamp(base_at + retention)), (items.item_id(pb3), None)])
+        assert sorted((d["item"], d["until"]) for d in results[4]["payload_duties"]) == sorted(
+            [(items.item_id(pa), None), (items.item_id(pb3), None)])
+
+    histories.append(history(
+        "the serving duty of a Payload through a base and a sealing again",
+        "payload_window_days is 180 in every Epoch. a and b are records from height 1 and their Payloads are served "
+        "while they are. J2, a base at height 2, removes both records: each duty runs until 180 days after height "
+        "2's sealed_at. At height 3 a, unchanged, is sealed again and is the record again, and b three replaces b. "
+        "At height 4, sealed exactly 180 days after height 2, b's duty has ended while a's holds, since the window "
+        "begun when a stopped being the record ends no duty while a is the record again.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", b1)), ("a@J1", item(b1, J + "a")), ("b@J1", item(b1, J + "b"))]},
+         {"entries": [("J2", cat("journal", duty_base))], "sealed_at": base_at},
+         {"entries": [("a@J2", item(duty_base, J + "a")), ("b three@J2", item(duty_base, J + "b"))],
+          "sealed_at": base_at + HOUR},
+         {"entries": [], "sealed_at": base_at + retention}],
+        {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "J2": "valid", "a@J2": "valid", "b three@J2": "valid"},
+        check=duty_check, duties=True))
 
     return {"note": (
-        "ADR-0052 Sealing: State and Judgment, the base (An Aggregator that was away) and the recovery window as "
-        "C2 and I2 read it, replayed from sealed Entries. Each history replays `epochs` in order. An Epoch is "
+        "ADR-0052 Sealing: State and Judgment, the base (An Aggregator that was away), the recovery window as C2 "
+        "and I2 read it, withdrawn Payloads as I7 reads them and the serving duty of a record's Payload (What a "
+        "record carries), replayed from sealed Entries. Each history replays `epochs` in order. An Epoch is "
         "simplified to its height, sealed_at, the parameter map in force at it (`parameters`, complete) and its "
         "Entries, each {type, body} with a `name` beside it; there are no Checkpoints and no Merkle tree of the "
         "Log. Entries are listed in canonical order (WIST-3 section 3.3: grouped publisher_declaration, "
-        "publisher_catalog, publisher_item, then by ascending SHA-256(0x00 || JCS(entry))), and the Entry index is "
-        "the position in that list. Declarations apply as vectors/wist1/collection-narrowing.json applies them "
-        "(WIST-1 section 5.2 and ADR-0051's narrowing), then publisher_catalog and then publisher_item Entries in "
-        "ascending Entry index. Each Catalog is judged by C1 to C4 and each Item by I1 to I7 with the Epoch's "
-        "sealed_at as the clock, the Epoch's parameter map, and the Declaration in force once the Epoch's "
+        "registry_update, publisher_catalog, publisher_item, then by ascending SHA-256(0x00 || JCS(entry))), and "
+        "the Entry index is the position in that list. Declarations apply as vectors/wist1/collection-narrowing.json "
+        "applies them (WIST-1 section 5.2 and ADR-0051's narrowing), then registry_update Entries, then "
+        "publisher_catalog and then publisher_item Entries in ascending Entry index. The only registry_update "
+        "carried is a payload_withdrawal (WIST-3 section 6.2, WIST-4 section 5.1) whose details.delta_id is an "
+        "Item ID, signed by the test-only Log key, which the replay does not authenticate. Its details contract "
+        "(WIST-4 section 5.1) is judged once the Epoch's Items have applied: delta_id names an Item of kind page, "
+        "since no other has a Payload, that a valid publisher_item Entry sealed at or below the act's Epoch against a Catalog whose publisher is the act's "
+        "subject; an act that breaks it is ignored (`failed` [contract], WIST4-E04) and blocks nothing. I7 reads "
+        "the delta_id of each act that meets it, and the earliest such act of an Item ID gives the height every "
+        "rule reads; `entries` gives each registry_update its disposition beside those of the Catalogs and "
+        "Items. Each Catalog is judged by C1 to C4 and each Item by I1 to I7 with the "
+        "Epoch's sealed_at as the clock, the Epoch's parameter map, and the Declaration in force once the Epoch's "
         "transitions have applied. The Publisher of a Catalog Entry is catalog.publisher and that of an Item "
         "Entry the named Catalog's publisher, whatever item.publisher spells: I2, I4, I5 and I7 read that "
         "Publisher's window, Declaration and records. A Catalog of a Publisher with no Declaration in force fails "
         "C1 with WIST1-E02. C2 to C4 are read only for a Catalog of the form C1 requires, and I2 and I4 to I7 "
         "only where I1 and I3 hold; `failed` lists every condition read that fails. Two publisher_catalog "
         "Entries with the same strings as publisher and collection reject the Epoch; an Entry in which either is "
-        "not a string is compared with none. The I7 record is that of the Publisher and URL whatever Collection "
-        "it carries; no history reaches a record of another Collection, since disjoint Scopes and narrowing "
-        "leave none that an Item passing I5 could meet. A valid Catalog whose name "
-        "has a floor and whose generated_at is more than removal_retention_days * 86400 seconds after it is a "
-        "base and removes every record of its Publisher in its Collection before the Epoch's Items apply. "
+        "not a string is compared with none. I7 fails for an Item of kind page that is its URL's record's Item "
+        "or whose Item ID a withdrawal sealed in an Epoch below the Item's names, and for an Item of kind removed "
+        "without a record; the record is that of the Publisher and URL whatever Collection it carries, and no "
+        "history reaches a record of another Collection, since disjoint Scopes and narrowing leave none that an "
+        "Item passing I5 could meet. A valid Catalog whose name has a floor and whose generated_at is more than "
+        "removal_retention_days, the constant 180, times 86 400 seconds after it is a base and removes every "
+        "record of its Publisher in its Collection before the Epoch's Items apply; no parameter map carries "
+        "removal_retention_days, and catalog_refresh_seconds is from 1 to 15 552 000 in every map. "
         "`expected` gives per Epoch `status` (`accepted`, or `rejected` with `code` WIST3-E03, the state then "
         "unchanged); for an accepted Epoch, per publisher_catalog and publisher_item Entry its `disposition` "
         "(`valid`, or `ignored` with the conditions `failed` and the `codes` among which WIST-1 section 7 leaves "
@@ -695,16 +871,24 @@ def sealing_vectors():
         "open window end; per Publisher and Collection name the latest Catalog's ID, the floor, its sealing "
         "height and whether it applied as a base; per Publisher and URL the record (Item ID, Collection, Catalog "
         "ID and generated_at of the Catalog proved against) and the removal states a valid removed Item left "
-        "(Catalog ID and generated_at), which a record removed by narrowing or a base does not leave; lists in "
-        "ascending octet order of publisher, then collection or url. Every ignored Entry or rejected Epoch fails "
+        "(that Item's ID, Catalog ID and generated_at), which a record removed by narrowing or a base does not "
+        "leave; lists in ascending octet order of publisher, then collection or url. Histories that carry "
+        "`payload_duties` give after each Epoch every Payload the Aggregator must serve (WIST-3 section 6.1): per "
+        "Item of kind page, with its publisher and url, `until` null while the Item is its URL's record, and "
+        "otherwise the latest instant one availability window (payload_window_days of 86 400 seconds, read from "
+        "the map of the Epoch at which the Item stopped being the record, whether an Item, narrowing or a base "
+        "removed it) after the sealed_at of any Epoch at which it stopped being the record, since the duty holds "
+        "while the window of any of those Epochs does; a duty is listed while the Epoch's sealed_at is earlier than `until`, it "
+        "is null again while the Item is the record again, and a withdrawal ends it for good; ordered by "
+        "publisher, url, then Item ID. Every ignored Entry or rejected Epoch fails "
         "one rule beside a twin that passes it, except where a rule cannot fail alone: a Catalog sealed again "
         "fails C3 and C4, and an Item of a Collection the Declaration no longer names fails I4 and I5. The "
         "per-domain capacity counts publisher_catalog and publisher_item Entries, valid or ignored, per Canonical "
         "Host, since no Public Suffix List snapshot is in force, and a body whose publisher is not a Canonical "
-        "Host counts toward none; no fixture carries registry_update, label or dispute Entries, and "
-        "recovery_window_days and declaration_activation_epochs are constant within a history. Payloads, tree "
-        "files and the rules of Waiting, the queue and settlement are not exercised. Keys derive from the stated "
-        "test-only seeds."),
+        "Host counts toward none; no fixture carries label or dispute Entries or a registry_update other than a "
+        "payload_withdrawal, and recovery_window_days and declaration_activation_epochs are constant within a "
+        "history. Payloads, tree files and the rules of Waiting, the queue and settlement are not exercised. Keys "
+        "derive from the stated test-only seeds."),
         "keys": KEYS_MEMBER, "histories": histories}
 
 
@@ -717,7 +901,8 @@ def order_vectors():
     w = Cat([pu3, pa_of()], at(3))
     z = Cat([ru, pa_of()], at(4))
     early_removal = Cat([ru, pa_of()], at(2))
-    base = Cat([pu2, pa_of()], seconds(x.inner["generated_at"]) + 2 * DAY + 1)
+    retention = items.REMOVAL_RETENTION_DAYS * DAY
+    base = Cat([pu2, pa_of()], seconds(x.inner["generated_at"]) + retention + 1)
     assert w.inner["generated_at"] == y.inner["generated_at"] and w.id != y.id
     order_cases = []
     for name, listed in (("two instants", [y, x]), ("equal instants, two Catalog IDs", [w, y]),
@@ -727,8 +912,28 @@ def order_vectors():
         order_cases.append({"name": name, "catalogs": [c.inner for c in listed],
                             "expected": [catalogs.catalog_id(c) for c in ordered]})
     earlier_id, later_id = sorted((y, w), key=lambda c: c.id.encode())
+    pu_one, pu_two = page(u, "u one"), page(u, "u two")
+    twin_k = Cat([pu_one, pu_two, pa_of()], at(1))
+    sealed_k = [[("K", cat("journal", twin_k)), ("u one@K", item_at(twin_k, pu_one))],
+                [("K", cat("journal", twin_k)), ("u two@K", item_at(twin_k, pu_two))]]
+    greater_item = max(items.item_id(pu_one), items.item_id(pu_two), key=str.encode)
+    greater_log = "A" if greater_item == items.item_id(pu_one) else "B"
+    removal_at_m, page_at_m = removed(u, "2026-10-01T02:00:00Z"), page(u, "u two")
+    mixed = Cat([removal_at_m, page_at_m, pa_of()], at(4))
+    mixed_item = max(items.item_id(removal_at_m), items.item_id(page_at_m), key=str.encode)
+    mixed_log = "A" if mixed_item == items.item_id(removal_at_m) else "B"
+    z2 = Cat([ru, page(J + "a", "a two")], at(5))
 
     genesis = ("G", decl("owner", G))
+
+    def snapshot_state(state, url):
+        record = next((r for r in state["records"] if r["publisher"] == "example.com" and r["url"] == url), None)
+        if record is not None:
+            return {"state": "record", **{k: record[k] for k in ("item", "collection", "catalog", "generated_at")}}
+        removal = next((r for r in state["removals"] if r["publisher"] == "example.com" and r["url"] == url), None)
+        if removal is not None:
+            return {"state": "removed", **{k: removal[k] for k in ("item", "catalog", "generated_at")}}
+        return None
 
     def log(name, rows):
         spec = [{"entries": [genesis]}] + [{"entries": row} if isinstance(row, list) else row for row in rows]
@@ -741,9 +946,10 @@ def order_vectors():
                    for e, r in zip(epochs, results)]
         assert all(r["status"] == "accepted" for r in results)
         assert all(d["disposition"] == "valid" for r in summary for d in r["entries"]), (name, summary)
+        assert snapshot_state(results[-1]["state"], u) == state.url_state("example.com", u)
         return {"name": name, "epochs": epochs, "results": summary}, state.url_state("example.com", u)
 
-    def case(name, why, logs, expected_logs, check=None):
+    def case(name, why, logs, expected_logs, check=None, from_snapshot=None):
         built, states = [], {}
         for log_name, rows in logs:
             entry, state = log(log_name, rows)
@@ -753,15 +959,21 @@ def order_vectors():
         assert (combined and combined["logs"]) == expected_logs, (name, combined)
         if check is not None:
             check(combined)
-        return {"name": name, "why": why, "publisher": "example.com", "url": u, "logs": built,
-                "expected": {"log_states": states, "combined": combined}}
+        out = {"name": name, "why": why, "publisher": "example.com", "url": u, "logs": built,
+               "expected": {"log_states": states, "combined": combined}}
+        if from_snapshot is not None:
+            out["expected"]["snapshot"] = {"log": from_snapshot, "removals": sealing.replay([
+                {"height": e["height"], "sealed_at": e["sealed_at"], "parameters": e["parameters"],
+                 "entries": [n["entry"] for n in e["entries"]]}
+                for e in built[[b["name"] for b in built].index(from_snapshot)]["epochs"]])[0][-1]["state"]["removals"]}
+        return out
 
     sealed_x = [("X", cat("journal", x)), ("u@X", item(x, u))]
     sealed_y = [("Y", cat("journal", y)), ("u@Y", item(y, u))]
     sealed_w = [("W", cat("journal", w)), ("u@W", item(w, u))]
     sealed = {y.id: sealed_y, w.id: sealed_w}
     after_z = successor(G, collections=[collection("journal", [prefix(J + "keep/")], [key("journal")]), STORE])
-    late_base = Cat([pu2, pa_of()], seconds(z.inner["generated_at"]) + 2 * DAY + 1)
+    late_base = Cat([pu2, pa_of()], seconds(z.inner["generated_at"]) + retention + 1)
     sealed_z = [("Z", cat("journal", z)), ("u removed@Z", item(z, u))]
     sealed_r = [("R", cat("journal", early_removal)), ("u removed@R", item(early_removal, u))]
     cases = [
@@ -797,20 +1009,38 @@ def order_vectors():
              [("A", [sealed_x, [], [], sealed_z, [("D", decl("owner", after_z))]]), ("B", [sealed_x])], ["A"],
              check=lambda c: c["state"]["state"] == "removed"),
         case("a removal state kept through a base",
-             "removal_retention_days is 2 in A. A seals the removed Item of u against Z, then a Catalog more than "
-             "two days after Z, a base. The removal state stays, and is later than B's record against X.",
+             "A seals the removed Item of u against Z, then a Catalog more than removal_retention_days, 180 days, "
+             "after Z, a base. The removal state stays, and is later than B's record against X.",
              [("A", [sealed_x, [], [], sealed_z,
                      {"entries": [("base", cat("journal", late_base))],
-                      "sealed_at": seconds(late_base.inner["generated_at"]) + 60,
-                      "parameters": {"removal_retention_days": 2}}]),
+                      "sealed_at": seconds(late_base.inner["generated_at"]) + 60}]),
               ("B", [sealed_x])], ["A"], check=lambda c: c["state"]["state"] == "removed"),
         case("a record removed by a base in one Log and held by another",
-             "removal_retention_days is 2 in A. A seals X and u against it, then a Catalog more than two days "
-             "later, a base that removes u's record: A has no state. B holds u against X.",
-             [("A", [{"entries": sealed_x, "parameters": {"removal_retention_days": 2}},
-                     {"entries": [("base", cat("journal", base))], "sealed_at": seconds(base.inner["generated_at"]) + 60,
-                      "parameters": {"removal_retention_days": 2}}]),
+             "A seals X and u against it, then a Catalog more than 180 days later, a base that removes u's record: "
+             "A has no state. B holds u against X.",
+             [("A", [{"entries": sealed_x},
+                     {"entries": [("base", cat("journal", base))], "sealed_at": seconds(base.inner["generated_at"]) + 60}]),
               ("B", [sealed_x])], ["B"]),
+        case("two records of one URL proved against one Catalog",
+             "K's root is computed over a list that holds two Items of u, u one and u two, under one key. A seals K "
+             "and u one against it, B seals K and u two: between states proved against one Catalog the state of "
+             "the greater Item ID in octet order is taken.",
+             [("A", [sealed_k[0]]), ("B", [sealed_k[1]])], [greater_log],
+             check=lambda c: c["state"]["item"] == greater_item),
+        case("a removal and a record of one URL proved against one Catalog",
+             "M's root is computed over a list that holds the removed Item of u and the page u two under one key. A "
+             "seals X and u against it, then M and the removed Item of u, which removes the record; B seals M and "
+             "u two. Both states are proved against M, and the one of the greater Item ID is taken.",
+             [("A", [sealed_x, [], [], [("M", cat("journal", mixed)), ("u removed@M", item_at(mixed, removal_at_m))]]),
+              ("B", [[], [], [], [("M", cat("journal", mixed)), ("u two@M", item_at(mixed, page_at_m))]])],
+             [mixed_log], check=lambda c: c["state"]["item"] == mixed_item),
+        case("a Snapshot state above a removal, with another Log's record",
+             "A seals the removed Item of u against Z at height 4 and a changed a against Z2 at height 5; its state "
+             "at height 5, as a Snapshot carries it, lists the removal of u with Z's Catalog ID and generated_at. "
+             "B's record of u against the earlier X is not taken: the URL is removed.",
+             [("A", [sealed_x, [], [], sealed_z, [("Z2", cat("journal", z2)), ("a two@Z2", item(z2, J + "a"))]]),
+              ("B", [sealed_x])], ["A"], check=lambda c: c["state"]["state"] == "removed" and c["state"]["catalog"] == z.id,
+             from_snapshot="A"),
     ]
     return {"note": (
         "ADR-0052 Several Logs. order_cases list Catalog inner objects of one Publisher; `expected` gives their "
@@ -820,12 +1050,17 @@ def order_vectors():
         "give Logs that replay as vectors/wist3/catalog-sealing.json's histories do, each from the Declaration G "
         "at height 0, with `results` giving every Entry's disposition. `expected.log_states` is each Log's state "
         "for `publisher` and `url` after its last Epoch: a record {state: record, item, collection, catalog, "
-        "generated_at}, a removal state {state: removed, catalog, generated_at} left by a valid removed Item, or "
+        "generated_at}, a removal state {state: removed, item, catalog, generated_at} left by a valid removed Item, "
+        "item being that Item's ID, or "
         "null, which a record removed by narrowing or a base leaves. A removal state stays through narrowing "
         "and through a base and ends when a valid page Item becomes the URL's record. `expected.combined` is the state a Consumer "
         "of all the Logs takes: the one proved against the latest Catalog in the order above among the Logs that "
-        "hold a state, with `logs` naming those that hold it; null when none does. States proved against one "
-        "Catalog are one Item. Epochs are simplified as in catalog-sealing.json (no Checkpoints and no Merkle "
+        "hold a state, with `logs` naming those that hold it; null when none does. Between states proved against "
+        "one Catalog the state of the greater Item ID in octet order is taken; two such states arise where the "
+        "Catalog's root is computed over a list holding two Items under one key, which no walk of its tree "
+        "accepts but a proof verifies. `snapshot`, where present, names a Log (`log`) and lists as `removals` the "
+        "removal states of that Log's state after its last Epoch, each with its publisher, url, Item ID, Catalog "
+        "ID and generated_at, as a Snapshot carries them. Epochs are simplified as in catalog-sealing.json (no Checkpoints and no Merkle "
         "tree of the Log). Keys derive from the stated test-only seeds."),
         "keys": KEYS_MEMBER, "order_cases": order_cases, "combined_cases": cases}
 
@@ -910,10 +1145,13 @@ def served_vectors():
         "`stop` lists files the Publisher must stop serving. `expected` lists, in ascending octet order, every "
         "file the served Catalog names, and every other file for which `clock` is earlier than the instant at "
         "which the last Catalog that named it was replaced plus replaced_file_seconds, 86 400 seconds, the "
-        "suite's value that no Log amends; files in `stop` are removed from the list. The interval is half-open: a file at exactly 86 400 "
-        "seconds is no longer due. The sequences are supplied as served, with tree files split at two Items per "
-        "bucket, and are not derived from publications; the fixture asserts nothing about files the Publisher "
-        "may serve beyond those due. A file in `stop` is removed whether or not the served Catalog names it."),
+        "suite's value that no Log amends; files in `stop` are removed from the list. `expected` states the duty "
+        "to serve: for a replaced file it holds at every instant earlier than the end of replaced_file_seconds, "
+        "so one second before that end and not at it. From that instant the Publisher may stop serving the file "
+        "and no rule obliges it to, so a file absent from `expected` may still be served; the fixture asserts "
+        "nothing about files the Publisher serves beyond those due. The sequences are supplied as served, with "
+        "tree files split at two Items per bucket, and are not derived from publications. A file in `stop` is "
+        "removed whether or not the served Catalog names it."),
         "cases": cases}
 
 

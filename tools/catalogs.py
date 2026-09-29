@@ -6,6 +6,8 @@ import collection_rules as rules
 import items
 
 DEFAULT_PARAMETERS = {"clock_skew_seconds": 600, "catalog_items_max": 16777216}
+CATALOG_REFRESH_SECONDS = 604800
+CATALOG_READ_OCTETS = 16384
 
 ENVELOPE_MEMBERS = frozenset(("catalog", "sig"))
 SIG_MEMBERS = frozenset(("key_id", "alg", "value"))
@@ -98,13 +100,19 @@ def catalog_disposition(envelope, publisher, clock, parameters=None):
     return "accepted"
 
 
-def pull_order(fetched, fetched_for, last_accepted):
+def fetched_catalog_disposition(octets, publisher, clock, parameters=None):
+    if len(octets) > CATALOG_READ_OCTETS:
+        return "failed"
+    return catalog_disposition(bytes(octets), publisher, clock, parameters)
+
+
+def pull_order(fetched, fetched_for, last_accepted, latest=None):
     if fetched["publisher"] != fetched_for["publisher"] or fetched["collection"] != fetched_for["collection"]:
         return "WIST2-E04"
+    if any(known is not None and catalog_id(fetched) == catalog_id(known) for known in (last_accepted, latest)):
+        return "idempotent"
     if last_accepted is None:
         return "accepted"
-    if catalog_id(fetched) == catalog_id(last_accepted):
-        return "idempotent"
     if log_seconds(fetched["generated_at"]) <= log_seconds(last_accepted["generated_at"]):
         return "WIST2-E05"
     return "accepted"
@@ -116,3 +124,9 @@ def next_generated_at(clock, served, clock_skew_seconds):
     if instant - now > clock_skew_seconds:
         return None
     return log_timestamp(instant)
+
+
+def catalog_due(clock, served):
+    if served is None:
+        return True
+    return math.floor(items.instant(clock)) >= log_seconds(served) + CATALOG_REFRESH_SECONDS

@@ -32,14 +32,9 @@ metadata that lists every file with its hash. An AT Protocol repository
 signs a commit over the root of a tree of records. In both, a reader
 verifies one signature and then proves membership.
 
-Sizes below are octets of canonical serializations in a model with a
-URL of 63 octets.
-
-| Object sealed | Octets |
-|---|---|
-| Delta, `update` / `attest` / `delete` | 641 / 504 / 504 |
-| Catalog | 510 |
-| Item with its proof, Collection of 100 / 10 000 / 1 000 000 Items | 958 / 1 431 / 1 837 |
+In a model with a URL of 63 octets, a sealed Delta is 641 octets of
+canonical serialization as an `update` and 504 as an `attest` or a
+`delete`.
 
 ## Decision
 
@@ -81,8 +76,8 @@ in the root, and the other Items proceed.
 |---|---|
 | `WIST1-E14` | A member set other than its kind's, a member of another type or form, or a `removed` that is not `true` |
 | `WIST1-E03` | A `url` that is not byte-identical to its own Normalized URL, whose host lies outside the authority of the Catalog's Publisher, or that the Scope of the Catalog's Collection does not cover |
-| `WIST1-E11` | `JCS(url)` above `url_cap_bytes` |
-| `WIST1-E04` | `payload.bytes` above the derived cap of WIST-1 §3.6 |
+| `WIST1-E11` | In an Item of kind `page`, `JCS(url)` above `url_cap_bytes` |
+| `WIST1-E04` | `payload.bytes` above the derived cap of WIST-1 §3.6; `JCS(item)` above 16 384 + `url_cap_bytes` octets, for either kind; or a `publisher_item` Entry that carries the Item, proved against the Catalog it is judged with, above the 65 535 octets of WIST-3 §3.3 |
 | `WIST1-E06` | An `observed_at` later than the Catalog's `generated_at`, compared as exact instants |
 | `WIST2-E03` | A `publisher` other than the Catalog's |
 
@@ -90,37 +85,50 @@ The `WIST1-E14` conditions are checked first, with the exceptions
 WIST-1 §7 gives a Delta's `url` and `payload.bytes`; among the other
 conditions WIST-1 §7 leaves the choice of diagnostic. `url_cap_bytes`
 and the three caps behind the derived one are read at the instant
-WIST-1 §3.6's size-cap parameter time gives a Delta.
+WIST-1 §3.6's size-cap parameter time gives a Delta. A sealed Entry
+above 65 535 octets rejects its Epoch whole before any judgment
+(WIST-3 §3.3), so the Entry bound refuses an Item only before sealing.
 
 ### Removal
 
 A URL the Publisher no longer publishes stays in the list as an Item of
-kind `removed`, under the page's key, carrying the instant of removal
-and no `payload`. It is sealed and proved as any Item is. The Publisher
-keeps it listed for `removal_retention_days`, 180 days, and does not
-take it out earlier, whatever Logs have sealed it: a Publisher does not
-know every Log that pulls its files.
+kind `removed`, under the page's key, carrying as `observed_at` the
+`generated_at` of the first Catalog that lists it, and no `payload`.
+It is sealed and proved as any Item is. The Publisher keeps it listed
+for `removal_retention_days`, 180 days, and does not take it out
+earlier, whatever Logs have sealed it: a Publisher does not know every
+Log that pulls its files.
 
 ### From publications to Items
 
 The part of a Publisher that signs derives the list of a Catalog from
 the list it serves, from the publications a stream's application
-leaves (ADR-0050) and from the Catalog's `generated_at`. Those
-publications lie inside the Collection's Scope, since a stream with
-one outside it is refused. The first condition below that an Item or
-a publication meets decides. A new Item's `publisher` is the
-Publisher's `domain`, and the Payload of a new Item of kind `page`
-carries the `wist_version` of the Catalog. A served Item whose
-`publisher` is not the Publisher's `domain` is read as an Item of kind
-`page` whose Payload is not held, so a new Item takes its place.
+leaves (ADR-0050), from the URLs the removals of an incremental stream
+name, and from the Catalog's `generated_at`. Those publications lie
+inside the Collection's Scope under the Declaration the Publisher
+serves, since a stream with one outside it is refused, so a served
+Item outside that Scope has no publication and the two rows of a
+served Item whose URL has no publication decide it. The first
+condition below that an Item, a publication or a URL meets decides. A
+new Item's `publisher` is the Publisher's `domain`, and the Payload of
+a new Item of kind `page` carries the `wist_version` of the Catalog. A
+served Item whose `publisher` is not the Publisher's `domain` is read
+as an Item of kind `page` whose Payload is not held, so a new Item
+takes its place.
 
 | Condition | In the new list |
 |---|---|
-| A served Item whose URL the Collection's Scope does not cover under the Publisher's current Declaration | Nothing. Narrowing (ADR-0051) removes its record |
 | A publication whose URL has a served Item of kind `page` with the publication's `lang` as `meta.lang` and a Payload, held by the part that signs and passing WIST-1 §7's Payload checks against the Item's `payload`, whose `JCS(content)` equals the publication's | The served Item and its Payload, unchanged, with its salt and its `observed_at` |
 | Any other publication | A new Item of kind `page`: `url`, the publication's URL; `observed_at`, its `modified`; `meta`, its `lang` alone; `payload`, the commitment to its `content` under a fresh salt |
 | A served Item of kind `page` whose URL has no publication | An Item of kind `removed` whose `observed_at` is the Catalog's `generated_at` |
 | A served Item of kind `removed` whose URL has no publication | The served Item, unchanged, while `generated_at` is earlier than its `observed_at` plus `removal_retention_days` of 86 400 seconds each; nothing from that instant on |
+| A URL a removal of the stream names, with no publication and no served Item, whether or not the Collection's Scope covers it | An Item of kind `removed` whose `observed_at` is the Catalog's `generated_at` |
+
+A Log in which the Declaration the Publisher serves is not yet in
+force removes the record of a URL outside its Scope through the Item
+of kind `removed`; a Log in which it is in force has removed that
+record by narrowing (ADR-0051) and refuses the Item alone with
+`WIST1-E03`.
 
 A Publisher signs no Catalog that lists an Item whose `observed_at` is
 later than the Catalog's `generated_at`: the part that signs refuses
@@ -155,8 +163,9 @@ same stage, so no signer places a Catalog further ahead than
 candidates ADR-0051 collects for the Collection the Catalog names,
 from the Declaration history of exactly `publisher` (WIST-1 §3.8): a
 Catalog judged under a Declaration of another `domain` has no
-candidate and is `WIST1-E02`.
-Every Item's `observed_at` is at or before `generated_at`.
+candidate and is `WIST1-E02`. An Item's `observed_at` later than
+`generated_at` is the Item condition `WIST1-E06` (Items), not a
+Catalog condition.
 
 | Code | Condition |
 |---|---|
@@ -168,14 +177,20 @@ Every Item's `observed_at` is at or before `generated_at`.
 | `WIST1-E03` | A `collection` the Declaration in force does not name |
 | `WIST1-E02`, `WIST1-E01` | The binding check, as WIST-1 §5.1 distinguishes them |
 | `WIST1-E06` | A `generated_at` more than `clock_skew_seconds` beyond the clock |
-| `WIST2-E05` | At a pull, a `generated_at` at or before that of the Collection's last accepted Catalog, in a Catalog of another Catalog ID |
+| `WIST2-E05` | At a pull, a `generated_at` at or before that of the Collection's last accepted Catalog, in a Catalog that is not an idempotent re-serve |
 
 `WIST1-E05` and then the `WIST1-E14` conditions are checked first;
 among the others WIST-1 §7 leaves the choice of diagnostic. Whether
 `size` is an integer depends on the number's value and not on its
 spelling, as WIST-1 §7 has it for `payload.bytes`. A fetched
-Catalog whose Catalog ID equals that of the last accepted one is an
-idempotent re-serve: it replaces nothing and is no regression.
+Catalog is an idempotent re-serve when its Catalog ID is that of the
+Collection's last accepted Catalog or of its latest Catalog (Waiting):
+it replaces nothing and is no regression. From the discovery of a
+recovery rotation until the settlement of its window (Recovery) the
+key counts as well: a fetched Catalog is an idempotent re-serve when
+its Catalog ID and the public key that signed it are those of a
+Catalog queued under its name or of the Catalog that waits for its
+Collection, or when its Catalog ID is the latest Catalog's.
 
 A Publisher signs a Catalog with a `generated_at` later than that of
 the Catalog it serves for the Collection: the later of its clock, cut
@@ -184,6 +199,20 @@ that instant is more than `clock_skew_seconds` beyond its clock, cut
 to the whole second, the part that signs refuses with
 `catalog-instant` and signs nothing, since its clock is wrong or no
 Aggregator accepted the served Catalog. WIST-5 assigns the code.
+
+A Catalog of each Collection the Publisher serves is due, whether or
+not the list changed, once the clock of the part that signs, cut to
+the whole second, is at or after the served Catalog's `generated_at`
+plus `catalog_refresh_seconds`, and at any clock for a Collection
+with no served Catalog; the part that signs signs every due Catalog
+when it runs. A Catalog whose `generated_at` is more than
+`removal_retention_days` after the one it replaces is a base in every
+Log whose floor is the replaced one's instant (An Aggregator that was
+away). The part that reads a stream or signs reads every parameter,
+`clock_skew_seconds`, `removal_retention_days` and
+`catalog_refresh_seconds` included, at its suite value (WIST-4 §5),
+whatever a Log has amended, since a Publisher reads no Log's
+parameters.
 
 ### Files
 
@@ -207,8 +236,9 @@ written before the Catalog that names them is served. A file the
 served Catalog does not name stays served for `replaced_file_seconds`,
 86 400 seconds, counted on the Publisher's clock from the instant at
 which the last Catalog that named it was replaced: at every instant
-earlier than that one plus the interval, and not at it. A file named
-again inside the interval is served as a named one. A file the
+earlier than that one plus the interval. From that instant the
+Publisher may stop serving the file, and no rule obliges it to. A file
+named again inside the interval is served as a named one. A file the
 Publisher must stop serving is removed at once, whether or not the
 served Catalog names it. The value is the suite's and no
 Log amends it, since a Publisher reads no Log's parameters.
@@ -247,11 +277,23 @@ one tree file, a bucket with no Items.
 | `removal_retention_days` | 180 days |
 | `catalog_refresh_seconds` | 604 800 seconds |
 
-None of the five is amended below 1, and `removal_retention_days` is
-not amended above 180, the interval a Publisher keeps whatever Log
-pulls it. The first three are read at the instant WIST-1 §3.6's
-size-cap parameter time gives a Delta, and the last two from the
-parameter map in force at the Epoch that judges a Catalog (Sealing).
+`catalog_items_max`, `tree_file_cap_bytes` and `tree_depth_max` are
+not amended below the values above, to which a Publisher builds
+(Catalogs), and are read at the instant WIST-1 §3.6's size-cap
+parameter time gives a Delta. `removal_retention_days` is 180 in every
+Log and no Log amends it, as no Log amends `replaced_file_seconds`, so
+a pull and an Epoch read the same value. `catalog_refresh_seconds` is
+amended to no value below 1 and none above 15 552 000, the length of
+`removal_retention_days` in seconds, so a base always passes C4; it is
+read from the parameter map in force at the Epoch that judges the
+Catalog (Sealing).
+
+An Aggregator reads at most 16 384 octets of `catalog.json`; a larger
+answer is a failed fetch of the Catalog, as WIST-2 §8 has an object
+above its bound, and is retried as WIST-2 §7 retries a Feed that
+cannot be fetched (`WIST2-E01`). The octets of `catalog.json` need
+only be valid JCS input (`WIST1-E05`) and not the JCS serialization,
+since the Entry carries the Envelope they parse to.
 
 An Aggregator that accepted a Catalog's fields, binding, clock and
 order walks the tree from `tree`, the children of an inner file in
@@ -260,8 +302,9 @@ within the ingest budget of WIST-2 §5. The Items of the buckets in the
 order of the walk are the list. The Catalog is refused whole with
 `WIST2-E07`, a new code of WIST-2, and nothing of it is sealed, when:
 
-- a tree file is unavailable, holds more than `tree_file_cap_bytes`
-  octets, or has another SHA-256 than the hash that names it;
+- the fetch of a tree file failed, or a tree file holds more than
+  `tree_file_cap_bytes` octets or has another SHA-256 than the hash
+  that names it;
 - a tree file differs from the form above, its octets not being the
   JCS serialization of the object they parse to included;
 - a prefix, a count, an order or a level differs from the rules above;
@@ -269,34 +312,55 @@ order of the walk are the list. The Catalog is refused whole with
   not `root`.
 
 The refusal is reported at the status endpoint and the Catalog is
-fetched again at the next pull. The bounds hold the walk to the root
-tree file and, for each Item counted, at most `tree_depth_max` − 1
-files below it. An Aggregator keeps the tree files it fetched under
-their hashes, so a walk that a replaced file interrupts resumes at the
-next pull, under the Catalog then served, from the files held.
+fetched again at the next pull. A walk that the ingest budget
+suspends is not refused and resumes at the next pull. The bounds hold
+the walk to the root tree file and, for each Item counted, at most
+`tree_depth_max` − 1 files below it. An Aggregator keeps the tree
+files it fetched under their hashes, so a walk that a replaced file
+interrupts resumes at the next pull, under the Catalog then served,
+from the files held.
 
 A Catalog is refused whole with `WIST2-E07` as well when its list
 holds no Item for the URL of a record that the Aggregator holds for
 the Collection and that the Collection's Scope covers under the
 Declaration the pull reads, unless the Catalog is a base against the
 floor (An Aggregator that was away): no Entry could remove that
-record.
+record. An Item the list holds for the URL counts whether or not it is
+refused alone. The report of this refusal at the status endpoint names
+the URL of every such record.
 
-An Item of the list that meets none of the Item conditions is
-**admitted** when it is of kind `removed`, when it is the Item of its
-URL's record, or when its Payload verifies. For an Item of kind `page`
-that is not the record's, the Aggregator fetches the Payload, unless
-it holds one under that Item ID, and verifies it by WIST-1 §7's
-Payload checks against the Item's `payload`. An Item whose Payload is
-unavailable or fails a check is not admitted and is reported with
+An Item of kind `page` whose Item ID a `payload_withdrawal` sealed in
+the Log names (WIST-3 §6.2) is not admitted, its Payload is not
+fetched, and it is reported with `WIST2-E03`. Any other Item of the
+list that meets none of the Item conditions is **admitted** when it is
+of kind `removed`, when it is the Item of its URL's record, whose
+Payload the pull does not check, or when its Payload verifies. For an
+Item of kind `page` that is not the record's, the Aggregator fetches
+the Payload, unless it holds one under that Item ID, and verifies it,
+held or fetched, by WIST-1 §7's Payload checks against the Item's
+`payload`, under the parameter map WIST-1 §3.6 selects for a Delta's
+Payload at admission. Before sealing an Item of kind `page`, however
+it was admitted, the Item of its URL's record that waits under a base
+included, the Aggregator checks its Payload under the map in force at
+the candidate Epoch's `sealed_at`, at the Item's turn in that Epoch
+when the capacity has room for it, and at no Epoch that defers it; a
+Payload the Aggregator does not hold at the Item's turn fails the
+check. The Payloads named by the withdrawals of an Epoch that meet
+their contract (Judgment) through an Item sealed below that Epoch are
+destroyed before its Items take their turn, so an Aggregator seals no
+Item in the Epoch that seals the withdrawal of its Payload, although
+I7 reads the withdrawals of earlier Epochs alone. An Item whose
+Payload is unavailable or fails a check at the
+pull is not admitted; one whose Payload fails at its turn takes no
+room, is not sealed and is no longer admitted. Either is reported with
 `WIST2-E03`; the other Items proceed.
 
 A pull that accepts a Catalog or meets an idempotent re-serve judges
 again, under the Declaration then in force, every Item of the list
 that an earlier pull refused or did not admit, and fetches again the
-Payload it does not hold. An idempotent re-serve replaces no Catalog, fetches no tree
-file the Aggregator holds and gives no waiting Item another place
-(Sealing).
+Payload it does not hold of every such Item that no withdrawal names.
+An idempotent re-serve replaces no Catalog, fetches no tree file the
+Aggregator holds and gives no waiting Item another place (Sealing).
 
 ### Proofs
 
@@ -345,14 +409,19 @@ the Catalogs and then the Items in ascending Entry index.
 | Latest Catalog | Publisher and Collection name | The valid `publisher_catalog` Entry applied last: its Envelope and its sealing height |
 | Floor | Publisher and Collection name | The `generated_at` of the latest Catalog. A name with no latest Catalog has no floor, and no rule bounds its first instant from below |
 | Record | Publisher and URL | The Item of kind `page`, its Collection, and the Catalog ID and `generated_at` of the Catalog it was proved against |
-| Removal | Publisher and URL | That a valid Item of kind `removed` removed the URL's record, with the Catalog ID and `generated_at` of the Catalog that Item was proved against (Several Logs) |
+| Removal | Publisher and URL | That a valid Item of kind `removed` removed the URL's record, with that Item's Item ID and the Catalog ID and `generated_at` of the Catalog it was proved against (Several Logs) |
 
 The latest Catalog and the floor stay when a Declaration stops naming
 the Collection, when narrowing (ADR-0051) or a base removes the
 Collection's records, and when the Publisher's identity resets (WIST-1
-§5.2). Both are functions of the sealed Entries. A Snapshot carries
-the latest Catalog of every name that has one, so a Consumer resumed
-from it derives the floor as a replaying one does.
+§5.2). Both are functions of the sealed Entries. A Snapshot carries,
+under `state_digest`, the latest Catalog of every name that has one,
+every record with the Collection, Catalog ID and `generated_at` it
+carries, and every removal state with its Item ID, Catalog ID and
+`generated_at`, so a Consumer resumed from it derives the floor and
+holds the combined view (Several Logs) that a replaying one holds.
+Their encoding as state tuples is left to the revision of WIST-3 §7
+(Taking effect).
 
 #### Judgment
 
@@ -389,7 +458,18 @@ once the Catalogs of Epoch N have applied.
 | I4 | The Declaration in force names the named Catalog's Collection, and the named Catalog passes the binding check at N |
 | I5 | `collection` is the named Catalog's, and the Item meets none of the Item conditions, judged with the named Catalog |
 | I6 | `proof` verifies against the named Catalog |
-| I7 | An Item of kind `page` is not the Item of its URL's record; an Item of kind `removed` has a record for its URL. The record is that of the Publisher and the URL, whatever Collection it carries |
+| I7 | An Item of kind `page` is not the Item of its URL's record, and no `payload_withdrawal` sealed in an Epoch below N names its Item ID; an Item of kind `removed` has a record for its URL. The record is that of the Publisher and the URL, whatever Collection it carries |
+
+A `payload_withdrawal` names an Item ID in `details.delta_id`, the
+member in which WIST-3 §6.2 and WIST-4 §5.1 have it name a Delta ID.
+I7 reads that member of each withdrawal that meets its `details`
+contract (WIST-4 §5.1), and nothing else of the withdrawal. For an
+Item ID the contract is that a valid `publisher_item` Entry sealed the
+Item, of kind `page` since no other has a Payload, at or below the
+withdrawal's Epoch, that Epoch included whatever
+the order of its Entries, against a Catalog whose `publisher` is the
+withdrawal's `subject`. A withdrawal that breaks it is ignored with
+`WIST4-E04` (WIST-4 §7) and names no Item for I7.
 
 C2 to C4 are read only for a Catalog that meets neither `WIST1-E05`
 nor a `WIST1-E14` condition. Where I1 fails no other condition of the
@@ -397,7 +477,11 @@ Item is read, and I2 and I4 to I7 are read only where I3 holds, since
 they read the named Catalog.
 
 A valid Item of kind `page` becomes the record of its URL. A valid Item
-of kind `removed` removes the record.
+of kind `removed` removes the record. An Item may be sealed in a Log
+more than once: after narrowing or a base removed its URL's record,
+the Item that record carried passes I7 again, unless a withdrawal
+names it, and is sealed again against the latest Catalog. The rule of
+WIST-3 §3.2 that a Delta is sealed once does not apply to Items.
 
 An Entry that is not valid is ignored: it changes no state, the floor
 included, and the Epoch stays accepted. An Entry that names an ignored
@@ -435,19 +519,33 @@ does not show an acceptance, so no Consumer derives them.
 
 The **last accepted Catalog** of a Collection is the Catalog a pull
 accepted last, unless it failed C1 at its turn, and the latest Catalog
-otherwise. The order of a pull (`WIST2-E05`) is read against it, and
-a fetched Catalog with its Catalog ID or the latest Catalog's is an
-idempotent re-serve. Per Collection at most one Catalog waits, and per
-URL at most one Item. A URL that begins to wait at an Epoch or at a
-settlement, and not at a pull, takes its place there, after the places
-taken before and in the order of the Collections of the Declaration in
-force and of the list.
+otherwise. The order of a pull (`WIST2-E05`) and the idempotent
+re-serve (Catalogs) read it. Per Collection at most one Catalog waits,
+and per URL at most one Item. Where the last accepted Catalogs of two
+Collections of a Publisher each list an admitted Item for one URL,
+the Item of the Catalog that is later in the order of Several Logs
+waits; one Declaration admits the Items of a URL in one Collection at
+most (ADR-0051, Scope), so this arises only
+between a pull that read one Declaration and a pull that read the
+next, for a Collection whose Catalog the later pull did not judge
+again. A URL that begins to wait at an Epoch or
+at a settlement, and not at a pull, takes its place there. A place
+taken at an event comes after every place taken at an earlier one, and
+places taken at one Epoch, one settlement or one pull are ordered by
+the Publisher's Canonical Host in ascending octet order, then by the
+order of the Collections of the Declaration in force for that
+Publisher, a Collection that Declaration does not name coming after
+the named ones in ascending octet order of name, then by the list.
+For this order the Declaration in force is, at an Epoch, the one in
+force once its transitions have applied; at a settlement, the one it
+leaves current; at a pull, the one the pull reads Collections from,
+and with two sources the one in effect before the recovery.
 
 | | A Collection's Catalog | A URL's Item |
 |---|---|---|
 | Waits | The last accepted Catalog, while it is not the latest Catalog and has not failed C4 at its turn | The Item the last accepted Catalog lists for the URL, while the Item is admitted (Files) and I7 holds for it |
 | Place | Taken at the pull that accepts a Catalog while none of the Collection waits. A later accepted Catalog takes the place and the eligibility Epoch of the waiting one it replaces | Taken at the pull from which the URL waits, and kept with its eligibility Epoch while the URL waits without interruption, whichever Item waits for it |
-| Leaves | When sealed. When it fails C1 at its turn: it is reported with the code at the status endpoint and is no longer the last accepted Catalog. When it fails C4 at its turn: it is not reported and stays the last accepted Catalog | When sealed. When the URL no longer waits. When the Item fails I5 at its turn: it is reported with the code and is a refused Item of its list |
+| Leaves | When sealed. When it fails C1 at its turn: it is reported with the code at the status endpoint and is no longer the last accepted Catalog. When it fails C4 at its turn: it is not reported and stays the last accepted Catalog | When sealed. When the URL no longer waits: an Item for which I7 no longer holds once the Epoch's transitions and Catalogs have applied leaves unreported, whatever other condition it fails. When the Item fails I5 at its turn: it is reported with the code and is a refused Item of its list |
 
 An Item is sealed in an Epoch only when, once the Epoch's Catalogs
 have applied, the latest Catalog of its Collection has the `root` of
@@ -460,29 +558,41 @@ for the Catalog the Publisher signs next.
 A Catalog or an Item is eligible for the Epoch that follows the event
 at which it took its place, and the inclusion ceiling (WIST-4 §5)
 counts from the Epoch it is eligible for. A replacement that keeps a
-place moves no eligibility Epoch. Each of the following defers the
-eligibility, and the ceiling with it, to the first Epoch at which none
-of them applies:
+place moves no eligibility Epoch. Each of the following, and nothing
+else, defers the eligibility, and the ceiling with it, to the first
+Epoch at which none of them applies:
 
 - a recovery window of the Publisher open at the Epoch (Recovery);
-- a Declaration of the Publisher that reduces authority, discovered
-  and not sealed at or below the Epoch (ADR-0051);
-- for an Item, a waiting Catalog of its Collection that the Epoch does
-  not seal, or a latest Catalog that fails I4 at the Epoch;
 - no room in the capacity of the Registrable Domain, taken in the
-  order below.
+  order below;
+- for an Item, a waiting Catalog of its Collection that one of the two
+  above holds out of the Epoch;
+- for an Item, a latest Catalog of its Collection that fails I4 at the
+  Epoch.
+
+A Declaration that reduces authority orders the sealing and defers
+nothing (ADR-0051, Reaching the Log). A Catalog or an Item that the
+hold keeps out of an Epoch takes no room in the capacity there, and
+neither the hold nor the capacity moves its eligibility Epoch or its
+ceiling at that Epoch; where a recovery window of the Publisher is
+open at the Epoch, the window defers it. It is reported at the status
+endpoint as held. A waiting Catalog that nothing
+defers is sealed at or below the Epoch that seals an Item of its
+Collection, so the earliest ceiling among the waiting Items of its
+Collection bounds its sealing; an Item that had reached its
+eligibility Epoch keeps it and its ceiling when a Catalog of another
+`root` is accepted.
 
 In an Epoch the capacity of a Registrable Domain is taken first by its
 Catalogs, then by its Items of kind `removed`, then by its Items of
 kind `page`, its Labels and its disputes together, and within each of
-the three in the order of the places (ADR-0051). Items that took their
-places at one pull are ordered by the order in which the pull read
-their Collections and, within a Collection, by the list. A Catalog or
-an Item that fails its judgment at its turn takes no room, and the
-next in order takes it. Every deferral that applies to a Catalog or
-an Item at an Epoch is reported for it at the status endpoint; the
-capacity defers only what nothing else defers at that Epoch. C2 defers a waiting
-Catalog and fails none, and C3 fails none that a pull accepted, since
+the three in the order of the places. A Catalog or an Item that fails
+its judgment at its turn takes no room, and the next in order takes
+it. Every deferral that applies to a Catalog or an Item at an Epoch is
+reported for it at the status endpoint, in the order of the list of
+deferrals above; the capacity defers only what
+nothing else defers at that Epoch. C2 defers a waiting Catalog and
+fails none, and C3 fails none that a pull accepted, since
 the order of the pull read the floor.
 
 ### Recovery
@@ -493,51 +603,84 @@ that seals the recovery Declaration is inside the window. The first
 Epoch whose `sealed_at` is at or after the window's end is outside it
 and is the Epoch of settlement.
 
+**Discovery.** From the pull that discovers a recovery rotation until
+the Epoch that seals it, a pull reads the two frozen sources
+(ADR-0051) and follows every rule below for a pull inside the window:
+it queues what it accepts, per Collection name and signing key, and no
+URL takes a place at it. What such a pull accepts is not sealed before
+settlement: the rotation is a source the pull read, so it is sealed at
+or below the Epoch that would seal what the pull accepted (ADR-0051,
+Reaching the Log), and that Epoch opens the window. A Catalog and the
+Items that waited at the discovery keep waiting: they are sealed in
+their turn below the Epoch that seals the rotation where the hold
+(ADR-0051, Reaching the Log) allows it, and are otherwise queued and
+held when the window opens. Where the rotation leaves the eligible
+sealing set (WIST-1 §5.2) unsealed, the queue is settled at that event
+as Settlement settles one, the Catalogs that wait being queued first
+as at the opening of a window, with the current Declaration of the
+sealed history as the source and the instant of the event as the
+clock; what then waits is
+eligible for the first Epoch not sealed before the event, and later
+pulls are pulls outside a window.
+
 **Queue.** A pull inside the window reads the two frozen sources
 (ADR-0051) and queues a Catalog that either accepts. The queue holds,
 per Collection name and per public key that signed, the Catalog of
 latest `generated_at`, with its list, its admitted Items and their
 Payloads; a Catalog of the same name and key with a later instant
-replaces the queued one. Inside the window the order of a pull is read
-against the floor and against the queued Catalog of the same name and
-key, so a Catalog signed by a key the recovery removes holds back none
-signed by another. A Catalog that waited when the window opened is
-queued as one a pull inside the window accepted, with the place it
-had, and the Items that waited are held with their places. Inside the
-window an Item is admitted when a source that accepts its Catalog
-passes the Item conditions for it, and the refusal of a list that
-drops a record's URL (Files) reads the Scopes of both sources. An
-idempotent re-serve inside the window, of a queued Catalog or of the
-latest Catalog, reads again which sources accept its Catalog and
-retries its Items under those; where neither accepts it, no Item is
-retried. Inside the window no
-URL takes a place, and a Catalog that failed C4 at its turn is not
-queued. A queued Catalog is not a waiting one: from the Epoch after
-the one that opens the window, the window alone defers the Items held.
+replaces the queued one. Inside the window the order of a pull
+(`WIST2-E05`) is read against the floor, against the queued Catalog
+of the same name and key and, before the window opens, against the
+Catalog that waits for the Collection where the same key signed it, so
+a Catalog of another Catalog ID at the instant of such a Catalog is
+refused and that Catalog stays, and a Catalog signed by a key the
+recovery removes holds back none signed by another. A Catalog with the
+Catalog ID of a queued or a waiting one under another key is no
+idempotent re-serve and is queued under its own key. A Catalog that
+waited when the window opened is queued as one a pull inside the
+window accepted, with the place it had, unless a Catalog of its name
+and key with a later instant is queued already, which stays; the
+Items that waited are held with their places. Inside the window an Item is
+admitted when a source that accepts its Catalog passes the Item
+conditions for it, and the refusal of a list that drops a record's URL
+(Files) reads the Scopes of both sources. An idempotent re-serve
+(Catalogs) inside the window reads again which sources accept its
+Catalog and retries its Items under those; where neither accepts it,
+no Item is retried. Inside the window no URL takes a place, and a
+Catalog that failed C4 at its turn is not queued. A queued Catalog is
+not a waiting one and is not the last accepted Catalog until
+settlement makes it one: from the Epoch after the one that opens the
+window, the window alone defers the Items held.
 
-**Settlement.** The queue is settled once, at the first event at or
-after the window's end: a pull, which settles before it reads anything
-and is then a pull outside a window, or the Epoch of settlement S,
-before any Declaration of S applies. Every queued Catalog is judged
-again by C1 under the settlement source of WIST-1 §5.2, with the
-instant of that event as the clock, a pull's own instant or S's
-`sealed_at`.
-A Catalog that fails is rejected with `WIST1-E13` and reported at the
-status endpoint. The rejection is of the queued copy: the same Catalog
-served again is judged as any other. Per Collection name, the
-surviving Catalog that is latest in the order of Several Logs becomes
-the last accepted Catalog. The other survivors are not sealed and not
-reported. Where no Catalog of a name survives, the last accepted
-Catalog is the latest Catalog.
+**Settlement.** The queue is settled once, where no event of Discovery
+settles it first, at the first event at or after the window's end: a
+pull, which settles before it reads anything and is then a pull
+outside a window, or the Epoch of settlement S, before any Declaration
+of S applies. Every queued Catalog is judged again by C1 under the
+settlement source of WIST-1 §5.2, with the instant of that event as
+the clock, a pull's own instant or S's `sealed_at`. A Catalog that
+fails is rejected with `WIST1-E13` and reported at the status
+endpoint. The rejection is of the queued copy: the same Catalog served
+again is judged as any other. Per Collection name, the surviving
+Catalog that is latest in the order of Several Logs becomes the last
+accepted Catalog, and among surviving Catalogs of that Catalog ID the
+one of the earliest place does. The other survivors are not sealed and
+not reported. Where no Catalog of a name survives, a name with nothing
+queued included, the last accepted Catalog is the latest Catalog.
 
 What then waits (Sealing) is eligible for S, and the ceiling counts
 from S. A URL that waited when the window opened and waits at
-settlement keeps its place. A Collection's Catalog takes the place of
-the first Catalog queued under its name, and every other URL the place
-of the pull that queued the surviving Catalog, or of the settlement
-where no Catalog of its name survived. Every Entry is judged
-at the Epoch that seals it, the Declarations of S included, so a
-survivor is eligible and not assured of sealing.
+settlement keeps its place. A queued Catalog has the place of the pull
+that queued it, before or inside the window, and one that waited when
+the window opened the place it had. A Collection's Catalog takes the
+earliest place among the Catalogs queued under its name and the
+Catalog that waited for it when the window opened, those that a later
+Catalog of their key replaced or kept out of the queue included, as a
+replacement outside a window keeps the place (Waiting). Every other
+URL takes the place of the surviving Catalog, or of the settlement
+where no Catalog of its name survived. Every Entry is judged at the
+Epoch that seals it, the Declarations of S included, so a survivor is
+eligible and not assured of sealing.
 
 ### What a record carries
 
@@ -546,14 +689,28 @@ against. A Collection carries the instant of its latest sealed Catalog,
 which says that the Publisher stated the Collection then and says
 nothing of any one record.
 
+The Aggregator serves the Payload of a record's Item (WIST-3 §6.1)
+while that Item is the record and, once an Item, narrowing or a base
+replaces or removes the record at an Epoch, at every instant earlier
+than that Epoch's `sealed_at` plus `payload_window_days` (WIST-4 §5)
+of 86 400 seconds each, read from that Epoch's parameter map. A
+withdrawal (WIST-3
+§6.2) ends the duty, and an Item whose withdrawal is sealed in the
+Epoch that seals the Item has none. A window begun when an Item
+stopped being the record ends no duty while that Item is the record
+again, and for an Item that stopped being the record more than once
+the duty holds while the window of any of those Epochs does.
+
 A party that holds every Item of a Collection MAY recompute the root
 and compare it with the Catalog's. The comparison changes no sealed
 value, no state tuple and no digest.
 
 ### Several Logs
 
-A Catalog and an Item have the same octets and the same IDs in every
-Log. The Catalogs of one Publisher are ordered by `generated_at` and,
+A Catalog has the same inner object and the same Catalog ID in every
+Log, and its Envelope may carry another signature in another Log. An
+Item has the same octets and the same Item ID in every Log. The
+Catalogs of one Publisher are ordered by `generated_at` and,
 between equal instants, by Catalog ID: the greater string in octet
 order is the later.
 
@@ -561,13 +718,17 @@ For one Publisher and URL, a Consumer of several Logs takes the state
 proved against the latest Catalog in that order, among the Logs that
 hold a state for the URL. A record is a state. A valid Item of kind
 `removed` leaves a state as well, that the URL is removed, which such
-a Consumer keeps with the Catalog ID and the instant of the Catalog
-the Item was proved against. States proved against one Catalog are
-one Item. A record that narrowing or a base removed in a Log leaves no
-state in that Log. The state that a URL is removed stays through
-narrowing and through a base, and ends when a valid Item of kind
-`page` becomes the URL's record. The order runs across the Collections
-of the Publisher.
+a Consumer keeps with the Item's Item ID and the Catalog ID and the
+instant of the Catalog the Item was proved against. Between states
+proved against one Catalog, the state of the greater Item ID in octet
+order is taken, a record's being its Item's. No walk accepts a list
+with two Items under one key (Files), so two such states arise only in
+a Log whose Aggregator sealed an Item without the walk; the rule makes
+the Consumers of such Logs agree. A record that narrowing or a base
+removed in a Log leaves no state in that Log. The state that a URL is
+removed stays through narrowing and through a base, and ends when a
+valid Item of kind `page` becomes the URL's record. The order runs
+across the Collections of the Publisher.
 
 ### An Aggregator that was away
 
@@ -579,11 +740,17 @@ exactly that interval is not a base.
 
 When a base applies, every record of the Publisher in the Collection
 is removed, before the Items of the Epoch apply. Against no record,
-every Item of kind `page` of the list passes I7 and none of kind
-`removed` does. From the pull that accepts a Catalog that is a base
-against the floor, the Aggregator reads I7 for the Collection against
-no record: every admitted Item of kind `page` waits, and is sealed in
-its turn.
+I7 holds for every Item of kind `page` of the list that no withdrawal
+names and for none of kind `removed`. From the pull that accepts a
+Catalog that is a base against the floor until that Catalog, or one
+that replaces it while it waits, is sealed or leaves, the Aggregator
+reads I7 for the Collection against no record: every admitted Item of
+kind `page` waits, and is sealed in its turn. A Catalog a pull queues
+(Recovery) begins no such reading; for a base in the queue it begins
+at the settlement that makes the base the last accepted Catalog. When
+the base leaves unsealed, failing C1 at its turn, I7 is read against
+the records again, and the Items that are their URL's record leave
+unreported, as an Item for which I7 no longer holds leaves (Waiting).
 
 A record is absent from the Epoch of the base until the Epoch that
 seals its Item. The capacity and the ceiling bound that interval and
@@ -591,7 +758,7 @@ nothing else does: a list of n Items under a capacity of c Entries
 takes at least ⌈n / c⌉ Epochs.
 
 No act of the Aggregator marks a base. Every party derives it from two
-sealed instants.
+sealed instants and the constant `removal_retention_days` (Files).
 
 ### What leaves the suite
 
@@ -651,6 +818,11 @@ defines Deltas and Feeds.
 - **An unchanged Catalog inside the refresh interval taken as valid.**
   One condition fewer on replay. Leaves the refresh rule without
   effect on any party that reads the Log.
+- **A Catalog accepted between the discovery and the window left
+  waiting.** One Catalog waits per Collection, so a Catalog of another
+  key accepted later would replace it and lose it from the queue, and
+  a Catalog signed by a key the recovery removes could displace the
+  owner's.
 - **A queue that holds every Catalog of a window.** Settles on the
   same Catalog except where a key's window was shortened. Holds a list
   of up to `catalog_items_max` Items per pull for the length of the
@@ -660,23 +832,43 @@ defines Deltas and Feeds.
 - **A list that drops a record's URL accepted.** Keeps the Collection
   moving. Leaves in the Log a record its Publisher no longer lists,
   which no Entry can remove before a base.
+- **`removal_retention_days` amendable by a Log.** Below the refresh
+  interval every refresh of an unchanged Collection is a base, and a
+  pull and an Epoch could read different values.
+- **A waiting Catalog that defers the Items of its Collection.** An
+  Aggregator could hold an Item without limit while Catalogs of other
+  roots arrive.
+- **An Item of kind `removed` that passes I7 without a record.** Every
+  Log would seal every removal, of URLs it never held included.
+- **An Item with a withdrawn Payload admitted without its Payload.** A
+  record sealed again after narrowing or a base would commit to content
+  every party has destroyed (WIST-3 §6.2), so no party could serve or
+  verify it.
 
 ## Consequences
 
 - A Publisher signs once per update, keeps no state beyond the files
-  it serves, and serves files in proportion to its publications: 14 013
-  for 10 000 URLs against 1 581 572.
+  it serves, and serves files in proportion to its publications: 14 014
+  for 10 000 URLs with their Payloads, `catalog.json` and the
+  Declaration, against 1 581 572. The tree of 100, 10 000 and
+  1 000 000 Items takes 17, 4 012 and 338 822 files.
 - A Log seals one Catalog per Collection per refresh interval where it
   sealed one `attest` per URL. The per-URL freshness of an unchanged
   page is no longer a protocol value, and a Catalog costs its Publisher
   almost nothing, so the Collection's instant does not tell one
   Publisher from another.
-- A sealed Item is 1.5 to 2.9 times the octets of an `update` Delta for
-  Collections of 100 to 1 000 000 Items, and each sealed Catalog adds
-  510.
-- A pull transfers less than today for a small change to a small site
-  and more for changes scattered over a large one, since a tree file is
-  fetched whole.
+- A sealed Item Entry of kind `page`, with its proof, is on average
+  951, 1 400, 1 621 and 1 828 octets in Collections of 100, 10 000,
+  100 000 and 1 000 000 Items, 1.5 to 2.9 times the 641 octets of an
+  `update` Delta; one of kind `removed` is 540, 1 282, 1 488 and
+  1 687. Each sealed Catalog Entry adds 508 to 512.
+- A pull, Payloads aside, fetches a tree file whole, so its cost
+  follows how many buckets the changes reach. For changed, removed and
+  added Items of 10, 1 and 1 it fetches 10 files of 19 663 octets in a
+  Collection of 100 Items, 33 of 44 555 in one of 10 000 and 54 of
+  95 994 in one of 1 000 000; for 1 000, 10 and 10, 1 171 files of
+  1 305 185 octets in one of 10 000 and 2 675 of 5 107 547 in one of
+  1 000 000; for one changed Item of 10 000, 5 files of 6 475 octets.
 - A Publisher's site holds its present state. A Log that starts later
   obtains no earlier one, which changes what ADR-0003 says a late
   reader sees.
@@ -687,13 +879,29 @@ defines Deltas and Feeds.
   against the Catalog of the later instant.
 - A Catalog signed at the clock allowance holds back, for
   `clock_skew_seconds`, the Catalogs of its Collection that other keys
-  sign, except inside a recovery window.
-- A Log that seals no Catalog of a Collection for more than
-  `removal_retention_days` loses the Collection's records at its next
-  Catalog and seals them again at the rate the capacity allows.
-- A Publisher that drops a URL from its list without an Item of kind
-  `removed` has its Catalogs refused by every Log that holds the URL's
-  record, until it lists the Item or the Catalog is a base.
+  sign, except from the discovery of a recovery rotation to the
+  settlement of its window (Recovery).
+- A Log whose floor for a Collection is more than
+  `removal_retention_days` older than the next Catalog it seals,
+  because it pulled none or the Publisher signed none, loses the
+  Collection's records at that Catalog and seals them again at the
+  rate the capacity allows. A base seals no Item of kind `removed`, so
+  that Log holds no removal state for a URL removed since its floor,
+  and a Consumer of that Log and of one that still holds the URL's
+  record shows the record until the second Log seals a later Catalog.
+- A Publisher whose list holds no Item for the URL of a record a Log
+  holds, a record sealed under a key an attacker held or kept through
+  an identity reset included, has its Catalogs refused by that Log
+  until its list holds an Item for each such URL or the Catalog is a
+  base.
+- A Publisher that narrows a Scope under a pending head or inside a
+  recovery window keeps its Catalogs accepted, since its list holds an
+  Item for every URL the earlier Scope covered.
+- A Publisher that keeps emitting content whose Payload was withdrawn
+  holds no Payload for its served Item (WIST-3 §6.2) and so lists a new
+  Item under a fresh salt; stopping that is the Publisher's act.
+- The hold of ADR-0051 (Reaching the Log) names publications; Labels
+  and disputes are not held.
 - Erasure stays as WIST-3 §6.2 has it: a `payload_withdrawal` under the
   Aggregator's signature, naming an Item ID.
 - ADR-0003, ADR-0007, ADR-0015, ADR-0026, ADR-0029, ADR-0030, ADR-0031,
@@ -715,6 +923,54 @@ removed; two Catalogs of one Collection in one Epoch; a Catalog of
 unchanged root inside and outside the refresh interval; a recovery
 window and its settlement; a base Catalog; the walk of a tree of files
 and each of its bounds; the same Catalog sealed by two Logs.
+
+They carry as well: an Item of kind `page` at the bound of
+`JCS(item)`, accepted, and one octet above it, refused alone while the
+others proceed; an Item of kind `removed` whose URL is above
+`url_cap_bytes`, which removes its record; a valid Envelope padded
+with whitespace to 16 384 octets of `catalog.json`, accepted, and to
+16 385, a failed fetch; the duty to serve a replaced file, which
+holds one second before the end of its `replaced_file_seconds` and
+not at it; a Catalog
+of unchanged root at the floor plus 15 552 000 seconds under a
+`catalog_refresh_seconds` of 15 552 000, not a base, and one second
+later, a base; the served instant and clock at which a Catalog is due;
+the derivation of a served Item outside the Scope of the served
+Declaration and of a URL a removal names with no served Item; a
+pending head that narrows a Collection, whose Catalog the current
+Declaration accepts and whose Item of kind `removed` removes the
+record; a recovery that narrows a Scope, whose owner's Catalog is
+queued; records sealed from an attacker's Catalog before a window,
+after settlement the owner's Catalog without them refused with their
+URLs reported and the Catalog listing Items of kind `removed` for them
+accepted; an Item sealed again after narrowing and a later widening;
+a withdrawn Item that a later list names, not admitted, its Payload
+not fetched and its Entry ignored; an Item whose Payload fails a cap
+amended before its candidate Epoch; two states of one URL proved
+against one Catalog; places taken at one Epoch by Items of two
+Publishers of one Registrable Domain under a capacity of 1; an Item
+whose eligibility Epoch and ceiling stay when a Declaration that
+reduces authority is discovered or a Catalog of another root is
+accepted; a pull between the discovery and the sealing of a recovery
+rotation; a Catalog queued between the discovery and the sealing of a
+recovery rotation under a key the recovery alone lists, beside one of
+the earlier key accepted later, both queued; the queue settled when
+the rotation leaves the eligible sealing set unsealed; a publication
+the hold keeps out of an Epoch, which takes no room and keeps its
+eligibility Epoch and ceiling; a record's Item sealed again under a
+base whose Payload fails a cap amended before its candidate Epoch; an
+Item whose withdrawal is sealed in the Epoch that seals it, with no
+serving duty; an Item that fails I7 and another condition, leaving
+unreported; a base that fails C1 at its turn, whose Items that are
+their URL's record leave unreported; a base queued inside a window,
+read against the records until settlement; a settlement with nothing
+queued for a name; one inner Catalog signed by two keys, both queued;
+a Catalog of the Catalog ID of a queued one under another key, queued
+and not an idempotent re-serve; a Catalog of another Catalog ID at the
+instant of the queued Catalog of its name and key, `WIST2-E05`; two
+Collections listing one URL; the removal states a Snapshot carries,
+combined with another Log's record; the end of the serving duty of
+each Payload through a base and a sealing again.
 
 The vectors of Items, Removal, From publications to Items, Catalogs,
 Files and Proofs are `vectors/wist1/item-fields.json`,
@@ -741,5 +997,12 @@ and the Payloads of a pull are `vectors/wist3/catalog-waiting.json`,
 `vectors/wist2/collection-pull.json`, generated by
 `tools/gen_waiting_vectors.py` from the reference in
 `tools/waiting.py` and `tools/recovery_queue.py`, and recomputed by
-`tools/verify_waiting_vectors.py`. Each verifier was written from this
-text and the vector files without the reference or the generator.
+`tools/verify_waiting_vectors.py`. The histories of the sealing and
+waiting vectors carry a parameter map per pull and per Epoch. Each
+verifier was written from this text and the vector files without the
+reference or the generator.
+
+The octets, files and pull transfers of Consequences are measured by
+`tools/measure_catalog_costs.py` on synthetic Collections built with
+the reference: seed 7, URLs of 48 to 62 octets, Payloads of 1 700
+octets and buckets of 16 Items.

@@ -1,5 +1,5 @@
 {
-  "note": "ADR-0052 Several Logs. order_cases list Catalog inner objects of one Publisher; `expected` gives their Catalog IDs (sha256: + hex(SHA-256(JCS(catalog)))) from earliest to latest: by generated_at, then, between equal instants, by Catalog ID, the greater string in octet order being the later, across the Collections of the Publisher. combined_cases give Logs that replay as vectors/wist3/catalog-sealing.json's histories do, each from the Declaration G at height 0, with `results` giving every Entry's disposition. `expected.log_states` is each Log's state for `publisher` and `url` after its last Epoch: a record {state: record, item, collection, catalog, generated_at}, a removal state {state: removed, catalog, generated_at} left by a valid removed Item, or null, which a record removed by narrowing or a base leaves. A removal state stays through narrowing and through a base and ends when a valid page Item becomes the URL's record. `expected.combined` is the state a Consumer of all the Logs takes: the one proved against the latest Catalog in the order above among the Logs that hold a state, with `logs` naming those that hold it; null when none does. States proved against one Catalog are one Item. Epochs are simplified as in catalog-sealing.json (no Checkpoints and no Merkle tree of the Log). Keys derive from the stated test-only seeds. `payloads` maps the Item ID of every Item of kind page the file carries to the Payload its `payload` commits to ({wist_version, salt, content}, WIST-1 section 3.6); they are carried so the commitments can be recomputed, and the replay reads none of them.",
+  "note": "ADR-0052 Several Logs. order_cases list Catalog inner objects of one Publisher; `expected` gives their Catalog IDs (sha256: + hex(SHA-256(JCS(catalog)))) from earliest to latest: by generated_at, then, between equal instants, by Catalog ID, the greater string in octet order being the later, across the Collections of the Publisher. combined_cases give Logs that replay as vectors/wist3/catalog-sealing.json's histories do, each from the Declaration G at height 0, with `results` giving every Entry's disposition. `expected.log_states` is each Log's state for `publisher` and `url` after its last Epoch: a record {state: record, item, collection, catalog, generated_at}, a removal state {state: removed, item, catalog, generated_at} left by a valid removed Item, item being that Item's ID, or null, which a record removed by narrowing or a base leaves. A removal state stays through narrowing and through a base and ends when a valid page Item becomes the URL's record. `expected.combined` is the state a Consumer of all the Logs takes: the one proved against the latest Catalog in the order above among the Logs that hold a state, with `logs` naming those that hold it; null when none does. Between states proved against one Catalog the state of the greater Item ID in octet order is taken; two such states arise where the Catalog's root is computed over a list holding two Items under one key, which no walk of its tree accepts but a proof verifies. `snapshot`, where present, names a Log (`log`) and lists as `removals` the removal states of that Log's state after its last Epoch, each with its publisher, url, Item ID, Catalog ID and generated_at, as a Snapshot carries them. Epochs are simplified as in catalog-sealing.json (no Checkpoints and no Merkle tree of the Log). Keys derive from the stated test-only seeds. `payloads` maps the Item ID of every Item of kind page the file carries to the Payload its `payload` commits to ({wist_version, salt, content}, WIST-1 section 3.6); they are carried so the commitments can be recomputed, and the replay reads none of them.",
   "keys": {
     "owner": {
       "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
@@ -45,6 +45,11 @@
       "seed_hex": "cacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacaca",
       "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
       "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g"
+    },
+    "log": {
+      "seed_hex": "cbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcb",
+      "x": "woZVSseVmy3xqXdouMFGp20fxSjDShTmSHhKTrwn7O8",
+      "kid": "U5Zulc1vyOjLpjzeudKLyw5Aq2WO1eBRx7h7u-Nfe1g"
     }
   },
   "order_cases": [
@@ -204,7 +209,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -303,7 +308,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -403,7 +408,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -502,7 +507,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -523,7 +528,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -544,7 +549,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -693,7 +698,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -792,7 +797,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -892,7 +897,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -991,7 +996,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1065,7 +1070,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1086,7 +1091,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1243,7 +1248,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1342,7 +1347,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1363,7 +1368,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1384,7 +1389,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1494,7 +1499,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1593,7 +1598,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1614,7 +1619,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1635,7 +1640,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1783,7 +1788,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1882,7 +1887,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -1982,7 +1987,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -2081,7 +2086,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -2155,7 +2160,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -2176,7 +2181,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -2197,7 +2202,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -2316,6 +2321,7 @@
           },
           "B": {
             "state": "removed",
+            "item": "sha256:facacf9fed16689de5d75aac48f6e45eb7eac0f97d82fa964acb322c38525942",
             "catalog": "sha256:151de372ec72552fdd8a17dd86b672e258037a33210f721fceddbc01af7df2ae",
             "generated_at": "2026-10-01T03:59:00Z"
           }
@@ -2323,6 +2329,7 @@
         "combined": {
           "state": {
             "state": "removed",
+            "item": "sha256:facacf9fed16689de5d75aac48f6e45eb7eac0f97d82fa964acb322c38525942",
             "catalog": "sha256:151de372ec72552fdd8a17dd86b672e258037a33210f721fceddbc01af7df2ae",
             "generated_at": "2026-10-01T03:59:00Z"
           },
@@ -2348,7 +2355,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -2447,7 +2454,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -2521,7 +2528,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -2542,7 +2549,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -2661,7 +2668,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -2760,7 +2767,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -2834,7 +2841,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -2943,6 +2950,7 @@
           },
           "B": {
             "state": "removed",
+            "item": "sha256:facacf9fed16689de5d75aac48f6e45eb7eac0f97d82fa964acb322c38525942",
             "catalog": "sha256:082cd9fd4b52617b2de698aa04e2331af02bc9983b59a834cae95418b87b4a3c",
             "generated_at": "2026-10-01T01:59:00Z"
           }
@@ -2977,7 +2985,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -3076,7 +3084,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -3142,7 +3150,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -3241,7 +3249,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -3373,7 +3381,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -3472,7 +3480,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -3572,7 +3580,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -3671,7 +3679,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -3745,7 +3753,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -3766,7 +3774,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -3885,7 +3893,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -3984,7 +3992,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4058,7 +4066,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4079,7 +4087,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4100,7 +4108,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4226,6 +4234,7 @@
           },
           "C": {
             "state": "removed",
+            "item": "sha256:facacf9fed16689de5d75aac48f6e45eb7eac0f97d82fa964acb322c38525942",
             "catalog": "sha256:151de372ec72552fdd8a17dd86b672e258037a33210f721fceddbc01af7df2ae",
             "generated_at": "2026-10-01T03:59:00Z"
           }
@@ -4233,6 +4242,7 @@
         "combined": {
           "state": {
             "state": "removed",
+            "item": "sha256:facacf9fed16689de5d75aac48f6e45eb7eac0f97d82fa964acb322c38525942",
             "catalog": "sha256:151de372ec72552fdd8a17dd86b672e258037a33210f721fceddbc01af7df2ae",
             "generated_at": "2026-10-01T03:59:00Z"
           },
@@ -4258,7 +4268,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4357,7 +4367,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4431,7 +4441,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4452,7 +4462,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4571,7 +4581,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4670,7 +4680,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4691,7 +4701,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4712,7 +4722,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4822,7 +4832,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -4921,7 +4931,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5067,7 +5077,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5166,7 +5176,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5240,7 +5250,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5261,7 +5271,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5335,7 +5345,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5485,7 +5495,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5584,7 +5594,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5716,7 +5726,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5815,7 +5825,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5889,7 +5899,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5910,7 +5920,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5931,7 +5941,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -5998,7 +6008,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -6153,7 +6163,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -6252,7 +6262,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -6347,6 +6357,7 @@
         "log_states": {
           "A": {
             "state": "removed",
+            "item": "sha256:facacf9fed16689de5d75aac48f6e45eb7eac0f97d82fa964acb322c38525942",
             "catalog": "sha256:151de372ec72552fdd8a17dd86b672e258037a33210f721fceddbc01af7df2ae",
             "generated_at": "2026-10-01T03:59:00Z"
           },
@@ -6361,6 +6372,7 @@
         "combined": {
           "state": {
             "state": "removed",
+            "item": "sha256:facacf9fed16689de5d75aac48f6e45eb7eac0f97d82fa964acb322c38525942",
             "catalog": "sha256:151de372ec72552fdd8a17dd86b672e258037a33210f721fceddbc01af7df2ae",
             "generated_at": "2026-10-01T03:59:00Z"
           },
@@ -6372,7 +6384,7 @@
     },
     {
       "name": "a removal state kept through a base",
-      "why": "removal_retention_days is 2 in A. A seals the removed Item of u against Z, then a Catalog more than two days after Z, a base. The removal state stays, and is later than B's record against X.",
+      "why": "A seals the removed Item of u against Z, then a Catalog more than removal_retention_days, 180 days, after Z, a base. The removal state stays, and is later than B's record against X.",
       "publisher": "example.com",
       "url": "https://example.com/journal/u",
       "logs": [
@@ -6386,7 +6398,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -6485,7 +6497,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -6559,7 +6571,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -6580,7 +6592,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -6601,7 +6613,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -6663,12 +6675,12 @@
             },
             {
               "height": 5,
-              "sealed_at": "2026-10-03T04:00:01Z",
+              "sealed_at": "2027-03-30T04:00:01Z",
               "parameters": {
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 2,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -6690,7 +6702,7 @@
                         "wist_version": "1.0.0",
                         "publisher": "example.com",
                         "collection": "journal",
-                        "generated_at": "2026-10-03T03:59:01Z",
+                        "generated_at": "2027-03-30T03:59:01Z",
                         "size": 2,
                         "root": "sha256:31b59803788e260f04ff312ae6991b9188bfa242c1b82ac099942711588ddaeb",
                         "tree": "sha256:1808b60c6b0be6cf4b8fdcfe834270ae2a6f55b81c28987ff43b4ad429ddc104"
@@ -6698,7 +6710,7 @@
                       "sig": {
                         "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
                         "alg": "Ed25519",
-                        "value": "NNZ1eI9ZifLIuqn7pu2RoHQeYibD5SYRK06yFBxLa8NDk1KZdafdGdOT7R68uaxTB7Qhgzhys3NjZActccBrAg"
+                        "value": "xD6Fqhx2alXhfEW2qbzOXV5j7d-GlH4cc3Aj_vB0fO6c83ybqG1-ew_IeHV3kL3aBObm2lvNvWnXNY1El71mAg"
                       }
                     }
                   }
@@ -6772,7 +6784,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -6871,7 +6883,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -6966,6 +6978,7 @@
         "log_states": {
           "A": {
             "state": "removed",
+            "item": "sha256:facacf9fed16689de5d75aac48f6e45eb7eac0f97d82fa964acb322c38525942",
             "catalog": "sha256:151de372ec72552fdd8a17dd86b672e258037a33210f721fceddbc01af7df2ae",
             "generated_at": "2026-10-01T03:59:00Z"
           },
@@ -6980,6 +6993,7 @@
         "combined": {
           "state": {
             "state": "removed",
+            "item": "sha256:facacf9fed16689de5d75aac48f6e45eb7eac0f97d82fa964acb322c38525942",
             "catalog": "sha256:151de372ec72552fdd8a17dd86b672e258037a33210f721fceddbc01af7df2ae",
             "generated_at": "2026-10-01T03:59:00Z"
           },
@@ -6991,7 +7005,7 @@
     },
     {
       "name": "a record removed by a base in one Log and held by another",
-      "why": "removal_retention_days is 2 in A. A seals X and u against it, then a Catalog more than two days later, a base that removes u's record: A has no state. B holds u against X.",
+      "why": "A seals X and u against it, then a Catalog more than 180 days later, a base that removes u's record: A has no state. B holds u against X.",
       "publisher": "example.com",
       "url": "https://example.com/journal/u",
       "logs": [
@@ -7005,7 +7019,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -7104,7 +7118,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 2,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -7173,12 +7187,12 @@
             },
             {
               "height": 2,
-              "sealed_at": "2026-10-03T01:00:01Z",
+              "sealed_at": "2027-03-30T01:00:01Z",
               "parameters": {
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 2,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -7200,7 +7214,7 @@
                         "wist_version": "1.0.0",
                         "publisher": "example.com",
                         "collection": "journal",
-                        "generated_at": "2026-10-03T00:59:01Z",
+                        "generated_at": "2027-03-30T00:59:01Z",
                         "size": 2,
                         "root": "sha256:31b59803788e260f04ff312ae6991b9188bfa242c1b82ac099942711588ddaeb",
                         "tree": "sha256:1808b60c6b0be6cf4b8fdcfe834270ae2a6f55b81c28987ff43b4ad429ddc104"
@@ -7208,7 +7222,7 @@
                       "sig": {
                         "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
                         "alg": "Ed25519",
-                        "value": "1L2vo0adtSYAOhXrSngnxf2Eyd_VR7lfotocIW_ZCOKkSMYOsGFsfPvOWeX9r-IS3A2FigRx77yKewSKvixNBQ"
+                        "value": "X_c0r1pTv8BuMFZ13-zZiRYdw-C6A--3hoTEk_88K7sLxEExoSjTK0F_IyThzzzBwaqbwiQWwoYaAV3y3vaZAQ"
                       }
                     }
                   }
@@ -7258,7 +7272,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -7357,7 +7371,7 @@
                 "clock_skew_seconds": 600,
                 "catalog_items_max": 16777216,
                 "catalog_refresh_seconds": 604800,
-                "removal_retention_days": 180,
+                "payload_window_days": 180,
                 "domain_epoch_entries_max": 10000,
                 "url_cap_bytes": 2048,
                 "extract_cap_bytes": 32768,
@@ -7472,9 +7486,1776 @@
           ]
         }
       }
+    },
+    {
+      "name": "two records of one URL proved against one Catalog",
+      "why": "K's root is computed over a list that holds two Items of u, u one and u two, under one key. A seals K and u one against it, B seals K and u two: between states proved against one Catalog the state of the greater Item ID in octet order is taken.",
+      "publisher": "example.com",
+      "url": "https://example.com/journal/u",
+      "logs": [
+        {
+          "name": "A",
+          "epochs": [
+            {
+              "height": 0,
+              "sealed_at": "2026-10-01T00:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "G",
+                  "entry": {
+                    "type": "publisher_declaration",
+                    "body": {
+                      "publisher": {
+                        "wist_version": "1.0.0",
+                        "seq": 0,
+                        "domain": "example.com",
+                        "subdomain_scope": [
+                          "www.example.com"
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                            "nbf": 1788220800
+                          }
+                        ],
+                        "recovery_keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                            "nbf": 1788220800
+                          }
+                        ],
+                        "collections": [
+                          {
+                            "name": "journal",
+                            "scope": [
+                              {
+                                "url": "https://example.com/journal/",
+                                "match": "prefix"
+                              }
+                            ],
+                            "keys": [
+                              {
+                                "kty": "OKP",
+                                "crv": "Ed25519",
+                                "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                                "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                                "nbf": 1788220800
+                              }
+                            ]
+                          },
+                          {
+                            "name": "store",
+                            "scope": [
+                              {
+                                "url": "https://example.com/store/",
+                                "match": "prefix"
+                              }
+                            ],
+                            "keys": [
+                              {
+                                "kty": "OKP",
+                                "crv": "Ed25519",
+                                "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                                "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                                "nbf": 1788220800
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "sig": {
+                        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "alg": "Ed25519",
+                        "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "height": 1,
+              "sealed_at": "2026-10-01T01:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "K",
+                  "entry": {
+                    "type": "publisher_catalog",
+                    "body": {
+                      "catalog": {
+                        "wist_version": "1.0.0",
+                        "publisher": "example.com",
+                        "collection": "journal",
+                        "generated_at": "2026-10-01T00:59:00Z",
+                        "size": 3,
+                        "root": "sha256:04dff353518257ea779f51e3c4be783c89dd6f398b389973eeba0d3e1c76a2de",
+                        "tree": "sha256:b06e60aa432591876ff904d88dfe2ee137af0f57fa6bb13c1ba6a4e838727f72"
+                      },
+                      "sig": {
+                        "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                        "alg": "Ed25519",
+                        "value": "QXO3Z3NW2Kw2CzUi6fXgBJRjDjIKcqflZfxx7j-9_HkZMPtRW7XkvFNjn_VtwxwxtSX81qD-t0oKE-J1vHsoBw"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "u one@K",
+                  "entry": {
+                    "type": "publisher_item",
+                    "body": {
+                      "item": {
+                        "publisher": "example.com",
+                        "url": "https://example.com/journal/u",
+                        "observed_at": "2026-09-30T10:00:00Z",
+                        "payload": {
+                          "commitment": "hmac-sha256:5b7e9f212b0fb7b85f423345963bca07a05f54aab9e2cfaf8058d4ed035406b7",
+                          "alg": "HMAC-SHA256",
+                          "bytes": 92
+                        },
+                        "meta": {
+                          "lang": "en"
+                        }
+                      },
+                      "collection": "journal",
+                      "catalog": "sha256:5f83ff6cd026f2f43fcf3990af02de54cd712159276b1135ee7074cf2d00a4a6",
+                      "proof": {
+                        "index": 0,
+                        "tree_size": 3,
+                        "path": [
+                          "fc6f6bd58e2c8f063aa74bd7e4d2e85a786bdd92eb2e901cb32ba366a68eb73f",
+                          "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "results": [
+            {
+              "height": 0,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 1,
+              "status": "accepted",
+              "entries": [
+                {
+                  "name": "K",
+                  "disposition": "valid"
+                },
+                {
+                  "name": "u one@K",
+                  "disposition": "valid"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "B",
+          "epochs": [
+            {
+              "height": 0,
+              "sealed_at": "2026-10-01T00:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "G",
+                  "entry": {
+                    "type": "publisher_declaration",
+                    "body": {
+                      "publisher": {
+                        "wist_version": "1.0.0",
+                        "seq": 0,
+                        "domain": "example.com",
+                        "subdomain_scope": [
+                          "www.example.com"
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                            "nbf": 1788220800
+                          }
+                        ],
+                        "recovery_keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                            "nbf": 1788220800
+                          }
+                        ],
+                        "collections": [
+                          {
+                            "name": "journal",
+                            "scope": [
+                              {
+                                "url": "https://example.com/journal/",
+                                "match": "prefix"
+                              }
+                            ],
+                            "keys": [
+                              {
+                                "kty": "OKP",
+                                "crv": "Ed25519",
+                                "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                                "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                                "nbf": 1788220800
+                              }
+                            ]
+                          },
+                          {
+                            "name": "store",
+                            "scope": [
+                              {
+                                "url": "https://example.com/store/",
+                                "match": "prefix"
+                              }
+                            ],
+                            "keys": [
+                              {
+                                "kty": "OKP",
+                                "crv": "Ed25519",
+                                "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                                "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                                "nbf": 1788220800
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "sig": {
+                        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "alg": "Ed25519",
+                        "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "height": 1,
+              "sealed_at": "2026-10-01T01:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "K",
+                  "entry": {
+                    "type": "publisher_catalog",
+                    "body": {
+                      "catalog": {
+                        "wist_version": "1.0.0",
+                        "publisher": "example.com",
+                        "collection": "journal",
+                        "generated_at": "2026-10-01T00:59:00Z",
+                        "size": 3,
+                        "root": "sha256:04dff353518257ea779f51e3c4be783c89dd6f398b389973eeba0d3e1c76a2de",
+                        "tree": "sha256:b06e60aa432591876ff904d88dfe2ee137af0f57fa6bb13c1ba6a4e838727f72"
+                      },
+                      "sig": {
+                        "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                        "alg": "Ed25519",
+                        "value": "QXO3Z3NW2Kw2CzUi6fXgBJRjDjIKcqflZfxx7j-9_HkZMPtRW7XkvFNjn_VtwxwxtSX81qD-t0oKE-J1vHsoBw"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "u two@K",
+                  "entry": {
+                    "type": "publisher_item",
+                    "body": {
+                      "item": {
+                        "publisher": "example.com",
+                        "url": "https://example.com/journal/u",
+                        "observed_at": "2026-09-30T10:00:00Z",
+                        "payload": {
+                          "commitment": "hmac-sha256:5daf3798d2046f84fc5d7eb49c2b693c6aeb02952fc5b755ad26d3c419a42c9c",
+                          "alg": "HMAC-SHA256",
+                          "bytes": 92
+                        },
+                        "meta": {
+                          "lang": "en"
+                        }
+                      },
+                      "collection": "journal",
+                      "catalog": "sha256:5f83ff6cd026f2f43fcf3990af02de54cd712159276b1135ee7074cf2d00a4a6",
+                      "proof": {
+                        "index": 1,
+                        "tree_size": 3,
+                        "path": [
+                          "5a1fcc2650c8c59e3b782a965b857850a96ad2e1d9554f420cf6381a9b7a85b6",
+                          "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "results": [
+            {
+              "height": 0,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 1,
+              "status": "accepted",
+              "entries": [
+                {
+                  "name": "K",
+                  "disposition": "valid"
+                },
+                {
+                  "name": "u two@K",
+                  "disposition": "valid"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "log_states": {
+          "A": {
+            "state": "record",
+            "item": "sha256:42ac9a21b728c38d4c61ba53836b093af4d72e8e23a59c4fe81a6a12d2b0eecb",
+            "collection": "journal",
+            "catalog": "sha256:5f83ff6cd026f2f43fcf3990af02de54cd712159276b1135ee7074cf2d00a4a6",
+            "generated_at": "2026-10-01T00:59:00Z"
+          },
+          "B": {
+            "state": "record",
+            "item": "sha256:cf3c62730f2dc25f15e84b657391874e5dd5856c2c7f8828ace186b5c8f549de",
+            "collection": "journal",
+            "catalog": "sha256:5f83ff6cd026f2f43fcf3990af02de54cd712159276b1135ee7074cf2d00a4a6",
+            "generated_at": "2026-10-01T00:59:00Z"
+          }
+        },
+        "combined": {
+          "state": {
+            "state": "record",
+            "item": "sha256:cf3c62730f2dc25f15e84b657391874e5dd5856c2c7f8828ace186b5c8f549de",
+            "collection": "journal",
+            "catalog": "sha256:5f83ff6cd026f2f43fcf3990af02de54cd712159276b1135ee7074cf2d00a4a6",
+            "generated_at": "2026-10-01T00:59:00Z"
+          },
+          "logs": [
+            "B"
+          ]
+        }
+      }
+    },
+    {
+      "name": "a removal and a record of one URL proved against one Catalog",
+      "why": "M's root is computed over a list that holds the removed Item of u and the page u two under one key. A seals X and u against it, then M and the removed Item of u, which removes the record; B seals M and u two. Both states are proved against M, and the one of the greater Item ID is taken.",
+      "publisher": "example.com",
+      "url": "https://example.com/journal/u",
+      "logs": [
+        {
+          "name": "A",
+          "epochs": [
+            {
+              "height": 0,
+              "sealed_at": "2026-10-01T00:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "G",
+                  "entry": {
+                    "type": "publisher_declaration",
+                    "body": {
+                      "publisher": {
+                        "wist_version": "1.0.0",
+                        "seq": 0,
+                        "domain": "example.com",
+                        "subdomain_scope": [
+                          "www.example.com"
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                            "nbf": 1788220800
+                          }
+                        ],
+                        "recovery_keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                            "nbf": 1788220800
+                          }
+                        ],
+                        "collections": [
+                          {
+                            "name": "journal",
+                            "scope": [
+                              {
+                                "url": "https://example.com/journal/",
+                                "match": "prefix"
+                              }
+                            ],
+                            "keys": [
+                              {
+                                "kty": "OKP",
+                                "crv": "Ed25519",
+                                "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                                "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                                "nbf": 1788220800
+                              }
+                            ]
+                          },
+                          {
+                            "name": "store",
+                            "scope": [
+                              {
+                                "url": "https://example.com/store/",
+                                "match": "prefix"
+                              }
+                            ],
+                            "keys": [
+                              {
+                                "kty": "OKP",
+                                "crv": "Ed25519",
+                                "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                                "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                                "nbf": 1788220800
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "sig": {
+                        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "alg": "Ed25519",
+                        "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "height": 1,
+              "sealed_at": "2026-10-01T01:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "X",
+                  "entry": {
+                    "type": "publisher_catalog",
+                    "body": {
+                      "catalog": {
+                        "wist_version": "1.0.0",
+                        "publisher": "example.com",
+                        "collection": "journal",
+                        "generated_at": "2026-10-01T00:59:00Z",
+                        "size": 2,
+                        "root": "sha256:2a7247183de2283f7698686c717d29d265f1f79b1b171c368ed3823931b3ad7c",
+                        "tree": "sha256:0bc76d28ce8286abe132eb5b14515d13d0fe30e1cd7d83d9f7df1f6fa9ac2534"
+                      },
+                      "sig": {
+                        "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                        "alg": "Ed25519",
+                        "value": "ofmKPxWLnNctNGP15invs8qbPLdbd1CbWVygU864aInv0l32ez9XLPSsKVgb2brsSfObKBei7SZMaBqGwQ3PCA"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "u@X",
+                  "entry": {
+                    "type": "publisher_item",
+                    "body": {
+                      "item": {
+                        "publisher": "example.com",
+                        "url": "https://example.com/journal/u",
+                        "observed_at": "2026-09-30T10:00:00Z",
+                        "payload": {
+                          "commitment": "hmac-sha256:5b7e9f212b0fb7b85f423345963bca07a05f54aab9e2cfaf8058d4ed035406b7",
+                          "alg": "HMAC-SHA256",
+                          "bytes": 92
+                        },
+                        "meta": {
+                          "lang": "en"
+                        }
+                      },
+                      "collection": "journal",
+                      "catalog": "sha256:08eb0ce7728ce4ba821ba4abe6d7f0cf577ca80d21e5c7fe91d7932ce763f281",
+                      "proof": {
+                        "index": 0,
+                        "tree_size": 2,
+                        "path": [
+                          "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "height": 2,
+              "sealed_at": "2026-10-01T02:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": []
+            },
+            {
+              "height": 3,
+              "sealed_at": "2026-10-01T03:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": []
+            },
+            {
+              "height": 4,
+              "sealed_at": "2026-10-01T04:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "M",
+                  "entry": {
+                    "type": "publisher_catalog",
+                    "body": {
+                      "catalog": {
+                        "wist_version": "1.0.0",
+                        "publisher": "example.com",
+                        "collection": "journal",
+                        "generated_at": "2026-10-01T03:59:00Z",
+                        "size": 3,
+                        "root": "sha256:9407dda7939998418401f42f7d3f99d1f6773ce7b871b55b015c42359a12a9d6",
+                        "tree": "sha256:a935c859eaadcb86d222ab763292670ca33748bb4823a5e99072d88249bddce5"
+                      },
+                      "sig": {
+                        "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                        "alg": "Ed25519",
+                        "value": "XDbV8L5CvJrQDR18vFLPLIRG5Ooqz4f3ROKvF_eTTykB0BrzX7gxJZIVNRsDOssV6MbesZyCEIniVVn9M70ZDQ"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "u removed@M",
+                  "entry": {
+                    "type": "publisher_item",
+                    "body": {
+                      "item": {
+                        "publisher": "example.com",
+                        "url": "https://example.com/journal/u",
+                        "observed_at": "2026-10-01T02:00:00Z",
+                        "removed": true
+                      },
+                      "collection": "journal",
+                      "catalog": "sha256:1c0718259144dbeeb78fa5b40211356b0d44a73ad61d248725f6a87d17468586",
+                      "proof": {
+                        "index": 0,
+                        "tree_size": 3,
+                        "path": [
+                          "fc6f6bd58e2c8f063aa74bd7e4d2e85a786bdd92eb2e901cb32ba366a68eb73f",
+                          "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "results": [
+            {
+              "height": 0,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 1,
+              "status": "accepted",
+              "entries": [
+                {
+                  "name": "X",
+                  "disposition": "valid"
+                },
+                {
+                  "name": "u@X",
+                  "disposition": "valid"
+                }
+              ]
+            },
+            {
+              "height": 2,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 3,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 4,
+              "status": "accepted",
+              "entries": [
+                {
+                  "name": "M",
+                  "disposition": "valid"
+                },
+                {
+                  "name": "u removed@M",
+                  "disposition": "valid"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "B",
+          "epochs": [
+            {
+              "height": 0,
+              "sealed_at": "2026-10-01T00:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "G",
+                  "entry": {
+                    "type": "publisher_declaration",
+                    "body": {
+                      "publisher": {
+                        "wist_version": "1.0.0",
+                        "seq": 0,
+                        "domain": "example.com",
+                        "subdomain_scope": [
+                          "www.example.com"
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                            "nbf": 1788220800
+                          }
+                        ],
+                        "recovery_keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                            "nbf": 1788220800
+                          }
+                        ],
+                        "collections": [
+                          {
+                            "name": "journal",
+                            "scope": [
+                              {
+                                "url": "https://example.com/journal/",
+                                "match": "prefix"
+                              }
+                            ],
+                            "keys": [
+                              {
+                                "kty": "OKP",
+                                "crv": "Ed25519",
+                                "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                                "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                                "nbf": 1788220800
+                              }
+                            ]
+                          },
+                          {
+                            "name": "store",
+                            "scope": [
+                              {
+                                "url": "https://example.com/store/",
+                                "match": "prefix"
+                              }
+                            ],
+                            "keys": [
+                              {
+                                "kty": "OKP",
+                                "crv": "Ed25519",
+                                "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                                "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                                "nbf": 1788220800
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "sig": {
+                        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "alg": "Ed25519",
+                        "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "height": 1,
+              "sealed_at": "2026-10-01T01:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": []
+            },
+            {
+              "height": 2,
+              "sealed_at": "2026-10-01T02:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": []
+            },
+            {
+              "height": 3,
+              "sealed_at": "2026-10-01T03:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": []
+            },
+            {
+              "height": 4,
+              "sealed_at": "2026-10-01T04:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "M",
+                  "entry": {
+                    "type": "publisher_catalog",
+                    "body": {
+                      "catalog": {
+                        "wist_version": "1.0.0",
+                        "publisher": "example.com",
+                        "collection": "journal",
+                        "generated_at": "2026-10-01T03:59:00Z",
+                        "size": 3,
+                        "root": "sha256:9407dda7939998418401f42f7d3f99d1f6773ce7b871b55b015c42359a12a9d6",
+                        "tree": "sha256:a935c859eaadcb86d222ab763292670ca33748bb4823a5e99072d88249bddce5"
+                      },
+                      "sig": {
+                        "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                        "alg": "Ed25519",
+                        "value": "XDbV8L5CvJrQDR18vFLPLIRG5Ooqz4f3ROKvF_eTTykB0BrzX7gxJZIVNRsDOssV6MbesZyCEIniVVn9M70ZDQ"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "u two@M",
+                  "entry": {
+                    "type": "publisher_item",
+                    "body": {
+                      "item": {
+                        "publisher": "example.com",
+                        "url": "https://example.com/journal/u",
+                        "observed_at": "2026-09-30T10:00:00Z",
+                        "payload": {
+                          "commitment": "hmac-sha256:5daf3798d2046f84fc5d7eb49c2b693c6aeb02952fc5b755ad26d3c419a42c9c",
+                          "alg": "HMAC-SHA256",
+                          "bytes": 92
+                        },
+                        "meta": {
+                          "lang": "en"
+                        }
+                      },
+                      "collection": "journal",
+                      "catalog": "sha256:1c0718259144dbeeb78fa5b40211356b0d44a73ad61d248725f6a87d17468586",
+                      "proof": {
+                        "index": 1,
+                        "tree_size": 3,
+                        "path": [
+                          "195cf82a32397ece4e6965be82d6121bc63703d2a60cda17e626a42f50bd927f",
+                          "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "results": [
+            {
+              "height": 0,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 1,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 2,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 3,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 4,
+              "status": "accepted",
+              "entries": [
+                {
+                  "name": "M",
+                  "disposition": "valid"
+                },
+                {
+                  "name": "u two@M",
+                  "disposition": "valid"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "log_states": {
+          "A": {
+            "state": "removed",
+            "item": "sha256:9600de24d5e1be5242c8413a3a0bc54651997e5a1668095fd16a7ff8b023f86a",
+            "catalog": "sha256:1c0718259144dbeeb78fa5b40211356b0d44a73ad61d248725f6a87d17468586",
+            "generated_at": "2026-10-01T03:59:00Z"
+          },
+          "B": {
+            "state": "record",
+            "item": "sha256:cf3c62730f2dc25f15e84b657391874e5dd5856c2c7f8828ace186b5c8f549de",
+            "collection": "journal",
+            "catalog": "sha256:1c0718259144dbeeb78fa5b40211356b0d44a73ad61d248725f6a87d17468586",
+            "generated_at": "2026-10-01T03:59:00Z"
+          }
+        },
+        "combined": {
+          "state": {
+            "state": "record",
+            "item": "sha256:cf3c62730f2dc25f15e84b657391874e5dd5856c2c7f8828ace186b5c8f549de",
+            "collection": "journal",
+            "catalog": "sha256:1c0718259144dbeeb78fa5b40211356b0d44a73ad61d248725f6a87d17468586",
+            "generated_at": "2026-10-01T03:59:00Z"
+          },
+          "logs": [
+            "B"
+          ]
+        }
+      }
+    },
+    {
+      "name": "a Snapshot state above a removal, with another Log's record",
+      "why": "A seals the removed Item of u against Z at height 4 and a changed a against Z2 at height 5; its state at height 5, as a Snapshot carries it, lists the removal of u with Z's Catalog ID and generated_at. B's record of u against the earlier X is not taken: the URL is removed.",
+      "publisher": "example.com",
+      "url": "https://example.com/journal/u",
+      "logs": [
+        {
+          "name": "A",
+          "epochs": [
+            {
+              "height": 0,
+              "sealed_at": "2026-10-01T00:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "G",
+                  "entry": {
+                    "type": "publisher_declaration",
+                    "body": {
+                      "publisher": {
+                        "wist_version": "1.0.0",
+                        "seq": 0,
+                        "domain": "example.com",
+                        "subdomain_scope": [
+                          "www.example.com"
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                            "nbf": 1788220800
+                          }
+                        ],
+                        "recovery_keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                            "nbf": 1788220800
+                          }
+                        ],
+                        "collections": [
+                          {
+                            "name": "journal",
+                            "scope": [
+                              {
+                                "url": "https://example.com/journal/",
+                                "match": "prefix"
+                              }
+                            ],
+                            "keys": [
+                              {
+                                "kty": "OKP",
+                                "crv": "Ed25519",
+                                "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                                "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                                "nbf": 1788220800
+                              }
+                            ]
+                          },
+                          {
+                            "name": "store",
+                            "scope": [
+                              {
+                                "url": "https://example.com/store/",
+                                "match": "prefix"
+                              }
+                            ],
+                            "keys": [
+                              {
+                                "kty": "OKP",
+                                "crv": "Ed25519",
+                                "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                                "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                                "nbf": 1788220800
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "sig": {
+                        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "alg": "Ed25519",
+                        "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "height": 1,
+              "sealed_at": "2026-10-01T01:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "X",
+                  "entry": {
+                    "type": "publisher_catalog",
+                    "body": {
+                      "catalog": {
+                        "wist_version": "1.0.0",
+                        "publisher": "example.com",
+                        "collection": "journal",
+                        "generated_at": "2026-10-01T00:59:00Z",
+                        "size": 2,
+                        "root": "sha256:2a7247183de2283f7698686c717d29d265f1f79b1b171c368ed3823931b3ad7c",
+                        "tree": "sha256:0bc76d28ce8286abe132eb5b14515d13d0fe30e1cd7d83d9f7df1f6fa9ac2534"
+                      },
+                      "sig": {
+                        "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                        "alg": "Ed25519",
+                        "value": "ofmKPxWLnNctNGP15invs8qbPLdbd1CbWVygU864aInv0l32ez9XLPSsKVgb2brsSfObKBei7SZMaBqGwQ3PCA"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "u@X",
+                  "entry": {
+                    "type": "publisher_item",
+                    "body": {
+                      "item": {
+                        "publisher": "example.com",
+                        "url": "https://example.com/journal/u",
+                        "observed_at": "2026-09-30T10:00:00Z",
+                        "payload": {
+                          "commitment": "hmac-sha256:5b7e9f212b0fb7b85f423345963bca07a05f54aab9e2cfaf8058d4ed035406b7",
+                          "alg": "HMAC-SHA256",
+                          "bytes": 92
+                        },
+                        "meta": {
+                          "lang": "en"
+                        }
+                      },
+                      "collection": "journal",
+                      "catalog": "sha256:08eb0ce7728ce4ba821ba4abe6d7f0cf577ca80d21e5c7fe91d7932ce763f281",
+                      "proof": {
+                        "index": 0,
+                        "tree_size": 2,
+                        "path": [
+                          "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "height": 2,
+              "sealed_at": "2026-10-01T02:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": []
+            },
+            {
+              "height": 3,
+              "sealed_at": "2026-10-01T03:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": []
+            },
+            {
+              "height": 4,
+              "sealed_at": "2026-10-01T04:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "Z",
+                  "entry": {
+                    "type": "publisher_catalog",
+                    "body": {
+                      "catalog": {
+                        "wist_version": "1.0.0",
+                        "publisher": "example.com",
+                        "collection": "journal",
+                        "generated_at": "2026-10-01T03:59:00Z",
+                        "size": 2,
+                        "root": "sha256:523f4498e06f93667c6acc3a6c70bcfea5e680e13d22f02f88c6996563830874",
+                        "tree": "sha256:a1b2d1431bc5d0858c30f0fe416efc21d9c584b15a4996ceed7f336bb91039e9"
+                      },
+                      "sig": {
+                        "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                        "alg": "Ed25519",
+                        "value": "QhwBNdu2hpGjTSFug052hp2msigzyjGqDhOElKDzzcmmG8YC24N3CJobME9AcW-0Jw4ueOHMRuMjO4pRYXoEBA"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "u removed@Z",
+                  "entry": {
+                    "type": "publisher_item",
+                    "body": {
+                      "item": {
+                        "publisher": "example.com",
+                        "url": "https://example.com/journal/u",
+                        "observed_at": "2026-10-01T01:00:00Z",
+                        "removed": true
+                      },
+                      "collection": "journal",
+                      "catalog": "sha256:151de372ec72552fdd8a17dd86b672e258037a33210f721fceddbc01af7df2ae",
+                      "proof": {
+                        "index": 0,
+                        "tree_size": 2,
+                        "path": [
+                          "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "height": 5,
+              "sealed_at": "2026-10-01T05:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "Z2",
+                  "entry": {
+                    "type": "publisher_catalog",
+                    "body": {
+                      "catalog": {
+                        "wist_version": "1.0.0",
+                        "publisher": "example.com",
+                        "collection": "journal",
+                        "generated_at": "2026-10-01T04:59:00Z",
+                        "size": 2,
+                        "root": "sha256:fe9e8371e4b20bef74c495d423b357df94b4a9018e79e4f03dde53eb9904b69e",
+                        "tree": "sha256:30757f8873f114b1812472db922409dfc921e8acc447524c446b538764d014bb"
+                      },
+                      "sig": {
+                        "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                        "alg": "Ed25519",
+                        "value": "J0WMNg4SKqxiY7T2v--mv7XtMW3BXxPvKP2VghFqdH9_5U4oszJ2A54HhC3vx8A_yUbOoEnEXlyhX8-QTzVvCg"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "a two@Z2",
+                  "entry": {
+                    "type": "publisher_item",
+                    "body": {
+                      "item": {
+                        "publisher": "example.com",
+                        "url": "https://example.com/journal/a",
+                        "observed_at": "2026-09-30T10:00:00Z",
+                        "payload": {
+                          "commitment": "hmac-sha256:c1f13038253852ada49d1805bde2190f00167593a308103c77a53fe1e0b95316",
+                          "alg": "HMAC-SHA256",
+                          "bytes": 92
+                        },
+                        "meta": {
+                          "lang": "en"
+                        }
+                      },
+                      "collection": "journal",
+                      "catalog": "sha256:424cb0dfc969b334b80d45ce85b4e1316ffd9ec37e5a8b1be352b8f507c0b33e",
+                      "proof": {
+                        "index": 1,
+                        "tree_size": 2,
+                        "path": [
+                          "3863dfad3378fd81fc028c992d12f96a3d84df9ec118533fa6d2492753f46f7e"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "results": [
+            {
+              "height": 0,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 1,
+              "status": "accepted",
+              "entries": [
+                {
+                  "name": "X",
+                  "disposition": "valid"
+                },
+                {
+                  "name": "u@X",
+                  "disposition": "valid"
+                }
+              ]
+            },
+            {
+              "height": 2,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 3,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 4,
+              "status": "accepted",
+              "entries": [
+                {
+                  "name": "Z",
+                  "disposition": "valid"
+                },
+                {
+                  "name": "u removed@Z",
+                  "disposition": "valid"
+                }
+              ]
+            },
+            {
+              "height": 5,
+              "status": "accepted",
+              "entries": [
+                {
+                  "name": "Z2",
+                  "disposition": "valid"
+                },
+                {
+                  "name": "a two@Z2",
+                  "disposition": "valid"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "B",
+          "epochs": [
+            {
+              "height": 0,
+              "sealed_at": "2026-10-01T00:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "G",
+                  "entry": {
+                    "type": "publisher_declaration",
+                    "body": {
+                      "publisher": {
+                        "wist_version": "1.0.0",
+                        "seq": 0,
+                        "domain": "example.com",
+                        "subdomain_scope": [
+                          "www.example.com"
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                            "nbf": 1788220800
+                          }
+                        ],
+                        "recovery_keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                            "nbf": 1788220800
+                          }
+                        ],
+                        "collections": [
+                          {
+                            "name": "journal",
+                            "scope": [
+                              {
+                                "url": "https://example.com/journal/",
+                                "match": "prefix"
+                              }
+                            ],
+                            "keys": [
+                              {
+                                "kty": "OKP",
+                                "crv": "Ed25519",
+                                "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                                "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                                "nbf": 1788220800
+                              }
+                            ]
+                          },
+                          {
+                            "name": "store",
+                            "scope": [
+                              {
+                                "url": "https://example.com/store/",
+                                "match": "prefix"
+                              }
+                            ],
+                            "keys": [
+                              {
+                                "kty": "OKP",
+                                "crv": "Ed25519",
+                                "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                                "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                                "nbf": 1788220800
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "sig": {
+                        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "alg": "Ed25519",
+                        "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "height": 1,
+              "sealed_at": "2026-10-01T01:00:00Z",
+              "parameters": {
+                "clock_skew_seconds": 600,
+                "catalog_items_max": 16777216,
+                "catalog_refresh_seconds": 604800,
+                "payload_window_days": 180,
+                "domain_epoch_entries_max": 10000,
+                "url_cap_bytes": 2048,
+                "extract_cap_bytes": 32768,
+                "links_cap_bytes": 4096,
+                "link_url_cap_bytes": 2048,
+                "summary_cap_bytes": 2048,
+                "collections_max": 16,
+                "scope_entries_max": 32,
+                "recovery_window_days": 7,
+                "declaration_activation_epochs": 24
+              },
+              "entries": [
+                {
+                  "name": "X",
+                  "entry": {
+                    "type": "publisher_catalog",
+                    "body": {
+                      "catalog": {
+                        "wist_version": "1.0.0",
+                        "publisher": "example.com",
+                        "collection": "journal",
+                        "generated_at": "2026-10-01T00:59:00Z",
+                        "size": 2,
+                        "root": "sha256:2a7247183de2283f7698686c717d29d265f1f79b1b171c368ed3823931b3ad7c",
+                        "tree": "sha256:0bc76d28ce8286abe132eb5b14515d13d0fe30e1cd7d83d9f7df1f6fa9ac2534"
+                      },
+                      "sig": {
+                        "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                        "alg": "Ed25519",
+                        "value": "ofmKPxWLnNctNGP15invs8qbPLdbd1CbWVygU864aInv0l32ez9XLPSsKVgb2brsSfObKBei7SZMaBqGwQ3PCA"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "u@X",
+                  "entry": {
+                    "type": "publisher_item",
+                    "body": {
+                      "item": {
+                        "publisher": "example.com",
+                        "url": "https://example.com/journal/u",
+                        "observed_at": "2026-09-30T10:00:00Z",
+                        "payload": {
+                          "commitment": "hmac-sha256:5b7e9f212b0fb7b85f423345963bca07a05f54aab9e2cfaf8058d4ed035406b7",
+                          "alg": "HMAC-SHA256",
+                          "bytes": 92
+                        },
+                        "meta": {
+                          "lang": "en"
+                        }
+                      },
+                      "collection": "journal",
+                      "catalog": "sha256:08eb0ce7728ce4ba821ba4abe6d7f0cf577ca80d21e5c7fe91d7932ce763f281",
+                      "proof": {
+                        "index": 0,
+                        "tree_size": 2,
+                        "path": [
+                          "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "results": [
+            {
+              "height": 0,
+              "status": "accepted",
+              "entries": []
+            },
+            {
+              "height": 1,
+              "status": "accepted",
+              "entries": [
+                {
+                  "name": "X",
+                  "disposition": "valid"
+                },
+                {
+                  "name": "u@X",
+                  "disposition": "valid"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "log_states": {
+          "A": {
+            "state": "removed",
+            "item": "sha256:facacf9fed16689de5d75aac48f6e45eb7eac0f97d82fa964acb322c38525942",
+            "catalog": "sha256:151de372ec72552fdd8a17dd86b672e258037a33210f721fceddbc01af7df2ae",
+            "generated_at": "2026-10-01T03:59:00Z"
+          },
+          "B": {
+            "state": "record",
+            "item": "sha256:42ac9a21b728c38d4c61ba53836b093af4d72e8e23a59c4fe81a6a12d2b0eecb",
+            "collection": "journal",
+            "catalog": "sha256:08eb0ce7728ce4ba821ba4abe6d7f0cf577ca80d21e5c7fe91d7932ce763f281",
+            "generated_at": "2026-10-01T00:59:00Z"
+          }
+        },
+        "combined": {
+          "state": {
+            "state": "removed",
+            "item": "sha256:facacf9fed16689de5d75aac48f6e45eb7eac0f97d82fa964acb322c38525942",
+            "catalog": "sha256:151de372ec72552fdd8a17dd86b672e258037a33210f721fceddbc01af7df2ae",
+            "generated_at": "2026-10-01T03:59:00Z"
+          },
+          "logs": [
+            "A"
+          ]
+        },
+        "snapshot": {
+          "log": "A",
+          "removals": [
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/journal/u",
+              "item": "sha256:facacf9fed16689de5d75aac48f6e45eb7eac0f97d82fa964acb322c38525942",
+              "catalog": "sha256:151de372ec72552fdd8a17dd86b672e258037a33210f721fceddbc01af7df2ae",
+              "generated_at": "2026-10-01T03:59:00Z"
+            }
+          ]
+        }
+      }
     }
   ],
   "payloads": {
+    "sha256:3563ca234adefa179f500efb33e4527a0b2c8ed712026f73552fd819d7e97d3f": {
+      "wist_version": "1.0.0",
+      "salt": "RRIXhNrjKecEdAAgiucSqA",
+      "content": {
+        "extract": "Text of a two.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title a two"
+        }
+      }
+    },
     "sha256:42ac9a21b728c38d4c61ba53836b093af4d72e8e23a59c4fe81a6a12d2b0eecb": {
       "wist_version": "1.0.0",
       "salt": "2ljVZgl_bxy8NhT-5Pi3Zg",

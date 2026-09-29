@@ -12,6 +12,10 @@ import ed25519_curve
 from link_extraction import normalize_url
 
 DEFAULT_PARAMETERS = {"collections_max": 16, "scope_entries_max": 32, "url_cap_bytes": 2048}
+COUNT_FLOORS = {"collections_max": 16, "scope_entries_max": 32}
+UNREAD_PARAMETERS = {"collections_max": float("inf"), "scope_entries_max": float("inf"),
+                     "url_cap_bytes": float("inf")}
+DIGIT_CHUNK = 1000
 ENTRY_OCTETS_MAX = 65535
 SAFE_INTEGER_MAX = 2**53 - 1
 NUMERIC_DATE_MAX = 253402300799
@@ -108,8 +112,16 @@ def publisher_timestamp_seconds(value):
     doy = (153 * (month + (-3 if month > 2 else 9)) + 2) // 5 + day - 1
     doe = yoe * 365 + yoe // 4 - yoe // 100 + doy
     days = era * 146097 + doe - 719468
-    fraction = Fraction(int(m.group(7)), 10 ** len(m.group(7))) if m.group(7) else Fraction(0)
+    fraction = Fraction(decimal_digits_value(m.group(7)), 10 ** len(m.group(7))) if m.group(7) else Fraction(0)
     return days * 86400 + hour * 3600 + minute * 60 + second + fraction - offset
+
+
+def decimal_digits_value(digits):
+    value = 0
+    for start in range(0, len(digits), DIGIT_CHUNK):
+        chunk = digits[start:start + DIGIT_CHUNK]
+        value = value * 10 ** len(chunk) + int(chunk)
+    return value
 
 
 def usable_point(raw):
@@ -276,15 +288,23 @@ def check_unique_keys(publisher):
         seen.add(raw)
 
 
-def validate_declaration(envelope, parameters=None):
+def parameter_map(parameters):
     parameters = {**DEFAULT_PARAMETERS, **(parameters or {})}
+    for name, floor in COUNT_FLOORS.items():
+        if parameters[name] < floor:
+            raise ValueError(f"{name} is amended below {floor}")
+    return parameters
+
+
+def validate_declaration(envelope, parameters=None, read_parameters=True):
+    parameters = parameter_map(parameters) if read_parameters else UNREAD_PARAMETERS
     check_publisher_fields(envelope)
     publisher = envelope["publisher"]
     if "collections" in publisher:
         check_collection_forms(publisher, parameters)
         check_collection_semantics(publisher, parameters)
     check_unique_keys(publisher)
-    if entry_octets(envelope) > ENTRY_OCTETS_MAX:
+    if read_parameters and entry_octets(envelope) > ENTRY_OCTETS_MAX:
         raise RuleViolation("WIST1-E04", "the publisher_declaration Entry is above 65 535 octets")
 
 

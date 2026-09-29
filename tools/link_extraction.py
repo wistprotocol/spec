@@ -29,6 +29,13 @@ _NAMED_REFS = {"amp": "&", "lt": "<", "gt": ">", "quot": '"', "apos": "'"}
 
 _RAWTEXT_TAGS = (b"script", b"style", b"textarea")
 
+ASCII_WHITESPACE = "\t\n\f\r "
+_ASCII_WHITESPACE_RUN = re.compile("[\t\n\f\r ]+")
+
+
+def trim_candidate(candidate: str) -> str:
+    return candidate.strip(ASCII_WHITESPACE)
+
 
 def _decode_entities(s: str):
     """WIST-2 §11 step 4: decode the five named references and numeric
@@ -305,7 +312,7 @@ def extract_links(html: bytes, base_url: str, publisher_domain: str):
     Returns (urls, total)."""
     seen, urls = set(), []
     for candidate in _iter_hrefs(html):
-        url = normalize_url(candidate.strip(), base_url)
+        url = normalize_url(trim_candidate(candidate), base_url)
         if url is None or not _external(url, publisher_domain) or url in seen:
             continue
         seen.add(url)
@@ -395,4 +402,4 @@ def extract_text(html: bytes) -> str:
         i = nxt
     text = b"".join(out).decode("utf-8", errors="replace")
     text = _decode_text_entities(text)
-    return " ".join(text.split())
+    return _ASCII_WHITESPACE_RUN.sub(" ", text).strip(" ")

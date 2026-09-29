@@ -776,6 +776,96 @@
       }
     },
     {
+      "label": "region octets f0 80 80 give three replacement characters",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page_base64": "PCFkb2N0eXBlIGh0bWw+PGh0bWwgbGFuZz0iZW4iPjxoZWFkPjx0aXRsZT5NYXJrZWQgcGFnZTwvdGl0bGU+PG1ldGEgbmFtZT0id2lzdCIgY29udGVudD0icHVibGlzaCI+PC9oZWFkPjxib2R5PjxuYXY+PGEgaHJlZj0iaHR0cHM6Ly9leGFtcGxlLm5ldC9uYXYiPm5hdjwvYT48L25hdj48IS0td2lzdDpjb250ZW50LS0+PGgxPk1hcmtlZDwvaDE+PHA+Qm9keSDwgIAgd2l0aCA8YSBocmVmPSJodHRwczovL2V4YW1wbGUub3JnL2NpdGVkIj5hIGNpdGF0aW9uPC9hPi48L3A+PCEtLS93aXN0OmNvbnRlbnQtLT48Zm9vdGVyPjxhIGhyZWY9Imh0dHBzOi8vZXhhbXBsZS5vcmcvZm9vdGVyIj5mb290ZXI8L2E+PC9mb290ZXI+PC9ib2R5PjwvaHRtbD4=",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body \ufffd\ufffd\ufffd with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body \ufffd\ufffd\ufffd with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "region octets e2 82 41 give one replacement character then a",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page_base64": "PCFkb2N0eXBlIGh0bWw+PGh0bWwgbGFuZz0iZW4iPjxoZWFkPjx0aXRsZT5NYXJrZWQgcGFnZTwvdGl0bGU+PG1ldGEgbmFtZT0id2lzdCIgY29udGVudD0icHVibGlzaCI+PC9oZWFkPjxib2R5PjxuYXY+PGEgaHJlZj0iaHR0cHM6Ly9leGFtcGxlLm5ldC9uYXYiPm5hdjwvYT48L25hdj48IS0td2lzdDpjb250ZW50LS0+PGgxPk1hcmtlZDwvaDE+PHA+Qm9keSDigkEgd2l0aCA8YSBocmVmPSJodHRwczovL2V4YW1wbGUub3JnL2NpdGVkIj5hIGNpdGF0aW9uPC9hPi48L3A+PCEtLS93aXN0OmNvbnRlbnQtLT48Zm9vdGVyPjxhIGhyZWY9Imh0dHBzOi8vZXhhbXBsZS5vcmcvZm9vdGVyIj5mb290ZXI8L2E+PC9mb290ZXI+PC9ib2R5PjwvaHRtbD4=",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body \ufffdA with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body \ufffdA with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
       "label": "title absent",
       "url": "https://example.com/journal/marked",
       "modified": "2026-09-01T10:00:00Z",
@@ -1301,6 +1391,96 @@
         "publication": {
           "url": "https://example.com/journal/marked",
           "lang": "und",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "lang with kelvin sign gives und",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"\u212ao\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "und",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "und",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "lang without subtag lowercased whole",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"PT\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "pt",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "pt",
           "modified": "2026-09-01T10:00:00Z",
           "content": {
             "extract": "Marked Body with a citation .",
