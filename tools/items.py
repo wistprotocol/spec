@@ -98,7 +98,11 @@ def strict_loads(octets):
                            parse_constant=_reject_constant)
     except (UnicodeDecodeError, ValueError, RecursionError) as error:
         raise NotJcsInput(str(error))
-    if not _scalars_only(value):
+    try:
+        scalars = _scalars_only(value)
+    except RecursionError as error:
+        raise NotJcsInput(str(error))
+    if not scalars:
         raise NotJcsInput("a string that is not a sequence of Unicode scalar values")
     return value
 
