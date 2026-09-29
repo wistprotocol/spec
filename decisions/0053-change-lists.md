@@ -251,8 +251,9 @@ WIST-2 §7.1.
   pulls are further apart than a Publisher's chain would read
   `change_chain_max` lists before each walk.
 - **A bound above the 1 MiB of a Feed page.** Carries a difference of
-  more Items in one file. Holds a larger unsigned answer in memory
-  before any check of its result.
+  more Items in one file: the 10 200 of the measured round of a
+  Collection of 100 000 take 2 918 255 octets. Holds a larger unsigned
+  answer in memory before any check of its result.
 - **The Catalog a list starts from called its base.** ADR-0052 gives
   that name to a Catalog more than `removal_retention_days` later than
   the floor.
@@ -261,6 +262,25 @@ WIST-2 §7.1.
 
 - No signed and no sealed object changes. A Consumer reads no change
   list, and replay is as ADR-0052 has it.
+- A pull that obtains a list from one change list fetches
+  `catalog.json` and the list, Payloads aside. For changed, removed
+  and added Items of 10, 1 and 1 it fetches 3 973 octets in a
+  Collection of 100 Items, 3 989 in one of 10 000 and 3 979 in one of
+  100 000 and of 1 000 000, where the walk fetches 19 663, 44 555,
+  68 975 and 95 994: 0.20, 0.09, 0.06 and 0.04 of the walk. For 1 000,
+  10 and 10 it fetches 292 492 octets in a Collection of 10 000 and
+  292 557 in one of 1 000 000, where the walk fetches 1 305 185 and
+  5 107 547: 0.22 and 0.06. For one changed Item of 10 000 it fetches
+  961 octets, where the walk fetches 6 475. A change list holds 286 to
+  293 octets for each Item that differs, and 487 for one.
+- The round that changes 10 000 Items of 100 000 and removes and adds
+  100 has no change list, which would hold 2 918 255 octets, and its
+  pull walks 13 214 files of 12 817 358 octets.
+- An Aggregator that missed three Catalogs reads four lists. Over four
+  rounds of 10, 1 and 1 in a Collection of 10 000 it fetches 5 files
+  of 14 515 octets, where the walk fetches 111 of 147 923; over four
+  rounds of 1 000, 10 and 10, 5 files of 1 168 623 octets, where the
+  walk fetches 2 638 of 2 561 466.
 - A chain costs an Aggregator at most `change_chain_max` fetches and
   16 777 216 octets for one Catalog before the walk that follows a
   discard, all of them debited to the ingest budget.
@@ -336,3 +356,11 @@ The vectors are `vectors/wist2/change-lists.json`,
 `tools/change_lists.py`, and recomputed by
 `tools/verify_change_list_vectors.py`, which was written from this text
 and the vector files without the reference or the generator.
+
+The octets and files of Consequences are measured by
+`tools/measure_change_list_costs.py` on the synthetic Collections of
+ADR-0052's Verification, with the same seed and rounds. A pull counts
+`catalog.json` and every file it fetches, Payloads aside; the walk
+fetches the tree files that an Aggregator which walked the Catalog
+before the round does not hold. Each chain measured is accepted by the
+reference with the list the walk gives.

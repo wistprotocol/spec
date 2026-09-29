@@ -68,6 +68,7 @@ tools/.venv/bin/python tools/verify_sealing_vectors.py    # verifies them from t
 tools/.venv/bin/python tools/gen_waiting_vectors.py       # regenerates the waiting, recovery and pull vectors
 tools/.venv/bin/python tools/verify_waiting_vectors.py    # verifies them from the prose
 tools/.venv/bin/python tools/measure_catalog_costs.py     # reports Catalog and Item Entry octets and pull transfers per update round
+tools/.venv/bin/python tools/measure_change_list_costs.py # reports pull transfers by tree walk and by change list per update round
 ```
 
 The harness validates every example against its schema, recomputes the
