@@ -98,6 +98,10 @@ WITH_COLLECTIONS = declaration([
                [key("journal", exp=JOURNAL_EXP)]),
     collection("store", [prefix("https://example.com/store/"), exact("https://example.com/cart")], [key("store")])])
 IMPLICIT = declaration()
+NARROWED = sign("owner", "publisher", declaration([
+    collection("journal", [prefix("https://example.com/journal/a/")], [key("journal", exp=JOURNAL_EXP)]),
+    collection("store", [prefix("https://example.com/store/"), exact("https://example.com/cart")], [key("store")])]))
+assert rules.declaration_disposition(NARROWED) == "accepted"
 DECLARATIONS = {"collections": sign("owner", "publisher", WITH_COLLECTIONS),
                 "implicit": sign("owner", "publisher", IMPLICIT)}
 for _envelope in DECLARATIONS.values():
@@ -282,6 +286,29 @@ def item_field_vectors():
     case("url under the implicit default on a host outside the authority",
          changed(base, ["url"], "https://shop.example.com/first"), "WIST1-E03", label="implicit")
 
+    widest = {"url_cap_bytes": items.URL_CAP_BYTES_MAX}
+    wide_url = "https://example.com/journal/" + "x" * 4000
+    case("page Item with JCS(url) above the suite url_cap_bytes under url_cap_bytes 32 768",
+         changed(base, ["url"], wide_url), "accepted", widest)
+    case("page Item with JCS(url) above the suite url_cap_bytes under the suite url_cap_bytes",
+         changed(base, ["url"], wide_url), "WIST1-E11")
+    parameter_cases = []
+    for name, amendment, expected in (
+            ("url_cap_bytes 32 768 is read", {"url_cap_bytes": items.URL_CAP_BYTES_MAX}, "read"),
+            ("url_cap_bytes 32 769 is refused", {"url_cap_bytes": items.URL_CAP_BYTES_MAX + 1}, "refused"),
+            ("links_cap_bytes at link_url_cap_bytes + 21 is read",
+             {"link_url_cap_bytes": 2048, "links_cap_bytes": 2069}, "read"),
+            ("links_cap_bytes one below link_url_cap_bytes + 21 is refused",
+             {"link_url_cap_bytes": 2048, "links_cap_bytes": 2068}, "refused")):
+        amended = {**ITEM_PARAMETERS, **amendment}
+        try:
+            items.check_parameters(amended)
+            got = "read"
+        except ValueError:
+            got = "refused"
+        assert got == expected, (name, got)
+        parameter_cases.append({"name": name, "parameters": amended, "expected": got})
+
     small_url = {"url_cap_bytes": 64}
     stem = "https://example.com/journal/"
     at_cap = stem + "a" * (64 - 2 - len(stem))
@@ -301,7 +328,7 @@ def item_field_vectors():
          small_url)
     case("removed Item whose JCS(item) is one octet above 16 384 + url_cap_bytes octets through its url",
          changed(long_gone, ["url"], long_gone["url"] + "x"), "WIST1-E04", small_url)
-    small_caps = {"extract_cap_bytes": 100, "links_cap_bytes": 50, "summary_cap_bytes": 50}
+    small_caps = {"extract_cap_bytes": 100, "links_cap_bytes": 50, "link_url_cap_bytes": 29, "summary_cap_bytes": 50}
     cap = items.derived_payload_cap({**ITEM_PARAMETERS, **small_caps})
     assert cap == 232
     case("payload.bytes at the derived cap", changed(base, ["payload", "bytes"], cap), "accepted", small_caps)
@@ -395,9 +422,12 @@ def item_field_vectors():
         "`payload_path` whose last segment is the 64 digits of the Item ID that follow sha256:, followed by .json, against the page Item `item` under "
         "WIST-1 section 3.6: JCS(content) must be exactly payload.bytes octets and HMAC-SHA256(salt, JCS(content)) "
         "must reproduce payload.commitment, else WIST1-E10. Every case supplies its own parameter map; no default "
-        "applies. " + DECLARATIONS_NOTE + " " + KEYS_NOTE),
+        "applies. parameter_cases give whether a parameter map is `read` or `refused` under the bounds WIST-4 "
+        "section 5 states for the size caps: url_cap_bytes at least 14 and at most 32 768, extract_cap_bytes at "
+        "least 2, links_cap_bytes at least 21 and at least link_url_cap_bytes + 21, link_url_cap_bytes at least 14, "
+        "summary_cap_bytes at least 12; every map of every case keeps them. " + DECLARATIONS_NOTE + " " + KEYS_NOTE),
         "keys": KEYS_MEMBER, "declarations": DECLARATIONS, "item_cases": cases, "known_answers": known,
-        "payload_cases": payload_cases}
+        "payload_cases": payload_cases, "parameter_cases": parameter_cases}
 
 
 def root_pool():
@@ -1328,19 +1358,21 @@ def item_list_vectors():
                 payloads[items.item_id(item)] = payload
         return items.in_list_order(listed), payloads
 
+    declarations = {**DECLARATIONS, "narrowed": NARROWED}
+
     def case(name, served_pairs, publications, expected_list, generated_at=generated, signs=True,
-             wist_version="1.0.0", removals=()):
+             wist_version="1.0.0", removals=(), label="collections", refused="item-instant"):
         served, payloads = served_of(served_pairs)
         salts = [{"url": p["url"], "salt": salt_for("fresh " + p["url"])} for p in publications]
-        got = items.derive_list(served, payloads, publications, publisher_of("collections"), "journal",
+        got = items.derive_list(served, payloads, publications, declarations[label]["publisher"], "journal",
                                 generated_at, {s["url"]: s["salt"] for s in salts}, wist_version, parameters,
                                 removals=removals)
         if signs:
             assert "refused" not in got, name
             assert got["list"] == items.in_list_order(expected_list), (name, got["list"], expected_list)
         else:
-            assert got == {"refused": "item-instant"}, (name, got)
-        cases.append({"name": name, "declaration": "collections", "collection": "journal",
+            assert got == {"refused": refused}, (name, got)
+        cases.append({"name": name, "declaration": label, "collection": "journal",
                       "generated_at": generated_at, "wist_version": wist_version, "parameters": parameters,
                       "served": {"list": served, "payloads": payloads}, "publications": publications,
                       "removals": list(removals), "salts": salts, "expected": got})
@@ -1425,6 +1457,17 @@ def item_list_vectors():
          [later_a, pub_d, publication(b_url, "2026-09-30T09:00:00Z")],
          [a[0], removed(c_url, generated), removed(outside[0]["url"], generated), fresh(pub_d),
           fresh(publication(b_url, "2026-09-30T09:00:00Z")), removed(e_url, generated)], removals=[e_url])
+    x_url, y_url = "https://example.com/journal/a/x", "https://example.com/journal/b/y"
+    x, y = page(x_url, "2026-09-01T08:00:00Z"), page(y_url, "2026-09-01T08:00:00Z")
+    pub_x, pub_y = publication(x_url, "2026-09-01T08:00:00Z"), publication(y_url, "2026-09-01T08:00:00Z")
+    case("publications the served Declaration's Scope still covers keep their served Items", [x, y],
+         [pub_x, pub_y], [x[0], y[0]])
+    case("publication the served Declaration's Scope no longer covers is taken out: its served Item becomes "
+         "removed at generated_at", [x, y], [pub_x, pub_y], [x[0], removed(y_url, generated)], label="narrowed")
+    case("served list holding two Items of one URL: no Catalog is signed",
+         [a, (removed(a_url, "2026-09-15T00:00:00Z"), None)], [pub_a], [], signs=False, refused="served-list")
+    case("served list holding two Items of one URL and no publication for it: no Catalog is signed",
+         [a, (removed(a_url, "2026-09-15T00:00:00Z"), None)], [], [], signs=False, refused="served-list")
     future = publication(c_url, "2026-10-01T12:00:01Z")
     case("publication whose modified is later than generated_at: no Catalog is signed", [a], [pub_a, future], [],
          signs=False)
@@ -1439,9 +1482,11 @@ def item_list_vectors():
         "`generated_at` and `wist_version`, `parameters` (the size caps url_cap_bytes, extract_cap_bytes, "
         "links_cap_bytes, link_url_cap_bytes and summary_cap_bytes those Payload checks read, at their suite "
         "values, since the part that signs reads no Log's parameters) and `salts`, the salt a new Item for that url "
-        "takes. removal_retention_days is the constant 180 and is read from no parameter map. The publications lie "
-        "inside the Collection's Scope; a served Item outside it has no publication and the served rows below "
-        "decide it. A served Item whose "
+        "takes. removal_retention_days is the constant 180 and is read from no parameter map. A served list that holds "
+        "two Items of one url is refused, {\"refused\": \"served-list\"}, and nothing is signed. The part that "
+        "signs first takes out of the publications those the Scope of the Collection under the Declaration named by "
+        "`declaration`, the Declaration the Publisher serves, does not cover; a served Item outside that Scope then "
+        "has no publication and the served rows below decide it. A served Item whose "
         "publisher is not the Publisher's domain is read as a page Item whose Payload is not held. The first row "
         "a served Item, publication or removed URL meets decides: a publication whose url has a "
         "served page Item with meta.lang equal to its lang and a held Payload that passes WIST-1 section 7's Payload "
@@ -1461,9 +1506,11 @@ def item_list_vectors():
         "A served page Item whose Payload is absent from served.payloads does not meet the second row. The "
         "Publisher's domain is the Declaration's `domain`. `expected` is {list (ascending octet order of key), "
         "payloads (keyed by Item ID)}, or {\"refused\": \"item-instant\"} when an Item of the new list has an "
-        "observed_at later than generated_at, in which case nothing is published. "
+        "observed_at later than generated_at, in which case nothing is published. A list longer than "
+        "catalog_items_max, 16 777 216 Items, is refused with catalog-size; no case reaches it. `narrowed` is "
+        "`collections` with the journal's Scope narrowed to the prefix entry https://example.com/journal/a/. "
         + DECLARATIONS_NOTE + " " + KEYS_NOTE),
-        "keys": KEYS_MEMBER, "declarations": DECLARATIONS, "cases": cases}
+        "keys": KEYS_MEMBER, "declarations": declarations, "cases": cases}
 
 
 write_json(WIST1 / "item-fields.json", item_field_vectors())

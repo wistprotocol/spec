@@ -5,7 +5,7 @@ import time
 import collection_rules as rules
 import items
 
-DEFAULT_PARAMETERS = {"clock_skew_seconds": 600, "catalog_items_max": 16777216}
+DEFAULT_PARAMETERS = {"clock_skew_seconds": 600, "catalog_items_max": items.CATALOG_ITEMS_MAX}
 CATALOG_REFRESH_SECONDS = 604800
 CATALOG_READ_OCTETS = 16384
 

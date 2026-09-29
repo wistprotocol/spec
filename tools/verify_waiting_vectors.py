@@ -7,23 +7,24 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from verify_collection_vectors import (
-    Rejected, VerifierError, apply_group, canonical_host, check_keys_block, check_parameter_map, collection_names,
-    declaration_hash, fetch_declaration, log_seconds, narrow, new_state, pull_sources, pulled_collections, reductions,
-    repeats_head, strict_load, validate)
+    LOG_TIME_MAX, Rejected, VerifierError, apply_group, canonical_host, check_keys_block, check_parameter_map,
+    collection_names, declaration_hash, fetch_declaration, log_seconds, narrow, new_state, pull_sources,
+    pulled_collections, reductions, repeats_head, strict_load, validate)
 from verify_catalog_vectors import (
     ACCEPTED, BODY_MEMBERS, HASH, NAME, REMOVAL_RETENTION_SECONDS, VERSION, Refused, Report, binding_code, catalog_id,
     catalog_inner_form, covered, integer, item_form, item_id, jcs, judge_item, judge_payload, leaf_of, merkle_root,
-    proof_form, proof_holds, sig_form, walk_tree)
+    proof_form, proof_holds, sig_form, size_caps_read, walk_tree)
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 E14 = "WIST1-E14"
 OUT_OF_PLACE = "WIST3-E06"
 EPOCH_REJECTED = "WIST3-E03"
 ENTRY_OCTETS_MAX = 65535
-REFRESH_SECONDS_MAX = 15552000
+REFRESH_SECONDS_MAX = 7776000
 GROUP_ORDER = ["publisher_declaration", "registry_update", "publisher_catalog", "publisher_item", "label", "dispute"]
 DROPPED_REASON = "the list drops the URL of a held record"
-UNORDERED = {"left", "deferred", "held", "records_removed", "declarations_failed", "declarations_left"}
+UNORDERED = {"left", "deferred", "held", "records_removed", "declarations_failed", "declarations_left",
+             "updates_refused"}
 
 PROSE = {"note", "why"}
 FILE_MEMBERS = {"note", "keys", "histories"}
@@ -33,10 +34,11 @@ HISTORY_OPTIONAL = {"suffix_list", "registry_updates"}
 PULL_MEMBERS = {"event", "at", "publisher", "parameters", "declaration", "collections"}
 SERVED_MEMBERS = {"catalog", "tree_files", "payloads"}
 EPOCH_MEMBERS = {"event", "height", "sealed_at", "parameters", "declarations"}
-EPOCH_OPTIONAL = {"updates"}
+EPOCH_OPTIONAL = {"updates", "sealed_later"}
 PULL_EXPECTED = {"settlement", "declaration", "collections_pulled", "catalogs", "state"}
 EPOCH_EXPECTED = {"settlement", "entries", "sealed", "left", "deferred", "records_removed", "state"}
-EPOCH_EXPECTED_OPTIONAL = {"held", "declarations_failed", "declarations_left"}
+EPOCH_EXPECTED_OPTIONAL = {"held", "declarations_failed", "declarations_left", "updates_refused"}
+PULL_EXPECTED_OPTIONAL = {"noise"}
 STATE_MEMBERS = {"collections", "urls", "queue", "reductions_pending", "records"}
 
 
@@ -477,13 +479,16 @@ class Replay:
         self.settled = {}
         self.discovered = {}
         self.seq_floor = {}
+        self.offset = 0
 
     def read_parameters(self, parameters):
         check_parameter_map(parameters)
         if "removal_retention_days" in parameters:
             raise VerifierError("removal_retention_days is a constant and appears in no parameter map")
         if not 1 <= parameters["catalog_refresh_seconds"] <= REFRESH_SECONDS_MAX:
-            raise VerifierError("catalog_refresh_seconds amended outside 1 to 15 552 000")
+            raise VerifierError("catalog_refresh_seconds amended outside 1 to 7 776 000")
+        if size_caps_read(parameters) != "read":
+            raise VerifierError("a parameter map outside the bounds of the size caps")
         constants = (parameters["max_inclusion_epochs"], parameters["record_seal_epochs"])
         if self.constants is not None and constants != self.constants:
             raise VerifierError("max_inclusion_epochs or record_seal_epochs changes within the history")
@@ -545,14 +550,15 @@ class Replay:
         return place
 
     @staticmethod
-    def i7(log, publisher, item, no_record):
+    def i7(log, publisher, collection, item, no_record):
+        record = log["records"].get((publisher, item["url"]))
+        # ADR-0052 An Aggregator that was away: under a base a record another Collection carries is read.
+        if no_record and record is not None and record["collection"] == collection:
+            record = None
         if "removed" in item:
-            return not no_record and (publisher, item["url"]) in log["records"]
+            return record is not None
         identity = item_id(item)
-        if withdrawn(log, identity):
-            return False
-        record = None if no_record else log["records"].get((publisher, item["url"]))
-        return record is None or record["item"] != identity
+        return not withdrawn(log, identity) and (record is None or record["item"] != identity)
 
     def listed_item(self, log, publisher, collection, url):
         last = self.last_accepted(log, publisher, collection)
@@ -569,6 +575,10 @@ class Replay:
 
     def desired(self, log, publisher):
         found = {}
+        declaration = in_force(log, publisher)
+
+        def in_scope(collection, url):
+            return declaration is not None and covered(declaration, collection, url)
         for collection in sorted(self.names_of(log, publisher), key=octets):
             last = self.last_accepted(log, publisher, collection)
             if last is None:
@@ -578,9 +588,9 @@ class Replay:
                 raise VerifierError(f"the list of {last['id']} was never walked")
             no_record = self.no_record(log, publisher, collection)
             for index, item in enumerate(entry["list"]):
-                if entry["status"][index] != "admitted" or not self.i7(log, publisher, item, no_record):
+                if entry["status"][index] != "admitted" or not self.i7(log, publisher, collection, item, no_record):
                     continue
-                order = (generated(last["envelope"]), octets(last["id"]))
+                order = (in_scope(collection, item["url"]), generated(last["envelope"]), octets(last["id"]))
                 other = found.get(item["url"])
                 if other is not None and other["order"] == order:
                     raise VerifierError(f"one Catalog lists {item['url']} twice")
@@ -626,7 +636,7 @@ class Replay:
         for entry in self.discovered.get(domain, []):
             state["decls"][entry["label"]] = self.history["declarations"][entry["label"]]
             try:
-                apply_group(state, [entry["label"]], None, None, entry["parameters"])
+                apply_group(state, [entry["label"]], None, None, entry["parameters"], sizes={})
             except Rejected as rejection:
                 raise VerifierError(f"discovered Declaration {entry['label']} no longer applies: {rejection.code}")
         if state["current"] is not None and domain in self.seq_floor:
@@ -708,21 +718,22 @@ class Replay:
         waiting = last if queueing and self.catalog_waits(self.log, domain, name) else None
         same_key = [entry for entry in (queued, waiting)
                     if entry is not None and entry["envelope"]["sig"]["key_id"] == kid]
-        publishers = [publisher for _, publisher in sources]
-        # ADR-0052 Catalogs: from the discovery of a recovery rotation until settlement the signing key counts.
-        known = [latest] + same_key if queueing else [latest, last]
-        if identifier in {entry["id"] for entry in known if entry is not None}:
-            if queueing:
-                publishers = [publisher for publisher in publishers
-                              if not c1_codes(envelope, publisher, parameters, at)]
-            items = self.rejudge(identifier, domain, publishers, served, parameters) if publishers else []
-            row.update(outcome="idempotent", tree_files_fetched=[], items=items)
-            return row
-        verdicts = [c1_codes(envelope, publisher, parameters, at) for publisher in publishers]
+        verdicts = [c1_codes(envelope, publisher, parameters, at) for _, publisher in sources]
         passing = [source for source, codes in zip(sources, verdicts) if not codes]
         codes = set() if passing else set().union(*verdicts)
         if inner["publisher"] != domain or inner["collection"] != name:
             codes.add("WIST2-E04")
+        if codes:
+            row.update(outcome="refused", codes=shown_codes(codes))
+            return row
+        publishers = [publisher for _, publisher in sources]
+        accepting = [publisher for _, publisher in passing]
+        # ADR-0052 Catalogs: from the discovery of a recovery rotation until settlement the signing key counts.
+        known = [latest] + same_key if queueing else [latest, last]
+        if identifier in {entry["id"] for entry in known if entry is not None}:
+            items = self.rejudge(identifier, domain, accepting, served, parameters)
+            row.update(outcome="idempotent", tree_files_fetched=[], items=items)
+            return row
         instant = log_seconds(inner["generated_at"])
         if queueing:
             if latest is not None and instant <= generated(latest["envelope"]):
@@ -754,7 +765,6 @@ class Replay:
                 row.update(outcome="refused", codes=["WIST2-E07"], reason=DROPPED_REASON, dropped=dropped)
                 return row
         self.lists[identifier] = {"inner": inner, "list": listed, "status": [None] * len(listed)}
-        accepting = [publisher for _, publisher in passing]
         items = [self.judge_listed(identifier, i, domain, accepting, served, parameters) for i in range(len(listed))]
         row.update(outcome="accepted", base=base, key=self.key_name(envelope), queued=queueing, items=items)
         place = [index, position(name)]
@@ -787,8 +797,11 @@ class Replay:
         out = {"settlement": [], "declaration": None, "collections_pulled": [], "catalogs": []}
         window = self.log_window(domain)
         if window is not None and at >= window["end"] and self.settled.get(domain) != window["end"]:
+            # ADR-0052 Settlement: a pull that settles is two events, the settlement first.
             out["settlement"] = self.settle(domain, index, at, parameters, self.height + 1,
-                                            window["head"], window["end"])
+                                            window["head"], window["end"], at_pull=True)
+            self.offset += 1
+            index += 1
         window = self.log_window(domain)
         inside = window is not None and at < window["end"] and self.settled.get(domain) != window["end"]
         declaration = {"outcome": "not_fetched", "discovered": False, "reduces_authority": False, "sources": [],
@@ -798,6 +811,7 @@ class Replay:
         if label is None:
             return out
         state = self.admission(domain, at)
+        first_contact = state["current"] is None
         envelope = self.history["declarations"][label]
         if not isinstance(envelope.get("publisher"), dict) or envelope["publisher"].get("domain") != domain:
             raise VerifierError(f"the Declaration {label} is not of {domain}")
@@ -807,8 +821,14 @@ class Replay:
         state["decls"][label] = envelope
         try:
             kind = fetch_declaration(state, label, None, None, parameters)
+            # ADR-0051 Reaching the Log: a window that cannot be frozen fails the fetch.
+            if kind in ("recovery_rotation", "reversal_recovery_rotation") \
+                    and at + parameters["recovery_window_days"] * 86400 > LOG_TIME_MAX:
+                raise Rejected("WIST1-E08", "recovery window would end after the last Log instant")
         except Rejected as rejection:
             declaration["outcome"] = rejection.code
+            if first_contact:
+                out["noise"] = True
             return out
         declaration["outcome"] = kind
         if kind not in ("idempotent", "recovery_chain_head"):
@@ -818,10 +838,6 @@ class Replay:
             reduces = predecessor is not None and bool(reductions(state["decls"][predecessor]["publisher"],
                                                                   envelope["publisher"]))
             declaration["reduces_authority"] = reduces
-            if kind.startswith("reversal_"):
-                pending = [e["label"] for e in self.discovered.get(domain, [])
-                           if e["kind"] in ("pending_replacement", "fresh_identity_pending")]
-                self.leave(domain, set(pending) | self.descendants(domain, pending))
             self.discovered.setdefault(domain, []).append({"label": label, "parameters": parameters, "kind": kind,
                                                            "reduces": reduces})
             self.seq_floor[domain] = max(self.seq_floor.get(domain, 0), envelope["publisher"]["seq"])
@@ -841,15 +857,26 @@ class Replay:
             raise VerifierError(f"served Collections the pull does not read: {sorted(unread)}")
         if not queueing:
             self.refresh(self.log, domain, lambda c, i: [index, position(c), i], self.height + 1)
+        productive = declaration["discovered"] or any(
+            row["outcome"] == "accepted" or any(item["outcome"] == "admitted" for item in row.get("items", []))
+            for row in out["catalogs"])
+        if not productive:
+            out["noise"] = True
         return out
 
     def log_window(self, domain):
         state = self.log["domains"].get(domain)
         return None if state is None else state["window"]
 
-    def settle(self, domain, index, clock, parameters, eligibility, source_label, marker):
+    def settle(self, domain, index, clock, parameters, eligibility, source_label, marker, at_pull=False):
         state = self.log["domains"][domain]
         source = state["decls"][source_label]["publisher"]
+        competitors = [e["label"] for e in self.discovered.get(domain, []) if e["kind"] == "in_window_competitor"]
+        self.leave(domain, set(competitors) | self.descendants(domain, competitors))
+        leaves = source
+        if at_pull:
+            admitted = self.admission(domain, clock)
+            leaves = admitted["decls"][admitted["current"]]["publisher"]
         keys = sorted((key for key in self.queue if key[0] == domain),
                       key=lambda key: (place_key(domain, self.queue[key]["place"]), octets(key[2])))
         rows, survivors = [], {}
@@ -858,8 +885,11 @@ class Replay:
             row = {"publisher": domain, "collection": key[1], "key": self.key_name(queued["envelope"]),
                    "catalog": queued["id"]}
             codes = c1_codes(queued["envelope"], source, parameters, clock)
+            floor = self.log["latest"].get((domain, key[1]))
             if codes:
                 row.update(outcome="WIST1-E13", condition_code=OneOf(codes))
+            elif floor is not None and generated(queued["envelope"]) <= generated(floor["envelope"]):
+                row["outcome"] = "WIST2-E05"
             else:
                 survivors.setdefault(key[1], []).append((queued, row))
             rows.append(row)
@@ -879,7 +909,7 @@ class Replay:
             if self.catalog_waits(self.log, domain, collection):
                 entry["waiting"] = {"place": self.first_place[(domain, collection)], "eligibility": eligibility}
         held = {url: entry for (owner, url), entry in self.urls.items() if owner == domain}
-        position = self.positions(self.log, domain, source)
+        position = self.positions(self.log, domain, leaves)
         for url in held:
             del self.urls[(domain, url)]
         for url, now in self.desired(self.log, domain).items():
@@ -897,9 +927,23 @@ class Replay:
             del self.first_place[key]
         self.queued_domains.discard(domain)
         self.settled[domain] = marker
-        competitors = [e["label"] for e in self.discovered.get(domain, []) if e["kind"] == "in_window_competitor"]
-        self.leave(domain, set(competitors) | self.descendants(domain, competitors))
         return rows
+
+    def settle_discovery(self, domain, index, clock, parameters, height, label, out):
+        waited = {c: dict(e["waiting"]) for (p, c), e in self.tracked.items()
+                  if p == domain and self.catalog_waits(self.log, p, c)}
+        urls = {u: e["eligibility"] for (p, u), e in self.urls.items() if p == domain}
+        self.queue_waiting(domain)
+        source = self.log["domains"][domain]["current"]
+        out["settlement"] += self.settle(domain, index, clock, parameters, height, source, ("left", label))
+        # ADR-0052 Discovery: what waited at the discovery keeps its place, eligibility Epoch and ceiling.
+        for collection, waiting in waited.items():
+            entry = self.tracked[(domain, collection)]
+            if self.catalog_waits(self.log, domain, collection):
+                entry["waiting"] = waiting
+        for url, eligibility in urls.items():
+            if (domain, url) in self.urls:
+                self.urls[(domain, url)]["eligibility"] = eligibility
 
     def queue_waiting(self, domain):
         for (publisher, collection), entry in sorted(self.tracked.items(), key=lambda kv: octets(kv[0][1])):
@@ -947,30 +991,47 @@ class Replay:
                 out["settlement"] += self.settle(domain, index, sealed_at, parameters, height, window["head"],
                                                  window["end"])
         labels = event["declarations"]
+        later = event.get("sealed_later", [])
+        pending = {e["label"] for entries in self.discovered.values() for e in entries}
+        if not set(later) <= pending or set(later) & set(labels):
+            raise VerifierError(f"sealed_later names {later}, not all discovered and unsealed")
         sealing, failed = self.check_declarations(labels, parameters)
-        left_labels = []
+        left_labels, left_rows = [], []
         for row in failed:
             domain = self.history["declarations"][row["declaration"]]["publisher"]["domain"]
             gone = self.descendants(domain, [row["declaration"]])
             left_labels += sorted(gone)
+            for label in sorted(gone):
+                prev = self.history["declarations"][label]["publisher"]["prev_declaration"]
+                named = next(name for name, envelope in self.history["declarations"].items()
+                             if declaration_hash(envelope["publisher"]) == prev)
+                left_rows.append({"declaration": label, "names": named, "code": row["code"]})
             recovery = [e for e in self.discovered.get(domain, [])
                         if e["label"] in gone | {row["declaration"]}
                         and e["kind"] in ("recovery_rotation", "reversal_recovery_rotation")]
             self.leave(domain, gone | {row["declaration"]})
+            sealed_state = self.log["domains"].get(domain)
+            if (sealed_state is None or sealed_state["current"] is None) and not self.discovered.get(domain):
+                self.seq_floor.pop(domain, None)
             if recovery:
-                self.queue_waiting(domain)
-                source = self.log["domains"][domain]["current"]
-                out["settlement"] += self.settle(domain, index, sealed_at, parameters, height, source,
-                                                 ("left", recovery[0]["label"]))
+                self.settle_discovery(domain, index, sealed_at, parameters, height, recovery[0]["label"], out)
         sealing = [label for label in sealing if label not in left_labels]
         if failed:
             out["declarations_failed"] = failed
-        if left_labels:
-            out["declarations_left"] = [{"declaration": label} for label in left_labels]
+        if left_rows:
+            out["declarations_left"] = left_rows
         declared = [{"name": label, "entry": {"type": "publisher_declaration",
                                               "body": self.history["declarations"][label]}} for label in sealing]
-        updates = [{"name": name, "entry": {"type": "registry_update", "body": self.updates[name]}}
-                   for name in event.get("updates", [])]
+        updates, refused = [], []
+        for name in event.get("updates", []):
+            target = withdrawal_target(self.updates[name])
+            # ADR-0052 Waiting: an Aggregator seals no payload_withdrawal that breaks its contract.
+            if target in self.log["sealed_items"]:
+                updates.append({"name": name, "entry": {"type": "registry_update", "body": self.updates[name]}})
+            else:
+                refused.append({"delta_id": target[1], "subject": target[0], "code": "WIST4-E04"})
+        if refused:
+            out["updates_refused"] = refused
         plan = copy.deepcopy(self.log)
         removed = []
         try:
@@ -981,9 +1042,7 @@ class Replay:
             domain = self.history["declarations"][label]["publisher"]["domain"]
             self.leave(domain, {label})
         for update in updates:
-            target = withdrawal_target(update["entry"]["body"])
-            if target in self.log["sealed_items"]:
-                self.payloads.pop(target[1], None)
+            self.payloads.pop(withdrawal_target(update["entry"]["body"])[1], None)
         hold = {domain for domain in self.discovered if self.reducing(domain)}
         room, capacity = {}, parameters["domain_epoch_entries_max"]
         sealed_entries, deferred_catalogs, deferred_urls, catalog_turn = [], [], [], {}
@@ -1055,13 +1114,17 @@ class Replay:
             row = {"type": "publisher_item", "publisher": publisher, "collection": collection, "url": url,
                    "item": identity}
             reasons = []
+            latest = plan["latest"].get((publisher, collection))
+            # ADR-0052 Queue: from the Epoch that opens the window, the window alone defers the Items held.
             if window_open(plan, publisher):
                 reasons.append("recovery_window")
-            if catalog_turn.get((publisher, collection)) == "deferred":
-                reasons.append("catalog_waiting")
-            latest = plan["latest"].get((publisher, collection))
-            if latest is not None and not passes_i4(plan, latest):
-                reasons.append("latest_fails_i4")
+            else:
+                if catalog_turn.get((publisher, collection)) == "deferred":
+                    reasons.append("catalog_waiting")
+                undeferred = self.catalog_waits(plan, publisher, collection) \
+                    and catalog_turn.get((publisher, collection)) != "deferred"
+                if latest is not None and not passes_i4(plan, latest) and not undeferred:
+                    reasons.append("latest_fails_i4")
             if reasons:
                 out["deferred"].append({**row, "place": place, "reasons": reasons})
                 deferred_urls.append(entry)
@@ -1101,6 +1164,12 @@ class Replay:
                 self.lists[current["catalog"]]["status"][current["index"]] = "refused"
             else:
                 raise VerifierError(f"the Item of {url} fails {conditions} at its turn")
+        for (publisher, url), entry in sorted(self.urls.items(), key=lambda kv: (place_key(kv[0][0], kv[1]["place"]),
+                                                                                  octets(kv[0][1]))):
+            if entry["eligibility"] is None and publisher in self.queued_domains and window_open(plan, publisher):
+                out["deferred"].append({"type": "publisher_item", "publisher": publisher,
+                                        "collection": entry["collection"], "url": url, "item": item_id(entry["item"]),
+                                        "place": entry["place"], "reasons": ["recovery_window"]})
         self.seal(height, sealed_at, parameters, declared, updates, sealed_entries, plan, removed, out)
         for entry in deferred_catalogs:
             entry["waiting"]["eligibility"] = height + 1
@@ -1133,7 +1202,8 @@ class Replay:
         if listed is None or not listed["admitted"]:
             return
         item = listed["item"]
-        if self.i7(plan, publisher, item, self.no_record(plan, publisher, entry["collection"])):
+        if self.i7(plan, publisher, entry["collection"], item,
+                   self.no_record(plan, publisher, entry["collection"])):
             return
         identity = item_id(item)
         latest = plan["latest"].get((publisher, entry["collection"]))
@@ -1278,7 +1348,7 @@ def check_members(data):
             raise VerifierError(f"{where}: {len(history['events'])} events and {len(history['expected'])} results")
         for index, (event, want) in enumerate(zip(history["events"], history["expected"])):
             if event.get("event") == "pull":
-                members_read(want, PULL_EXPECTED, where=f"{where} expected {index}")
+                members_read(want, PULL_EXPECTED, PULL_EXPECTED_OPTIONAL, where=f"{where} expected {index}")
             elif event.get("event") == "epoch":
                 members_read(want, EPOCH_EXPECTED, EPOCH_EXPECTED_OPTIONAL, where=f"{where} expected {index}")
             else:
@@ -1302,7 +1372,8 @@ def family(data, report):
         for index, (event, want) in enumerate(zip(history["events"], history["expected"])):
             label = f"{name}: event {index} ({event['event']})"
             try:
-                got = replay.pull(index, event) if event["event"] == "pull" else replay.epoch(index, event)
+                place = index + replay.offset
+                got = replay.pull(place, event) if event["event"] == "pull" else replay.epoch(place, event)
                 got["state"] = replay.snapshot()
             except (VerifierError, Rejected, KeyError, TypeError, ValueError, AttributeError, IndexError) as error:
                 report.cases += 1

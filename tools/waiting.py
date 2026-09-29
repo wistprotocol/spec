@@ -145,7 +145,9 @@ class Aggregator:
             return record != items.item_id(item) and not self.withdrawn(item)
         return record is not None
 
-    def waiting_urls(self, publisher):
+    def waiting_urls(self, publisher, declaration=None):
+        if declaration is None:
+            declaration = self.log.declaration(publisher)
         out, order = {}, {}
         for name in self.names_of(publisher):
             accepted = self.last_accepted(publisher, name)
@@ -153,9 +155,10 @@ class Aggregator:
                 continue
             base = self.base_mode(publisher, name)
             statuses = self.admission[accepted]
-            rank = recovery_queue.order_key({"envelope": {"catalog": self.inner(accepted)}})
             for index, item in enumerate(self.lists[accepted]["list"]):
                 url = item["url"]
+                covered = declaration is not None and rules.coverage(declaration, name, url)
+                rank = (covered, recovery_queue.order_key({"envelope": {"catalog": self.inner(accepted)}}))
                 if (statuses[url]["outcome"] == "admitted" and self.i7_holds(publisher, name, item, base)
                         and (url not in order or rank > order[url])):
                     out[url], order[url] = (name, index, item), rank
@@ -180,10 +183,10 @@ class Aggregator:
     def window_opened(self, publisher):
         return publisher in self.windows and self.windows[publisher].opened
 
-    def refresh(self, publisher, eligibility, order):
+    def refresh(self, publisher, eligibility, order, declaration=None):
         if self.window_opened(publisher):
             return
-        now = self.waiting_urls(publisher)
+        now = self.waiting_urls(publisher, declaration)
         for slot in [s for s in self.urls if s[0] == publisher and s[1] not in now]:
             del self.urls[slot]
         for url, (name, index, item) in now.items():
@@ -205,15 +208,21 @@ class Aggregator:
     def drop_discovered(self, publisher, hashes):
         gone = self.descendants(publisher, hashes)
         self.discovered[publisher] = [f for f in self.discovered.get(publisher, []) if f["hash"] not in gone]
+        for found in self.discovered[publisher]:
+            if found.get("discarded_by") in gone:
+                del found["discarded_by"]
+        if not self.discovered[publisher] and self.log.declaration(publisher) is None:
+            self.floors.pop(publisher, None)
         return gone
 
     def supersede(self, publisher):
         self.drop_discovered(publisher, {f["hash"] for f in self.discovered.get(publisher, [])
                                          if f["kind"] == "in_window_competitor"})
 
-    def discard_pending(self, publisher):
-        self.drop_discovered(publisher, {f["hash"] for f in self.discovered.get(publisher, [])
-                                         if f["kind"] in PENDING_KINDS})
+    def discard_pending(self, publisher, reversal):
+        for found in self.discovered.get(publisher, []):
+            if found["kind"] in PENDING_KINDS and found["hash"] not in self.sealed:
+                found.setdefault("discarded_by", reversal)
 
     def admission_replay(self, publisher, clock):
         held = self.log.replays.get(publisher)
@@ -258,7 +267,7 @@ class Aggregator:
         reduces = predecessor is not None and rules.reduces_authority(predecessor, inner)
         if discovered:
             if kind in REVERSAL_KINDS:
-                self.discard_pending(publisher)
+                self.discard_pending(publisher, digest)
             self.discovered[publisher].append({"hash": digest, "envelope": envelope, "reduces": reduces,
                                                "kind": kind})
             self.floors[publisher] = max(self.floors.get(publisher, 0), inner["seq"])
@@ -286,12 +295,13 @@ class Aggregator:
                 continue
             codes = [refusal(items.judge_item, item, catalog, source, parameters) for source in sources]
             identifier = items.item_id(item)
-            if not sources or all(code is not None for code in codes):
+            form = refusal(items.check_item_form, item)
+            if form is None and self.withdrawn(item):
+                status = {"outcome": "not_admitted", "codes": [NOT_ADMITTED], "payload": "withdrawn"}
+            elif not sources or all(code is not None for code in codes):
                 status = {"outcome": "refused", "codes": sorted(set(codes))}
             elif items.kind(item) == "removed":
                 status = {"outcome": "admitted", "payload": None}
-            elif self.withdrawn(item):
-                status = {"outcome": "not_admitted", "codes": [NOT_ADMITTED], "payload": "withdrawn"}
             elif self.record_item(publisher, url, catalog["collection"], False) == identifier:
                 status = {"outcome": "admitted", "payload": "record"}
             elif identifier in self.payloads:
@@ -347,29 +357,27 @@ class Aggregator:
         judged = [refusal(catalogs.judge_catalog, envelope, source, self.clock, parameters) for source in sources]
         passing = [source for source, code in zip(sources, judged) if code is None]
         key = recovery_queue.signing_key(envelope, passing[0]) if passing else None
+        if not passing:
+            codes |= {code for code in judged if code is not None}
+        if codes:
+            out.update(outcome="refused", codes=sorted(codes))
+            return out
         held_floor = self.log.latest.get((publisher, name))
         floor = catalogs.log_seconds(held_floor["envelope"]["catalog"]["generated_at"]) if held_floor else None
         if mode == "window":
             window = self.windows[publisher]
             waiting_order = None if window.opened else self.discovery_order(publisher, name, catalog, catalog_id, key)
-            order = "idempotent" if catalog_id == latest else waiting_order or (
-                window.order(envelope, key, floor) if passing else "accepted")
+            order = "idempotent" if catalog_id == latest else waiting_order or window.order(envelope, key, floor)
         else:
             order = catalogs.pull_order(catalog, {"publisher": catalog["publisher"], "collection": catalog["collection"]},
                                         self.inner(self.last_accepted(publisher, name)),
                                         held_floor["envelope"]["catalog"] if held_floor else None)
-        retry_sources = sources if mode == "single" else passing
-        if order == "idempotent" and not codes:
+        if order == "idempotent":
             out.update(outcome="idempotent", tree_files_fetched=[],
-                       items=self.retry(publisher, catalog_id, retry_sources, served, parameters)
-                       if retry_sources else [])
+                       items=self.retry(publisher, catalog_id, passing, served, parameters))
             return out
         if order == REGRESSED:
-            codes.add(REGRESSED)
-        if not passing:
-            codes |= {code for code in judged if code is not None}
-        if codes:
-            out.update(outcome="refused", codes=sorted(codes))
+            out.update(outcome="refused", codes=[REGRESSED])
             return out
         out["sources"] = [rules.declaration_hash(s) for s in passing]
         site = Site(self.tree, served.get("tree_files", {}))
@@ -424,7 +432,9 @@ class Aggregator:
         settlement = []
         window = self.windows.get(publisher)
         if window is not None and window.opened and seconds(clock) >= window.end:
-            settlement = self.settle_window(publisher, clock, parameters, self.height + 1)
+            head = self.admission_replay(publisher, clock).current
+            settlement = self.settle_window(publisher, clock, parameters, self.height + 1, order_declaration=head)
+            self.event += 1
         report, sources, mode = self.fetch_declaration(publisher, envelope, clock, parameters)
         settlement += self.settle_orphans(clock, parameters, self.height + 1)
         if sources is not None and publisher not in self.windows:
@@ -441,6 +451,9 @@ class Aggregator:
         if mode != "window":
             self.refresh(publisher, self.height + 1, self.place_order(publisher, sources[0] if sources else None,
                                                                       names))
+        if not (report["discovered"] or any(c["outcome"] == "accepted" for c in out["catalogs"]) or any(
+                i["outcome"] == "admitted" for c in out["catalogs"] for i in c.get("items", []))):
+            out["noise"] = True
         return out
 
     def reducing_pending(self, publisher, sealed):
@@ -454,37 +467,46 @@ class Aggregator:
                     f["hash"] == owner for f in self.discovered.get(publisher, [])):
                 continue
             self.absorb(publisher, window)
-            results += self.settle_window(publisher, clock, parameters, eligibility, self.log.declaration(publisher))
+            results += self.settle_window(publisher, clock, parameters, eligibility, self.log.declaration(publisher),
+                                          keep=True)
         return results
 
-    def settle_window(self, publisher, clock, parameters, eligibility, source=None):
+    def settle_window(self, publisher, clock, parameters, eligibility, source=None, keep=False,
+                      order_declaration=None):
         window = self.windows.pop(publisher)
         if source is None:
             source = self.log.replays[publisher].window["chain_head"]
-        settled, survivors = window.settle(source, clock, parameters)
+        floors = {name: catalogs.log_seconds(held["envelope"]["catalog"]["generated_at"])
+                  for (p, name), held in self.log.latest.items() if p == publisher}
+        settled, survivors = window.settle(source, clock, parameters, floors)
         for name in sorted(set(window.names()) | set(self.names_of(publisher)), key=str.encode):
             state = self.collection(publisher, name)
             if name in survivors:
+                kept = window.waited.get(name) if keep else None
                 state.update(accepted=survivors[name]["catalog"], envelope=survivors[name]["envelope"],
                              key=survivors[name]["key"], failed_c1=False, c4_failed=False, place=window.first[name],
-                             eligibility=eligibility)
+                             eligibility=kept if kept is not None else eligibility)
             else:
                 state.update(accepted=None, envelope=None, key=None, failed_c1=False, c4_failed=False, place=None,
                              eligibility=None)
         self.supersede(publisher)
-        now = self.waiting_urls(publisher)
-        order = self.place_order(publisher, source)
+        leaves_current = order_declaration if order_declaration is not None else source
+        now = self.waiting_urls(publisher, leaves_current)
+        order = self.place_order(publisher, leaves_current)
         for slot in [s for s in self.urls if s[0] == publisher]:
             del self.urls[slot]
         for url, (name, index, item) in now.items():
+            url_eligibility = eligibility
             if url in window.frozen:
                 place = window.frozen[url]["place"]
+                if keep:
+                    url_eligibility = window.frozen[url]["eligibility"]
             elif name in survivors:
                 place = survivors[name]["place"] + [index]
             else:
                 place = [self.event, order[name], index]
             self.urls[(publisher, url)] = {"collection": name, "item": item, "place": place,
-                                           "eligibility": eligibility}
+                                           "eligibility": url_eligibility}
         return [{"publisher": publisher, **r} for r in settled]
 
     def settle(self, height, sealed_at, parameters):
@@ -500,6 +522,7 @@ class Aggregator:
     def absorb(self, publisher, window):
         for (p, name), state in sorted(self.collections.items()):
             if p == publisher and self.catalog_waits(publisher, name):
+                window.waited[name] = state["eligibility"]
                 window.enqueue(name, state["key"], {"catalog": state["accepted"], "envelope": state["envelope"],
                                                     "place": state["place"]})
                 state.update(accepted=None, envelope=None, key=None, place=None, eligibility=None)
@@ -574,13 +597,15 @@ class Aggregator:
                        "item": items.item_id(item)}
                 reasons = ["recovery_window"] if self.window_blocks(probe, publisher) else []
                 catalog_unsealed = self.catalog_waits(publisher, name) and (publisher, name) not in sealed_names
-                if catalog_unsealed and (publisher, name) in deferred_names:
+                if not reasons and catalog_unsealed and (publisher, name) in deferred_names:
                     reasons.append("catalog_waiting")
                 held_latest = self.log.latest.get((publisher, name))
                 latest, latest_envelope = sealed_names.get((publisher, name)) or (
                     (self.latest_id(publisher, name), held_latest["envelope"]) if held_latest else (None, None))
-                if latest is not None and ((publisher, name) in deferred_i4
-                                           or self.latest_fails_i4(probe, publisher, name, latest_envelope)):
+                undeferred_catalog = catalog_unsealed and (publisher, name) not in deferred_names
+                if (reasons != ["recovery_window"] and not undeferred_catalog and latest is not None
+                        and ((publisher, name) in deferred_i4
+                             or self.latest_fails_i4(probe, publisher, name, latest_envelope))):
                     reasons.append("latest_fails_i4")
                 if not reasons and (publisher in held or catalog_unsealed):
                     holding.append({**ref, "place": place, "eligibility": entry["eligibility"],
@@ -609,9 +634,33 @@ class Aggregator:
                                 entry["eligibility"]))
         return planned, deferred, holding, dropped
 
+    def waiting_after_catalogs(self, publisher, url, height, sealed_at, parameters, declarations, planned, probe):
+        after = copy.deepcopy(self.log)
+        catalog_entries = [entry for _, entry, _ in planned if entry["type"] == "publisher_catalog"]
+        after.epoch(self.epoch_input(height, sealed_at, parameters, declarations + catalog_entries))
+        held, self.log = self.log, after
+        try:
+            return self.waiting_urls(publisher, probe.declaration(publisher)).get(url)
+        finally:
+            self.log = held
+
     def epoch_input(self, height, sealed_at, parameters, entries):
         return {"height": height, "sealed_at": sealed_at, "parameters": parameters,
                 "entries": sealing.canonical_order(entries)}
+
+    def descendants_of(self, digest, envelopes):
+        chain = {digest}
+        known = [f["envelope"] for found in self.discovered.values() for f in found] + list(envelopes)
+        changed = True
+        while changed:
+            changed = False
+            for envelope in known:
+                inner = envelope["publisher"]
+                own = rules.declaration_hash(inner)
+                if own not in chain and inner.get("prev_declaration") in chain:
+                    chain.add(own)
+                    changed = True
+        return chain
 
     def candidate_checks(self, envelopes, parameters):
         read = {k: parameters[k] for k in sealing.DECLARATION_PARAMETERS}
@@ -623,22 +672,19 @@ class Aggregator:
                 failed[rules.declaration_hash(envelope["publisher"])] = violation.code
         if not failed:
             return envelopes, [], []
-        gone = set(failed)
+        cause = {}
+        for digest, code in sorted(failed.items()):
+            for descendant in self.descendants_of(digest, envelopes):
+                cause.setdefault(descendant, code)
         for publisher in sorted(self.discovered):
-            gone |= self.drop_discovered(publisher, set(failed))
-        while True:
-            named = {rules.declaration_hash(e["publisher"]) for e in envelopes
-                     if e["publisher"].get("prev_declaration") in gone} - gone
-            if not named:
-                break
-            gone |= named
+            self.drop_discovered(publisher, set(failed))
         reports = [{"declaration": digest, "code": code} for digest, code in sorted(failed.items())]
-        left = [{"declaration": digest, "names": self.known[digest]["prev_declaration"]}
-                for digest in sorted(gone - set(failed))]
-        kept = [e for e in envelopes if rules.declaration_hash(e["publisher"]) not in gone]
+        left = [{"declaration": digest, "names": self.known[digest]["prev_declaration"], "code": cause[digest]}
+                for digest in sorted(set(cause) - set(failed))]
+        kept = [e for e in envelopes if rules.declaration_hash(e["publisher"]) not in cause]
         return kept, reports, left
 
-    def epoch(self, height, sealed_at, parameters, envelopes, updates=()):
+    def epoch(self, height, sealed_at, parameters, envelopes, updates=(), late=()):
         if self.height is not None and height != self.height + 1:
             raise ValueError("Epochs must have consecutive heights")
         parameters = sealing.check_parameters(parameters)
@@ -647,23 +693,36 @@ class Aggregator:
         settlement = self.settle(height, sealed_at, parameters)
         for envelope in envelopes:
             self.known[rules.declaration_hash(envelope["publisher"])] = envelope["publisher"]
+        sealed_updates, refused_updates = [], []
         for update in updates:
             named = update["update"]["details"]["delta_id"]
             if update["update"]["subject"] in self.log.sealed_items.get(named, set()):
+                sealed_updates.append(update)
                 self.payloads.pop(named, None)
+            else:
+                refused_updates.append({"delta_id": named, "subject": update["update"]["subject"],
+                                        "code": sealing.CONTRACT_FAILED})
+        updates = sealed_updates
         envelopes, failed_declarations, left_declarations = self.candidate_checks(envelopes, parameters)
         settlement += self.settle_orphans(sealed_at, parameters, height)
         declarations = [{"type": "publisher_declaration", "body": e} for e in envelopes]
         declarations += [{"type": "registry_update", "body": u} for u in updates]
         sealed = self.sealed | {rules.declaration_hash(e["publisher"]) for e in envelopes}
-        if any(not f["reduces"] and f["hash"] not in sealed for found in self.discovered.values() for f in found):
+        if any(not f["reduces"] and f["hash"] not in sealed and f["hash"] not in late
+               for found in self.discovered.values() for f in found):
             raise ValueError("a discovered Declaration that does not reduce authority is sealed in the next Epoch")
+        if any(f.get("discarded_by") in sealed and f["hash"] not in sealed
+               for found in self.discovered.values() for f in found):
+            raise ValueError("a discarded pending replacement is sealed at or below the Epoch of its reversal")
         probe = copy.deepcopy(self.log)
         if probe.epoch(self.epoch_input(height, sealed_at, parameters, declarations))["status"] != "accepted":
             raise ValueError("the Epoch's Declarations do not replay")
+        for publisher in sorted(self.publishers()):
+            self.refresh(publisher, height + 1, self.place_order(publisher, probe.declaration(publisher)),
+                         probe.declaration(publisher))
         held = {p: self.reducing_pending(p, sealed) for p in self.publishers()}
         held = {p: hashes for p, hashes in held.items() if hashes}
-        deferred_i4, gone, left = set(), set(), []
+        deferred_i4, gone, left, replaced = set(), set(), [], {}
         maximum = parameters["max_inclusion_epochs"]
         while True:
             planned, deferred, holding, dropped = self.plan(height, parameters, held, deferred_i4, probe, gone)
@@ -676,8 +735,7 @@ class Aggregator:
                 raise AssertionError(result)
             failures = []
             for entry, disposition in zip(ordered, result["entries"]):
-                if (disposition is not None and disposition["disposition"] != "valid"
-                        and entry["type"] != "registry_update"):
+                if disposition is not None and disposition["disposition"] != "valid":
                     ref = next(ref for ref, e, _ in planned if e is entry)
                     failures.append((ref, disposition))
             if not failures:
@@ -696,7 +754,9 @@ class Aggregator:
                     if "C1" in failed:
                         was_base = self.base_mode(publisher, name)
                         state["failed_c1"] = True
-                        left.append((turn, {**ref, "condition": "C1", "codes": codes, "reported": True}))
+                        c1_codes = sorted({code for condition, code in trial.judge_catalog(
+                            state["envelope"], sealed_at, parameters) if condition == "C1"})
+                        left.append((turn, {**ref, "condition": "C1", "codes": c1_codes, "reported": True}))
                         if was_base:
                             for (p, url), entry in sorted(self.urls.items()):
                                 if p != publisher or entry["collection"] != name:
@@ -726,6 +786,13 @@ class Aggregator:
                 turn = (1 + KIND_ORDER.index(items.kind(entry["item"])), place_key(entry["place"], publisher))
                 bare = {k: v for k, v in ref.items() if k != "catalog"}
                 if "I7" in failed:
+                    replacing = self.waiting_after_catalogs(publisher, ref["url"], height, sealed_at, parameters,
+                                                            declarations, planned, probe)
+                    if (replacing is not None and items.item_id(replacing[2]) != ref["item"]
+                            and (publisher, ref["url"]) not in replaced):
+                        replaced[(publisher, ref["url"])] = (replacing[0], replacing[2])
+                        entry.update(collection=replacing[0], item=replacing[2])
+                        continue
                     gone.add((publisher, ref["url"]))
                     left.append((turn, {**bare, "condition": "I7", "codes": codes, "reported": False}))
                 elif "I4" in failed:
@@ -733,11 +800,16 @@ class Aggregator:
                 elif failed == ["I5"]:
                     accepted = self.last_accepted(publisher, name)
                     self.admission[accepted][ref["url"]] = {"outcome": "refused", "codes": codes, "at_turn": True}
+                    gone.add((publisher, ref["url"]))
                     left.append((turn, {**bare, "condition": "I5", "codes": codes, "reported": True}))
                 else:
                     raise AssertionError((ref, disposition))
             for publisher in sorted(touched):
-                self.refresh(publisher, height + 1, self.place_order(publisher, probe.declaration(publisher)))
+                self.refresh(publisher, height + 1, self.place_order(publisher, probe.declaration(publisher)),
+                             probe.declaration(publisher))
+            for slot, (name, item) in replaced.items():
+                if slot in self.urls:
+                    self.urls[slot].update(collection=name, item=item)
         for entry in holding:
             if entry["eligibility"] is not None and entry["eligibility"] + maximum <= height:
                 raise ValueError("a Declaration that reduces authority is sealed later than the earliest ceiling "
@@ -745,8 +817,7 @@ class Aggregator:
         epoch = self.epoch_input(height, sealed_at, parameters, entries)
         result = self.log.epoch(epoch)
         if result["status"] != "accepted" or any(
-                d is not None and d["disposition"] != "valid" and e["type"] != "registry_update"
-                for e, d in zip(epoch["entries"], result["entries"])):
+                d is not None and d["disposition"] != "valid" for d in result["entries"]):
             raise AssertionError(result)
         if self.log.state() != trial.state():
             raise AssertionError("the sealed state differs from the planned one")
@@ -778,6 +849,8 @@ class Aggregator:
             out["declarations_failed"] = failed_declarations
         if left_declarations:
             out["declarations_left"] = left_declarations
+        if refused_updates:
+            out["updates_refused"] = refused_updates
         return out
 
     def state(self):

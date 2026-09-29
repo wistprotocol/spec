@@ -208,7 +208,7 @@ class History:
     def at(self, offset):
         return self.last + offset
 
-    def epoch(self, *declarations, sealed_at=None, updates=(), **parameters):
+    def epoch(self, *declarations, sealed_at=None, updates=(), late=(), **parameters):
         self.height += 1
         self.last = sealed_at if sealed_at is not None else self.last + HOUR
         self.map = {**self.parameters, **parameters}
@@ -216,6 +216,8 @@ class History:
                  "declarations": list(declarations)}
         if updates:
             event["updates"] = list(updates)
+        if late:
+            event["sealed_later"] = list(late)
         self.events.append(event)
 
     def pull(self, offset, declaration, collections, publisher="example.com", withhold=(), tamper=(),
@@ -251,7 +253,9 @@ def run(history, check=None):
         if event["event"] == "epoch":
             out = aggregator.epoch(event["height"], event["sealed_at"], event["parameters"],
                                    [history.declarations[n] for n in event["declarations"]],
-                                   [history.updates[n] for n in event.get("updates", [])])
+                                   [history.updates[n] for n in event.get("updates", [])],
+                                   {rules.declaration_hash(history.declarations[n]["publisher"])
+                                    for n in event.get("sealed_later", [])})
             for member in ("declarations_failed", "declarations_left"):
                 for entry in out.get(member, []):
                     entry["declaration"] = names[entry["declaration"]]
@@ -286,9 +290,7 @@ def run(history, check=None):
     results, _ = sealing.replay(epochs)
     for result in results:
         assert result["status"] == "accepted", (history.name, result)
-        assert all(d is None or d["disposition"] == "valid" for e, d in zip(epochs[result["height"]]["entries"],
-                                                                             result["entries"])
-                   if e["type"] != "registry_update"), (history.name, result)
+        assert all(d is None or d["disposition"] == "valid" for d in result["entries"]), (history.name, result)
     view = View(expected, ids)
     if check is not None:
         check(view)
@@ -851,9 +853,10 @@ def waiting_vectors():
                 "P, a fresh identity, is sealed at height 1 and is the pending head. At pull 2 the Aggregator "
                 "discovers P2, a replacement of P that drops the store and so reduces authority, and accepts J2; "
                 "height 2 does not seal P2 and seals nothing of example.com. At pull 3 it discovers V, an ordinary "
-                "rotation naming G signed by the owner key: a reversal, which discards the pending head and P2. P2 "
-                "leaves the eligible sealing set unsealed and the hold ends: height 3 seals V, J2 and a2, whose "
-                "eligibility Epoch 2 the hold did not move.")
+                "rotation naming G signed by the owner key: a reversal, which discards the pending head and P2. A "
+                "discarded replacement is still sealed, at or below the reversal's Epoch, and its hold ends at the "
+                "Epoch that seals it: height 3 seals P2, then V, then J2 and a2, whose eligibility Epoch 2 the hold "
+                "did not move.")
     h.declare("G", "owner", G)
     h.declare("P", "fresh", fresh_head)
     h.declare("P2", "fresh", replacement)
@@ -867,15 +870,18 @@ def waiting_vectors():
     h.pull(5 * MINUTE, "P2", {"journal": "J2"})
     h.epoch()
     h.pull(5 * MINUTE, "V", {"journal": "J2"})
-    h.epoch("V")
+    h.epoch("P2", "V")
 
     def discarded(v):
         assert v.expected[3]["declaration"]["outcome"] == "pending_replacement"
         assert v.expected[3]["declaration"]["reduces_authority"] is True
         assert v.held(4) == {"J2": ["authority_reduction"], J + "a": ["authority_reduction"]}
         assert v.expected[5]["declaration"]["outcome"] == "reversal_ordinary_rotation"
-        assert v.expected[5]["state"]["reductions_pending"] == []
+        assert v.expected[5]["state"]["reductions_pending"] == [{"publisher": "example.com", "declaration": "P2"}]
+        assert [e["body"]["publisher"]["seq"] for e in v.expected[6]["entries"]
+                if e["type"] == "publisher_declaration"] == [2, 3]
         assert v.sealed(6) == ["J2", J + "a"] and v.eligibility(6)["J2"] == (2, 6)
+        assert v.expected[6]["state"]["reductions_pending"] == []
 
     histories.append(run(h, discarded))
 
@@ -1097,9 +1103,10 @@ def waiting_vectors():
                 "Aggregator discovers D, which moves s/x/ from the store to the journal; the store's catalog.json "
                 "cannot be fetched, so S1 is not judged again, and J1, the journal's list of the same Item of u, "
                 "later than S1, is accepted under D. Both last accepted Catalogs list an admitted Item for u, and "
-                "the one of the Catalog later in the order of Several Logs waits: u waits in the journal, whose "
-                "name sorts before the store's. Height 1 seals D, then S1 and J1 in the order of their places, "
-                "and u against J1.")
+                "the Item of the Collection whose Scope covers u under the Declaration in force waits: after pull 2, "
+                "with G in force, the store's, although J1 is the later Catalog; at height 1, once D's transitions "
+                "have applied, the journal's, keeping its place. Height 1 seals D, then S1 and J1 in the order of "
+                "their places, and u against J1.")
     h.declare("G", "owner", G)
     h.declare("D", "owner", moving)
     h.epoch("G")
@@ -1113,11 +1120,216 @@ def waiting_vectors():
     def later_catalog(v):
         assert v.urls(1)[moved_u]["collection"] == "store"
         assert v.outcome(2, "store") == ("unavailable", None)
-        assert v.urls(2)[moved_u]["collection"] == "journal" and v.urls(2)[moved_u]["place"] == [1, 1, 0]
+        assert v.urls(2)[moved_u]["collection"] == "store" and v.urls(2)[moved_u]["place"] == [1, 1, 0]
         assert v.sealed(3) == ["S1", "J1", moved_u] and v.expected[3]["sealed"][2]["collection"] == "journal"
         assert v.left(3) == []
 
     histories.append(run(h, later_catalog))
+
+    wide_first = {**G, "collections": [collection("journal", [prefix(J)] + [exact(f"{J}e{i:02d}") for i in range(35)],
+                                                  [key("journal")]), STORE]}
+    h = History("a first Declaration that fails at its candidate Epoch",
+                "scope_entries_max is 40 at height 0 and the pulls after it and 32 from height 1. At pull 1 the "
+                "Aggregator accepts Gw, the Publisher's first Declaration, whose journal Scope has 36 entries, and at "
+                "pull 2 D, which names Gw and has the journal Scope of one entry. At height 1 Gw fails WIST1-E16 and leaves the eligible sealing set, and D "
+                "leaves with it, reported with the same code. No accepted Declaration remains: the domain returns to "
+                "first contact with no sequence floor, and at pull 3 G, another Declaration of seq 0, is accepted as "
+                "the first and sealed at height 2.", scope_entries_max=40)
+    h.declare("Gw", "owner", wide_first)
+    h.declare("D", "owner", successor(wide_first, collections=G["collections"]))
+    h.declare("G", "owner", G)
+    h.epoch()
+    h.pull(5 * MINUTE, "Gw", {})
+    h.pull(10 * MINUTE, "D", {})
+    h.epoch("Gw", "D", scope_entries_max=32)
+    h.pull(5 * MINUTE, "G", {})
+    h.epoch("G", scope_entries_max=32)
+
+    def first_fails(v):
+        assert v.expected[1]["declaration"]["outcome"] == "initial"
+        assert v.expected[3]["declarations_failed"] == [{"declaration": "Gw", "code": "WIST1-E16"}]
+        assert v.expected[3]["declarations_left"] == [{"declaration": "D", "names": "Gw", "code": "WIST1-E16"}]
+        assert v.expected[4]["declaration"]["outcome"] == "initial" and v.expected[4]["declaration"]["discovered"]
+        assert [e["body"]["publisher"]["seq"] for e in v.expected[5]["entries"]] == [0]
+
+    histories.append(run(h, first_fails))
+
+    fresh_head = successor(G, keys=[key("fresh")])
+    replacement = successor(fresh_head, collections=[JOURNAL])
+    long_reversal = successor(G, seq=3, collections=[
+        collection("journal", [prefix(J)] + [exact(f"{J}e{i:02d}") for i in range(35)], [key("journal")]), STORE])
+    h = History("a reversal that fails at its candidate Epoch",
+                "P, a fresh identity, is sealed at height 1 and is the pending head. P2, a replacement of P that "
+                "reduces authority, is accepted at pull 2, and V, a reversal naming G whose journal Scope has 36 "
+                "entries, at pull 3 under scope_entries_max 40; V discards P and P2. At height 2, under 32, V fails "
+                "WIST1-E16 and leaves the eligible sealing set: the admission state is that of the accepted "
+                "Declarations that remain, applied in the order of their acceptance, so P2, which V had discarded, "
+                "is the pending head again and stays in the eligible sealing set: at pull 4 P2 served again is an "
+                "idempotent re-serve, and height 3 seals it.",
+                scope_entries_max=40)
+    h.declare("G", "owner", G)
+    h.declare("P", "fresh", fresh_head)
+    h.declare("P2", "fresh", replacement)
+    h.declare("V", "owner", long_reversal)
+    h.epoch("G")
+    h.pull(5 * MINUTE, "P", {})
+    h.epoch("P")
+    h.pull(5 * MINUTE, "P2", {})
+    h.pull(10 * MINUTE, "V", {})
+    h.epoch("V", scope_entries_max=32)
+    h.pull(5 * MINUTE, "P2", {})
+    h.epoch("P2", scope_entries_max=32)
+
+    def reversal_fails(v):
+        assert v.expected[4]["declaration"]["outcome"] == "reversal_ordinary_rotation"
+        assert v.expected[5]["declarations_failed"] == [{"declaration": "V", "code": "WIST1-E16"}]
+        assert v.expected[5]["state"]["reductions_pending"] == [{"publisher": "example.com", "declaration": "P2"}]
+        assert v.expected[6]["declaration"]["outcome"] == "idempotent"
+        assert v.expected[6]["declaration"]["sources"] == ["G"]
+        assert [e["body"]["publisher"]["seq"] for e in v.expected[7]["entries"]] == [2]
+
+    histories.append(run(h, reversal_fails))
+
+    rekeyed = successor(G, collections=[collection("journal", [prefix(J)], [key("journal2")]), STORE])
+    h = History("a Catalog served again that meets a Catalog condition retries nothing",
+                "J1 is sealed with a at height 1. J2 lists a and b and waits from pull 2, where b's Payload is "
+                "unavailable. At pull 3 J2's inner object is served with J1's signature: it meets WIST1-E01, is "
+                "refused before its order is read, replaces nothing and retries nothing, though b's Payload is "
+                "served. At pull 4 the Aggregator discovers D, which removes the journal key, and J2 served again "
+                "meets WIST1-E02 under D: refused, retrying nothing.")
+    h.declare("G", "owner", G)
+    h.declare("D", "owner", rekeyed)
+    h.epoch("G")
+    pa, pb = page(J + "a"), page(J + "b")
+    j1 = h.cat("J1", [pa], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+    j2 = h.cat("J2", [pa, pb], h.at(4 * MINUTE), "journal")
+    bad = copy.copy(j2)
+    bad.envelope = {"catalog": j2.inner, "sig": j1.envelope["sig"]}
+    h.add("J2 under J1's signature", bad)
+    h.pull(5 * MINUTE, "G", {"journal": "J2"}, withhold=(J + "b",))
+    h.pull(10 * MINUTE, "G", {"journal": "J2 under J1's signature"})
+    h.pull(15 * MINUTE, "D", {"journal": "J2"})
+
+    def condition_first(v):
+        assert v.items(3, "journal")[J + "b"]["outcome"] == "not_admitted"
+        assert v.outcome(4, "journal") == ("refused", ["WIST1-E01"]) and "items" not in v.catalog(4, "journal")
+        assert v.outcome(5, "journal") == ("refused", ["WIST1-E02"]) and "items" not in v.catalog(5, "journal")
+        assert v.last_accepted(5, "journal") in ("J2", "J2 under J1's signature") and J + "b" not in v.urls(5)
+
+    histories.append(run(h, condition_first))
+
+    h = History("a pull that accepts nothing and admits nothing is noise",
+                "J1 lists a and b; b's Payload is unavailable at pull 1 and height 1 seals J1 and a. Pull 2 serves J1 "
+                "again with b's Payload still unavailable: an idempotent re-serve that admits nothing, and G served "
+                "again, so the pull accepts no Declaration and no Catalog and admits no Item: noise. Pull 3 serves "
+                "J1 again with b's Payload: the re-serve admits b, and the pull is not noise.")
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    h.cat("J1", [page(J + "a"), page(J + "b")], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"}, withhold=(J + "b",))
+    h.epoch()
+    h.pull(5 * MINUTE, "G", {"journal": "J1"}, withhold=(J + "b",))
+    h.pull(10 * MINUTE, "G", {"journal": "J1"})
+
+    def noise(v):
+        assert "noise" not in v.expected[1]
+        assert v.expected[3]["noise"] is True and v.outcome(3, "journal")[0] == "idempotent"
+        assert "noise" not in v.expected[4] and v.items(4, "journal")[J + "b"]["outcome"] == "admitted"
+
+    histories.append(run(h, noise))
+
+    store_exp = successor(rekeyed, collections=[collection("journal", [prefix(J)], [key("journal2")]),
+                                                collection("store", [prefix(S)], [key("store", exp=T0 + 400 * DAY)])])
+    h = History("the latest Catalog fails I4 while a Catalog of the Collection waits that nothing defers",
+                "J1 and a are sealed at height 1. D1, sealed at height 2, replaces the journal key, so the latest "
+                "Catalog J1 fails I4 from then on. At pull 3 the Aggregator discovers D2, which reduces authority, "
+                "and accepts J2, signed by journal2, with b, eligible for height 3. The hold keeps J2 and b out until "
+                "height 7, which seals D2; the fourth deferral does not apply to b while J2 waits and nothing defers "
+                "it, so b is held, not deferred, and keeps eligibility Epoch 3 and ceiling 7.")
+    h.declare("G", "owner", G)
+    h.declare("D1", "owner", rekeyed)
+    h.declare("D2", "owner", store_exp)
+    h.epoch("G")
+    pa, pb = page(J + "a"), page(J + "b")
+    h.cat("J1", [pa], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+    h.pull(5 * MINUTE, "D1", {"journal": "J1"})
+    h.epoch("D1")
+    h.cat("J2", [pa, pb], h.at(4 * MINUTE), "journal2")
+    h.pull(5 * MINUTE, "D2", {"journal": "J2"})
+    for _ in range(4):
+        h.epoch()
+    h.epoch("D2")
+
+    def undeferred(v):
+        for event in (6, 7, 8, 9):
+            assert v.held(event)[J + "b"] == ["authority_reduction"] and J + "b" not in v.deferred(event)
+        assert v.sealed(10) == ["J2", J + "b"] and v.eligibility(10)[J + "b"] == (3, 7)
+
+    histories.append(run(h, undeferred))
+
+    owner_journal = successor(G, collections=[STORE])
+    h = History("a Catalog that fails C1 and C4 at its turn leaves as one that fails C1",
+                "J1, signed by the owner key, is sealed with a at height 1. J1b, J1's list one hour later, waits from "
+                "pull 2. At pull 3 the Aggregator discovers D, which drops the journal. At height 2, which seals D, "
+                "J1b fails C1 (WIST1-E03, a Collection D does not name) and C4 (J1's root inside "
+                "catalog_refresh_seconds, J1 still passing the binding check under the owner key): it leaves as one "
+                "that fails C1, reported with that code alone.")
+    h.declare("G", "owner", G)
+    h.declare("D", "owner", owner_journal)
+    h.epoch("G")
+    pa = page(J + "a")
+    j1 = h.cat("J1", [pa], h.at(4 * MINUTE), "owner")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+    h.cat("J1b", [pa], seconds(j1.inner["generated_at"]) + HOUR, "owner")
+    h.pull(5 * MINUTE, "G", {"journal": "J1b"})
+    h.pull(10 * MINUTE, "D", {})
+    h.epoch("D")
+
+    def c1_alone(v):
+        assert v.left(5) == [("J1b", "C1", ["WIST1-E03"], True)]
+        assert v.last_accepted(5, "journal") == "J1"
+
+    histories.append(run(h, c1_alone))
+
+    xs = S + "x"
+    moves_x = successor(G, collections=[collection("journal", [prefix(J), exact(xs)], [key("journal")]),
+                                        collection("store", [prefix(S + "y/")], [key("store")])])
+    h = History("a base and a record of its URL in another Collection",
+                "J1's a and S1's s/x are sealed at height 1, x's record in the store. More than 180 days later the "
+                "Aggregator discovers D, which moves s/x to the journal, and accepts J2, a base against the journal's "
+                "floor listing a and the removal of s/x. Under the base I7 is read against no record of the journal: "
+                "a waits although it is its record's Item, and the removal of x, whose record is in the store, is read "
+                "as outside a base and waits. Height 2 seals D, whose narrowing removes x's record, and J2, which "
+                "removes a's: a is sealed. Once D and J2 have applied, the Item that waits for x is read again: the "
+                "removal now fails I7, and the store's page Item of x, no longer its record's, meets the Waits row, "
+                "so it takes x's turn with x's place and eligibility Epoch, the removal leaving without a report, "
+                "and fails I5 (WIST1-E03), the store no longer covering x: it is reported and x waits no more.")
+    h.declare("G", "owner", G)
+    h.declare("D", "owner", moves_x)
+    h.epoch("G")
+    pa, px = page(J + "a"), page(xs)
+    j1 = h.cat("J1", [pa], h.at(4 * MINUTE), "journal")
+    h.cat("S1", [px], h.at(4 * MINUTE), "store", "store")
+    h.pull(5 * MINUTE, "G", {"journal": "J1", "store": "S1"})
+    h.epoch()
+    later = seconds(j1.inner["generated_at"]) + items.REMOVAL_RETENTION_DAYS * DAY + 1
+    h.cat("J2", [pa, removed(xs, stamp(later - MINUTE))], later, "journal")
+    h.last = later
+    h.pull(1 * MINUTE, "D", {"journal": "J2"})
+    h.epoch("D", sealed_at=later + 10 * MINUTE)
+
+    def other_collection(v):
+        assert v.catalog(3, "journal")["base"] is True and set(v.urls(3)) == {J + "a", xs}
+        assert v.sealed(4) == ["J2", J + "a"]
+        assert v.left(4) == [(xs, "I5", ["WIST1-E03"], True)] and v.urls(4) == {}
+        assert v.expected[4]["left"][0]["item"] == items.item_id(px)
+
+    histories.append(run(h, other_collection))
 
     return {"note": NOTE_COMMON + (
         " This file exercises ADR-0052 Sealing, Waiting (the last accepted Catalog, what waits, places, leaving, "
@@ -1383,8 +1595,9 @@ def recovery_vectors():
     h = History("an idempotent re-serve inside the window retries its Items under the sources that accept it",
                 "D replaces the journal key by journal2 and R, a recovery rotation naming D, keeps D's Collections, "
                 "so neither frozen source lists the journal key. u's Payload is unavailable at pull 1 and height 1 "
-                "seals J1 and a. Inside the window J1, the latest Catalog, is served again with u's Payload: an "
-                "idempotent re-serve that no source accepts, so no Item is retried and u stays not admitted. J2, "
+                "seals J1 and a. Inside the window J1, the latest Catalog, is served again with u's Payload: no source "
+                "accepts it, so it meets a Catalog condition (WIST1-E02), is refused before its order is read, and "
+                "retries no Item; u stays not admitted. J2, "
                 "J1's list with v added and signed by journal2, is queued under both sources with v's Payload "
                 "unavailable; served again at pull 9 with v's Payload, the re-serve is accepted by both sources and "
                 "v is admitted. Height 4 settles and seals J2 with u and v.")
@@ -1410,7 +1623,7 @@ def recovery_vectors():
 
     def reserve(v):
         assert v.expected[7]["declaration"]["window"] is True
-        assert v.outcome(7, "journal") == ("idempotent", None) and v.catalog(7, "journal")["items"] == []
+        assert v.outcome(7, "journal") == ("refused", ["WIST1-E02"]) and "items" not in v.catalog(7, "journal")
         got = v.items(8, "journal")
         assert got[J + "u"]["outcome"] == "admitted" and got[J + "v"]["outcome"] == "not_admitted"
         assert v.catalog(8, "journal")["sources"] == ["D", "R"]
@@ -1854,6 +2067,242 @@ def recovery_vectors():
 
     histories.append(run(h, before_opening))
 
+    long_competitor = successor(keeping, keys=[key("fresh")], collections=[
+        collection("journal", [prefix(J)] + [exact(f"{J}e{i:02d}") for i in range(35)], [key("journal")]), STORE])
+    h = History("a competitor that fails at its candidate Epoch while a follower is current",
+                "Inside R's window the Aggregator accepts C, a competitor naming R whose journal Scope has 36 entries, "
+                "under scope_entries_max 40, and then F, a follower naming R that drops the store and so reduces "
+                "authority, which becomes current. At height 3, under 32, C fails WIST1-E16 and leaves the eligible "
+                "sealing set: the admission state is that of the Declarations that remain, applied in the order of "
+                "their acceptance, so F stays current. F served again is an idempotent re-serve under the two frozen "
+                "sources, and C served again, at a pull whose map has scope_entries_max 40 so that its counts pass, "
+                "is WIST1-E08.", scope_entries_max=40)
+    start = opened(h, keeping)
+    h.declare("C", "fresh", long_competitor)
+    h.declare("F", "owner2", successor(keeping, seq=3, collections=[JOURNAL]))
+    h.pull(5 * MINUTE, "C", {})
+    h.pull(10 * MINUTE, "F", {})
+    h.epoch("C", scope_entries_max=32)
+    h.pull(5 * MINUTE, "F", {})
+    h.pull(10 * MINUTE, "C", {}, parameters={"scope_entries_max": 40})
+
+    def competitor_fails(v):
+        assert v.expected[3]["declaration"]["outcome"] == "in_window_competitor"
+        assert v.expected[4]["declaration"]["outcome"] == "in_window_chain"
+        assert v.expected[5]["declarations_failed"] == [{"declaration": "C", "code": "WIST1-E16"}]
+        assert v.expected[6]["declaration"]["outcome"] == "idempotent"
+        assert v.expected[6]["declaration"]["sources"] == ["G", "R"]
+        assert v.expected[7]["declaration"]["outcome"] == "WIST1-E08"
+
+    histories.append(run(h, competitor_fails))
+
+    h = History("a queue settled when the rotation fails keeps what waited at the discovery",
+                "scope_entries_max is 40 until height 2 and 32 at height 3. J0 is accepted at pull 1 and waits with "
+                "a, eligible for height 1 with ceiling 5. At pull 2 the Aggregator discovers R, a recovery rotation "
+                "whose journal Scope has 36 entries, and queues S1 with s. R reduces authority, so heights 1 and 2 "
+                "seal nothing of example.com. At height 3 R fails WIST1-E16, and the queue is settled at that "
+                "Epoch: J0 and a, which waited at the discovery, keep eligibility Epoch 1 and ceiling 5, and S1 and "
+                "s, queued from the discovery, are eligible for height 3, the first Epoch not sealed before the "
+                "event. All four are sealed there.", scope_entries_max=40)
+    h.declare("G", "owner", G)
+    h.declare("R", "recovery", long_scope)
+    h.epoch("G")
+    h.cat("J0", [page(J + "a")], h.at(4 * MINUTE), "journal")
+    h.cat("S1", [page(S + "s")], h.at(8 * MINUTE), "store", "store")
+    h.pull(5 * MINUTE, "G", {"journal": "J0"})
+    h.pull(10 * MINUTE, "R", {"store": "S1"})
+    h.epoch()
+    h.epoch()
+    h.epoch("R", scope_entries_max=32)
+
+    def kept_eligibility(v):
+        assert v.held(3) == {"J0": ["authority_reduction"], J + "a": ["authority_reduction"]}
+        assert v.expected[5]["declarations_failed"] == [{"declaration": "R", "code": "WIST1-E16"}]
+        assert v.eligibility(5) == {"J0": (1, 5), "S1": (3, 7), J + "a": (1, 5), S + "s": (3, 7)}
+
+    histories.append(run(h, kept_eligibility))
+
+    adds_journal2 = successor(G, collections=[collection("journal", [prefix(J)], [key("journal"), key("journal2")]),
+                                              STORE])
+    h = History("a queued Catalog not later than the floor at settlement does not survive",
+                "J1 is sealed with a at height 1. J2 waits from pull 2 under the journal key. At pull 3 the Aggregator "
+                "discovers R, a recovery rotation that adds journal2 and reduces no authority, and queues J3, signed "
+                "by journal2, with an instant between J1's and J2's: it is read against the floor, J1's, and against "
+                "no Catalog of its key. R is sealed at height 3, later than its discovery allows a Declaration that "
+                "reduces no authority to wait, since no publication of the pull that read it is sealed before "
+                "settlement; height 2 seals J2, a Catalog that waited at the discovery, in its turn, and the floor "
+                "moves to J2's instant. At settlement, height 4, J3 is not later than the floor and does not survive "
+                "(WIST2-E05); the journal's last accepted Catalog is J2.")
+    h.declare("G", "owner", G)
+    h.declare("R", "recovery", adds_journal2)
+    h.epoch("G")
+    pa, pb, pc = page(J + "a"), page(J + "b"), page(J + "c")
+    j1 = h.cat("J1", [pa], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+    h.cat("J2", [pa, pb], h.at(4 * MINUTE), "journal")
+    h.cat("J3", [pa, pc], seconds(j1.inner["generated_at"]) + 30 * MINUTE, "journal2")
+    h.pull(5 * MINUTE, "G", {"journal": "J2"})
+    h.pull(10 * MINUTE, "R", {"journal": "J3"})
+    h.epoch(late=("R",))
+    h.epoch("R")
+    start = h.last
+    h.epoch(sealed_at=start + 7 * DAY)
+
+    def not_later(v):
+        assert v.catalog(4, "journal")["queued"] is True
+        assert v.sealed(5) == ["J2", J + "b"]
+        assert {v.ids[s["catalog"]]: s["outcome"] for s in v.expected[7]["settlement"]} == {"J3": "WIST2-E05"}
+        assert v.last_accepted(7, "journal") == "J2" and v.sealed(7) == []
+
+    histories.append(run(h, not_later))
+
+    h = History("a URL that did not wait at the opening takes the place of the pull that queued the survivor",
+                "J0 is accepted at pull 1 and waits with a. At pull 2 the Aggregator discovers R and queues J1, "
+                "listing a and c, under the same key with a later instant. At the opening J0 is not queued, and the "
+                "journal's Catalog takes the earliest place, J0's. At the settlement at pull 3, J1 survives with "
+                "that place; a keeps its own, and c, which did not wait when the window opened, takes the place of "
+                "the pull that queued J1.")
+    h.declare("G", "owner", G)
+    h.declare("R", "recovery", keeping)
+    h.epoch("G")
+    pa, pc = page(J + "a"), page(J + "c")
+    h.cat("J0", [pa], h.at(4 * MINUTE), "journal")
+    j1 = h.cat("J1", [pa, pc], h.at(8 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J0"})
+    h.pull(10 * MINUTE, "R", {"journal": "J1"})
+    h.epoch("R")
+    start = h.last
+    h.last = start + 7 * DAY
+    h.pull(5 * MINUTE, "R", {})
+
+    def survivor_place(v):
+        assert v.collection(4, "journal")["waiting"]["place"] == [1, 0]
+        urls = v.urls(4)
+        assert urls[J + "a"]["place"] == [1, 0, 0]
+        assert urls[J + "c"]["place"] == [2, 0, [i["url"] for i in j1.listed].index(J + "c")]
+
+    histories.append(run(h, survivor_place))
+
+    def ordered(first, second, third):
+        for i in range(400):
+            for j in range(400):
+                for k in range(400):
+                    u, w, x = f"{J}{first}{i}", f"{J}{second}{j}", f"{J}{third}{k}"
+                    if items.item_key(x) < items.item_key(u) < items.item_key(w):
+                        return u, w, x
+        raise AssertionError
+
+    ua, uu, uj = ordered("a", "u", "j")
+    h = History("a pull that settles is two events, the settlement first",
+                "J1 lists a and u; u's Payload is unavailable at pull 1, and height 1 seals J1 and a. R opens a "
+                "window at height 2; inside it J1 served again admits u, which takes no place. Pull 5, after the "
+                "window's end, settles first: u begins to wait at the settlement and takes its place there. Then, as "
+                "a second event, the pull accepts J3, listing a, u and j, whose key is the smallest of the three: j "
+                "takes its place at the pull, after u's, although j comes first in the list. With "
+                "domain_epoch_entries_max 2, height 3 seals J3 and u and leaves j for height 4.")
+    h.declare("G", "owner", G)
+    h.declare("R", "recovery", keeping)
+    h.epoch("G")
+    pa, pu, pj = page(ua), page(uu), page(uj)
+    h.cat("J1", [pa, pu], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"}, withhold=(uu,))
+    h.epoch()
+    h.pull(5 * MINUTE, "R", {})
+    h.epoch("R")
+    start = h.last
+    h.pull(5 * MINUTE, "R", {"journal": "J1"})
+    h.cat("J3", [pa, pu, pj], start + 7 * DAY + 4 * MINUTE, "journal")
+    h.last = start + 7 * DAY
+    h.pull(5 * MINUTE, "R", {"journal": "J3"})
+    h.epoch(domain_epoch_entries_max=2)
+    h.epoch(domain_epoch_entries_max=2)
+
+    def two_events(v):
+        assert v.items(5, "journal")[uu]["outcome"] == "admitted" and uu not in v.urls(5)
+        urls = v.urls(6)
+        assert urls[uu]["place"][0] == 6 and urls[uj]["place"][0] == 7
+        assert urls[uj]["place"][2] < urls[uu]["place"][2]
+        assert v.sealed(7) == ["J3", uu] and v.sealed(8) == [uj]
+
+    histories.append(run(h, two_events))
+
+    stores_first_follower = successor(keeping, collections=[
+        collection("store", [prefix(S)], [key("store", exp=T0 + 400 * DAY)]), JOURNAL])
+    h = History("the order of Collections at a settlement made by a pull",
+                "J1 lists a and u and S1 lists b and s; the Payloads of u and s are unavailable at pull 1, and height "
+                "1 seals J1, S1, a and b. R opens a window at height 2. Inside it J1 and S1 served again admit u and "
+                "s, which take no place, and the Aggregator accepts F, a follower naming R that lists store before "
+                "journal and reduces authority, so it is not sealed. At pull 6, after the window's end, the "
+                "settlement reads the order of Collections from the Declaration it leaves current at admission, F: "
+                "s, of the store, takes the earlier place, although R lists journal first.")
+    h.declare("G", "owner", G)
+    h.declare("R", "recovery", keeping)
+    h.declare("F", "owner2", stores_first_follower)
+    h.epoch("G")
+    pa, pu, pb, ps = page(J + "a"), page(J + "u"), page(S + "b"), page(S + "s")
+    h.cat("J1", [pa, pu], h.at(4 * MINUTE), "journal")
+    h.cat("S1", [pb, ps], h.at(4 * MINUTE), "store", "store")
+    h.pull(5 * MINUTE, "G", {"journal": "J1", "store": "S1"}, withhold=(J + "u", S + "s"))
+    h.epoch()
+    h.pull(5 * MINUTE, "R", {})
+    h.epoch("R")
+    start = h.last
+    h.pull(5 * MINUTE, "R", {"journal": "J1", "store": "S1"})
+    h.pull(10 * MINUTE, "F", {})
+    h.last = start + 7 * DAY
+    h.pull(5 * MINUTE, "F", {})
+
+    def follower_order(v):
+        assert v.expected[6]["declaration"]["outcome"] == "in_window_chain"
+        urls = v.urls(7)
+        assert urls[S + "s"]["place"][1] == 0 and urls[J + "u"]["place"][1] == 1
+
+    histories.append(run(h, follower_order))
+
+    h = History("an Item held inside a window is reported with the window alone",
+                "J1 lists a and b; b's Payload is unavailable at pull 1, and height 1 seals J1 and a. Pull 2 serves "
+                "J1 again with b's Payload, and b waits. R, sealed at height 2, replaces the journal key, so J1 "
+                "fails I4 under R; the window holds b. At heights 2, 3 and 4, inside the window, b is reported with "
+                "the window alone.")
+    h.declare("G", "owner", G)
+    h.declare("R", "recovery", removing)
+    h.epoch("G")
+    h.cat("J1", [page(J + "a"), page(J + "b")], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"}, withhold=(J + "b",))
+    h.epoch()
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.pull(10 * MINUTE, "R", {})
+    h.epoch("R")
+    h.epoch()
+    h.epoch()
+
+    def window_alone(v):
+        for event in (5, 6, 7):
+            assert v.deferred(event) == {J + "b": ["recovery_window"]}
+
+    histories.append(run(h, window_alone))
+
+    h = History("an Item admitted at a pull from the discovery takes its place at the next Epoch",
+                "J0 lists a and u and waits from pull 1, where u's Payload is unavailable. At pull 2 the Aggregator "
+                "discovers R, and J0 served again with u's Payload is an idempotent re-serve that admits u; no URL "
+                "takes a place at that pull. Height 1 seals R: u takes its place at that Epoch, before the window "
+                "opens and holds it.")
+    h.declare("G", "owner", G)
+    h.declare("R", "recovery", keeping)
+    h.epoch("G")
+    j0 = h.cat("J0", [page(J + "a"), page(J + "u")], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J0"}, withhold=(J + "u",))
+    h.pull(10 * MINUTE, "R", {"journal": "J0"})
+    h.epoch("R")
+
+    def next_epoch(v):
+        assert v.outcome(2, "journal")[0] == "idempotent" and v.items(2, "journal")[J + "u"]["outcome"] == "admitted"
+        assert J + "u" not in v.urls(2)
+        assert v.urls(3)[J + "u"]["place"] == [3, 0, [i["url"] for i in j0.listed].index(J + "u")]
+
+    histories.append(run(h, next_epoch))
+
     return {"note": NOTE_COMMON + (
         " This file exercises ADR-0052 Recovery: the queue a pull fills inside an open recovery window from the two "
         "frozen sources of WIST-1 section 5.2 (the Declaration in effect before the recovery and the recovery "
@@ -1868,7 +2317,8 @@ def recovery_vectors():
         "sealed before that event); `settlement`, on the event that settles, lists every queued Catalog in the order "
         "of its place, then of its key, with `survivor` for the one that becomes the last accepted Catalog of its "
         "name (the latest in the order of Several Logs, generated_at then the greater Catalog ID, and among "
-        "survivors of that Catalog ID the one of the earliest place), `not_latest` for every other survivor, or WIST1-E13 "
+        "survivors of that Catalog ID the one of the earliest place), `not_latest` for every other survivor, WIST2-E05 for a Catalog whose "
+        "generated_at is not later than the floor of its name at that event, which does not survive, or WIST1-E13 "
         "with `condition_code`, the Catalog condition met. Where no Catalog of a name survives, a name with nothing "
         "queued included, the last accepted Catalog is the latest Catalog. What then waits is eligible for the next "
         "Epoch. A fetched Catalog whose generated_at is at or before that of the queued Catalog of its name and "
@@ -2175,11 +2625,11 @@ def pull_vectors():
 
     histories.append(run(h, not_held))
 
-    h = History("a withdrawal that breaks its contract in the Epoch of the Item's turn",
-                "As in the previous history, x begins to wait at height 2 and height 3 seals D2 with a "
+    h = History("a withdrawal that breaks its contract is not sealed",
+                "As in the previous history, x begins to wait at height 2, and height 3 is to seal D2 with a "
                 "payload_withdrawal naming x, but its subject is blog.example.com, not the Publisher of the Catalog x "
-                "was sealed against: it breaks its contract, destroys nothing, and x, whose Payload the Aggregator "
-                "holds at its turn, is sealed there.")
+                "was sealed against. The act breaks its contract: the Aggregator does not seal it and reports it with "
+                "WIST4-E04, destroys no Payload, and seals x, whose Payload it holds at its turn.")
     h.declare("G", "owner", G)
     h.declare("D1", "owner", only_new)
     h.declare("D2", "owner", wide_again)
@@ -2196,10 +2646,38 @@ def pull_vectors():
         **h.updates["withdrawal of x under another subject"]["update"], "subject": BLOG})
     h.epoch("D2", updates=["withdrawal of x under another subject"])
 
-    def still_held(v):
+    def not_sealed(v):
+        assert v.expected[6]["updates_refused"] == [{"delta_id": items.item_id(px), "subject": BLOG,
+                                                     "code": "WIST4-E04"}]
+        assert all(e["type"] != "registry_update" for e in v.expected[6]["entries"])
         assert v.sealed(6) == [J + "old/x"] and v.left(6) == []
 
-    histories.append(run(h, still_held))
+    histories.append(run(h, not_sealed))
+
+    h = History("a withdrawn Item that also fails an Item condition",
+                "J1's new/a and old/x are sealed at height 1 and a payload_withdrawal of x at height 2. D1, sealed at "
+                "height 3, narrows the journal to new/ and removes x's record. J2, accepted at pull 3 under D1, still "
+                "names x, now outside the Scope as well: the withdrawal is read before the Item conditions other "
+                "than form, so x is not admitted and is reported with WIST2-E03, not refused with WIST1-E03.")
+    h.declare("G", "owner", G)
+    h.declare("D1", "owner", only_new)
+    h.epoch("G")
+    pa, px, pb = page(J + "new/a"), page(J + "old/x"), page(J + "new/b")
+    h.cat("J1", [pa, px], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+    h.withdraw("withdrawal of x", px)
+    h.epoch(updates=["withdrawal of x"])
+    h.pull(5 * MINUTE, "D1", {"journal": "J1"})
+    h.epoch("D1")
+    h.cat("J2", [pa, px, pb], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "D1", {"journal": "J2"})
+
+    def withdrawal_first(v):
+        got = v.items(6, "journal")[J + "old/x"]
+        assert got["outcome"] == "not_admitted" and got["codes"] == ["WIST2-E03"] and got["payload"] == "withdrawn"
+
+    histories.append(run(h, withdrawal_first))
 
     return {"note": NOTE_COMMON + (
         " This file exercises ADR-0051 Reaching the Log (the sources a pull reads, for each row of its table, and "
@@ -2222,13 +2700,18 @@ NOTE_COMMON = (
     "Aggregator plans the Catalog and Item Entries. A listed Declaration is checked again under the Epoch's map "
     "(ADR-0051 Size); one that fails is not sealed and leaves the eligible sealing set with every accepted "
     "Declaration that names it: `declarations_failed` gives it with the code of the check that failed and "
-    "`declarations_left` those that named it (each member present only when nonempty); the Declaration it named is "
-    "the accepted head again and the sequence floor does not change. Every Declaration discovered at a pull that "
-    "does not reduce authority and is still in the eligible sealing set is sealed in the next Epoch, which ADR-0051 "
-    "requires of a prompt Aggregator; one that reduces authority may be sealed later, at or below the last Epoch the "
-    "earliest ceiling among its Publisher's waiting publications allows, and the fixture uses that to show the hold. "
-    "The eligible sealing set loses a competitor accepted inside a window, and its descendants, at the settlement of "
-    "that window at a pull or an Epoch, and a pending head's replacements when a reversal is accepted. A `pull` "
+    "`declarations_left` those that named it, each with that code (each member present only when nonempty); the "
+    "admission state is then that of the accepted Declarations that remain, applied in the order of their "
+    "acceptance, a pending replacement a failed reversal had discarded included, and the sequence floor does not "
+    "change, except that where none remains the domain returns to first contact with no floor. Every Declaration "
+    "discovered at a pull that does not reduce authority and is still in the eligible sealing set is sealed in the "
+    "next Epoch, which ADR-0051 requires of a prompt Aggregator, unless the epoch event lists it in "
+    "`sealed_later`, which a history uses for a recovery rotation none of whose pulls' publications is sealed "
+    "before settlement; one that reduces authority may be sealed later, at or below the last Epoch the earliest "
+    "ceiling among its Publisher's waiting publications allows, and the fixture uses that to show the hold. The "
+    "eligible sealing set loses a competitor accepted inside a window, and its descendants, at the settlement of "
+    "that window at a pull or an Epoch; a pending replacement that a reversal discards stays in it and is sealed "
+    "at or below the reversal's Epoch, its hold ending at the Epoch that seals it. A `pull` "
     "event gives its instant, which is the clock of the pull, the Publisher pulled, the parameter map in force at "
     "the pull (`parameters`), which its Declaration, Catalog, Item and Payload checks and a settlement it performs "
     "read, the Declaration served (null for a failed fetch) and, per Collection name, the Catalog served at "
@@ -2249,17 +2732,24 @@ NOTE_COMMON = (
     "unless discovered), `sources` (the Declarations the pull reads, as ADR-0051's table gives them: the two frozen "
     "sources, the Declaration in effect before the recovery and the recovery Declaration that owns the window or "
     "was discovered, inside an open window or for a recovery rotation discovered and not yet sealed, and otherwise "
-    "the current Declaration) and `window`, whether the pull is inside an open window and queues what it accepts. "
+    "the current Declaration) and `window`, whether the pull is inside an open window. A pull result carries `noise`, "
+    "true, where the pull accepts no Declaration and no Catalog and admits no Item (WIST-2 section 4), and no "
+    "`noise` otherwise. "
     "From the pull that discovers a recovery rotation, a pull queues what it accepts as a pull inside the window "
-    "does, per Collection name and signing key, its order read against the floor and against the queued Catalog "
-    "of the same name and key, and no URL takes a place at it; a queued Catalog is not the last accepted Catalog "
+    "does, per Collection name and signing key, its order read against the floor, against the queued Catalog "
+    "of the same name and key and, before the window opens, against the waiting Catalog where the same key signed "
+    "it, and no URL takes a place at it; a queued Catalog is not the last accepted Catalog "
     "and replaces no waiting one until settlement makes it one, and it is not sealed before settlement, while a "
     "Catalog and Items that waited at the discovery keep waiting and are queued and held, with the places they "
     "had, when the window opens. Where the recovery rotation leaves the eligible sealing set unsealed, the queue, "
     "with what waits, is settled at that event under the Declaration then current in the Log, with the event's "
-    "instant as the clock and its parameter map; what then waits is eligible for the first Epoch not sealed "
-    "before the event, and later pulls are pulls outside a window. `collections_pulled` lists the Collections in reading order. Per Collection "
-    "pulled: `outcome` (`unavailable`, `accepted`, `idempotent` for an idempotent re-serve, a Catalog with the "
+    "instant as the clock and its parameter map; what waited at the discovery keeps its place, eligibility "
+    "Epoch and ceiling, what was queued from the discovery is eligible for the first Epoch not sealed before the "
+    "event, and later pulls are pulls outside a window. `collections_pulled` lists the Collections in reading order. Per Collection "
+    "pulled: a fetched Catalog is read first against the Catalog conditions other than the order; one that meets "
+    "one is refused with its codes, replaces nothing and retries nothing, and only one that meets none is read "
+    "for the order and for an idempotent re-serve. `outcome` (`unavailable`, `accepted`, `idempotent` for an "
+    "idempotent re-serve, a Catalog with the "
     "Catalog ID of the last accepted Catalog or of the latest Catalog, or of the queued Catalog of its name and key "
     "inside a window, or `refused` with `codes`, those of every condition met, among which WIST-1 section 7 leaves "
     "the choice, and for WIST2-E07 a `reason` and, for a list that drops a held record's URL, `dropped`, the URL of "
@@ -2272,20 +2762,23 @@ NOTE_COMMON = (
     "admitted before, judged under the sources that accept the Catalog where the pull reads two sources and under "
     "the Declaration it reads otherwise; `outcome` is `admitted`, `not_admitted` (WIST2-E03) or `refused` (the "
     "Item condition codes under every source that accepts the Catalog), and `payload` says how an Item of kind "
-    "page was admitted or failed: `withdrawn` (a payload_withdrawal sealed in the Log names its Item ID: not "
-    "admitted and its Payload not fetched, whatever else holds), `record`, `held`, `fetched`, `unavailable`, or "
+    "page was admitted or failed: `withdrawn` (a payload_withdrawal sealed in the Log, meeting its contract, "
+    "names its Item ID: not admitted and its Payload not fetched, read before every Item condition other than "
+    "form), `record`, `held`, `fetched`, `unavailable`, or "
     "`failed` with `payload_code`; a held Payload is verified again under the pull's map. For an Epoch: "
     "`settlement`, `entries` in canonical order (WIST-3 section 3.3), `sealed` in capacity order with each Entry's "
     "eligibility Epoch and the last Epoch its ceiling allows, `left` (what left waiting at its turn, with the "
-    "condition failed, its codes and whether it is reported at the status endpoint: `C1`, reported; `C4`, not "
+    "condition failed, its codes and whether it is reported at the status endpoint: `C1`, reported with the codes "
+    "of C1 alone, whatever else the Catalog fails; `C4`, not "
     "reported; `I5`, reported; `I7`, for an Item for which I7 no longer holds once the Epoch's transitions and "
     "Catalogs have applied, not reported whatever other condition it fails; `payload`, for an Item of kind page, "
     "however it was admitted, whose held Payload, checked again at its turn when the capacity has room, under the "
     "Epoch's map, fails: not sealed, "
     "no longer admitted, reported with WIST2-E03 and `payload_code`), `deferred` (every waiting Catalog and URL "
     "whose eligibility Epoch had come, that was not sealed and to which a deferral applied, with the deferrals: "
-    "`recovery_window`, `catalog_waiting` for a URL whose waiting Catalog the window or the capacity holds out, "
-    "`latest_fails_i4`, and `capacity` only where no other applied), `held` when nonempty (every such Catalog and "
+    "`recovery_window`, alone inside a window, `catalog_waiting` for a URL whose waiting Catalog the capacity "
+    "holds out, `latest_fails_i4`, which applies only while no Catalog of the Item's Collection waits that nothing "
+    "defers, and `capacity` only where no other applied), `held` when nonempty (every such Catalog and "
     "URL to which no deferral applied and that the Epoch does not seal: `authority_reduction` while a Declaration "
     "of its Publisher that reduces authority is discovered, in the eligible sealing set and not sealed at or below "
     "the Epoch, and `catalog_waiting` for a URL whose waiting Catalog nothing defers and the Epoch does not seal) "
@@ -2293,11 +2786,14 @@ NOTE_COMMON = (
     "the last accepted Catalog and the waiting Catalog with its place, eligibility Epoch and ceiling; every waiting "
     "URL with its Collection, Item, place, eligibility Epoch and ceiling (null while a window holds it); the queue; "
     "the Declarations that reduce authority, discovered, in the eligible sealing set and not sealed; and the "
-    "records. A place is [event index, position of the Collection] for a Catalog, with the Item's index in the "
+    "records. A place is [event index, position of the Collection] for a Catalog; event indices count a pull "
+    "that settles a queue as two events, the settlement first, so they run one ahead of the positions in "
+    "`expected` after such a pull, with the Item's index in the "
     "list appended for a URL. The position is that of the Collection among the Collections of the Declaration in "
     "force for the Publisher, a name that Declaration lacks coming after them in ascending octet order: at a pull "
     "the Declaration it reads Collections from, and with two sources the one in effect before the recovery; at an "
-    "Epoch the one in force once its transitions have applied; at a settlement the one it leaves current. Places "
+    "Epoch the one in force once its transitions have applied; at a settlement the one it leaves current, at a "
+    "pull's settlement the admission head, unsealed followers included. Places "
     "compare by event index, then by the Publisher's Canonical Host in ascending octet order, then by position and "
     "list index. A URL that begins to wait at an Epoch or at a settlement takes that event's place. What takes a "
     "place is eligible for the Epoch after that event, a replacement that keeps a place keeps its eligibility "
@@ -2305,15 +2801,17 @@ NOTE_COMMON = (
     "Catalog that nothing defers move none. The ceiling is the eligibility Epoch plus max_inclusion_epochs. A URL "
     "waits while its Item is admitted and I7 holds for it, an Item of kind page whose Item ID a sealed withdrawal "
     "names failing I7; where the last accepted Catalogs of two Collections of the Publisher each list an admitted "
-    "Item for one URL, the Item of the Catalog later in the order of Several Logs (generated_at, then Catalog ID) "
-    "waits; from the pull that accepts a base until it, or one that replaces it while it waits, is "
+    "Item for one URL that meets that row, the Item of the Collection whose Scope covers the URL under the "
+    "Declaration in force (at an Epoch once its transitions have applied, at a pull the Log's) waits, and where "
+    "no Scope covers it, that of the Catalog later in the order of Several Logs (generated_at, then Catalog ID); from the pull that accepts a base until it, or one that replaces it while it waits, is "
     "sealed or leaves, I7 is read for its Collection against no record; a queued Catalog begins no such reading "
     "until settlement makes it the last accepted Catalog. When a base fails C1 at its turn, the Items that are "
     "their URL's record's Items leave as Items for which I7 no longer holds, listed in `left` with `I7`, the "
     "codes of their judgment against the latest Catalog once the Epoch has applied, and not reported. The "
     "payload_withdrawal acts an Epoch seals that meet their contract through an Item sealed below that Epoch "
-    "destroy their Payloads before its planning; one that breaks its contract, which the history seals as it "
-    "lists it, destroys nothing. An Item "
+    "destroy their Payloads before its planning; the Aggregator seals no withdrawal that breaks its contract: "
+    "one the Epoch lists is left out, destroys nothing and is reported in `updates_refused` with WIST4-E04 "
+    "(present only when nonempty). An Item "
     "of kind page whose Payload is not held at its turn is treated as one whose Payload fails (`payload`, "
     "WIST2-E03, no `payload_code`). Deferrals are listed in the order window, capacity, waiting Catalog, latest "
     "Catalog failing I4. The planned Entries replay as valid under "

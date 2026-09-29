@@ -165,12 +165,12 @@ class Replay:
             return
         self.apply(envelope, height, sealed_at, transitions)
 
-    def apply(self, envelope, height, sealed_at, transitions):
+    def apply(self, envelope, height, sealed_at, transitions, read_parameters=True):
         incoming = validated(envelope, self.parameters, read_parameters=False)
         if self.current is not None and self.served_again(incoming):
             self.still("idempotent", incoming, transitions)
             return
-        validated(envelope, self.parameters)
+        validated(envelope, self.parameters, read_parameters)
         if self.current is None:
             if incoming["seq"] != 0 or "prev_declaration" in incoming:
                 raise HistoryRejected("WIST1-E08", "the first Declaration of a history is not seq 0")
@@ -314,26 +314,27 @@ def collections_pulled(known_envelope, fetch_outcome, fetched_envelope, paramete
     return acceptance, collection_names(sources)
 
 
-def stopped_pull(replay, acceptance):
-    first_contact = replay.current is None
+def stopped_pull(state, acceptance):
+    first_contact = state.current is None
     return {"acceptance": acceptance, "proceeds": False, "sources": [], "collections_pulled": [],
             "disposition": "WIST2-E04" if first_contact else "WIST2-E01", "noise": first_contact}
 
 
 def pull(replay, fetch_outcome, fetched_envelope, height, sealed_at, discovered=()):
-    if not rules.pull_proceeds(fetch_outcome):
-        return stopped_pull(replay, "not_fetched")
     state = copy.deepcopy(replay)
     for envelope in discovered:
         try:
-            state.apply(envelope, height, sealed_at, [])
+            state.apply(envelope, height, sealed_at, [], read_parameters=False)
         except HistoryRejected:
             continue
+    if not rules.pull_proceeds(fetch_outcome):
+        return stopped_pull(state, "not_fetched")
+    admission = copy.deepcopy(state)
     transitions = []
     try:
         state.fetch(fetched_envelope, height, sealed_at, transitions)
     except HistoryRejected as rejection:
-        return stopped_pull(replay, rejection.code)
+        return stopped_pull(admission, rejection.code)
     sources = state.sources()
     return {"acceptance": transitions[0]["kind"], "proceeds": True, "sources": sources,
             "collections_pulled": collection_names(sources), "disposition": None, "noise": False}

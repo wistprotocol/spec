@@ -167,8 +167,11 @@ def application_cases():
         stream_case("final-lf-absent-accepted",
                     render([header("complete"), line(E_A), trailer(1)], final_lf=False),
                     "accepted"),
-        stream_case("removal-outside-scope-above-url-cap-accepted",
+        stream_case("removal-outside-scope-above-url-cap-refused",
                     framed("incremental", [removal("https://example.net/" + "r" * 2100)]),
+                    "cap", published=PUBLISHED, line_number=2),
+        stream_case("removal-outside-scope-at-url-cap-accepted",
+                    framed("incremental", [removal("https://example.net/" + "r" * (2046 - 20))]),
                     "accepted", published=PUBLISHED),
     ]
 
@@ -264,6 +267,9 @@ def stream_form_cases():
                     render([header("complete"), line(E_A), line(E_D)]), "stream-form"),
         stream_case("invalid-emission-as-last-line-without-trailer",
                     render([header("complete"), line(E_A), line(dict(E_D, lang="EN"))]),
+                    "emission-form", line_number=3),
+        stream_case("header-member-set-as-last-line-is-emission-form",
+                    render([header("complete"), line(E_A), header("complete")]),
                     "emission-form", line_number=3),
         stream_case("only-line-is-header",
                     render([header("complete")]), "stream-form"),
@@ -406,6 +412,30 @@ def _summary_abstract(target):
     return abstract
 
 
+def _item_octets(e):
+    return emissions.item_octets(publication(e), "example.com")
+
+
+def _item_bound_pair(member):
+    bound = emissions.items.ITEM_BOUND_OCTETS + PARAMETERS["url_cap_bytes"]
+    base = emission("/journal/item", "Item", text="x")
+    if member == "modified":
+        fraction = "1" * (bound - _item_octets(dict(base, modified="2026-09-01T10:00:00.Z")))
+        at = dict(base, modified="2026-09-01T10:00:00." + fraction + "Z")
+        above = dict(base, modified="2026-09-01T10:00:00." + fraction + "1Z")
+    else:
+        subtags = "en"
+        while bound - _item_octets(dict(base, lang=subtags)) > 16:
+            subtags += "-abcdefgh"
+        remaining = bound - _item_octets(dict(base, lang=subtags))
+        last = min(7, remaining - 3)
+        subtags += "-" + "j" * (remaining - 2 - last)
+        at = dict(base, lang=subtags + "-" + "k" * last)
+        above = dict(base, lang=subtags + "-" + "k" * (last + 1))
+    assert _item_octets(at) == bound and _item_octets(above) == bound + 1, member
+    return at, above
+
+
 def cap_cases():
     base = "https://example.com/journal/"
     url_at = base + "u" * (PARAMETERS["url_cap_bytes"] - 2 - len(base))
@@ -428,6 +458,8 @@ def cap_cases():
     assert emissions._jcs_length(raw_at) > PARAMETERS["url_cap_bytes"]
     pairs.append(("normalized-url", emission(raw_at, "Dotted", text="x"),
                   emission(raw_at + "u", "Dotted", text="x")))
+    pairs += [("item-through-modified-fraction",) + _item_bound_pair("modified"),
+              ("item-through-lang-subtags",) + _item_bound_pair("lang")]
     cases = []
     for label, at_bound, above in pairs:
         cases.append(stream_case(f"cap-{label}-at-bound", framed("complete", [at_bound]),

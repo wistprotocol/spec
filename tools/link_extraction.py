@@ -306,14 +306,20 @@ def _external(url: str, publisher_domain: str) -> bool:
     return host != publisher_domain and not host.endswith("." + publisher_domain)
 
 
-def extract_links(html: bytes, base_url: str, publisher_domain: str):
+LINK_URL_CAP_BYTES = 2048
+
+
+def extract_links(html: bytes, base_url: str, publisher_domain: str,
+                  link_url_cap_bytes: int = LINK_URL_CAP_BYTES):
     """WIST-2 §11's procedure: hrefs of <a> in octet order -> resolve ->
     normalize (drop failures) -> external only -> dedup first-wins.
     Returns (urls, total)."""
     seen, urls = set(), []
     for candidate in _iter_hrefs(html):
         url = normalize_url(trim_candidate(candidate), base_url)
-        if url is None or not _external(url, publisher_domain) or url in seen:
+        if url is None or len(rfc8785.dumps(url)) > link_url_cap_bytes:
+            continue
+        if not _external(url, publisher_domain) or url in seen:
             continue
         seen.add(url)
         urls.append(url)

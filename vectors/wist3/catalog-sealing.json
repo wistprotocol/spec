@@ -1,5 +1,5 @@
 {
-  "note": "ADR-0052 Sealing: State and Judgment, the base (An Aggregator that was away), the recovery window as C2 and I2 read it, withdrawn Payloads as I7 reads them and the serving duty of a record's Payload (What a record carries), replayed from sealed Entries. Each history replays `epochs` in order. An Epoch is simplified to its height, sealed_at, the parameter map in force at it (`parameters`, complete) and its Entries, each {type, body} with a `name` beside it; there are no Checkpoints and no Merkle tree of the Log. Entries are listed in canonical order (WIST-3 section 3.3: grouped publisher_declaration, registry_update, publisher_catalog, publisher_item, then by ascending SHA-256(0x00 || JCS(entry))), and the Entry index is the position in that list. Declarations apply as vectors/wist1/collection-narrowing.json applies them (WIST-1 section 5.2 and ADR-0051's narrowing), then registry_update Entries, then publisher_catalog and then publisher_item Entries in ascending Entry index. The only registry_update carried is a payload_withdrawal (WIST-3 section 6.2, WIST-4 section 5.1) whose details.delta_id is an Item ID, signed by the test-only Log key, which the replay does not authenticate. Its details contract (WIST-4 section 5.1) is judged once the Epoch's Items have applied: delta_id names an Item of kind page, since no other has a Payload, that a valid publisher_item Entry sealed at or below the act's Epoch against a Catalog whose publisher is the act's subject; an act that breaks it is ignored (`failed` [contract], WIST4-E04) and blocks nothing. I7 reads the delta_id of each act that meets it, and the earliest such act of an Item ID gives the height every rule reads; `entries` gives each registry_update its disposition beside those of the Catalogs and Items. Each Catalog is judged by C1 to C4 and each Item by I1 to I7 with the Epoch's sealed_at as the clock, the Epoch's parameter map, and the Declaration in force once the Epoch's transitions have applied. The Publisher of a Catalog Entry is catalog.publisher and that of an Item Entry the named Catalog's publisher, whatever item.publisher spells: I2, I4, I5 and I7 read that Publisher's window, Declaration and records. A Catalog of a Publisher with no Declaration in force fails C1 with WIST1-E02. C2 to C4 are read only for a Catalog of the form C1 requires, and I2 and I4 to I7 only where I1 and I3 hold; `failed` lists every condition read that fails. Two publisher_catalog Entries with the same strings as publisher and collection reject the Epoch; an Entry in which either is not a string is compared with none. I7 fails for an Item of kind page that is its URL's record's Item or whose Item ID a withdrawal sealed in an Epoch below the Item's names, and for an Item of kind removed without a record; the record is that of the Publisher and URL whatever Collection it carries, and no history reaches a record of another Collection, since disjoint Scopes and narrowing leave none that an Item passing I5 could meet. A valid Catalog whose name has a floor and whose generated_at is more than removal_retention_days, the constant 180, times 86 400 seconds after it is a base and removes every record of its Publisher in its Collection before the Epoch's Items apply; no parameter map carries removal_retention_days, and catalog_refresh_seconds is from 1 to 15 552 000 in every map. `expected` gives per Epoch `status` (`accepted`, or `rejected` with `code` WIST3-E03, the state then unchanged); for an accepted Epoch, per publisher_catalog and publisher_item Entry its `disposition` (`valid`, or `ignored` with the conditions `failed` and the `codes` among which WIST-1 section 7 leaves the choice), `records_removed` in the order removed with the cause (`narrowing`, `base`, `removed_item`), and `state` after the Epoch: per Publisher the current Declaration, pending head and open window end; per Publisher and Collection name the latest Catalog's ID, the floor, its sealing height and whether it applied as a base; per Publisher and URL the record (Item ID, Collection, Catalog ID and generated_at of the Catalog proved against) and the removal states a valid removed Item left (that Item's ID, Catalog ID and generated_at), which a record removed by narrowing or a base does not leave; lists in ascending octet order of publisher, then collection or url. Histories that carry `payload_duties` give after each Epoch every Payload the Aggregator must serve (WIST-3 section 6.1): per Item of kind page, with its publisher and url, `until` null while the Item is its URL's record, and otherwise the latest instant one availability window (payload_window_days of 86 400 seconds, read from the map of the Epoch at which the Item stopped being the record, whether an Item, narrowing or a base removed it) after the sealed_at of any Epoch at which it stopped being the record, since the duty holds while the window of any of those Epochs does; a duty is listed while the Epoch's sealed_at is earlier than `until`, it is null again while the Item is the record again, and a withdrawal ends it for good; ordered by publisher, url, then Item ID. Every ignored Entry or rejected Epoch fails one rule beside a twin that passes it, except where a rule cannot fail alone: a Catalog sealed again fails C3 and C4, and an Item of a Collection the Declaration no longer names fails I4 and I5. The per-domain capacity counts publisher_catalog and publisher_item Entries, valid or ignored, per Canonical Host, since no Public Suffix List snapshot is in force, and a body whose publisher is not a Canonical Host counts toward none; no fixture carries label or dispute Entries or a registry_update other than a payload_withdrawal, and recovery_window_days and declaration_activation_epochs are constant within a history. Payloads, tree files and the rules of Waiting, the queue and settlement are not exercised. Keys derive from the stated test-only seeds. `payloads` maps the Item ID of every Item of kind page the file carries to the Payload its `payload` commits to ({wist_version, salt, content}, WIST-1 section 3.6); they are carried so the commitments can be recomputed, and the replay reads none of them.",
+  "note": "ADR-0052 Sealing: State and Judgment, the base (An Aggregator that was away), the recovery window as C2 and I2 read it, withdrawn Payloads as I7 reads them and the serving duty of a record's Payload (What a record carries), replayed from sealed Entries. Each history replays `epochs` in order. An Epoch is simplified to its height, sealed_at, the parameter map in force at it (`parameters`, complete) and its Entries, each {type, body} with a `name` beside it; there are no Checkpoints and no Merkle tree of the Log. Entries are listed in canonical order (WIST-3 section 3.3: grouped publisher_declaration, registry_update, publisher_catalog, publisher_item, then by ascending SHA-256(0x00 || JCS(entry))), and the Entry index is the position in that list. Declarations apply as vectors/wist1/collection-narrowing.json applies them (WIST-1 section 5.2 and ADR-0051's narrowing), then registry_update Entries, then publisher_catalog and then publisher_item Entries in ascending Entry index. The only registry_update carried is a payload_withdrawal (WIST-3 section 6.2, WIST-4 section 5.1) whose details.delta_id is an Item ID, signed by the test-only Log key, which the replay does not authenticate. Its details contract (WIST-4 section 5.1) is judged once the Epoch's Items have applied: delta_id names an Item of kind page, since no other has a Payload, that a valid publisher_item Entry sealed at or below the act's Epoch against a Catalog whose publisher is the act's subject; an act that breaks it is ignored (`failed` [contract], WIST4-E04) and blocks nothing. I7 reads the delta_id of each act that meets it, and the earliest such act of an Item ID gives the height every rule reads; `entries` gives each registry_update its disposition beside those of the Catalogs and Items. Each Catalog is judged by C1 to C4 and each Item by I1 to I7 with the Epoch's sealed_at as the clock, the Epoch's parameter map, and the Declaration in force once the Epoch's transitions have applied. The Publisher of a Catalog Entry is catalog.publisher and that of an Item Entry the named Catalog's publisher, whatever item.publisher spells: I2, I4, I5 and I7 read that Publisher's window, Declaration and records. A Catalog of a Publisher with no Declaration in force fails C1 with WIST1-E02. C2 to C4 are read only for a Catalog of the form C1 requires, and I2 and I4 to I7 only where I1 and I3 hold; `failed` lists every condition read that fails. Two publisher_catalog Entries with the same strings as publisher and collection reject the Epoch; an Entry in which either is not a string is compared with none. I7 fails for an Item of kind page that is its URL's record's Item or whose Item ID a withdrawal sealed in an Epoch below the Item's names, and for an Item of kind removed without a record; the record is that of the Publisher and URL whatever Collection it carries, and no history reaches a record of another Collection, since disjoint Scopes and narrowing leave none that an Item passing I5 could meet. A valid Catalog whose name has a floor and whose generated_at is more than removal_retention_days, the constant 180, times 86 400 seconds after it is a base and removes every record of its Publisher in its Collection before the Epoch's Items apply; no parameter map carries removal_retention_days, catalog_refresh_seconds is from 1 to 7 776 000 and url_cap_bytes at most 32 768 in every map; `parameter_cases` gives maps and whether a replay accepts or refuses them. `expected` gives per Epoch `status` (`accepted`, or `rejected` with `code` WIST3-E03, the state then unchanged); for an accepted Epoch, per publisher_catalog and publisher_item Entry its `disposition` (`valid`, or `ignored` with the conditions `failed` and the `codes` among which WIST-1 section 7 leaves the choice), `records_removed` in the order removed with the cause (`narrowing`, `base`, `removed_item`), and `state` after the Epoch: per Publisher the current Declaration, pending head and open window end; per Publisher and Collection name the latest Catalog's ID, the floor, its sealing height and whether it applied as a base; per Publisher and URL the record (Item ID, Collection, Catalog ID and generated_at of the Catalog proved against) and the removal states a valid removed Item left (that Item's ID, Catalog ID and generated_at), which a record removed by narrowing or a base does not leave; lists in ascending octet order of publisher, then collection or url. Histories that carry `payload_duties` give after each Epoch every Payload the Aggregator must serve (WIST-3 section 6.1): per Item of kind page, with its publisher and url, `until` null while the Item is its URL's record, and otherwise the latest instant one availability window (payload_window_days of 86 400 seconds, read from the map of the Epoch at which the Item stopped being the record, whether an Item, narrowing or a base removed it) after the sealed_at of any Epoch at which it stopped being the record, since the duty holds while the window of any of those Epochs does; a duty is listed while the Epoch's sealed_at is earlier than `until`, it is null again while the Item is the record again, and a withdrawal ends it for good; ordered by publisher, url, then Item ID. Every ignored Entry or rejected Epoch fails one rule beside a twin that passes it, except where a rule cannot fail alone: a Catalog sealed again fails C3 and C4, and an Item of a Collection the Declaration no longer names fails I4 and I5. The per-domain capacity counts publisher_catalog and publisher_item Entries, valid or ignored, per Canonical Host, since no Public Suffix List snapshot is in force, and a body whose publisher is not a Canonical Host counts toward none; no fixture carries label or dispute Entries or a registry_update other than a payload_withdrawal, and recovery_window_days and declaration_activation_epochs are constant within a history. Payloads, tree files and the rules of Waiting, the queue and settlement are not exercised. Keys derive from the stated test-only seeds. `payloads` maps the Item ID of every Item of kind page the file carries to the Payload its `payload` commits to ({wist_version, salt, content}, WIST-1 section 3.6); they are carried so the commitments can be recomputed, and the replay reads none of them.",
   "keys": {
     "owner": {
       "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
@@ -12748,8 +12748,8 @@
       ]
     },
     {
-      "name": "C4 and the base at the largest catalog_refresh_seconds",
-      "why": "catalog_refresh_seconds is 15 552 000, the length of removal_retention_days in seconds, in every Epoch. J1's list one second short of the floor plus that interval fails C4. At exactly the floor plus 15 552 000 seconds it passes C4 and is not a base: the records stay, and a against it is the record's Item and fails I7.",
+      "name": "C4 at the largest catalog_refresh_seconds",
+      "why": "catalog_refresh_seconds is 7 776 000, the largest value a map may carry, in every Epoch. J1's list one second short of the floor plus that interval fails C4. At exactly the floor plus 7 776 000 seconds it passes C4 and is not a base: the records stay, and a against it is the record's Item and fails I7.",
       "epochs": [
         {
           "height": 0,
@@ -12757,7 +12757,7 @@
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
-            "catalog_refresh_seconds": 15552000,
+            "catalog_refresh_seconds": 7776000,
             "payload_window_days": 180,
             "domain_epoch_entries_max": 10000,
             "url_cap_bytes": 2048,
@@ -12856,7 +12856,7 @@
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
-            "catalog_refresh_seconds": 15552000,
+            "catalog_refresh_seconds": 7776000,
             "payload_window_days": 180,
             "domain_epoch_entries_max": 10000,
             "url_cap_bytes": 2048,
@@ -12956,11 +12956,11 @@
         },
         {
           "height": 2,
-          "sealed_at": "2027-03-30T00:59:59Z",
+          "sealed_at": "2026-12-30T00:59:59Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
-            "catalog_refresh_seconds": 15552000,
+            "catalog_refresh_seconds": 7776000,
             "payload_window_days": 180,
             "domain_epoch_entries_max": 10000,
             "url_cap_bytes": 2048,
@@ -12983,7 +12983,7 @@
                     "wist_version": "1.0.0",
                     "publisher": "example.com",
                     "collection": "journal",
-                    "generated_at": "2027-03-30T00:58:59Z",
+                    "generated_at": "2026-12-30T00:58:59Z",
                     "size": 2,
                     "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
                     "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
@@ -12991,7 +12991,7 @@
                   "sig": {
                     "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
                     "alg": "Ed25519",
-                    "value": "UnM9aetitb4U8ne2S0_aWSWcXskP3vlb2yGVvs9K6g0Xvf6trtkJqSIjgBf3kxjgkS90vzFGh6ZhscoPoqHpDw"
+                    "value": "SW-d3oNi2IbFiu17O9h6m5ovfkfygrKRHLS4XOWC6qUloKaXWkMb3OW4l0OYN8brVqPnaG32CDpVcKb0ReZDAg"
                   }
                 }
               }
@@ -13000,11 +13000,11 @@
         },
         {
           "height": 3,
-          "sealed_at": "2027-03-30T01:00:00Z",
+          "sealed_at": "2026-12-30T01:00:00Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
-            "catalog_refresh_seconds": 15552000,
+            "catalog_refresh_seconds": 7776000,
             "payload_window_days": 180,
             "domain_epoch_entries_max": 10000,
             "url_cap_bytes": 2048,
@@ -13027,7 +13027,7 @@
                     "wist_version": "1.0.0",
                     "publisher": "example.com",
                     "collection": "journal",
-                    "generated_at": "2027-03-30T00:59:00Z",
+                    "generated_at": "2026-12-30T00:59:00Z",
                     "size": 2,
                     "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
                     "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
@@ -13035,7 +13035,7 @@
                   "sig": {
                     "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
                     "alg": "Ed25519",
-                    "value": "6h2SOjzNQ07sQDFtiM-izSBdFQE8g-epoxUr4G3mrVnSSSAKqIpTiIeWhQ9nDXdgx6VIk_WKgt3Px2luvaGzDg"
+                    "value": "2DmBhj0J1gJDEXsNZZphpKAbAognfvP_KPTGpO4Biz9TS_ILvZ7hARu13oiV6Y_OCe0qg4sU7l38RyDBAvaCAA"
                   }
                 }
               }
@@ -13059,7 +13059,7 @@
                     }
                   },
                   "collection": "journal",
-                  "catalog": "sha256:c703a922817467477ec186e662e020ea64e9a14818a6acfcb71e0c3718238d4f",
+                  "catalog": "sha256:e8cc5c387a84573f2f1e93fafab7bac3ee33e8a5a32f35384a0743f720250291",
                   "proof": {
                     "index": 0,
                     "tree_size": 2,
@@ -13240,8 +13240,8 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "catalog": "sha256:c703a922817467477ec186e662e020ea64e9a14818a6acfcb71e0c3718238d4f",
-                "floor": "2027-03-30T00:59:00Z",
+                "catalog": "sha256:e8cc5c387a84573f2f1e93fafab7bac3ee33e8a5a32f35384a0743f720250291",
+                "floor": "2026-12-30T00:59:00Z",
                 "sealing_height": 3,
                 "base": false
               }
@@ -13270,8 +13270,8 @@
       ]
     },
     {
-      "name": "C4 and the base one second after the largest catalog_refresh_seconds",
-      "why": "The same list one second later than in the previous history passes C4 and is a base: the records of a and b are removed before the Items apply, and a against it is valid again.",
+      "name": "a weekly signer under the largest catalog_refresh_seconds",
+      "why": "catalog_refresh_seconds is 7 776 000 in every Epoch, and the Publisher signs J1's unchanged list every 604 800 seconds. Weeks 1 to 12 are within the interval and fail C4; week 13, 7 862 400 seconds after the floor, passes C4 and, far from 180 days, is no base: the record of a stays.",
       "epochs": [
         {
           "height": 0,
@@ -13279,7 +13279,7 @@
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
-            "catalog_refresh_seconds": 15552000,
+            "catalog_refresh_seconds": 7776000,
             "payload_window_days": 180,
             "domain_epoch_entries_max": 10000,
             "url_cap_bytes": 2048,
@@ -13378,7 +13378,7 @@
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
-            "catalog_refresh_seconds": 15552000,
+            "catalog_refresh_seconds": 7776000,
             "payload_window_days": 180,
             "domain_epoch_entries_max": 10000,
             "url_cap_bytes": 2048,
@@ -13443,46 +13443,16 @@
                   }
                 }
               }
-            },
-            {
-              "name": "b@J1",
-              "entry": {
-                "type": "publisher_item",
-                "body": {
-                  "item": {
-                    "publisher": "example.com",
-                    "url": "https://example.com/journal/b",
-                    "observed_at": "2026-09-30T10:00:00Z",
-                    "payload": {
-                      "commitment": "hmac-sha256:f18ad1f410a8603f7a2039200b1c3acdf361155810ffc0fd5daaea28f0e7a050",
-                      "alg": "HMAC-SHA256",
-                      "bytes": 140
-                    },
-                    "meta": {
-                      "lang": "en"
-                    }
-                  },
-                  "collection": "journal",
-                  "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
-                  "proof": {
-                    "index": 1,
-                    "tree_size": 2,
-                    "path": [
-                      "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
-                    ]
-                  }
-                }
-              }
             }
           ]
         },
         {
           "height": 2,
-          "sealed_at": "2027-03-30T00:59:59Z",
+          "sealed_at": "2026-10-08T01:00:00Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
-            "catalog_refresh_seconds": 15552000,
+            "catalog_refresh_seconds": 7776000,
             "payload_window_days": 180,
             "domain_epoch_entries_max": 10000,
             "url_cap_bytes": 2048,
@@ -13497,7 +13467,7 @@
           },
           "entries": [
             {
-              "name": "J1 unchanged, one second short",
+              "name": "J1 unchanged, week 1",
               "entry": {
                 "type": "publisher_catalog",
                 "body": {
@@ -13505,7 +13475,7 @@
                     "wist_version": "1.0.0",
                     "publisher": "example.com",
                     "collection": "journal",
-                    "generated_at": "2027-03-30T00:58:59Z",
+                    "generated_at": "2026-10-08T00:59:00Z",
                     "size": 2,
                     "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
                     "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
@@ -13513,7 +13483,7 @@
                   "sig": {
                     "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
                     "alg": "Ed25519",
-                    "value": "UnM9aetitb4U8ne2S0_aWSWcXskP3vlb2yGVvs9K6g0Xvf6trtkJqSIjgBf3kxjgkS90vzFGh6ZhscoPoqHpDw"
+                    "value": "pH-k2dK0x2xtbr0_tcdFA7FTddJkoysjmsitE1mj8VLSvpqCh51cXuJyt8GpQLazhvf6h4FlKZyWGQKn40NQBA"
                   }
                 }
               }
@@ -13522,11 +13492,11 @@
         },
         {
           "height": 3,
-          "sealed_at": "2027-03-30T01:00:01Z",
+          "sealed_at": "2026-10-15T01:00:00Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
-            "catalog_refresh_seconds": 15552000,
+            "catalog_refresh_seconds": 7776000,
             "payload_window_days": 180,
             "domain_epoch_entries_max": 10000,
             "url_cap_bytes": 2048,
@@ -13541,7 +13511,7 @@
           },
           "entries": [
             {
-              "name": "J1 unchanged",
+              "name": "J1 unchanged, week 2",
               "entry": {
                 "type": "publisher_catalog",
                 "body": {
@@ -13549,7 +13519,7 @@
                     "wist_version": "1.0.0",
                     "publisher": "example.com",
                     "collection": "journal",
-                    "generated_at": "2027-03-30T00:59:01Z",
+                    "generated_at": "2026-10-15T00:59:00Z",
                     "size": 2,
                     "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
                     "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
@@ -13557,37 +13527,491 @@
                   "sig": {
                     "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
                     "alg": "Ed25519",
-                    "value": "lQ4beMAm3_Z8szoRoWCG2i9Wv5VaCd4qBBmYojzTN8jEzApRcWCUp9vlgmYi277fjlWGGhDYM5WjA9nrf_4ABQ"
+                    "value": "1GiU8uXXJ2hYWqfuERCGitT-2wQGYG8G7Cw2MFSlBbef4ES3ekWAusFu_hPge25pz6ggG3mn_Lw3CbkcdmU4Cg"
                   }
                 }
               }
-            },
+            }
+          ]
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-22T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 7776000,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
             {
-              "name": "a@J1 unchanged",
+              "name": "J1 unchanged, week 3",
               "entry": {
-                "type": "publisher_item",
+                "type": "publisher_catalog",
                 "body": {
-                  "item": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
                     "publisher": "example.com",
-                    "url": "https://example.com/journal/a",
-                    "observed_at": "2026-09-30T10:00:00Z",
-                    "payload": {
-                      "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
-                      "alg": "HMAC-SHA256",
-                      "bytes": 140
-                    },
-                    "meta": {
-                      "lang": "en"
-                    }
+                    "collection": "journal",
+                    "generated_at": "2026-10-22T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
                   },
-                  "collection": "journal",
-                  "catalog": "sha256:5b0ac265ff095c4a8cffe83bb296c8f3607b5fa0e06eae8126cddc3ce8aa22d1",
-                  "proof": {
-                    "index": 0,
-                    "tree_size": 2,
-                    "path": [
-                      "5afb7fd719d184ff055afbe3434dff4de89118f6860d452ca1d97c94da179b63"
-                    ]
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "8UPPhuL4_w0rHP0cUzT7OxX53MPpqmdCEWKg7i7BTy7NLZHx8DmDfGX-sWycmFcGMWUrgESIzRJKaaWdB1YmDg"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 5,
+          "sealed_at": "2026-10-29T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 7776000,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1 unchanged, week 4",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-29T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "aegE2A0NcbaW9JG_p3zzKxoGMgm5FEzUFUAzhs9Fxv0wQWFtCUnyEwwCa1wnsqeZLpmq5CtYHregHmxY0YYADQ"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 6,
+          "sealed_at": "2026-11-05T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 7776000,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1 unchanged, week 5",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-11-05T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "lIVaFaESe1Mkc9-KPrCspBszmCxbQeFfquf5OxmOABU7fgNQMGsqsTJpEA5nhU7T7-WujbvHbU6C1d55zdCcCQ"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 7,
+          "sealed_at": "2026-11-12T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 7776000,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1 unchanged, week 6",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-11-12T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "lBDmOziVbk_YfYIgsc-m96OlrtHHuofFcQVTjSHeKEEUuQMi9BQkQM_FAJ7oGXyQI05vCPguEvvyt6ynrZc_DA"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 8,
+          "sealed_at": "2026-11-19T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 7776000,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1 unchanged, week 7",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-11-19T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "YPUF_36iGTQaNgpcgIBhedqUbXa3VwoSIyGhuzeLk1uEKw9lSsBAVUOF1NEMOVixRQAck1gCnpIAgBikJ0aECA"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 9,
+          "sealed_at": "2026-11-26T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 7776000,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1 unchanged, week 8",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-11-26T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "tYaI2M0WHme_LaPpwX5EZuuZc7YlgnTREwUkT_Bu2hkPotCdIExeJ1ZSgJvsQlsL4WhuTmOU142dzKKafroyBA"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 10,
+          "sealed_at": "2026-12-03T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 7776000,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1 unchanged, week 9",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-12-03T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "9cggFsdn2JaIkArXOx0YpfdrfL9wtd1bzqzY5aAQNoOAg_9DHk1sELBlL9EFjJtzH53kzr7tUu2fF9Hjm_7tAQ"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 11,
+          "sealed_at": "2026-12-10T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 7776000,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1 unchanged, week 10",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-12-10T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "FrFd8p0F9cR-JhLQg7u7erj4IaJV1ceHD-t25gClg4cBfC15OR3Us17bzu1gEGIcuPaIUcoX0gZj_lIUZJwnBg"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 12,
+          "sealed_at": "2026-12-17T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 7776000,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1 unchanged, week 11",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-12-17T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "99bSA3O3f6AKZhyjzpP1KHq5FprLTwiu5P2MpwJePntVRyUGQJ7GV3T4Mil6Es9stA8io0iJzTUZ7M3qTY5QDQ"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 13,
+          "sealed_at": "2026-12-24T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 7776000,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1 unchanged, week 12",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-12-24T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "NM4StCzABRiwXg64U8h6yjUpQMsPS7yb8Ej14yh4o0faPiCcHIYoDoS73ZIA4yQlt1ttVNTsxJgZ9JW5QC5nAA"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 14,
+          "sealed_at": "2026-12-31T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 7776000,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1 unchanged, week 13",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-12-31T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "MEBskkFBziJcn9r3xIXyGdPsOA0JBBRACP57rKaSA5sqkXy74v3Fu5kSKT-jOEOY9t4dVWmNEMyPKENiWHyEBQ"
                   }
                 }
               }
@@ -13626,10 +14050,6 @@
             {
               "name": "a@J1",
               "disposition": "valid"
-            },
-            {
-              "name": "b@J1",
-              "disposition": "valid"
             }
           ],
           "records_removed": [],
@@ -13660,14 +14080,6 @@
                 "collection": "journal",
                 "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
                 "generated_at": "2026-10-01T00:59:00Z"
-              },
-              {
-                "publisher": "example.com",
-                "url": "https://example.com/journal/b",
-                "item": "sha256:8158756858861806b63de871367d2d416fdbbb93866e5448e9f939f174111974",
-                "collection": "journal",
-                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
-                "generated_at": "2026-10-01T00:59:00Z"
               }
             ],
             "removals": []
@@ -13678,7 +14090,7 @@
           "status": "accepted",
           "entries": [
             {
-              "name": "J1 unchanged, one second short",
+              "name": "J1 unchanged, week 1",
               "disposition": "ignored",
               "failed": [
                 "C4"
@@ -13716,14 +14128,6 @@
                 "collection": "journal",
                 "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
                 "generated_at": "2026-10-01T00:59:00Z"
-              },
-              {
-                "publisher": "example.com",
-                "url": "https://example.com/journal/b",
-                "item": "sha256:8158756858861806b63de871367d2d416fdbbb93866e5448e9f939f174111974",
-                "collection": "journal",
-                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
-                "generated_at": "2026-10-01T00:59:00Z"
               }
             ],
             "removals": []
@@ -13734,26 +14138,17 @@
           "status": "accepted",
           "entries": [
             {
-              "name": "J1 unchanged",
-              "disposition": "valid"
-            },
-            {
-              "name": "a@J1 unchanged",
-              "disposition": "valid"
+              "name": "J1 unchanged, week 2",
+              "disposition": "ignored",
+              "failed": [
+                "C4"
+              ],
+              "codes": [
+                "WIST3-E06"
+              ]
             }
           ],
-          "records_removed": [
-            {
-              "publisher": "example.com",
-              "url": "https://example.com/journal/a",
-              "cause": "base"
-            },
-            {
-              "publisher": "example.com",
-              "url": "https://example.com/journal/b",
-              "cause": "base"
-            }
-          ],
+          "records_removed": [],
           "state": {
             "declarations": [
               {
@@ -13767,10 +14162,10 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "catalog": "sha256:5b0ac265ff095c4a8cffe83bb296c8f3607b5fa0e06eae8126cddc3ce8aa22d1",
-                "floor": "2027-03-30T00:59:01Z",
-                "sealing_height": 3,
-                "base": true
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
               }
             ],
             "records": [
@@ -13779,8 +14174,530 @@
                 "url": "https://example.com/journal/a",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
                 "collection": "journal",
-                "catalog": "sha256:5b0ac265ff095c4a8cffe83bb296c8f3607b5fa0e06eae8126cddc3ce8aa22d1",
-                "generated_at": "2027-03-30T00:59:01Z"
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 4,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1 unchanged, week 3",
+              "disposition": "ignored",
+              "failed": [
+                "C4"
+              ],
+              "codes": [
+                "WIST3-E06"
+              ]
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 5,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1 unchanged, week 4",
+              "disposition": "ignored",
+              "failed": [
+                "C4"
+              ],
+              "codes": [
+                "WIST3-E06"
+              ]
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 6,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1 unchanged, week 5",
+              "disposition": "ignored",
+              "failed": [
+                "C4"
+              ],
+              "codes": [
+                "WIST3-E06"
+              ]
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 7,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1 unchanged, week 6",
+              "disposition": "ignored",
+              "failed": [
+                "C4"
+              ],
+              "codes": [
+                "WIST3-E06"
+              ]
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 8,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1 unchanged, week 7",
+              "disposition": "ignored",
+              "failed": [
+                "C4"
+              ],
+              "codes": [
+                "WIST3-E06"
+              ]
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 9,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1 unchanged, week 8",
+              "disposition": "ignored",
+              "failed": [
+                "C4"
+              ],
+              "codes": [
+                "WIST3-E06"
+              ]
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 10,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1 unchanged, week 9",
+              "disposition": "ignored",
+              "failed": [
+                "C4"
+              ],
+              "codes": [
+                "WIST3-E06"
+              ]
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 11,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1 unchanged, week 10",
+              "disposition": "ignored",
+              "failed": [
+                "C4"
+              ],
+              "codes": [
+                "WIST3-E06"
+              ]
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 12,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1 unchanged, week 11",
+              "disposition": "ignored",
+              "failed": [
+                "C4"
+              ],
+              "codes": [
+                "WIST3-E06"
+              ]
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 13,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1 unchanged, week 12",
+              "disposition": "ignored",
+              "failed": [
+                "C4"
+              ],
+              "codes": [
+                "WIST3-E06"
+              ]
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 14,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1 unchanged, week 13",
+              "disposition": "valid"
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:e1240efdb6078d12b38fa64fe6b75a99c1f26a3681e33be33d164319d3f1fcad",
+                "floor": "2026-12-31T00:59:00Z",
+                "sealing_height": 14,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
               }
             ],
             "removals": []
@@ -17169,6 +18086,411 @@
           }
         }
       ]
+    },
+    {
+      "name": "a rejected first Epoch",
+      "why": "Height 0 carries G and two journal Catalogs of example.com: the Epoch is rejected whole (WIST3-E03), and the state stays empty, with no Declaration and no serving duty. Height 1 seals G alone and is accepted.",
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-09-30T23:59:30Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "G",
+              "entry": {
+                "type": "publisher_declaration",
+                "body": {
+                  "publisher": {
+                    "wist_version": "1.0.0",
+                    "seq": 0,
+                    "domain": "example.com",
+                    "subdomain_scope": [
+                      "www.example.com"
+                    ],
+                    "keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                        "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "recovery_keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                        "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "collections": [
+                      {
+                        "name": "journal",
+                        "scope": [
+                          {
+                            "url": "https://example.com/journal/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                            "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      },
+                      {
+                        "name": "store",
+                        "scope": [
+                          {
+                            "url": "https://example.com/store/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                            "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "sig": {
+                    "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "alg": "Ed25519",
+                    "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                  }
+                }
+              }
+            },
+            {
+              "name": "J second",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-09-30T23:59:01Z",
+                    "size": 1,
+                    "root": "sha256:5afb7fd719d184ff055afbe3434dff4de89118f6860d452ca1d97c94da179b63",
+                    "tree": "sha256:6c07aabdac4461b2c96390e11c7e9f5089eb71222e49a8e2f6ee1787e742a015"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "PxeLLupIOeAGiOOR2tw78jbeD_yZjKn6QeKvR6gs1WrKQyJl_jd9osFbeePXV7iYIDDApeG0y6p12bEeiMnNCw"
+                  }
+                }
+              }
+            },
+            {
+              "name": "J first",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-09-30T23:59:00Z",
+                    "size": 1,
+                    "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+                    "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "eDOjEl3Tp20pRCa7XkrJzN6O-ilu-CRyu4niTsHTDMigTZZiWFUS1iP3BQIPPUik1rPnWigllRbC_KEOMyItCg"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "G",
+              "entry": {
+                "type": "publisher_declaration",
+                "body": {
+                  "publisher": {
+                    "wist_version": "1.0.0",
+                    "seq": 0,
+                    "domain": "example.com",
+                    "subdomain_scope": [
+                      "www.example.com"
+                    ],
+                    "keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                        "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "recovery_keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                        "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "collections": [
+                      {
+                        "name": "journal",
+                        "scope": [
+                          {
+                            "url": "https://example.com/journal/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                            "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      },
+                      {
+                        "name": "store",
+                        "scope": [
+                          {
+                            "url": "https://example.com/store/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                            "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "sig": {
+                    "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "alg": "Ed25519",
+                    "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "expected": [
+        {
+          "height": 0,
+          "status": "rejected",
+          "code": "WIST3-E03",
+          "payload_duties": [],
+          "state": {
+            "declarations": [],
+            "catalogs": [],
+            "records": [],
+            "removals": []
+          }
+        },
+        {
+          "height": 1,
+          "status": "accepted",
+          "entries": [],
+          "records_removed": [],
+          "payload_duties": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [],
+            "records": [],
+            "removals": []
+          }
+        }
+      ]
+    }
+  ],
+  "parameter_cases": [
+    {
+      "name": "catalog_refresh_seconds at 7 776 000",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 7776000,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "catalog_refresh_seconds at 7 776 001",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 7776001,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "refused"
+    },
+    {
+      "name": "catalog_refresh_seconds at 0",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 0,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "refused"
+    },
+    {
+      "name": "url_cap_bytes at 32 768",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 604800,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 32768,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "url_cap_bytes at 32 769",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 604800,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 32769,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "refused"
+    },
+    {
+      "name": "a map carrying removal_retention_days",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 604800,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24,
+        "removal_retention_days": 180
+      },
+      "expected": "refused"
     }
   ],
   "payloads": {

@@ -63,26 +63,27 @@ Consumer does.
 
 ### Streams
 
-A stream is UTF-8 octets with no byte order mark, divided into lines
-by LF (0x0A); the LF of the last line may be absent. The division
-precedes the reading of a line's octets as UTF-8, so a fault of
-encoding belongs to its line. A stream of no octets differs from the
-form. Each line is one JSON object, which JSON whitespace may
-surround, with no repeated member name, whose strings are sequences of
-Unicode scalar values and in which no array or object lies inside a
-member's array or object. Member names are compared after their
-escapes are decoded. The first line is the header, the last is the
-trailer, and each line between them is an Emission or a removal. An
-object carries exactly the members listed for its kind. A line with a
-`removed` member is read as a removal. A last line is the trailer when
-it carries exactly the trailer's member set; any other last line is
-read as a line before a missing trailer. The line of a stream of one
-line is its first, so that stream lacks its trailer. A first line with another
-member set than the header's, a line between the first and the last
-that carries the header's member set or the trailer's, and a trailer
-whose `end` is not `true` differ from the form. `count` is written in
-decimal digits alone, without sign, fraction, exponent or leading
-zero, and is at most 9007199254740991.
+A stream is UTF-8 octets with no byte order mark, divided into lines by
+LF (0x0A); the LF of the last line may be absent. The division precedes
+the reading of a line's octets as UTF-8, so a fault of encoding belongs
+to its line. A stream of no octets differs from the form. Each line is
+one JSON object, which JSON whitespace may surround, with no repeated
+member name, whose strings are sequences of Unicode scalar values and in
+which no array or object lies inside a member's array or object. Member
+names are compared after their escapes are decoded. The first line is
+the header, the last is the trailer, and each line between them is an
+Emission or a removal. An object carries exactly the members listed for
+its kind. A line with a `removed` member is read as a removal. A last
+line is the trailer when it carries exactly the trailer's member set;
+any other last line is read as a line before a missing trailer, one with
+the header's member set included, so that line is refused with
+`emission-form`, met before the missing trailer. The line of a stream of
+one line is its first, so that stream lacks its trailer. A first line
+with another member set than the header's, a line between the first and
+the last that carries the header's member set or the trailer's, and a
+trailer whose `end` is not `true` differ from the form. `count` is
+written in decimal digits alone, without sign, fraction, exponent or
+leading zero, and is at most 9007199254740991.
 
 | Line | Members |
 |---|---|
@@ -113,9 +114,9 @@ WIST-5 assigns the codes.
 | `url` | A `url` with no Normalized URL |
 | `duplicate` | Two lines with the same URL |
 | `scope` | An Emission whose URL the Collection's Scope (ADR-0051) does not cover under the Publisher's current Declaration |
-| `cap` | An Emission with the `JCS` serialization of its URL above `url_cap_bytes`, a derived `extract` above `extract_cap_bytes`, a `title` above 256 or an `abstract` above 1500 Unicode scalar values, or `JCS(summary)` above `summary_cap_bytes` (WIST-1 §3.6) |
+| `cap` | An Emission or a removal with the `JCS` serialization of its URL above `url_cap_bytes`; an Emission whose Item (ADR-0052) would have a `JCS` serialization above 16 384 + `url_cap_bytes` octets, which bounds `lang` and `modified`, a derived `extract` above `extract_cap_bytes`, a `title` above 256 or an `abstract` above 1500 Unicode scalar values, or `JCS(summary)` above `summary_cap_bytes` (WIST-1 §3.6) |
 
-A removal's URL is read for `url` and `duplicate` alone.
+A removal's URL is read for `url`, `duplicate` and `cap` alone.
 
 The part that reads a stream or signs reads every parameter at its
 default in WIST-4 §5, `url_cap_bytes`, `extract_cap_bytes`,
@@ -130,12 +131,13 @@ and, where present, `abstract`, unchanged.
 A stream is applied to the Collection's published publications, from
 which those the Scope no longer covers are first taken out. A complete
 stream leaves exactly its own publications. An incremental stream
-replaces or adds the publication of each Emission and takes out the
-one each removal names; a removal that names no published URL changes
-no publication and is in no list of the plan, and the list of a
-Catalog takes an Item of kind `removed` for its URL where ADR-0052
-(From publications to Items) gives one. A publication whose `lang` and `JCS(content)` equal the
-published one's is unchanged and keeps the published `modified`.
+replaces or adds the publication of each Emission and takes out the one
+each removal names; a removal that names no published URL changes no
+publication and is in no list of the plan, and the list of a Catalog
+takes an Item of kind `removed` for its URL where ADR-0052 (From
+publications to Items) gives one. A publication whose `lang` and
+`JCS(content)` equal the published one's is unchanged and keeps the
+published `modified`.
 
 The application states its plan in four lists of URLs. `added`,
 `changed` and `unchanged` hold the URL of each Emission, by whether
@@ -167,8 +169,9 @@ references of step 4; an Emission of `text` without `links` declares
 tab, LF, FF, CR and space (0x09, 0x0A, 0x0C, 0x0D, 0x20) is removed
 from the candidate, and no other character: the candidate is the
 decoded `href` value for an HTML fragment and the member as spelled
-for an Emission's `links`, so that one string declares the same link
-in both forms. Step 5 resolves against the Emission's URL, and step 7
+for an Emission's `links`, so that one candidate declares the same
+link in both forms; a character reference is decoded in the `href`
+form alone. Step 5 resolves against the Emission's URL, and step 7
 reads the header's `publisher`. An `extract` derived from `text` is
 `text`, unchanged.
 
@@ -245,6 +248,8 @@ carries it.
 - WIST-2 §10's Publisher row on `links`, the opening paragraphs of §11
   and §12 and WIST-1 §3.6's paragraph on the `links` member are
   restated, and the Payload schema's description of `links` follows.
+  §11 gains the trim before step 5 and the discard of a link above
+  `link_url_cap_bytes` at step 6.
 - ADR-0008 has the declared subset be "the first N links in raw-HTML
   document order" and calls the rule "an auditable function of the
   page". The order is now the emitted fragment's, and what the rule
@@ -269,9 +274,14 @@ each with a leading and a trailing space, yielding the link the same
 value without them yields, and a candidate that begins with U+00A0,
 trimmed in neither form; an `extract` of a fragment holding U+3000,
 U+00A0 and U+000B between words, each kept; a complete stream and an
-incremental one that reach the same publications; an Emission refused
-for a URL outside its Scope; a published URL the Scope no longer
-covers, which an incremental stream does not name, in `removed`; a
+incremental one that reach the same publications; a last line with the
+header's member set, refused with `emission-form`; an Emission refused
+for a URL outside its Scope; a removal whose URL is above
+`url_cap_bytes`, refused with `cap`; an Emission whose `modified`
+fraction or `lang` subtags put its Item one octet above 16 384 +
+`url_cap_bytes`, refused, and one at that bound, accepted; a
+published URL the Scope no longer covers, which an incremental stream
+does not name, in `removed`; a
 marked page, the same page without its marker, and a marked page whose
 region is empty; a region holding the octets `F0 80 80`, which give
 three U+FFFD, and `E2 82 41`, which give U+FFFD then `A`; a `lang` of

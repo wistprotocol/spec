@@ -1,5 +1,5 @@
 {
-  "note": "ADR-0052 From publications to Items, for the Collection `collection` under the Declaration named by `declaration`. Inputs: the served list `served.list` with `served.payloads` (the Payload of each served page Item, keyed by Item ID), the publications a stream's application leaves ({url, lang, modified, content}, ADR-0050), `removals`, the URLs the removals of an incremental stream name, the Catalog's `generated_at` and `wist_version`, `parameters` (the size caps url_cap_bytes, extract_cap_bytes, links_cap_bytes, link_url_cap_bytes and summary_cap_bytes those Payload checks read, at their suite values, since the part that signs reads no Log's parameters) and `salts`, the salt a new Item for that url takes. removal_retention_days is the constant 180 and is read from no parameter map. The publications lie inside the Collection's Scope; a served Item outside it has no publication and the served rows below decide it. A served Item whose publisher is not the Publisher's domain is read as a page Item whose Payload is not held. The first row a served Item, publication or removed URL meets decides: a publication whose url has a served page Item with meta.lang equal to its lang and a held Payload that passes WIST-1 section 7's Payload checks against the Item's payload (the Payload's form and version spelling, WIST1-E14; a supported major, WIST1-E15; the caps under `parameters`, WIST1-E04; JCS(content) exactly payload.bytes octets and HMAC-SHA256(salt, JCS(content)) equal to payload.commitment, WIST1-E10; the links rules of WIST-1 section 3.6, WIST1-E12) and whose JCS(content) equals its content yields that Item and Payload unchanged; any other publication yields a new page Item {publisher: the Publisher's domain, url, observed_at: modified, payload: {commitment: hmac-sha256: + hex(HMAC-SHA256(salt, JCS(content))), alg: HMAC-SHA256, bytes: octets of JCS(content)}, meta: {lang}} and the Payload {wist_version: the Catalog's wist_version, salt, content}; a served page Item whose url has no publication yields {publisher: the Publisher's domain, url, observed_at: generated_at, removed: true}; a served removed Item whose url has no publication is kept unchanged while generated_at is earlier than its observed_at plus 180 days of 86 400 seconds, compared as exact instants, and yields nothing from then on; a url of `removals` with no publication and no served Item yields {publisher: the Publisher's domain, url, observed_at: generated_at, removed: true}, whether or not the Collection's Scope covers it. A served page Item whose Payload is absent from served.payloads does not meet the second row. The Publisher's domain is the Declaration's `domain`. `expected` is {list (ascending octet order of key), payloads (keyed by Item ID)}, or {\"refused\": \"item-instant\"} when an Item of the new list has an observed_at later than generated_at, in which case nothing is published. `declarations` holds the signed Declarations the cases name by label: `collections` carries the Collections journal (prefix entries https://example.com/journal/ and https://blog.example.com/journal/, key journal with exp) and store (prefix https://example.com/store/, exact https://example.com/cart, key store); `implicit` carries none, so its only Collection is the implicit default, whose Scope is every URL on example.com, www.example.com and blog.example.com. Both list the owner key in `keys` and the recovery key in `recovery_keys`. Keys derive from the stated test-only seeds.",
+  "note": "ADR-0052 From publications to Items, for the Collection `collection` under the Declaration named by `declaration`. Inputs: the served list `served.list` with `served.payloads` (the Payload of each served page Item, keyed by Item ID), the publications a stream's application leaves ({url, lang, modified, content}, ADR-0050), `removals`, the URLs the removals of an incremental stream name, the Catalog's `generated_at` and `wist_version`, `parameters` (the size caps url_cap_bytes, extract_cap_bytes, links_cap_bytes, link_url_cap_bytes and summary_cap_bytes those Payload checks read, at their suite values, since the part that signs reads no Log's parameters) and `salts`, the salt a new Item for that url takes. removal_retention_days is the constant 180 and is read from no parameter map. A served list that holds two Items of one url is refused, {\"refused\": \"served-list\"}, and nothing is signed. The part that signs first takes out of the publications those the Scope of the Collection under the Declaration named by `declaration`, the Declaration the Publisher serves, does not cover; a served Item outside that Scope then has no publication and the served rows below decide it. A served Item whose publisher is not the Publisher's domain is read as a page Item whose Payload is not held. The first row a served Item, publication or removed URL meets decides: a publication whose url has a served page Item with meta.lang equal to its lang and a held Payload that passes WIST-1 section 7's Payload checks against the Item's payload (the Payload's form and version spelling, WIST1-E14; a supported major, WIST1-E15; the caps under `parameters`, WIST1-E04; JCS(content) exactly payload.bytes octets and HMAC-SHA256(salt, JCS(content)) equal to payload.commitment, WIST1-E10; the links rules of WIST-1 section 3.6, WIST1-E12) and whose JCS(content) equals its content yields that Item and Payload unchanged; any other publication yields a new page Item {publisher: the Publisher's domain, url, observed_at: modified, payload: {commitment: hmac-sha256: + hex(HMAC-SHA256(salt, JCS(content))), alg: HMAC-SHA256, bytes: octets of JCS(content)}, meta: {lang}} and the Payload {wist_version: the Catalog's wist_version, salt, content}; a served page Item whose url has no publication yields {publisher: the Publisher's domain, url, observed_at: generated_at, removed: true}; a served removed Item whose url has no publication is kept unchanged while generated_at is earlier than its observed_at plus 180 days of 86 400 seconds, compared as exact instants, and yields nothing from then on; a url of `removals` with no publication and no served Item yields {publisher: the Publisher's domain, url, observed_at: generated_at, removed: true}, whether or not the Collection's Scope covers it. A served page Item whose Payload is absent from served.payloads does not meet the second row. The Publisher's domain is the Declaration's `domain`. `expected` is {list (ascending octet order of key), payloads (keyed by Item ID)}, or {\"refused\": \"item-instant\"} when an Item of the new list has an observed_at later than generated_at, in which case nothing is published. A list longer than catalog_items_max, 16 777 216 Items, is refused with catalog-size; no case reaches it. `narrowed` is `collections` with the journal's Scope narrowed to the prefix entry https://example.com/journal/a/. `declarations` holds the signed Declarations the cases name by label: `collections` carries the Collections journal (prefix entries https://example.com/journal/ and https://blog.example.com/journal/, key journal with exp) and store (prefix https://example.com/store/, exact https://example.com/cart, key store); `implicit` carries none, so its only Collection is the implicit default, whose Scope is every URL on example.com, www.example.com and blog.example.com. Both list the owner key in `keys` and the recovery key in `recovery_keys`. Keys derive from the stated test-only seeds.",
   "keys": {
     "owner": {
       "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
@@ -136,6 +136,83 @@
         "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
         "alg": "Ed25519",
         "value": "EZGzUpMz4h-UOtVh6B6MU0uBsDH6QUEY-SijKW3IcCaeBPw-RraeTTx-dZ6pOlnbmwy08Zqm4l4aP_yFr_t0BA"
+      }
+    },
+    "narrowed": {
+      "publisher": {
+        "wist_version": "1.0.0",
+        "seq": 0,
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ],
+        "keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "nbf": 1788220800
+          }
+        ],
+        "recovery_keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "nbf": 1788220800
+          }
+        ],
+        "collections": [
+          {
+            "name": "journal",
+            "scope": [
+              {
+                "url": "https://example.com/journal/a/",
+                "match": "prefix"
+              }
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                "nbf": 1788220800,
+                "exp": 1796083200
+              }
+            ]
+          },
+          {
+            "name": "store",
+            "scope": [
+              {
+                "url": "https://example.com/store/",
+                "match": "prefix"
+              },
+              {
+                "url": "https://example.com/cart",
+                "match": "exact"
+              }
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                "nbf": 1788220800
+              }
+            ]
+          }
+        ]
+      },
+      "sig": {
+        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+        "alg": "Ed25519",
+        "value": "6Sawdqm7UfXfcXoV7vPm3jiIDi48i99_YpLlInZ5q-1bUyH8nl3vbz9syoJ4Y1tPvgZMdsunri6dqPRYXZpaBg"
       }
     }
   },
@@ -2269,6 +2346,478 @@
             }
           }
         }
+      }
+    },
+    {
+      "name": "publications the served Declaration's Scope still covers keep their served Items",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b/y",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:a0e3922894fa7c7f5ae9fbf161c862177f07c1d6d7dd5a0b1eeac049d1babb54",
+              "alg": "HMAC-SHA256",
+              "bytes": 144
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a/x",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:9eac82de97146b441e628864b4d520fe1a42db2e4cddab12f7ffb6006f30b52d",
+              "alg": "HMAC-SHA256",
+              "bytes": 144
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:231c92159efc00efdc53f5b700ad0c4a575c38c2343d12554d800d3d959e1e4f": {
+            "wist_version": "1.0.0",
+            "salt": "MfZWofaNBoDB-0_v6u2Mgw",
+            "content": {
+              "extract": "Text of https://example.com/journal/a/x.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a/x"
+              }
+            }
+          },
+          "sha256:243c6ca44c4dabe28529d27580eb4d732efdd5f23f521a6d81c48372496e2a19": {
+            "wist_version": "1.0.0",
+            "salt": "zsVAeSOa9j2vDuUIVHYmvQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/b/y.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/b/y"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a/x",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a/x.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a/x"
+            }
+          }
+        },
+        {
+          "url": "https://example.com/journal/b/y",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/b/y.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/b/y"
+            }
+          }
+        }
+      ],
+      "removals": [],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a/x",
+          "salt": "w3LwJscQ4T9fAgcrKhHKeg"
+        },
+        {
+          "url": "https://example.com/journal/b/y",
+          "salt": "40dVdh0HdKh91FAs3itCUA"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b/y",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:a0e3922894fa7c7f5ae9fbf161c862177f07c1d6d7dd5a0b1eeac049d1babb54",
+              "alg": "HMAC-SHA256",
+              "bytes": 144
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a/x",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:9eac82de97146b441e628864b4d520fe1a42db2e4cddab12f7ffb6006f30b52d",
+              "alg": "HMAC-SHA256",
+              "bytes": 144
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:243c6ca44c4dabe28529d27580eb4d732efdd5f23f521a6d81c48372496e2a19": {
+            "wist_version": "1.0.0",
+            "salt": "zsVAeSOa9j2vDuUIVHYmvQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/b/y.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/b/y"
+              }
+            }
+          },
+          "sha256:231c92159efc00efdc53f5b700ad0c4a575c38c2343d12554d800d3d959e1e4f": {
+            "wist_version": "1.0.0",
+            "salt": "MfZWofaNBoDB-0_v6u2Mgw",
+            "content": {
+              "extract": "Text of https://example.com/journal/a/x.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a/x"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "publication the served Declaration's Scope no longer covers is taken out: its served Item becomes removed at generated_at",
+      "declaration": "narrowed",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b/y",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:a0e3922894fa7c7f5ae9fbf161c862177f07c1d6d7dd5a0b1eeac049d1babb54",
+              "alg": "HMAC-SHA256",
+              "bytes": 144
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a/x",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:9eac82de97146b441e628864b4d520fe1a42db2e4cddab12f7ffb6006f30b52d",
+              "alg": "HMAC-SHA256",
+              "bytes": 144
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:231c92159efc00efdc53f5b700ad0c4a575c38c2343d12554d800d3d959e1e4f": {
+            "wist_version": "1.0.0",
+            "salt": "MfZWofaNBoDB-0_v6u2Mgw",
+            "content": {
+              "extract": "Text of https://example.com/journal/a/x.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a/x"
+              }
+            }
+          },
+          "sha256:243c6ca44c4dabe28529d27580eb4d732efdd5f23f521a6d81c48372496e2a19": {
+            "wist_version": "1.0.0",
+            "salt": "zsVAeSOa9j2vDuUIVHYmvQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/b/y.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/b/y"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a/x",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a/x.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a/x"
+            }
+          }
+        },
+        {
+          "url": "https://example.com/journal/b/y",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/b/y.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/b/y"
+            }
+          }
+        }
+      ],
+      "removals": [],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a/x",
+          "salt": "w3LwJscQ4T9fAgcrKhHKeg"
+        },
+        {
+          "url": "https://example.com/journal/b/y",
+          "salt": "40dVdh0HdKh91FAs3itCUA"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b/y",
+            "observed_at": "2026-10-01T12:00:00Z",
+            "removed": true
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a/x",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:9eac82de97146b441e628864b4d520fe1a42db2e4cddab12f7ffb6006f30b52d",
+              "alg": "HMAC-SHA256",
+              "bytes": 144
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:231c92159efc00efdc53f5b700ad0c4a575c38c2343d12554d800d3d959e1e4f": {
+            "wist_version": "1.0.0",
+            "salt": "MfZWofaNBoDB-0_v6u2Mgw",
+            "content": {
+              "extract": "Text of https://example.com/journal/a/x.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a/x"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "served list holding two Items of one URL: no Catalog is signed",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-15T00:00:00Z",
+            "removed": true
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "removals": [],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "refused": "served-list"
+      }
+    },
+    {
+      "name": "served list holding two Items of one URL and no publication for it: no Catalog is signed",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-15T00:00:00Z",
+            "removed": true
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [],
+      "removals": [],
+      "salts": [],
+      "expected": {
+        "refused": "served-list"
       }
     },
     {

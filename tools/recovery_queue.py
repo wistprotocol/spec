@@ -39,6 +39,7 @@ class Queue:
         self.held = {}
         self.first = {}
         self.frozen = {}
+        self.waited = {}
 
     @property
     def opened(self):
@@ -72,9 +73,13 @@ class Queue:
     def names(self):
         return sorted({name for name, _ in self.held}, key=str.encode)
 
-    def settle(self, source, clock, parameters):
+    def settle(self, source, clock, parameters, floors):
         results, survivors = [], {}
         for (name, key), entry in sorted(self.held.items(), key=lambda kv: (kv[1]["place"], kv[0][1])):
+            floor = floors.get(name)
+            if floor is not None and order_key(entry)[0] <= floor:
+                results.append({"collection": name, "key": key, "catalog": entry["catalog"], "outcome": REGRESSED})
+                continue
             code = refusal(catalogs.judge_catalog, entry["envelope"], source, clock, parameters)
             results.append({"collection": name, "key": key, "catalog": entry["catalog"],
                             "outcome": REJECTED if code is not None else "survivor",

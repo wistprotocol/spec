@@ -27,6 +27,9 @@ REMOVAL_RETENTION_SECONDS = 180 * 86400
 ITEM_BOUND_OCTETS = 16384
 CATALOG_JSON_READ_OCTETS = 16384
 PARAMETER_FLOORS = {"catalog_items_max": 16777216, "tree_file_cap_bytes": 65536, "tree_depth_max": 16}
+SIZE_CAP_BOUNDS = {"url_cap_bytes": (14, 32768), "extract_cap_bytes": (2, None), "links_cap_bytes": (21, None),
+                   "link_url_cap_bytes": (14, None), "summary_cap_bytes": (12, None)}
+SUITE_CATALOG_ITEMS_MAX = 16777216
 
 PUBLISHER_TS = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})"
                           r"(?:\.([0-9]+))?(?:[Zz]|([+-])([0-9]{2}):([0-9]{2}))")
@@ -438,6 +441,16 @@ def check_floors(parameters):
             raise VerifierError(f"{name} amended below {floor}")
 
 
+def size_caps_read(parameters):
+    for name, (low, high) in SIZE_CAP_BOUNDS.items():
+        value = integer(parameters[name])
+        if value is None or value < low or (high is not None and value > high):
+            return "refused"
+    if parameters["links_cap_bytes"] < parameters["link_url_cap_bytes"] + 21:
+        return "refused"
+    return "read"
+
+
 def judge_catalog(case, publisher):
     check_floors(case["parameters"])
     if "catalog_json" in case:
@@ -608,13 +621,13 @@ def derive_list(case, publisher):
     domain, collection = publisher["domain"], case["collection"]
     generated = log_time(case["generated_at"])
     held = case["served"]["payloads"]
-    publications = {p["url"]: p for p in case["publications"]}
-    served = {item["url"]: item for item in case["served"]["list"]}
     salts = {s["url"]: s["salt"] for s in case["salts"]}
-    if len(publications) != len(case["publications"]) or len(served) != len(case["served"]["list"]):
-        raise VerifierError("a URL repeats among the publications or the served list")
-    if any(not covered(publisher, collection, url) for url in publications):
-        raise VerifierError("a publication outside the Collection's Scope: the stream is refused")
+    if len({p["url"] for p in case["publications"]}) != len(case["publications"]):
+        raise VerifierError("a URL repeats among the publications")
+    served = {item["url"]: item for item in case["served"]["list"]}
+    if len(served) != len(case["served"]["list"]):
+        return {"refused": "served-list"}
+    publications = {p["url"]: p for p in case["publications"] if covered(publisher, collection, p["url"])}
     listed, payloads = [], {}
 
     def removed_now(url):
@@ -651,6 +664,8 @@ def derive_list(case, publisher):
             removed_now(url)
     if any(publisher_time(item["observed_at"]) > generated for item in listed):
         return {"refused": "item-instant"}
+    if len(listed) > SUITE_CATALOG_ITEMS_MAX:
+        return {"refused": "catalog-size"}
     listed.sort(key=lambda item: key_of(item["url"]))
     return {"list": listed, "payloads": payloads}
 
@@ -744,6 +759,12 @@ def family_item_fields(data, report):
                 raise VerifierError(f"payload_path does not name the Item ID: {c['payload_path']}")
             report.verdict(c["name"], c["expected"], judge_payload(c["payload"], c["item"], c["parameters"]))
         report.run(case["name"], one)
+    family_parameter_maps(data, report)
+
+
+def family_parameter_maps(data, report):
+    for case in data["parameter_cases"]:
+        report.run(case["name"], lambda c=case: report.equal(c["name"], c["expected"], size_caps_read(c["parameters"])))
 
 
 def proof_input(case):
@@ -879,7 +900,8 @@ FAMILIES = [
     ("item-fields", "wist1/item-fields.json", family_item_fields, SIGNED, {
         "item_cases": {"name", "declaration", "catalog", "parameters", "item", "expected"},
         "known_answers": {"name", "item", "item_id", "key", "leaf", "payload"},
-        "payload_cases": {"name", "item", "payload_path", "parameters", "payload", "expected"}}),
+        "payload_cases": {"name", "item", "payload_path", "parameters", "payload", "expected"},
+        "parameter_cases": {"name", "parameters", "expected"}}),
     ("item-roots", "wist1/item-roots.json", family_item_roots, {"payloads"}, {
         "root_cases": {"name", "items", "keys", "leaves", "root"},
         "proof_cases": {"name", "catalog", "item", "proof", "proof_json", "expected"},

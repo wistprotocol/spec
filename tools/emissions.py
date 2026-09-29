@@ -4,6 +4,7 @@ import urllib.parse
 
 import rfc8785
 
+import items
 from link_extraction import _external, _iter_hrefs, extract_text, links_member, normalize_url, trim_candidate
 
 DEFAULT_PARAMETERS = {
@@ -30,6 +31,7 @@ _TIMESTAMP = re.compile(
     r"(?:\.[0-9]+)?(?:[Zz]|[+-]([0-9]{2}):([0-9]{2}))")
 _COUNT_LEXEME = re.compile(r"0|[1-9][0-9]*")
 _BOM = b"\xef\xbb\xbf"
+_SIZING_SALT = "A" * 22
 
 
 class Refusal(Exception):
@@ -232,14 +234,20 @@ def _removal_form_ok(line, mode):
             and isinstance(line["url"], str) and mode == "incremental")
 
 
-def _over_cap(publication, emission):
+def item_octets(publication, publisher_domain):
+    item, _ = items.new_page_item(publisher_domain, publication, _SIZING_SALT)
+    return len(items.jcs(item))
+
+
+def _over_cap(publication, emission, publisher_domain):
     parameters = DEFAULT_PARAMETERS
     content = publication["content"]
     return (_jcs_length(publication["url"]) > parameters["url_cap_bytes"]
             or _jcs_length(content["extract"]) > parameters["extract_cap_bytes"]
             or len(emission["title"]) > TITLE_MAX_SCALARS
             or len(emission.get("abstract", "")) > ABSTRACT_MAX_SCALARS
-            or _jcs_length(content["summary"]) > parameters["summary_cap_bytes"])
+            or _jcs_length(content["summary"]) > parameters["summary_cap_bytes"]
+            or item_octets(publication, publisher_domain) > items.ITEM_BOUND_OCTETS + parameters["url_cap_bytes"])
 
 
 def names_collection(publisher, collection):
@@ -288,7 +296,7 @@ def read_stream(octets, publisher, collection):
                 raise Refusal("stream-form", number)
             trailer = line
             continue
-        if names in (HEADER_MEMBERS, TRAILER_MEMBERS):
+        if number != len(lines) and names in (HEADER_MEMBERS, TRAILER_MEMBERS):
             raise Refusal("stream-form", number)
         is_removal = "removed" in line
         if not (_removal_form_ok(line, mode) if is_removal else _emission_form_ok(line)):
@@ -300,13 +308,15 @@ def read_stream(octets, publisher, collection):
             raise Refusal("duplicate", number)
         seen.add(url)
         if is_removal:
+            if _jcs_length(url) > DEFAULT_PARAMETERS["url_cap_bytes"]:
+                raise Refusal("cap", number)
             removals.append(url)
             continue
         if not covers(publisher, collection, url):
             raise Refusal("scope", number)
         publication = {"url": url, "lang": line["lang"], "modified": line["modified"],
                        "content": derive_content(line, url, publisher["domain"])}
-        if _over_cap(publication, line):
+        if _over_cap(publication, line, publisher["domain"]):
             raise Refusal("cap", number)
         publications.append(publication)
     if trailer is None or int(trailer["count"].lexeme) != len(lines) - 2:

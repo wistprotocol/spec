@@ -12,7 +12,8 @@ OUT_OF_PLACE = "WIST3-E06"
 EPOCH_REJECTED = "WIST3-E03"
 DAY_SECONDS = 86400
 DECLARATION_PARAMETERS = tuple(rules.DEFAULT_PARAMETERS)
-REFRESH_BOUNDS = (1, items.REMOVAL_RETENTION_DAYS * DAY_SECONDS)
+REFRESH_BOUNDS = (1, 7776000)
+URL_CAP_MAX = 32768
 WITHDRAWAL = "payload_withdrawal"
 CONTRACT_FAILED = "WIST4-E04"
 
@@ -22,7 +23,9 @@ def check_parameters(parameters):
         raise ValueError("removal_retention_days is a constant that no Log amends")
     low, high = REFRESH_BOUNDS
     if not low <= parameters["catalog_refresh_seconds"] <= high:
-        raise ValueError("catalog_refresh_seconds is amended outside 1 to 15 552 000")
+        raise ValueError("catalog_refresh_seconds is amended outside 1 to 7 776 000")
+    if parameters["url_cap_bytes"] > URL_CAP_MAX:
+        raise ValueError("url_cap_bytes is amended above 32 768")
     rules.parameter_map({k: parameters[k] for k in DECLARATION_PARAMETERS})
     return parameters
 
@@ -350,6 +353,8 @@ class Sealing:
                                                                key=lambda kv: (kv[0][0].encode(), kv[0][1].encode()))]}
 
     def payload_duties(self):
+        if self.sealed_at is None:
+            return []
         now = narrowing.log_seconds(self.sealed_at)
         return [{"publisher": duty["publisher"], "url": duty["url"], "item": identifier,
                  "until": None if duty["record"] else narrowing.log_timestamp(duty["until"])}

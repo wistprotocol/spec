@@ -2879,7 +2879,8 @@ PULL_FIXTURE_CATALOG_NAMES = {
     "vectors/wist3/catalog-waiting.json": (
         "B1", "J1", "J1b", "J1c", "J1m", "J2", "J2x", "J2y", "J3", "J4", "S1", "S2", "S3",
         "J1 a.example.com", "J1 b.example.com", "J2 a.example.com", "J2 b.example.com",
-        "S1 a.example.com", "S1 b.example.com", "S2 a.example.com", "S2 b.example.com"),
+        "S1 a.example.com", "S1 b.example.com", "S2 a.example.com", "S2 b.example.com",
+        "J2 under J1's signature"),
     "vectors/wist1/catalog-recovery.json": (
         "D1", "J0", "J0b", "J1", "J1r", "J2", "J2b", "J2e", "J3", "J4", "J4j", "S0", "S1", "S1b", "S2", "So", "W1"),
     "vectors/wist2/collection-pull.json": ("Da", "Db", "J1", "J1j", "J2", "J3", "S1"),

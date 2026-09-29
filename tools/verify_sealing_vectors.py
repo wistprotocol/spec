@@ -13,14 +13,14 @@ from verify_collection_vectors import (
 from verify_catalog_vectors import (
     ACCEPTED, BODY_MEMBERS, E14, HASH, NAME, PAGE_MEMBERS, REGISTRY_SIZE_CAPS, REMOVAL_RETENTION_SECONDS, VERSION,
     Report, binding_code, catalog_id, catalog_inner_form, check_floors, commitment_form, integer, item_form, item_id,
-    jcs, judge_item, judge_payload, leaf_of, log_instant, proof_form, proof_holds, shown, sig_form)
+    jcs, judge_item, judge_payload, leaf_of, log_instant, proof_form, proof_holds, shown, sig_form, size_caps_read)
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 DAY_SECONDS = 86400
 ENTRY_OCTETS_MAX = 65535
 REPLACED_FILE_SECONDS = 86400
-CATALOG_REFRESH_BOUNDS = (1, REMOVAL_RETENTION_SECONDS)
+CATALOG_REFRESH_BOUNDS = (1, 7776000)
 PAYLOAD_WINDOW_DAYS_MIN = 30
 GROUP_ORDER = ["publisher_declaration", "registry_update", "publisher_catalog", "publisher_item", "label", "dispute"]
 SUPPORTED_TYPES = {"publisher_declaration", "registry_update", "publisher_catalog", "publisher_item"}
@@ -44,11 +44,12 @@ UPDATE_ENVELOPE_MEMBERS = {"update", "sig"}
 UPDATE_MEMBERS = {"wist_version", "action", "subject", "effective_at", "details"}
 WITHDRAWAL_DETAILS = {"delta_id", "legal_basis", "jurisdiction"}
 FILE_MEMBERS = {
-    "catalog-sealing": {"keys", "histories", "payloads"},
+    "catalog-sealing": {"keys", "histories", "parameter_cases", "payloads"},
     "multilog-catalog-order": {"keys", "order_cases", "combined_cases", "payloads"},
     "served-files": {"cases"},
 }
 HISTORY_MEMBERS = {"name", "epochs", "expected"}
+PARAMETER_CASE_MEMBERS = {"name", "parameters", "expected"}
 ORDER_CASE_MEMBERS = {"name", "catalogs", "expected"}
 COMBINED_CASE_MEMBERS = {"name", "publisher", "url", "logs", "expected"}
 LOG_MEMBERS = {"name", "epochs", "results"}
@@ -81,16 +82,30 @@ def leaf_hash(entry):
     return hashlib.sha256(b"\x00" + jcs(entry)).digest()
 
 
-def check_map(parameters):
-    members_read(parameters, PARAMETER_MEMBERS, "parameter map")
+def map_refusal(parameters):
+    if not isinstance(parameters, dict) or set(parameters) != PARAMETER_MEMBERS:
+        return "a member set other than the one this verifier reads"
+    if any(integer(value) is None for value in parameters.values()):
+        return "a value that is not an integer"
     low, high = CATALOG_REFRESH_BOUNDS
-    refresh = integer(parameters["catalog_refresh_seconds"], low, high)
-    if refresh is None:
-        raise VerifierError(f"catalog_refresh_seconds outside {low} to {high}")
-    if integer(parameters["payload_window_days"], PAYLOAD_WINDOW_DAYS_MIN) is None:
-        raise VerifierError(f"payload_window_days below {PAYLOAD_WINDOW_DAYS_MIN}")
-    check_floors(parameters)
-    check_parameter_map(parameters)
+    if not low <= parameters["catalog_refresh_seconds"] <= high:
+        return f"catalog_refresh_seconds outside {low} to {high}"
+    if size_caps_read(parameters) != "read":
+        return "a size cap outside its bounds"
+    if parameters["payload_window_days"] < PAYLOAD_WINDOW_DAYS_MIN:
+        return f"payload_window_days below {PAYLOAD_WINDOW_DAYS_MIN}"
+    try:
+        check_floors(parameters)
+        check_parameter_map(parameters)
+    except VerifierError as error:
+        return str(error)
+    return None
+
+
+def check_map(parameters):
+    refusal = map_refusal(parameters)
+    if refusal is not None:
+        raise VerifierError(f"parameter map refused: {refusal}")
     return parameters
 
 
@@ -261,7 +276,7 @@ def named_catalog(log, body):
     return None
 
 
-def judge_item_entry(log, body, parameters, removed):
+def judge_item_entry(log, body, height, parameters, removed):
     if not body_form(body):
         return ["I1"], {"WIST1-E14"}
     failed, codes = [], set()
@@ -306,10 +321,14 @@ def judge_item_entry(log, body, parameters, removed):
         codes.add("WIST1-E17")
     key = (domain, item["url"])
     record = log["records"].get(key)
+    read = record
+    if named["base"] and named["height"] == height and record is not None \
+            and record["collection"] == inner["collection"]:
+        read = None
     if "removed" in item:
-        i7 = record is None
+        i7 = read is None
     else:
-        i7 = (record is not None and record["item"] == identifier) or identifier in log["withdrawn"]
+        i7 = (read is not None and read["item"] == identifier) or identifier in log["withdrawn"]
     if i7:
         failed.append("I7")
         codes.add(OUT_OF_PLACE)
@@ -437,7 +456,7 @@ def apply_epoch(log, epoch):
         return {"height": height, "status": "rejected", "code": rejection.code}
     judges = {
         "publisher_catalog": lambda b: judge_catalog_entry(log, b, height, sealed_at, parameters, removed),
-        "publisher_item": lambda b: judge_item_entry(log, b, parameters, removed),
+        "publisher_item": lambda b: judge_item_entry(log, b, height, parameters, removed),
         "registry_update": lambda b: judge_withdrawal(log, b, height),
     }
     for kind in ("publisher_catalog", "publisher_item", "registry_update"):
@@ -487,7 +506,7 @@ def replay(epochs, log_key, with_duties=False):
             raise VerifierError("Epoch heights or sealed_at instants do not increase")
         previous = instant
         result = apply_epoch(log, epoch)
-        if with_duties and result["status"] == "accepted":
+        if with_duties:
             result["payload_duties"] = duties(log, instant[1])
         result["state"] = snapshot(log)
         produced.append(result)
@@ -507,10 +526,9 @@ def compare_epochs(report, label, expected, produced):
 
 
 def carries_duties(history):
-    accepted = [epoch for epoch in history["expected"] if epoch.get("status") == "accepted"]
-    carried = {"payload_duties" in epoch for epoch in accepted}
+    carried = {"payload_duties" in epoch for epoch in history["expected"]}
     if len(carried) > 1:
-        raise VerifierError("payload_duties carried by some accepted Epochs of the history and not by others")
+        raise VerifierError("payload_duties carried by some Epochs of the history and not by others")
     return carried == {True}
 
 
@@ -548,6 +566,11 @@ def family_sealing(data, report):
             produced = replay(h["epochs"], data["keys"]["log"], carries_duties(h))[1]
             compare_epochs(report, h["name"], h["expected"], produced)
         report.run(history["name"], one)
+    for case in data["parameter_cases"]:
+        def one(c=case):
+            members_read(c, PARAMETER_CASE_MEMBERS, f"parameter case {c.get('name')!r}")
+            report.equal(c["name"], c["expected"], "accepted" if map_refusal(c["parameters"]) is None else "refused")
+        report.run(case["name"], one)
     check_payloads(report, data["payloads"], page_items(h["epochs"] for h in data["histories"]))
 
 

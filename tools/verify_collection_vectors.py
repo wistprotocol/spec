@@ -397,9 +397,10 @@ def semantic_check(envelope, parameters):
         names = [collection["name"] for collection in collections]
         if len(names) != len(set(names)):
             raise Rejected("WIST1-E16", "repeated Collection name")
-        if len(collections) > parameters["collections_max"]:
+        if parameters is not None and len(collections) > parameters["collections_max"]:
             raise Rejected("WIST1-E16", "above collections_max")
-        if any(len(collection["scope"]) > parameters["scope_entries_max"] for collection in collections):
+        if parameters is not None and any(
+                len(collection["scope"]) > parameters["scope_entries_max"] for collection in collections):
             raise Rejected("WIST1-E16", "above scope_entries_max")
         hosts = authority(publisher)
         for collection in collections:
@@ -419,7 +420,7 @@ def semantic_check(envelope, parameters):
         listed += [public_raw(entry) for entry in collection.get("keys", [])]
     if len(listed) != len(set(listed)):
         raise Rejected("WIST1-E08", "a public key listed twice")
-    if len(jcs({"type": "publisher_declaration", "body": envelope})) > ENTRY_OCTETS_MAX:
+    if parameters is not None and len(jcs({"type": "publisher_declaration", "body": envelope})) > ENTRY_OCTETS_MAX:
         raise Rejected("WIST1-E04", "publisher_declaration Entry above 65 535 octets")
 
 
@@ -575,7 +576,7 @@ def repeats_head(state, envelopes):
     return False
 
 
-def apply_group(state, labels, height, sealed_at, parameters):
+def apply_group(state, labels, height, sealed_at, parameters, sizes=None):
     envelopes = [state["decls"][label] for label in labels]
     label, envelope = labels[0], envelopes[0]
     for member in envelopes:
@@ -590,11 +591,12 @@ def apply_group(state, labels, height, sealed_at, parameters):
         # ADR-0051 Size: a repeat of the current Declaration or the pending head is idempotent under any map.
         if repeats_head(state, envelopes):
             return {"kind": "idempotent", "declaration": label, "class": "idempotent"}
+    sizes = parameters if sizes is None else sizes
     for member in envelopes:
-        field_check(member, parameters)
+        field_check(member, sizes or None)
     if any(jcs(member) != jcs(envelope) for member in envelopes[1:]):
         raise Rejected("WIST1-E08", "conflicting same-sequence Declaration group")
-    semantic_check(envelope, parameters)
+    semantic_check(envelope, sizes or None)
     prior = state["current"]
     if state["current"] is None:
         if incoming["seq"] != 0 or "prev_declaration" in incoming:
@@ -824,26 +826,29 @@ def state_pull(case):
     state = new_state()
     state["decls"] = dict(case["declarations"])
     live = {}
-    epochs, rejected = replay_epochs(state, case, STATE_PULL_EPOCH_MEMBERS, live)
+    if set(case.get("history_parameters", {})) - set(UNAMENDED):
+        raise VerifierError("history_parameters carries a member this verifier does not read")
+    replayed = {"epochs": case["epochs"], "parameters": case.get("history_parameters", {})}
+    epochs, rejected = replay_epochs(state, replayed, STATE_PULL_EPOCH_MEMBERS, live)
     if rejected is not None:
         raise VerifierError(f"a supplied Epoch is rejected: {rejected}")
     request = case["pull"]
     members_read(request, {"height", "sealed_at", "parameters", "fetch_outcome", "fetched"})
     if epochs and request["height"] != epochs[-1]["height"] + 1:
         raise VerifierError("the pull is not at the height after the supplied Epochs")
-    parameters = epoch_parameters({}, request)
-    admission = epoch_parameters({}, case["epochs"][-1]) if case["epochs"] else parameters
+    history = {"parameters": case.get("history_parameters", {})}
+    parameters = epoch_parameters(history, request)
+    admission = epoch_parameters(history, case["epochs"][-1]) if case["epochs"] else parameters
     for label in case["discovered"]:
         trial = copy.deepcopy(state)
         try:
-            apply_group(trial, [label], None, None, admission)
+            apply_group(trial, [label], None, None, admission, sizes={})
         except Rejected:
             continue
         state.update(trial)
     first_contact = state["current"] is None
     transitions = []
     settle_due(state, log_seconds(request["sealed_at"]), live, transitions)
-    activate_due(state, request["height"], live, transitions)
     stopped = {"proceeds": False, "sources": [], "collections_pulled": [],
                "disposition": "WIST2-E04" if first_contact else "WIST2-E01", "noise": first_contact}
     outcome = request["fetch_outcome"]
@@ -911,6 +916,7 @@ HISTORY_EPOCH_MEMBERS = {"height", "sealed_at", "declarations", "records"}
 PARAMETER_EPOCH_MEMBERS = HISTORY_EPOCH_MEMBERS | {"parameters"}
 STATE_PULL_EPOCH_MEMBERS = PARAMETER_EPOCH_MEMBERS
 DOCUMENTATION = {"note", "parameter_note", "state_pull_note"}
+OPTIONAL_MEMBERS = {"state_pull_cases": {"history_parameters"}}
 FILE_ARRAYS = {
     "collection-fields": {"cases": {"name", "envelope", "parameters", "expected"}},
     "collection-scope": {
@@ -949,7 +955,7 @@ def check_file_members(family, data):
     members_read(data, set(arrays) | {"keys", "note"} | (DOCUMENTATION & set(data)))
     for name, members in arrays.items():
         for case in data[name]:
-            members_read(case, members)
+            members_read(case, members | (OPTIONAL_MEMBERS.get(name, set()) & set(case)))
     for key in data["keys"].values():
         members_read(key, {"seed_hex", "x", "kid"})
     return sum(len(data[name]) for name in arrays)

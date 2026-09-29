@@ -194,35 +194,49 @@ The test reads entries and not the URLs they cover: a Declaration that
 replaces an entry by a wider one reduces authority.
 
 A Declaration is discovered at the pull that fetches it and finds that
-it passes its acceptance checks. From the discovery of a D that
-reduces authority, and while D is in the eligible sealing set (WIST-1
-§5.2), the Aggregator seals no publication of D's Publisher in an
-Epoch below the one that seals D. The rule holds for a Declaration of
-any class, a recovery rotation and a fresh identity that becomes
-pending included. The publications of the other Publishers of the
-Registrable Domain proceed. The hold orders sealing and moves no
+it passes its acceptance checks. A recovery rotation whose window,
+counted from the fetch's instant under the `recovery_window_days` in
+force then, would end after `9999-12-31T23:59:59Z`, which WIST-1 §5.2
+forbids sealing, fails those checks at the fetch with `WIST1-E08`, the
+code WIST-1 §5.2 gives an Epoch that seals one: it is not discovered,
+places no hold and queues nothing, and the pull stops (below). From the
+discovery of a D that reduces authority, and while D is in the eligible
+sealing set (WIST-1 §5.2), the Aggregator seals no publication of D's
+Publisher in an Epoch below the one that seals D. The rule holds for a
+Declaration of any class, a recovery rotation and a fresh identity that
+becomes pending included. The publications of the other Publishers of
+the Registrable Domain proceed. The hold orders sealing and moves no
 eligibility Epoch and no inclusion ceiling (WIST-4 §5): D is sealed at
 or below the last Epoch that the earliest ceiling among the waiting
 publications of its Publisher allows. The publications sealed in D's
 Epoch or later are judged as Narrowing states. For such a D, the hold
-replaces WIST-1 §5.2's allowance of sealing a Delta in the Epoch it
-was queued for and the Declaration in the next.
+replaces WIST-1 §5.2's allowance of sealing a Delta in the Epoch it was
+queued for and the Declaration in the next.
 
 The hold ends at the Epoch that seals D, or when D leaves the eligible
 sealing set unsealed: superseded at the settlement of a recovery
-window, discarded by a reversal, which supersedes it (WIST-1 §5.2), or
-failing its checks at its candidate Epoch (Size). Where D is a
-recovery rotation, the Epoch that seals it opens the window, whose
-deferral (ADR-0052, Recovery) applies from that Epoch.
+window (WIST-1 §5.2), or failing its checks at its candidate Epoch or
+leaving with one that fails (Size). A pending replacement that a
+reversal discards is sealed at or below the reversal's Epoch, as
+WIST-1 §5.2's Declaration sealing obligation requires, so its hold
+ends there. Where D is a recovery rotation that opens a window, the
+window's deferral (ADR-0052, Recovery) applies from the Epoch that
+seals D.
 
 A pull of a Publisher's Collections proceeds only after that fetch
-succeeded in the same pull; an unchanged answer to a conditional
-request is a success. When the fetch fails, or the fetched Declaration
-fails its acceptance checks, the Aggregator pulls no Collection of
-that Publisher. Outside first contact, which WIST-2 §5 step 0 disposes
-of with `WIST2-E04`, the stopped pull is one failed fetch, disposed of
-as WIST-2 §7 disposes of a Feed it cannot use (`WIST2-E01`): retried on
-that backoff and not noise against the Ping quota (WIST-2 §4). The pull
+succeeded in the same pull. An answer 304 is judged as an answer 200
+carrying the Declaration whose validator the request sent: it is a
+success where that Declaration is one a fetch accepts as served again
+(Size), and a failed fetch where WIST-1 §5.2 rejects it, as it rejects
+a competitor superseded at settlement. When the fetch fails, or the
+fetched Declaration fails its acceptance checks, the Aggregator pulls
+no Collection of that Publisher. First contact ends at the pull that
+accepts the Publisher's first Declaration, sealed or not, and begins
+again where no accepted Declaration remains (Size). Outside first
+contact, which WIST-2 §5 step 0 disposes of with `WIST2-E04`, the
+stopped pull is one failed fetch, disposed of as WIST-2 §7 disposes of
+a Feed it cannot use (`WIST2-E01`): retried on that backoff and not
+noise against the Ping quota (WIST-2 §4). The pull
 reads Collections, Scopes and keys from the sources the table below
 gives for the Publisher's state once the fetched Declaration has been
 applied. The Key Set cache of WIST-1 §5.1 is removed with its
@@ -244,6 +258,11 @@ bounds its own sealing.
 
 A recovery rotation that leaves the eligible sealing set unsealed
 (Size) leaves the pulls after it under the sources of the other rows.
+A replacement that names the pending head is the pending head for this
+table and for ADR-0052, Recovery, whatever signs it: WIST-1 §5.2 has
+it open no window, so it is no recovery rotation discovered and opens
+no queue. A pending head stays pending at every pull until the Epoch
+at its activation height is sealed.
 
 A fetched Declaration whose `publisher` object is that of the pending
 head is a success of the fetch and changes no source. So is one whose
@@ -295,7 +314,9 @@ in force at the candidate Epoch's `sealed_at`. A fetched Declaration
 whose `publisher` object is that of the current Declaration or of the
 pending head, an idempotent re-serve (WIST-1 §5.2), or that of an open
 window's recovery-chain head (Reaching the Log) is not read again
-against them or the Entry bound; an answer 304 and an answer 200
+against them or the Entry bound, current and pending read in the
+admission state, a discovered Declaration not yet sealed included; an
+answer 304 and an answer 200
 carrying that object give the same result. Neither is a
 `publisher_declaration` Entry that repeats the current Declaration or
 the pending head read against them on replay: it is idempotent under
@@ -305,14 +326,19 @@ An accepted Declaration that fails at its candidate Epoch is not
 sealed. It leaves the eligible sealing set at once, as WIST-1 §5.2
 removes a superseded copy, with every accepted Declaration that names
 it directly or through others; this is a further exception to WIST-1
-§5.2's Declaration sealing obligation. The Declaration it named is the
-accepted head again, and the sequence floor does not change, so
-serving any of them again is rejected, with `WIST1-E08` or with the
-code of a check it fails under the map the fetch reads, WIST-1 §7
-leaving the choice of diagnostic. The failure is reported at the
-status endpoint with the code of the check that failed, and the
-Declarations that leave with it are reported without a code. A hold it
-placed ends (Reaching the Log).
+§5.2's Declaration sealing obligation. The admission state is then
+the one the accepted Declarations that remain give when applied in the
+order of their acceptance, so a Declaration that a departing one
+discarded or superseded is restored unless one that remains discards
+or supersedes it. Where one remains, the sequence floor does not
+change, so serving a departing Declaration again is rejected, with
+`WIST1-E08` or with the code of a check it fails under the map the
+fetch reads, WIST-1 §7 leaving the choice of diagnostic. Where none
+remains, the domain returns to first contact (WIST-2 §5 step 0) and
+keeps no sequence floor. The failure is reported at the status
+endpoint with the code of the check that failed, for the Declaration
+that failed and for each that leaves with it. A hold it placed ends
+(Reaching the Log).
 
 `WIST1-E16` is a new code of WIST-1 §7: a Collection rule violation.
 
@@ -401,22 +427,28 @@ without the other three. A publication in them is a signed probe that
 stands for the Collection's signed list; the vectors of ADR-0052 carry
 the list itself.
 
-The sources of a pull under a pending head and inside a recovery
-window, the order of the Collections pulled, the capacity order and
-the sealing of a Declaration that reduces authority ahead of the
-publications that wait are carried by
-`vectors/wist2/collection-pull.json`,
+The sources of a pull under a pending head and inside a recovery window,
+the order of the Collections pulled, the capacity order and the sealing
+of a Declaration that reduces authority ahead of the publications that
+wait are carried by `vectors/wist2/collection-pull.json`,
 `vectors/wist1/catalog-recovery.json` and
 `vectors/wist3/catalog-waiting.json` (ADR-0052's Verification), over
 signed Catalogs. Their cases include: a Declaration that reduces
 authority, discovered while an Item waits, leaving the Item's
 eligibility Epoch and ceiling unchanged and sealed at or below the
-ceiling's Epoch, the Item in the same Epoch after it; a competitor
-that reduces authority, discovered inside a window and superseded
-unsealed at settlement, whose Publisher's survivors are eligible for
-the Epoch of settlement and sealed; a pending replacement that reduces
-authority, discarded by a reversal before it is sealed, ending the
-hold; the recovery-chain head served again while a competitor is
+ceiling's Epoch, the Item in the same Epoch after it; a competitor that
+reduces authority, discovered inside a window and superseded unsealed at
+settlement, whose Publisher's survivors are eligible for the Epoch of
+settlement and sealed; a pending replacement that reduces authority,
+discarded by a reversal, sealed at or below the reversal's Epoch, where
+its hold ends; a recovery rotation whose window cannot be frozen under
+an amended `recovery_window_days`, refused at the fetch, with no hold
+and nothing queued; a replacement of the pending head signed by a
+recovery key, read as the pending head; a pending head at a pull after
+the Epoch below its activation height is sealed, still pending; a first
+Declaration accepted and unsealed, then a failed fetch, `WIST2-E01` and
+not noise; a competitor superseded at settlement, then an answer 304, a
+failed fetch; the recovery-chain head served again while a competitor is
 current, a success of the fetch under which the Collections of both
 frozen sources are pulled and a Catalog under the recovery key is
 queued; a recovery rotation that adds a Collection, discovered and not
@@ -424,11 +456,15 @@ yet sealed, under which a pull accepts a Catalog of that Collection
 signed by a key the recovery alone lists, with that pull's place, and
 admits no Item that a Catalog signed by a key the earlier Declaration
 alone lists holds under a Scope entry the recovery alone carries; the
-current
-Declaration served again, by an answer 200 and by an answer 304, after
-`collections_max` was amended below its count, an idempotent re-serve
-under which every Collection is pulled; and an accepted Declaration
+current Declaration served again, by an answer 200 and by an answer 304,
+after `collections_max` was amended below its count, an idempotent
+re-serve under which every Collection is pulled; an accepted Declaration
 whose Scope exceeds a `scope_entries_max` amended after its discovery
-and in force at its candidate Epoch, never sealed, its predecessor current, served again
-`WIST1-E08`, and the Publisher's Catalogs sealed under the
-predecessor.
+and in force at its candidate Epoch, never sealed, its predecessor
+current, served again `WIST1-E08`, and the Publisher's Catalogs sealed
+under the predecessor; a discovered, unsealed Declaration served again
+under a lowered count, an idempotent re-serve; a first Declaration that
+fails at its candidate Epoch, followed by a new `seq` 0 accepted; a
+competitor that fails while a follower is current, which stays current;
+and a reversal that fails, restoring the pending replacement it
+discarded.

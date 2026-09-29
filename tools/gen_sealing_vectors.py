@@ -676,38 +676,46 @@ def sealing_vectors():
         "and b are removed; a against J2 restores a's record and the removed b has no record and fails I7.",
         retention + 1, True))
 
-    longest = {"catalog_refresh_seconds": retention}
+    largest = 7776000
+    longest = {"catalog_refresh_seconds": largest}
+    histories.append(history(
+        "C4 at the largest catalog_refresh_seconds",
+        "catalog_refresh_seconds is 7 776 000, the largest value a map may carry, in every Epoch. J1's list one "
+        "second short of the floor plus that interval fails C4. At exactly the floor plus 7 776 000 seconds it "
+        "passes C4 and is not a base: the records stay, and a against it is the record's Item and fails I7.",
+        [{"entries": [("G", decl("owner", G))], "parameters": longest},
+         {"entries": [("J1", cat("journal", b1)), ("a@J1", item(b1, J + "a")), ("b@J1", item(b1, J + "b"))],
+          "parameters": longest},
+         {"entries": [("J1 unchanged, one second short", cat("journal", b1.with_instant(tb + largest - 1)))],
+          "sealed_at": tb + largest - 1 + 60, "parameters": longest},
+         {"entries": [("J1 unchanged", cat("journal", b1.with_instant(tb + largest))),
+                      ("a@J1 unchanged", item(b1.with_instant(tb + largest), J + "a"))],
+          "sealed_at": tb + largest + 60, "parameters": longest}],
+        {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "J1 unchanged, one second short": (E06, ["C4"]),
+         "J1 unchanged": "valid", "a@J1 unchanged": (E06, ["I7"])},
+        check=lambda results: results[3]["state"]["catalogs"][0]["base"] is False
+        and results[3]["records_removed"] == []))
 
-    def refresh_bound(name, why, gap, base):
-        again = b1.with_instant(tb + gap)
-        spec = [{"entries": [("G", decl("owner", G))], "parameters": longest},
-                {"entries": [("J1", cat("journal", b1)), ("a@J1", item(b1, J + "a")), ("b@J1", item(b1, J + "b"))],
-                 "parameters": longest},
-                {"entries": [("J1 unchanged, one second short", cat("journal", b1.with_instant(tb + retention - 1)))],
-                 "sealed_at": tb + retention - 1 + 60, "parameters": longest},
-                {"entries": [("J1 unchanged", cat("journal", again)), ("a@J1 unchanged", item(again, J + "a"))],
-                 "sealed_at": tb + gap + 60, "parameters": longest}]
-        expect = {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "J1 unchanged, one second short": (E06, ["C4"]),
-                  "J1 unchanged": "valid", "a@J1 unchanged": "valid" if base else (E06, ["I7"])}
+    week = 7 * DAY
+    weekly = [{"entries": [("G", decl("owner", G))], "parameters": longest},
+              {"entries": [("J1", cat("journal", b1)), ("a@J1", item(b1, J + "a"))], "parameters": longest}]
+    weekly_expect = {"J1": "valid", "a@J1": "valid"}
+    for n in range(1, 14):
+        name = f"J1 unchanged, week {n}"
+        weekly.append({"entries": [(name, cat("journal", b1.with_instant(tb + n * week)))],
+                       "sealed_at": tb + n * week + 60, "parameters": longest})
+        weekly_expect[name] = "valid" if n == 13 else (E06, ["C4"])
 
-        def check(results):
-            assert results[3]["state"]["catalogs"][0]["base"] is base
-            assert [r["cause"] for r in results[3]["records_removed"]] == (["base", "base"] if base else [])
+    def weekly_check(results):
+        assert results[14]["state"]["catalogs"][0]["base"] is False and results[14]["records_removed"] == []
+        assert [r["url"] for r in results[14]["state"]["records"]] == [J + "a"]
 
-        return history(name, why, spec, expect, check=check)
-
-    histories.append(refresh_bound(
-        "C4 and the base at the largest catalog_refresh_seconds",
-        "catalog_refresh_seconds is 15 552 000, the length of removal_retention_days in seconds, in every Epoch. "
-        "J1's list one second short of the floor plus that interval fails C4. At exactly the floor plus 15 552 000 "
-        "seconds it passes C4 and is not a base: the records stay, and a against it is the record's Item and fails "
-        "I7.",
-        retention, False))
-    histories.append(refresh_bound(
-        "C4 and the base one second after the largest catalog_refresh_seconds",
-        "The same list one second later than in the previous history passes C4 and is a base: the records of a and "
-        "b are removed before the Items apply, and a against it is valid again.",
-        retention + 1, True))
+    histories.append(history(
+        "a weekly signer under the largest catalog_refresh_seconds",
+        "catalog_refresh_seconds is 7 776 000 in every Epoch, and the Publisher signs J1's unchanged list every "
+        "604 800 seconds. Weeks 1 to 12 are within the interval and fail C4; week 13, 7 862 400 seconds after the "
+        "floor, passes C4 and, far from 180 days, is no base: the record of a stays.",
+        weekly, weekly_expect, check=weekly_check))
 
     px, pv, py, pz = page(J + "old/x"), page(J + "old/v"), page(J + "new/y"), page(J + "new/z")
     pw, pu = page(J + "old/w"), page(J + "new/u")
@@ -829,6 +837,31 @@ def sealing_vectors():
         {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "J2": "valid", "a@J2": "valid", "b three@J2": "valid"},
         check=duty_check, duties=True))
 
+    first_twin, second_twin = Cat([pa], at(0)), Cat([pb], at(0) + 1)
+    histories.append(history(
+        "a rejected first Epoch",
+        "Height 0 carries G and two journal Catalogs of example.com: the Epoch is rejected whole (WIST3-E03), and "
+        "the state stays empty, with no Declaration and no serving duty. Height 1 seals G alone and is accepted.",
+        [{"entries": [("G", decl("owner", G)), ("J first", cat("journal", first_twin)),
+                      ("J second", cat("journal", second_twin))], "sealed_at": T0 - 30},
+         {"entries": [("G", decl("owner", G))]}],
+        {"J first": "valid", "J second": "valid"}, rejected={0: "WIST3-E03"}, duties=True,
+        check=lambda results: results[0]["state"]["declarations"] == [] and results[0]["payload_duties"] == []))
+
+    parameter_cases = []
+    for name, changes in (("catalog_refresh_seconds at 7 776 000", {"catalog_refresh_seconds": 7776000}),
+                          ("catalog_refresh_seconds at 7 776 001", {"catalog_refresh_seconds": 7776001}),
+                          ("catalog_refresh_seconds at 0", {"catalog_refresh_seconds": 0}),
+                          ("url_cap_bytes at 32 768", {"url_cap_bytes": 32768}),
+                          ("url_cap_bytes at 32 769", {"url_cap_bytes": 32769}),
+                          ("a map carrying removal_retention_days", {"removal_retention_days": 180})):
+        try:
+            sealing.check_parameters({**DEFAULT_MAP, **changes})
+            outcome = "accepted"
+        except ValueError:
+            outcome = "refused"
+        parameter_cases.append({"name": name, "parameters": {**DEFAULT_MAP, **changes}, "expected": outcome})
+
     return {"note": (
         "ADR-0052 Sealing: State and Judgment, the base (An Aggregator that was away), the recovery window as C2 "
         "and I2 read it, withdrawn Payloads as I7 reads them and the serving duty of a record's Payload (What a "
@@ -862,7 +895,8 @@ def sealing_vectors():
         "Item passing I5 could meet. A valid Catalog whose name has a floor and whose generated_at is more than "
         "removal_retention_days, the constant 180, times 86 400 seconds after it is a base and removes every "
         "record of its Publisher in its Collection before the Epoch's Items apply; no parameter map carries "
-        "removal_retention_days, and catalog_refresh_seconds is from 1 to 15 552 000 in every map. "
+        "removal_retention_days, catalog_refresh_seconds is from 1 to 7 776 000 and url_cap_bytes at most 32 768 in "
+        "every map; `parameter_cases` gives maps and whether a replay accepts or refuses them. "
         "`expected` gives per Epoch `status` (`accepted`, or `rejected` with `code` WIST3-E03, the state then "
         "unchanged); for an accepted Epoch, per publisher_catalog and publisher_item Entry its `disposition` "
         "(`valid`, or `ignored` with the conditions `failed` and the `codes` among which WIST-1 section 7 leaves "
@@ -889,7 +923,7 @@ def sealing_vectors():
         "payload_withdrawal, and recovery_window_days and declaration_activation_epochs are constant within a "
         "history. Payloads, tree files and the rules of Waiting, the queue and settlement are not exercised. Keys "
         "derive from the stated test-only seeds."),
-        "keys": KEYS_MEMBER, "histories": histories}
+        "keys": KEYS_MEMBER, "histories": histories, "parameter_cases": parameter_cases}
 
 
 def order_vectors():

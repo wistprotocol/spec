@@ -1,5 +1,5 @@
 {
-  "note": "An Aggregator that seals every Entry in the Epoch it is eligible for unless a deferral or the hold keeps it out, fed `events` in time order. Each history names its signed Declarations (`declarations`), its signed Catalog Envelopes (`catalogs`, with `catalog_ids`; two names share an ID where one inner object is signed twice), the octets of every tree file served, as UTF-8 text keyed by the 64 hexadecimal digits of their SHA-256 (`tree_files`), and, where present, `registry_updates`, payload_withdrawal Envelopes (WIST-3 section 6.2, WIST-4 section 5.1) whose details.delta_id is an Item ID, signed by the test-only Log key and not authenticated by the replay. An `epoch` event gives height, sealed_at, the complete parameter map in force at it, the Declarations the Aggregator seals in it by name and, as `updates`, the registry updates it seals; Epochs are simplified to those and their Entries, with no Checkpoint and no Merkle tree of the Log, and the Aggregator plans the Catalog and Item Entries. A listed Declaration is checked again under the Epoch's map (ADR-0051 Size); one that fails is not sealed and leaves the eligible sealing set with every accepted Declaration that names it: `declarations_failed` gives it with the code of the check that failed and `declarations_left` those that named it (each member present only when nonempty); the Declaration it named is the accepted head again and the sequence floor does not change. Every Declaration discovered at a pull that does not reduce authority and is still in the eligible sealing set is sealed in the next Epoch, which ADR-0051 requires of a prompt Aggregator; one that reduces authority may be sealed later, at or below the last Epoch the earliest ceiling among its Publisher's waiting publications allows, and the fixture uses that to show the hold. The eligible sealing set loses a competitor accepted inside a window, and its descendants, at the settlement of that window at a pull or an Epoch, and a pending head's replacements when a reversal is accepted. A `pull` event gives its instant, which is the clock of the pull, the Publisher pulled, the parameter map in force at the pull (`parameters`), which its Declaration, Catalog, Item and Payload checks and a settlement it performs read, the Declaration served (null for a failed fetch) and, per Collection name, the Catalog served at catalog.json, the tree files served (by name, from `tree_files`) and the Payloads served, keyed by the digits of their Item ID. A Collection absent from `collections` has no catalog.json and a file absent from a pull is unavailable; there is no HTTP, these maps stand for the Publisher's site, and the octets of catalog.json are not modelled (its read bound is carried by vectors/wist1/catalog-fields.json). max_inclusion_epochs and record_seal_epochs are constant within each history. Every Canonical Host is its own capacity unit unless the history carries `suffix_list`, the rules of a Public Suffix List snapshot in force at every event, from which the Registrable Domain is derived as WIST-4 section 3.1 states; no history carries Labels, disputes or other registry updates. `expected` has one element per event. For a pull, `settlement` is empty unless the pull settles a queue (catalog-recovery.json), and `declaration` gives `outcome` (the served Declaration applied under WIST-1 section 5.2 after the Log's Declarations and those the Aggregator discovered that are still in the eligible sealing set: `initial`, `ordinary_rotation`, `recovery_rotation`, `fresh_identity_pending`, `pending_replacement`, `reversal_ordinary_rotation`, `in_window_chain`, `in_window_competitor`, `idempotent`, `recovery_chain_head` for the recovery-chain head of an open window served again, a success of the fetch, a rejection code, or `not_fetched`), `discovered`, `reduces_authority` against the Declaration it names (false unless discovered), `sources` (the Declarations the pull reads, as ADR-0051's table gives them: the two frozen sources, the Declaration in effect before the recovery and the recovery Declaration that owns the window or was discovered, inside an open window or for a recovery rotation discovered and not yet sealed, and otherwise the current Declaration) and `window`, whether the pull is inside an open window and queues what it accepts. From the pull that discovers a recovery rotation, a pull queues what it accepts as a pull inside the window does, per Collection name and signing key, its order read against the floor and against the queued Catalog of the same name and key, and no URL takes a place at it; a queued Catalog is not the last accepted Catalog and replaces no waiting one until settlement makes it one, and it is not sealed before settlement, while a Catalog and Items that waited at the discovery keep waiting and are queued and held, with the places they had, when the window opens. Where the recovery rotation leaves the eligible sealing set unsealed, the queue, with what waits, is settled at that event under the Declaration then current in the Log, with the event's instant as the clock and its parameter map; what then waits is eligible for the first Epoch not sealed before the event, and later pulls are pulls outside a window. `collections_pulled` lists the Collections in reading order. Per Collection pulled: `outcome` (`unavailable`, `accepted`, `idempotent` for an idempotent re-serve, a Catalog with the Catalog ID of the last accepted Catalog or of the latest Catalog, or of the queued Catalog of its name and key inside a window, or `refused` with `codes`, those of every condition met, among which WIST-1 section 7 leaves the choice, and for WIST2-E07 a `reason` and, for a list that drops a held record's URL, `dropped`, the URL of every such record; an Item the list holds for the URL counts whether or not it is refused alone), `catalog` (its Catalog ID), `sources` under which it passed the Catalog conditions, `tree_files_fetched` (the files the walk requested because the Aggregator did not hold them, served or not, in ascending order; a file whose SHA-256 matches its name is then held), `base` (a base against the floor), `key` (the test key named by the kid of the binding candidate under which it verified), `queued` (inside a window) and `items`, each Item judged at the pull in list order: all Items of an accepted list, and at an idempotent re-serve those not admitted before, judged under the sources that accept the Catalog where the pull reads two sources and under the Declaration it reads otherwise; `outcome` is `admitted`, `not_admitted` (WIST2-E03) or `refused` (the Item condition codes under every source that accepts the Catalog), and `payload` says how an Item of kind page was admitted or failed: `withdrawn` (a payload_withdrawal sealed in the Log names its Item ID: not admitted and its Payload not fetched, whatever else holds), `record`, `held`, `fetched`, `unavailable`, or `failed` with `payload_code`; a held Payload is verified again under the pull's map. For an Epoch: `settlement`, `entries` in canonical order (WIST-3 section 3.3), `sealed` in capacity order with each Entry's eligibility Epoch and the last Epoch its ceiling allows, `left` (what left waiting at its turn, with the condition failed, its codes and whether it is reported at the status endpoint: `C1`, reported; `C4`, not reported; `I5`, reported; `I7`, for an Item for which I7 no longer holds once the Epoch's transitions and Catalogs have applied, not reported whatever other condition it fails; `payload`, for an Item of kind page, however it was admitted, whose held Payload, checked again at its turn when the capacity has room, under the Epoch's map, fails: not sealed, no longer admitted, reported with WIST2-E03 and `payload_code`), `deferred` (every waiting Catalog and URL whose eligibility Epoch had come, that was not sealed and to which a deferral applied, with the deferrals: `recovery_window`, `catalog_waiting` for a URL whose waiting Catalog the window or the capacity holds out, `latest_fails_i4`, and `capacity` only where no other applied), `held` when nonempty (every such Catalog and URL to which no deferral applied and that the Epoch does not seal: `authority_reduction` while a Declaration of its Publisher that reduces authority is discovered, in the eligible sealing set and not sealed at or below the Epoch, and `catalog_waiting` for a URL whose waiting Catalog nothing defers and the Epoch does not seal) and `records_removed`. After every event `state` gives per Publisher and Collection name the latest Catalog, the last accepted Catalog and the waiting Catalog with its place, eligibility Epoch and ceiling; every waiting URL with its Collection, Item, place, eligibility Epoch and ceiling (null while a window holds it); the queue; the Declarations that reduce authority, discovered, in the eligible sealing set and not sealed; and the records. A place is [event index, position of the Collection] for a Catalog, with the Item's index in the list appended for a URL. The position is that of the Collection among the Collections of the Declaration in force for the Publisher, a name that Declaration lacks coming after them in ascending octet order: at a pull the Declaration it reads Collections from, and with two sources the one in effect before the recovery; at an Epoch the one in force once its transitions have applied; at a settlement the one it leaves current. Places compare by event index, then by the Publisher's Canonical Host in ascending octet order, then by position and list index. A URL that begins to wait at an Epoch or at a settlement takes that event's place. What takes a place is eligible for the Epoch after that event, a replacement that keeps a place keeps its eligibility Epoch, and each Epoch at which a deferral applies to it moves it to the following one; the hold and a waiting Catalog that nothing defers move none. The ceiling is the eligibility Epoch plus max_inclusion_epochs. A URL waits while its Item is admitted and I7 holds for it, an Item of kind page whose Item ID a sealed withdrawal names failing I7; where the last accepted Catalogs of two Collections of the Publisher each list an admitted Item for one URL, the Item of the Catalog later in the order of Several Logs (generated_at, then Catalog ID) waits; from the pull that accepts a base until it, or one that replaces it while it waits, is sealed or leaves, I7 is read for its Collection against no record; a queued Catalog begins no such reading until settlement makes it the last accepted Catalog. When a base fails C1 at its turn, the Items that are their URL's record's Items leave as Items for which I7 no longer holds, listed in `left` with `I7`, the codes of their judgment against the latest Catalog once the Epoch has applied, and not reported. The payload_withdrawal acts an Epoch seals that meet their contract through an Item sealed below that Epoch destroy their Payloads before its planning; one that breaks its contract, which the history seals as it lists it, destroys nothing. An Item of kind page whose Payload is not held at its turn is treated as one whose Payload fails (`payload`, WIST2-E03, no `payload_code`). Deferrals are listed in the order window, capacity, waiting Catalog, latest Catalog failing I4. The planned Entries replay as valid under the rules of vectors/wist3/catalog-sealing.json, whose capacity check counts per Canonical Host. The fixture asserts nothing about an Aggregator that seals later within the ceiling, nor about Consumers, which cannot derive these rules from the Log. Keys derive from the stated test-only seeds. This file exercises ADR-0051 Reaching the Log (the sources a pull reads, for each row of its table, and the Collections pulled in order; admission inside an open recovery window, each source read alone) and ADR-0052 Files (the admission of Items and their Payloads, WIST2-E03, and the retry of Items refused or not admitted at a pull that accepts a Catalog and at an idempotent re-serve).",
+  "note": "An Aggregator that seals every Entry in the Epoch it is eligible for unless a deferral or the hold keeps it out, fed `events` in time order. Each history names its signed Declarations (`declarations`), its signed Catalog Envelopes (`catalogs`, with `catalog_ids`; two names share an ID where one inner object is signed twice), the octets of every tree file served, as UTF-8 text keyed by the 64 hexadecimal digits of their SHA-256 (`tree_files`), and, where present, `registry_updates`, payload_withdrawal Envelopes (WIST-3 section 6.2, WIST-4 section 5.1) whose details.delta_id is an Item ID, signed by the test-only Log key and not authenticated by the replay. An `epoch` event gives height, sealed_at, the complete parameter map in force at it, the Declarations the Aggregator seals in it by name and, as `updates`, the registry updates it seals; Epochs are simplified to those and their Entries, with no Checkpoint and no Merkle tree of the Log, and the Aggregator plans the Catalog and Item Entries. A listed Declaration is checked again under the Epoch's map (ADR-0051 Size); one that fails is not sealed and leaves the eligible sealing set with every accepted Declaration that names it: `declarations_failed` gives it with the code of the check that failed and `declarations_left` those that named it, each with that code (each member present only when nonempty); the admission state is then that of the accepted Declarations that remain, applied in the order of their acceptance, a pending replacement a failed reversal had discarded included, and the sequence floor does not change, except that where none remains the domain returns to first contact with no floor. Every Declaration discovered at a pull that does not reduce authority and is still in the eligible sealing set is sealed in the next Epoch, which ADR-0051 requires of a prompt Aggregator, unless the epoch event lists it in `sealed_later`, which a history uses for a recovery rotation none of whose pulls' publications is sealed before settlement; one that reduces authority may be sealed later, at or below the last Epoch the earliest ceiling among its Publisher's waiting publications allows, and the fixture uses that to show the hold. The eligible sealing set loses a competitor accepted inside a window, and its descendants, at the settlement of that window at a pull or an Epoch; a pending replacement that a reversal discards stays in it and is sealed at or below the reversal's Epoch, its hold ending at the Epoch that seals it. A `pull` event gives its instant, which is the clock of the pull, the Publisher pulled, the parameter map in force at the pull (`parameters`), which its Declaration, Catalog, Item and Payload checks and a settlement it performs read, the Declaration served (null for a failed fetch) and, per Collection name, the Catalog served at catalog.json, the tree files served (by name, from `tree_files`) and the Payloads served, keyed by the digits of their Item ID. A Collection absent from `collections` has no catalog.json and a file absent from a pull is unavailable; there is no HTTP, these maps stand for the Publisher's site, and the octets of catalog.json are not modelled (its read bound is carried by vectors/wist1/catalog-fields.json). max_inclusion_epochs and record_seal_epochs are constant within each history. Every Canonical Host is its own capacity unit unless the history carries `suffix_list`, the rules of a Public Suffix List snapshot in force at every event, from which the Registrable Domain is derived as WIST-4 section 3.1 states; no history carries Labels, disputes or other registry updates. `expected` has one element per event. For a pull, `settlement` is empty unless the pull settles a queue (catalog-recovery.json), and `declaration` gives `outcome` (the served Declaration applied under WIST-1 section 5.2 after the Log's Declarations and those the Aggregator discovered that are still in the eligible sealing set: `initial`, `ordinary_rotation`, `recovery_rotation`, `fresh_identity_pending`, `pending_replacement`, `reversal_ordinary_rotation`, `in_window_chain`, `in_window_competitor`, `idempotent`, `recovery_chain_head` for the recovery-chain head of an open window served again, a success of the fetch, a rejection code, or `not_fetched`), `discovered`, `reduces_authority` against the Declaration it names (false unless discovered), `sources` (the Declarations the pull reads, as ADR-0051's table gives them: the two frozen sources, the Declaration in effect before the recovery and the recovery Declaration that owns the window or was discovered, inside an open window or for a recovery rotation discovered and not yet sealed, and otherwise the current Declaration) and `window`, whether the pull is inside an open window. A pull result carries `noise`, true, where the pull accepts no Declaration and no Catalog and admits no Item (WIST-2 section 4), and no `noise` otherwise. From the pull that discovers a recovery rotation, a pull queues what it accepts as a pull inside the window does, per Collection name and signing key, its order read against the floor, against the queued Catalog of the same name and key and, before the window opens, against the waiting Catalog where the same key signed it, and no URL takes a place at it; a queued Catalog is not the last accepted Catalog and replaces no waiting one until settlement makes it one, and it is not sealed before settlement, while a Catalog and Items that waited at the discovery keep waiting and are queued and held, with the places they had, when the window opens. Where the recovery rotation leaves the eligible sealing set unsealed, the queue, with what waits, is settled at that event under the Declaration then current in the Log, with the event's instant as the clock and its parameter map; what waited at the discovery keeps its place, eligibility Epoch and ceiling, what was queued from the discovery is eligible for the first Epoch not sealed before the event, and later pulls are pulls outside a window. `collections_pulled` lists the Collections in reading order. Per Collection pulled: a fetched Catalog is read first against the Catalog conditions other than the order; one that meets one is refused with its codes, replaces nothing and retries nothing, and only one that meets none is read for the order and for an idempotent re-serve. `outcome` (`unavailable`, `accepted`, `idempotent` for an idempotent re-serve, a Catalog with the Catalog ID of the last accepted Catalog or of the latest Catalog, or of the queued Catalog of its name and key inside a window, or `refused` with `codes`, those of every condition met, among which WIST-1 section 7 leaves the choice, and for WIST2-E07 a `reason` and, for a list that drops a held record's URL, `dropped`, the URL of every such record; an Item the list holds for the URL counts whether or not it is refused alone), `catalog` (its Catalog ID), `sources` under which it passed the Catalog conditions, `tree_files_fetched` (the files the walk requested because the Aggregator did not hold them, served or not, in ascending order; a file whose SHA-256 matches its name is then held), `base` (a base against the floor), `key` (the test key named by the kid of the binding candidate under which it verified), `queued` (inside a window) and `items`, each Item judged at the pull in list order: all Items of an accepted list, and at an idempotent re-serve those not admitted before, judged under the sources that accept the Catalog where the pull reads two sources and under the Declaration it reads otherwise; `outcome` is `admitted`, `not_admitted` (WIST2-E03) or `refused` (the Item condition codes under every source that accepts the Catalog), and `payload` says how an Item of kind page was admitted or failed: `withdrawn` (a payload_withdrawal sealed in the Log, meeting its contract, names its Item ID: not admitted and its Payload not fetched, read before every Item condition other than form), `record`, `held`, `fetched`, `unavailable`, or `failed` with `payload_code`; a held Payload is verified again under the pull's map. For an Epoch: `settlement`, `entries` in canonical order (WIST-3 section 3.3), `sealed` in capacity order with each Entry's eligibility Epoch and the last Epoch its ceiling allows, `left` (what left waiting at its turn, with the condition failed, its codes and whether it is reported at the status endpoint: `C1`, reported with the codes of C1 alone, whatever else the Catalog fails; `C4`, not reported; `I5`, reported; `I7`, for an Item for which I7 no longer holds once the Epoch's transitions and Catalogs have applied, not reported whatever other condition it fails; `payload`, for an Item of kind page, however it was admitted, whose held Payload, checked again at its turn when the capacity has room, under the Epoch's map, fails: not sealed, no longer admitted, reported with WIST2-E03 and `payload_code`), `deferred` (every waiting Catalog and URL whose eligibility Epoch had come, that was not sealed and to which a deferral applied, with the deferrals: `recovery_window`, alone inside a window, `catalog_waiting` for a URL whose waiting Catalog the capacity holds out, `latest_fails_i4`, which applies only while no Catalog of the Item's Collection waits that nothing defers, and `capacity` only where no other applied), `held` when nonempty (every such Catalog and URL to which no deferral applied and that the Epoch does not seal: `authority_reduction` while a Declaration of its Publisher that reduces authority is discovered, in the eligible sealing set and not sealed at or below the Epoch, and `catalog_waiting` for a URL whose waiting Catalog nothing defers and the Epoch does not seal) and `records_removed`. After every event `state` gives per Publisher and Collection name the latest Catalog, the last accepted Catalog and the waiting Catalog with its place, eligibility Epoch and ceiling; every waiting URL with its Collection, Item, place, eligibility Epoch and ceiling (null while a window holds it); the queue; the Declarations that reduce authority, discovered, in the eligible sealing set and not sealed; and the records. A place is [event index, position of the Collection] for a Catalog; event indices count a pull that settles a queue as two events, the settlement first, so they run one ahead of the positions in `expected` after such a pull, with the Item's index in the list appended for a URL. The position is that of the Collection among the Collections of the Declaration in force for the Publisher, a name that Declaration lacks coming after them in ascending octet order: at a pull the Declaration it reads Collections from, and with two sources the one in effect before the recovery; at an Epoch the one in force once its transitions have applied; at a settlement the one it leaves current, at a pull's settlement the admission head, unsealed followers included. Places compare by event index, then by the Publisher's Canonical Host in ascending octet order, then by position and list index. A URL that begins to wait at an Epoch or at a settlement takes that event's place. What takes a place is eligible for the Epoch after that event, a replacement that keeps a place keeps its eligibility Epoch, and each Epoch at which a deferral applies to it moves it to the following one; the hold and a waiting Catalog that nothing defers move none. The ceiling is the eligibility Epoch plus max_inclusion_epochs. A URL waits while its Item is admitted and I7 holds for it, an Item of kind page whose Item ID a sealed withdrawal names failing I7; where the last accepted Catalogs of two Collections of the Publisher each list an admitted Item for one URL that meets that row, the Item of the Collection whose Scope covers the URL under the Declaration in force (at an Epoch once its transitions have applied, at a pull the Log's) waits, and where no Scope covers it, that of the Catalog later in the order of Several Logs (generated_at, then Catalog ID); from the pull that accepts a base until it, or one that replaces it while it waits, is sealed or leaves, I7 is read for its Collection against no record; a queued Catalog begins no such reading until settlement makes it the last accepted Catalog. When a base fails C1 at its turn, the Items that are their URL's record's Items leave as Items for which I7 no longer holds, listed in `left` with `I7`, the codes of their judgment against the latest Catalog once the Epoch has applied, and not reported. The payload_withdrawal acts an Epoch seals that meet their contract through an Item sealed below that Epoch destroy their Payloads before its planning; the Aggregator seals no withdrawal that breaks its contract: one the Epoch lists is left out, destroys nothing and is reported in `updates_refused` with WIST4-E04 (present only when nonempty). An Item of kind page whose Payload is not held at its turn is treated as one whose Payload fails (`payload`, WIST2-E03, no `payload_code`). Deferrals are listed in the order window, capacity, waiting Catalog, latest Catalog failing I4. The planned Entries replay as valid under the rules of vectors/wist3/catalog-sealing.json, whose capacity check counts per Canonical Host. The fixture asserts nothing about an Aggregator that seals later within the ceiling, nor about Consumers, which cannot derive these rules from the Log. Keys derive from the stated test-only seeds. This file exercises ADR-0051 Reaching the Log (the sources a pull reads, for each row of its table, and the Collections pulled in order; admission inside an open recovery window, each source read alone) and ADR-0052 Files (the admission of Items and their Payloads, WIST2-E03, and the retry of Items refused or not admitted at a pull that accepts a Catalog and at an idempotent re-serve).",
   "keys": {
     "owner": {
       "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
@@ -2172,6 +2172,7 @@
               "items": []
             }
           ],
+          "noise": true,
           "state": {
             "collections": [
               {
@@ -3024,6 +3025,7 @@
               ]
             }
           ],
+          "noise": true,
           "state": {
             "collections": [],
             "urls": [],
@@ -6003,6 +6005,7 @@
               "outcome": "unavailable"
             }
           ],
+          "noise": true,
           "state": {
             "collections": [],
             "urls": [],
@@ -10991,8 +10994,8 @@
       ]
     },
     {
-      "name": "a withdrawal that breaks its contract in the Epoch of the Item's turn",
-      "why": "As in the previous history, x begins to wait at height 2 and height 3 seals D2 with a payload_withdrawal naming x, but its subject is blog.example.com, not the Publisher of the Catalog x was sealed against: it breaks its contract, destroys nothing, and x, whose Payload the Aggregator holds at its turn, is sealed there.",
+      "name": "a withdrawal that breaks its contract is not sealed",
+      "why": "As in the previous history, x begins to wait at height 2, and height 3 is to seal D2 with a payload_withdrawal naming x, but its subject is blog.example.com, not the Publisher of the Catalog x was sealed against. The act breaks its contract: the Aggregator does not seal it and reports it with WIST4-E04, destroys no Payload, and seals x, whose Payload it holds at its turn.",
       "registry_updates": {
         "withdrawal of x under another subject": {
           "update": {
@@ -12234,27 +12237,6 @@
               }
             },
             {
-              "type": "registry_update",
-              "body": {
-                "update": {
-                  "wist_version": "1.0.0",
-                  "action": "payload_withdrawal",
-                  "subject": "blog.example.com",
-                  "effective_at": "2026-10-01T03:00:00Z",
-                  "details": {
-                    "delta_id": "sha256:0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79",
-                    "legal_basis": "court order 12/2026",
-                    "jurisdiction": "BR"
-                  }
-                },
-                "sig": {
-                  "key_id": "U5Zulc1vyOjLpjzeudKLyw5Aq2WO1eBRx7h7u-Nfe1g",
-                  "alg": "Ed25519",
-                  "value": "euG16yAuSNoP5iduanSLqOBK_LMgzKIiB_QQ8Zdr4b0AvdwqWtSJ5eQvDGSV2cZD6aMolCc4yFuxI9t8_QaTDQ"
-                }
-              }
-            },
-            {
               "type": "publisher_item",
               "body": {
                 "item": {
@@ -12297,6 +12279,13 @@
           "left": [],
           "deferred": [],
           "records_removed": [],
+          "updates_refused": [
+            {
+              "delta_id": "sha256:0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79",
+              "subject": "blog.example.com",
+              "code": "WIST4-E04"
+            }
+          ],
           "state": {
             "collections": [
               {
@@ -12323,6 +12312,1210 @@
                 "url": "https://example.com/journal/old/x",
                 "collection": "journal",
                 "item": "sha256:0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79",
+                "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "a withdrawn Item that also fails an Item condition",
+      "why": "J1's new/a and old/x are sealed at height 1 and a payload_withdrawal of x at height 2. D1, sealed at height 3, narrows the journal to new/ and removes x's record. J2, accepted at pull 3 under D1, still names x, now outside the Scope as well: the withdrawal is read before the Item conditions other than form, so x is not admitted and is reported with WIST2-E03, not refused with WIST1-E03.",
+      "registry_updates": {
+        "withdrawal of x": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "payload_withdrawal",
+            "subject": "example.com",
+            "effective_at": "2026-10-01T02:00:00Z",
+            "details": {
+              "delta_id": "sha256:0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79",
+              "legal_basis": "court order 12/2026",
+              "jurisdiction": "BR"
+            }
+          },
+          "sig": {
+            "key_id": "U5Zulc1vyOjLpjzeudKLyw5Aq2WO1eBRx7h7u-Nfe1g",
+            "alg": "Ed25519",
+            "value": "OVV6VQ0wUWVQcHc48kdkoMt_8x1hCgGhGyhT-EzMnClOC7_Kv1PJTvCoFw1HTRm-Iod8B9w5bAqpCDyrk6RfBQ"
+          }
+        }
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+          }
+        },
+        "D1": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/new/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:dd855d2fe4fc678a6cc9e3a68aa476eee5fe62ed19b778b3488d90548f23016c"
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "LX-TMSCi-jhHAHmqO87e0G4anF2PVVRBl76VUpMb_GobY8LjQUGJnNiiYZYDqt1hDqVxZwVaI-h2-MK8wXWOBg"
+          }
+        }
+      },
+      "catalogs": {
+        "J1": {
+          "catalog": {
+            "wist_version": "1.0.0",
+            "publisher": "example.com",
+            "collection": "journal",
+            "generated_at": "2026-10-01T00:04:00Z",
+            "size": 2,
+            "root": "sha256:784c39223165884741de77e592807e3c5f3f136c9b9dc4c92d8113e71878faa1",
+            "tree": "sha256:70074491279c47509fef1e7322cc6c1f2cba06a7b8ae67954518aac15839355e"
+          },
+          "sig": {
+            "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+            "alg": "Ed25519",
+            "value": "b1pkQHNQjjG4ifX3SoPFXBpuCS1c7DvAyw-vK4g9fIKX8fUx4b2QCFr8wf3DLo7um8jP5JpPWMdhwtUj9nyNAQ"
+          }
+        },
+        "J2": {
+          "catalog": {
+            "wist_version": "1.0.0",
+            "publisher": "example.com",
+            "collection": "journal",
+            "generated_at": "2026-10-01T03:04:00Z",
+            "size": 3,
+            "root": "sha256:59c17be57e434f42c0a3fb759bce8868eb354eeab9bd7ea4d40a1b65dc75e683",
+            "tree": "sha256:08f062f6c4b23536dee1d18656c3243c3c63f5cbe848adcfc2abf001b412220e"
+          },
+          "sig": {
+            "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+            "alg": "Ed25519",
+            "value": "XpxKOpO-Gtavgcugw-BTkOSoIDBedtp1iPYPYL5WqPMlQk2RUIMrlp3iFlsR27q3VlZ-BRWQA0LIPE6pYjjCCA"
+          }
+        }
+      },
+      "catalog_ids": {
+        "J1": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+        "J2": "sha256:ec58224839bc00540d7490d69476a8f6b6434077de1239b0dfaed4870f4d89b9"
+      },
+      "tree_files": {
+        "08f062f6c4b23536dee1d18656c3243c3c63f5cbe848adcfc2abf001b412220e": "{\"items\":[{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":148,\"commitment\":\"hmac-sha256:691b9699c8e49f7f30919965d296bd6c07b9b4344b503b945fc42596192f0698\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/old/x\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":148,\"commitment\":\"hmac-sha256:b6e4dc20b621167ff592bb8cf52f7c5adc9931c3b9caeca138dae074f850b858\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/new/b\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":148,\"commitment\":\"hmac-sha256:2fd0702f22169c3e638e1a21b4ddcd7a5fd68143be03053272e0bc9d1e2c4fda\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/new/a\"}]}",
+        "70074491279c47509fef1e7322cc6c1f2cba06a7b8ae67954518aac15839355e": "{\"items\":[{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":148,\"commitment\":\"hmac-sha256:691b9699c8e49f7f30919965d296bd6c07b9b4344b503b945fc42596192f0698\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/old/x\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":148,\"commitment\":\"hmac-sha256:2fd0702f22169c3e638e1a21b4ddcd7a5fd68143be03053272e0bc9d1e2c4fda\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/new/a\"}]}"
+      },
+      "events": [
+        {
+          "event": "epoch",
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declarations": [
+            "G"
+          ]
+        },
+        {
+          "event": "pull",
+          "at": "2026-10-01T00:05:00Z",
+          "publisher": "example.com",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declaration": "G",
+          "collections": {
+            "journal": {
+              "catalog": "J1",
+              "tree_files": [
+                "70074491279c47509fef1e7322cc6c1f2cba06a7b8ae67954518aac15839355e"
+              ],
+              "payloads": {
+                "0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79": {
+                  "wist_version": "1.0.0",
+                  "salt": "QmTNjmdK4kJSfD63fy-uAw",
+                  "content": {
+                    "extract": "Text of https://example.com/journal/old/x.",
+                    "links": {
+                      "total": 0,
+                      "urls": []
+                    },
+                    "summary": {
+                      "title": "Title https://example.com/journal/old/x"
+                    }
+                  }
+                },
+                "772130060b00b3f4516549f7ee8c037a24a0ee0bd0a96d0d368e55f79d5a1346": {
+                  "wist_version": "1.0.0",
+                  "salt": "IBfv7U6CAFlVK2AXZQqsgg",
+                  "content": {
+                    "extract": "Text of https://example.com/journal/new/a.",
+                    "links": {
+                      "total": 0,
+                      "urls": []
+                    },
+                    "summary": {
+                      "title": "Title https://example.com/journal/new/a"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "event": "epoch",
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declarations": []
+        },
+        {
+          "event": "epoch",
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declarations": [],
+          "updates": [
+            "withdrawal of x"
+          ]
+        },
+        {
+          "event": "pull",
+          "at": "2026-10-01T02:05:00Z",
+          "publisher": "example.com",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declaration": "D1",
+          "collections": {
+            "journal": {
+              "catalog": "J1",
+              "tree_files": [
+                "70074491279c47509fef1e7322cc6c1f2cba06a7b8ae67954518aac15839355e"
+              ],
+              "payloads": {
+                "0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79": {
+                  "wist_version": "1.0.0",
+                  "salt": "QmTNjmdK4kJSfD63fy-uAw",
+                  "content": {
+                    "extract": "Text of https://example.com/journal/old/x.",
+                    "links": {
+                      "total": 0,
+                      "urls": []
+                    },
+                    "summary": {
+                      "title": "Title https://example.com/journal/old/x"
+                    }
+                  }
+                },
+                "772130060b00b3f4516549f7ee8c037a24a0ee0bd0a96d0d368e55f79d5a1346": {
+                  "wist_version": "1.0.0",
+                  "salt": "IBfv7U6CAFlVK2AXZQqsgg",
+                  "content": {
+                    "extract": "Text of https://example.com/journal/new/a.",
+                    "links": {
+                      "total": 0,
+                      "urls": []
+                    },
+                    "summary": {
+                      "title": "Title https://example.com/journal/new/a"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "event": "epoch",
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declarations": [
+            "D1"
+          ]
+        },
+        {
+          "event": "pull",
+          "at": "2026-10-01T03:05:00Z",
+          "publisher": "example.com",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declaration": "D1",
+          "collections": {
+            "journal": {
+              "catalog": "J2",
+              "tree_files": [
+                "08f062f6c4b23536dee1d18656c3243c3c63f5cbe848adcfc2abf001b412220e"
+              ],
+              "payloads": {
+                "0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79": {
+                  "wist_version": "1.0.0",
+                  "salt": "QmTNjmdK4kJSfD63fy-uAw",
+                  "content": {
+                    "extract": "Text of https://example.com/journal/old/x.",
+                    "links": {
+                      "total": 0,
+                      "urls": []
+                    },
+                    "summary": {
+                      "title": "Title https://example.com/journal/old/x"
+                    }
+                  }
+                },
+                "1e0b8e0b7b7d7591e7b58772dcc1a1a7a0ed7b7e1d10622d52d278e4de8b93c7": {
+                  "wist_version": "1.0.0",
+                  "salt": "VjMBboEDdp7JeZ9DKYHOVg",
+                  "content": {
+                    "extract": "Text of https://example.com/journal/new/b.",
+                    "links": {
+                      "total": 0,
+                      "urls": []
+                    },
+                    "summary": {
+                      "title": "Title https://example.com/journal/new/b"
+                    }
+                  }
+                },
+                "772130060b00b3f4516549f7ee8c037a24a0ee0bd0a96d0d368e55f79d5a1346": {
+                  "wist_version": "1.0.0",
+                  "salt": "IBfv7U6CAFlVK2AXZQqsgg",
+                  "content": {
+                    "extract": "Text of https://example.com/journal/new/a.",
+                    "links": {
+                      "total": 0,
+                      "urls": []
+                    },
+                    "summary": {
+                      "title": "Title https://example.com/journal/new/a"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "expected": [
+        {
+          "settlement": [],
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 0,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                      "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                      "nbf": 1788220800
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                      "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                      "nbf": 1788220800
+                    }
+                  ],
+                  "collections": [
+                    {
+                      "name": "journal",
+                      "scope": [
+                        {
+                          "url": "https://example.com/journal/",
+                          "match": "prefix"
+                        }
+                      ],
+                      "keys": [
+                        {
+                          "kty": "OKP",
+                          "crv": "Ed25519",
+                          "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                          "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                          "nbf": 1788220800
+                        }
+                      ]
+                    },
+                    {
+                      "name": "store",
+                      "scope": [
+                        {
+                          "url": "https://example.com/store/",
+                          "match": "prefix"
+                        }
+                      ],
+                      "keys": [
+                        {
+                          "kty": "OKP",
+                          "crv": "Ed25519",
+                          "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                          "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                          "nbf": 1788220800
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "sig": {
+                  "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                  "alg": "Ed25519",
+                  "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                }
+              }
+            }
+          ],
+          "sealed": [],
+          "left": [],
+          "deferred": [],
+          "records_removed": [],
+          "state": {
+            "collections": [],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": []
+          }
+        },
+        {
+          "settlement": [],
+          "declaration": {
+            "outcome": "idempotent",
+            "discovered": false,
+            "reduces_authority": false,
+            "sources": [
+              "G"
+            ],
+            "window": false
+          },
+          "collections_pulled": [
+            "journal",
+            "store"
+          ],
+          "catalogs": [
+            {
+              "collection": "journal",
+              "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+              "sources": [
+                "G"
+              ],
+              "tree_files_fetched": [
+                "70074491279c47509fef1e7322cc6c1f2cba06a7b8ae67954518aac15839355e"
+              ],
+              "outcome": "accepted",
+              "base": false,
+              "key": "journal",
+              "queued": false,
+              "items": [
+                {
+                  "url": "https://example.com/journal/old/x",
+                  "item": "sha256:0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79",
+                  "outcome": "admitted",
+                  "payload": "fetched"
+                },
+                {
+                  "url": "https://example.com/journal/new/a",
+                  "item": "sha256:772130060b00b3f4516549f7ee8c037a24a0ee0bd0a96d0d368e55f79d5a1346",
+                  "outcome": "admitted",
+                  "payload": "fetched"
+                }
+              ]
+            },
+            {
+              "collection": "store",
+              "outcome": "unavailable"
+            }
+          ],
+          "state": {
+            "collections": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "latest": null,
+                "last_accepted": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                "waiting": {
+                  "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                  "place": [
+                    1,
+                    0
+                  ],
+                  "eligibility": 1,
+                  "ceiling": 5
+                }
+              }
+            ],
+            "urls": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/old/x",
+                "collection": "journal",
+                "item": "sha256:0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79",
+                "place": [
+                  1,
+                  0,
+                  0
+                ],
+                "eligibility": 1,
+                "ceiling": 5
+              },
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/new/a",
+                "collection": "journal",
+                "item": "sha256:772130060b00b3f4516549f7ee8c037a24a0ee0bd0a96d0d368e55f79d5a1346",
+                "place": [
+                  1,
+                  0,
+                  1
+                ],
+                "eligibility": 1,
+                "ceiling": 5
+              }
+            ],
+            "queue": [],
+            "reductions_pending": [],
+            "records": []
+          }
+        },
+        {
+          "settlement": [],
+          "entries": [
+            {
+              "type": "publisher_catalog",
+              "body": {
+                "catalog": {
+                  "wist_version": "1.0.0",
+                  "publisher": "example.com",
+                  "collection": "journal",
+                  "generated_at": "2026-10-01T00:04:00Z",
+                  "size": 2,
+                  "root": "sha256:784c39223165884741de77e592807e3c5f3f136c9b9dc4c92d8113e71878faa1",
+                  "tree": "sha256:70074491279c47509fef1e7322cc6c1f2cba06a7b8ae67954518aac15839355e"
+                },
+                "sig": {
+                  "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "alg": "Ed25519",
+                  "value": "b1pkQHNQjjG4ifX3SoPFXBpuCS1c7DvAyw-vK4g9fIKX8fUx4b2QCFr8wf3DLo7um8jP5JpPWMdhwtUj9nyNAQ"
+                }
+              }
+            },
+            {
+              "type": "publisher_item",
+              "body": {
+                "item": {
+                  "meta": {
+                    "lang": "en"
+                  },
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "alg": "HMAC-SHA256",
+                    "bytes": 148,
+                    "commitment": "hmac-sha256:2fd0702f22169c3e638e1a21b4ddcd7a5fd68143be03053272e0bc9d1e2c4fda"
+                  },
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/new/a"
+                },
+                "collection": "journal",
+                "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                "proof": {
+                  "index": 1,
+                  "tree_size": 2,
+                  "path": [
+                    "ab99950dabffc41710aaf98aae7079e6b806fdbbf8840a01d79912caaae644b9"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "publisher_item",
+              "body": {
+                "item": {
+                  "meta": {
+                    "lang": "en"
+                  },
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "alg": "HMAC-SHA256",
+                    "bytes": 148,
+                    "commitment": "hmac-sha256:691b9699c8e49f7f30919965d296bd6c07b9b4344b503b945fc42596192f0698"
+                  },
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/old/x"
+                },
+                "collection": "journal",
+                "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                "proof": {
+                  "index": 0,
+                  "tree_size": 2,
+                  "path": [
+                    "19c6995f7fda75208a1a6a184c5a22a1e963d65445b3727fe394c58ec5ce929d"
+                  ]
+                }
+              }
+            }
+          ],
+          "sealed": [
+            {
+              "type": "publisher_catalog",
+              "publisher": "example.com",
+              "collection": "journal",
+              "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+              "eligibility": 1,
+              "ceiling": 5
+            },
+            {
+              "type": "publisher_item",
+              "publisher": "example.com",
+              "collection": "journal",
+              "url": "https://example.com/journal/old/x",
+              "item": "sha256:0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79",
+              "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+              "eligibility": 1,
+              "ceiling": 5
+            },
+            {
+              "type": "publisher_item",
+              "publisher": "example.com",
+              "collection": "journal",
+              "url": "https://example.com/journal/new/a",
+              "item": "sha256:772130060b00b3f4516549f7ee8c037a24a0ee0bd0a96d0d368e55f79d5a1346",
+              "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+              "eligibility": 1,
+              "ceiling": 5
+            }
+          ],
+          "left": [],
+          "deferred": [],
+          "records_removed": [],
+          "state": {
+            "collections": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "latest": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                "last_accepted": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                "waiting": null
+              }
+            ],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/new/a",
+                "collection": "journal",
+                "item": "sha256:772130060b00b3f4516549f7ee8c037a24a0ee0bd0a96d0d368e55f79d5a1346",
+                "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc"
+              },
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/old/x",
+                "collection": "journal",
+                "item": "sha256:0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79",
+                "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc"
+              }
+            ]
+          }
+        },
+        {
+          "settlement": [],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "payload_withdrawal",
+                  "subject": "example.com",
+                  "effective_at": "2026-10-01T02:00:00Z",
+                  "details": {
+                    "delta_id": "sha256:0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79",
+                    "legal_basis": "court order 12/2026",
+                    "jurisdiction": "BR"
+                  }
+                },
+                "sig": {
+                  "key_id": "U5Zulc1vyOjLpjzeudKLyw5Aq2WO1eBRx7h7u-Nfe1g",
+                  "alg": "Ed25519",
+                  "value": "OVV6VQ0wUWVQcHc48kdkoMt_8x1hCgGhGyhT-EzMnClOC7_Kv1PJTvCoFw1HTRm-Iod8B9w5bAqpCDyrk6RfBQ"
+                }
+              }
+            }
+          ],
+          "sealed": [],
+          "left": [],
+          "deferred": [],
+          "records_removed": [],
+          "state": {
+            "collections": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "latest": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                "last_accepted": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                "waiting": null
+              }
+            ],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/new/a",
+                "collection": "journal",
+                "item": "sha256:772130060b00b3f4516549f7ee8c037a24a0ee0bd0a96d0d368e55f79d5a1346",
+                "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc"
+              },
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/old/x",
+                "collection": "journal",
+                "item": "sha256:0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79",
+                "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc"
+              }
+            ]
+          }
+        },
+        {
+          "settlement": [],
+          "declaration": {
+            "outcome": "ordinary_rotation",
+            "discovered": true,
+            "reduces_authority": true,
+            "sources": [
+              "D1"
+            ],
+            "window": false
+          },
+          "collections_pulled": [
+            "journal",
+            "store"
+          ],
+          "catalogs": [
+            {
+              "collection": "journal",
+              "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+              "outcome": "idempotent",
+              "tree_files_fetched": [],
+              "items": []
+            },
+            {
+              "collection": "store",
+              "outcome": "unavailable"
+            }
+          ],
+          "state": {
+            "collections": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "latest": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                "last_accepted": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                "waiting": null
+              }
+            ],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [
+              {
+                "publisher": "example.com",
+                "declaration": "D1"
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/new/a",
+                "collection": "journal",
+                "item": "sha256:772130060b00b3f4516549f7ee8c037a24a0ee0bd0a96d0d368e55f79d5a1346",
+                "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc"
+              },
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/old/x",
+                "collection": "journal",
+                "item": "sha256:0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79",
+                "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc"
+              }
+            ]
+          }
+        },
+        {
+          "settlement": [],
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 1,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                      "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                      "nbf": 1788220800
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                      "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                      "nbf": 1788220800
+                    }
+                  ],
+                  "collections": [
+                    {
+                      "name": "journal",
+                      "scope": [
+                        {
+                          "url": "https://example.com/journal/new/",
+                          "match": "prefix"
+                        }
+                      ],
+                      "keys": [
+                        {
+                          "kty": "OKP",
+                          "crv": "Ed25519",
+                          "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                          "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                          "nbf": 1788220800
+                        }
+                      ]
+                    },
+                    {
+                      "name": "store",
+                      "scope": [
+                        {
+                          "url": "https://example.com/store/",
+                          "match": "prefix"
+                        }
+                      ],
+                      "keys": [
+                        {
+                          "kty": "OKP",
+                          "crv": "Ed25519",
+                          "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                          "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                          "nbf": 1788220800
+                        }
+                      ]
+                    }
+                  ],
+                  "prev_declaration": "sha256:dd855d2fe4fc678a6cc9e3a68aa476eee5fe62ed19b778b3488d90548f23016c"
+                },
+                "sig": {
+                  "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                  "alg": "Ed25519",
+                  "value": "LX-TMSCi-jhHAHmqO87e0G4anF2PVVRBl76VUpMb_GobY8LjQUGJnNiiYZYDqt1hDqVxZwVaI-h2-MK8wXWOBg"
+                }
+              }
+            }
+          ],
+          "sealed": [],
+          "left": [],
+          "deferred": [],
+          "records_removed": [
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/journal/old/x",
+              "cause": "narrowing"
+            }
+          ],
+          "state": {
+            "collections": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "latest": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                "last_accepted": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                "waiting": null
+              }
+            ],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/new/a",
+                "collection": "journal",
+                "item": "sha256:772130060b00b3f4516549f7ee8c037a24a0ee0bd0a96d0d368e55f79d5a1346",
+                "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc"
+              }
+            ]
+          }
+        },
+        {
+          "settlement": [],
+          "declaration": {
+            "outcome": "idempotent",
+            "discovered": false,
+            "reduces_authority": false,
+            "sources": [
+              "D1"
+            ],
+            "window": false
+          },
+          "collections_pulled": [
+            "journal",
+            "store"
+          ],
+          "catalogs": [
+            {
+              "collection": "journal",
+              "catalog": "sha256:ec58224839bc00540d7490d69476a8f6b6434077de1239b0dfaed4870f4d89b9",
+              "sources": [
+                "D1"
+              ],
+              "tree_files_fetched": [
+                "08f062f6c4b23536dee1d18656c3243c3c63f5cbe848adcfc2abf001b412220e"
+              ],
+              "outcome": "accepted",
+              "base": false,
+              "key": "journal",
+              "queued": false,
+              "items": [
+                {
+                  "url": "https://example.com/journal/old/x",
+                  "item": "sha256:0fc647ed18d978cd3405191d96033a3e6d67a2836fb5d2a9b24655054769be79",
+                  "outcome": "not_admitted",
+                  "codes": [
+                    "WIST2-E03"
+                  ],
+                  "payload": "withdrawn"
+                },
+                {
+                  "url": "https://example.com/journal/new/b",
+                  "item": "sha256:1e0b8e0b7b7d7591e7b58772dcc1a1a7a0ed7b7e1d10622d52d278e4de8b93c7",
+                  "outcome": "admitted",
+                  "payload": "fetched"
+                },
+                {
+                  "url": "https://example.com/journal/new/a",
+                  "item": "sha256:772130060b00b3f4516549f7ee8c037a24a0ee0bd0a96d0d368e55f79d5a1346",
+                  "outcome": "admitted",
+                  "payload": "record"
+                }
+              ]
+            },
+            {
+              "collection": "store",
+              "outcome": "unavailable"
+            }
+          ],
+          "state": {
+            "collections": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "latest": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc",
+                "last_accepted": "sha256:ec58224839bc00540d7490d69476a8f6b6434077de1239b0dfaed4870f4d89b9",
+                "waiting": {
+                  "catalog": "sha256:ec58224839bc00540d7490d69476a8f6b6434077de1239b0dfaed4870f4d89b9",
+                  "place": [
+                    6,
+                    0
+                  ],
+                  "eligibility": 4,
+                  "ceiling": 8
+                }
+              }
+            ],
+            "urls": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/new/b",
+                "collection": "journal",
+                "item": "sha256:1e0b8e0b7b7d7591e7b58772dcc1a1a7a0ed7b7e1d10622d52d278e4de8b93c7",
+                "place": [
+                  6,
+                  0,
+                  1
+                ],
+                "eligibility": 4,
+                "ceiling": 8
+              }
+            ],
+            "queue": [],
+            "reductions_pending": [],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/new/a",
+                "collection": "journal",
+                "item": "sha256:772130060b00b3f4516549f7ee8c037a24a0ee0bd0a96d0d368e55f79d5a1346",
                 "catalog": "sha256:6dcb0723f3d2c14a3a799e1e4a70daa12aef950908b7a28ffe9fcd9100b4c8cc"
               }
             ]

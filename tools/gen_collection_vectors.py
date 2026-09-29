@@ -1018,12 +1018,16 @@ def pull_vectors():
             "state_pull_note": (
                 "state_pull_cases: an Aggregator's view of one Publisher when a pull starts. `epochs` are the Epochs "
                 "sealed before it, applied as vectors/wist1/collection-narrowing.json applies them, each under the "
-                "`parameters` map in force at its sealed_at. `discovered` lists, in discovery order, Declarations "
-                "accepted and not yet sealed, applied after the Epochs; one that no longer applies there has left "
-                "the eligible sealing set and is skipped. The pull then fetches the Declaration at `pull.sealed_at` "
-                "under `pull.parameters`, as the next Epoch at `pull.height` would apply it; `pull.fetched` names the "
-                "Declaration the answer carries, for `not_modified` the one the cached validator stands for, and is "
-                "null when the fetch failed. `expected.acceptance` is the transition kind of the fetched Declaration "
+                "`parameters` map in force at its sealed_at, and all under `history_parameters` (recovery_window_days, "
+                "declaration_activation_epochs), trusted fixture input, 7 and 24 where the case omits it. `discovered` lists, in discovery order, "
+                "Declarations accepted at their discovery and not yet sealed, applied after the Epochs without "
+                "reading collections_max, scope_entries_max, url_cap_bytes or the Entry bound again; one that no longer "
+                "applies there has left the eligible sealing set and is skipped. A pending head activates only in the "
+                "Epoch at its activation height, never at a pull. The pull then fetches the Declaration at "
+                "`pull.sealed_at` under `pull.parameters`, as the next Epoch at `pull.height` would apply it; "
+                "`pull.fetched` names the Declaration the answer carries, for `not_modified` the Declaration whose "
+                "validator the request sent, judged as an answer 200 carrying it, and is null when the fetch failed. "
+                "First contact lasts while neither the Epochs nor `discovered` hold an accepted Declaration. `expected.acceptance` is the transition kind of the fetched Declaration "
                 "(`recovery_chain_head` for the recovery-chain head of an open window served while another "
                 "Declaration is current), the rejection code, or `not_fetched`; `sources` name the Declarations the "
                 "pull reads, `collections_pulled` their Collections in pull order, and a pull that does not proceed "
@@ -1032,11 +1036,14 @@ def pull_vectors():
             "state_pull_cases": state_pull_cases}
 
 
-def state_pull(name, declarations, epochs, pull, discovered=()):
+def state_pull(name, declarations, epochs, pull, discovered=(), history_parameters=None):
     signed = {label: sign(signer, "publisher", inner) for label, (signer, inner) in declarations.items()}
     labels = {rules.declaration_hash(envelope["publisher"]): label for label, envelope in signed.items()}
-    replay = narrowing.Replay(HISTORY_DEFAULTS["recovery_window_days"],
-                              HISTORY_DEFAULTS["declaration_activation_epochs"], DEFAULTS)
+    history_parameters = {"recovery_window_days": HISTORY_DEFAULTS["recovery_window_days"],
+                          "declaration_activation_epochs": HISTORY_DEFAULTS["declaration_activation_epochs"],
+                          **(history_parameters or {})}
+    replay = narrowing.Replay(history_parameters["recovery_window_days"],
+                              history_parameters["declaration_activation_epochs"], DEFAULTS)
     written, at = [], T0 - HOUR
     for height, (sealed, parameters, *explicit) in enumerate(epochs):
         at = explicit[0] if explicit else at + HOUR
@@ -1054,7 +1061,10 @@ def state_pull(name, declarations, epochs, pull, discovered=()):
     expected = dict(result, sources=[labels[rules.declaration_hash(p)] for p in result["sources"]])
     for member, value in pull.get("expect", {}).items():
         assert expected[member] == value, (name, member, expected[member])
-    return {"name": name, "declarations": signed, "epochs": written, "discovered": list(discovered),
+    case = {"name": name}
+    if history_parameters != {k: HISTORY_DEFAULTS[k] for k in history_parameters}:
+        case["history_parameters"] = history_parameters
+    return {**case, "declarations": signed, "epochs": written, "discovered": list(discovered),
             "pull": {"height": height, "sealed_at": timestamp(at), "parameters": pull_parameters,
                      "fetch_outcome": pull["fetch_outcome"], "fetched": fetched},
             "expected": expected}
@@ -1151,6 +1161,52 @@ def state_pulls():
         {"fetch_outcome": "same_octets", "fetched": "R",
          "expect": {"acceptance": "idempotent", "sources": ["R"], "collections_pulled": frozen}},
         discovered=["X"]))
+
+    cases.append(state_pull(
+        "recovery rotation whose window would end after the last Log timestamp fails at the fetch and stops the pull",
+        {"G": ("owner", N_G), "R": ("recovery", recovery)},
+        [(["G"], None)],
+        {"fetch_outcome": "new_octets", "fetched": "R",
+         "expect": {"acceptance": "WIST1-E08", "proceeds": False, "disposition": "WIST2-E01", "noise": False}},
+        history_parameters={"recovery_window_days": 3000000}))
+    recovery_replacement = successor(fresh, contact="mailto:recovery@example.com")
+    cases.append(state_pull(
+        "replacement of the pending head signed by a recovery key is a pending replacement, pulled under the "
+        "current Declaration alone",
+        {"G": ("owner", N_G), "P": ("fresh", fresh), "Q": ("recovery", recovery_replacement)},
+        [(["G"], None), (["P"], None)],
+        {"fetch_outcome": "new_octets", "fetched": "Q",
+         "expect": {"acceptance": "pending_replacement", "sources": ["G"],
+                    "collections_pulled": ["journal", "store", "default"]}}))
+    cases.append(state_pull(
+        "answer 304 for a competitor superseded at settlement is judged as that competitor served again and stops "
+        "the pull",
+        {"G": ("owner", N_G), "R": ("recovery", recovery), "C": ("fresh", competitor)},
+        [(["G"], None), ([], None), (["R"], None), (["C"], None), ([], None, settles)],
+        {"fetch_outcome": "not_modified", "fetched": "C",
+         "expect": {"acceptance": "WIST1-E08", "proceeds": False, "disposition": "WIST2-E01"}}))
+    assert rules.declaration_disposition(sign("owner", "publisher", twenty), {"collections_max": 24}) == "accepted"
+    cases.append(state_pull(
+        "discovered unsealed Declaration of 20 Collections served again under a collections_max lowered from 24 "
+        "to 16: idempotent, pulled under it",
+        {"G": ("owner", N_G), "D": ("owner", twenty)},
+        [(["G"], None)],
+        {"fetch_outcome": "same_octets", "fetched": "D",
+         "expect": {"acceptance": "idempotent", "sources": ["D"],
+                    "collections_pulled": [c["name"] for c in twenty["collections"]]}},
+        discovered=["D"]))
+    cases.append(state_pull(
+        "pending head served again in the Epoch below its activation height stays pending",
+        {"G": ("owner", N_G), "P": ("fresh", fresh)},
+        [(["G"], None), (["P"], None)] + [([], None)] * 23,
+        {"fetch_outcome": "same_octets", "fetched": "P",
+         "expect": {"acceptance": "idempotent", "sources": ["G"]}}))
+    cases.append(state_pull(
+        "first Declaration accepted and unsealed ends first contact: a failed fetch after it is WIST2-E01",
+        {"G": ("owner", N_G)}, [],
+        {"fetch_outcome": "failed", "fetched": None,
+         "expect": {"acceptance": "not_fetched", "proceeds": False, "disposition": "WIST2-E01", "noise": False}},
+        discovered=["G"]))
 
     for label, epochs, outcome, fetched, acceptance, disposition in (
             ("fetch failed at first contact", [], "failed", None, "not_fetched", "WIST2-E04"),

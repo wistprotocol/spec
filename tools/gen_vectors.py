@@ -2087,11 +2087,17 @@ scan_expected_urls = ["https://quoted.example.io/x", "https://query.example.io/x
                       "https://upper.example.io/x", "https://unquoted.example.io/x"]
 scan_excluded_hosts = ("commented.example.io", "scripted.example.io", "decoy.example.io")
 
+link_at_cap = "https://example.org/" + "k" * (2048 - 2 - len("https://example.org/"))
+assert len(rfc8785.dumps(link_at_cap)) == 2048
+link_cap_html = ('<html><body><a href="' + link_at_cap + 'k">one octet above link_url_cap_bytes</a>'
+                 '<a href="' + link_at_cap + '">at link_url_cap_bytes</a></body></html>').encode("utf-8")
+
 cases = []
 for label, html, base, dom in (
         ("example-delta-page", FIXTURE_HTML, DELTA_URL, "example.com"),
         ("budget-truncation", overflow_html, DELTA_URL, "example.com"),
-        ("scan-hardening", scan_html, DELTA_URL, "example.com")):
+        ("scan-hardening", scan_html, DELTA_URL, "example.com"),
+        ("link-url-cap", link_cap_html, DELTA_URL, "example.com")):
     urls, total = link_extraction.extract_links(html, base, dom)
     member = link_extraction.links_member(urls, total, LINKS_CAP_BYTES)
     cases.append({"label": label, "html_hex": html.hex(), "base_url": base,
@@ -2104,6 +2110,7 @@ assert cases[1]["expected"]["total"] == OVERFLOW_LINK_COUNT and \
     "truncation not exercised"
 assert cases[2]["expected"] == {"total": 4, "urls": scan_expected_urls}, \
     "scan-hardening fixture drifted"
+assert cases[3]["expected"] == {"total": 1, "urls": [link_at_cap]}, "link cap not exercised"
 assert not any(host in u for u in cases[2]["expected"]["urls"]
               for host in scan_excluded_hosts), \
     "a comment-, script-, or data-href-only link leaked into the declared set"
@@ -2112,7 +2119,9 @@ write_json(WIST2V / "link-extraction.json",
            {"note": ("WIST-2's extraction procedure over raw HTML bytes. "
                      "html_hex decodes to the exact input; expected is the "
                      "links member a conforming Publisher declares for it "
-                     "under links_cap_bytes."),
+                     "under links_cap_bytes. A link whose JCS serialization "
+                     "exceeds link_url_cap_bytes (2048) is discarded at step 6 "
+                     "and not counted."),
             "links_cap_bytes": LINKS_CAP_BYTES, "cases": cases})
 print("wist2 link-extraction vector:", [c["label"] for c in cases])
 

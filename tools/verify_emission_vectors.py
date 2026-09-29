@@ -16,6 +16,7 @@ DEFAULT_PARAMETERS = {"url_cap_bytes": 2048, "extract_cap_bytes": 32768, "links_
 HEADER_MEMBERS = frozenset({"wist_emission", "publisher", "collection", "mode"})
 TRAILER_MEMBERS = frozenset({"end", "count"})
 MAX_COUNT = 9007199254740991
+ITEM_BOUND_OCTETS = 16384
 JSON_WS = " \t\n\r"
 HTML_WS = b" \t\n\f\r"
 TRIMMED = "\t\n\f\r "
@@ -500,6 +501,8 @@ def read_stream(octets, declaration, collection, params):
             raise Refusal("duplicate", number)
         seen.add(url)
         if "removed" in obj:
+            if jcs_len(url) > params["url_cap_bytes"]:
+                raise Refusal("cap", number)
             entries.append((url, None))
             continue
         if not covers(declaration, collection, url):
@@ -507,6 +510,7 @@ def read_stream(octets, declaration, collection, params):
         content = derive(obj, url, domain, params)
         summary = content["summary"]
         if (jcs_len(url) > params["url_cap_bytes"]
+                or jcs_len(item_of(domain, url, obj, content)) > ITEM_BOUND_OCTETS + params["url_cap_bytes"]
                 or jcs_len(content["extract"]) > params["extract_cap_bytes"]
                 or len(summary["title"]) > 256
                 or len(summary.get("abstract", "")) > 1500
@@ -518,6 +522,13 @@ def read_stream(octets, declaration, collection, params):
     if trailer is None or trailer != len(lines) - 2:
         raise Refusal("stream-form", None)
     return mode, entries
+
+
+def item_of(domain, url, emission, content):
+    # ADR-0052 Items and From publications to Items: a new Item of kind page; the commitment's length does not depend on the salt.
+    payload = {"commitment": "hmac-sha256:" + "0" * 64, "alg": "HMAC-SHA256", "bytes": jcs_len(content)}
+    return {"publisher": domain, "url": url, "observed_at": emission["modified"], "payload": payload,
+            "meta": {"lang": emission["lang"]}}
 
 
 def url_key(url):
