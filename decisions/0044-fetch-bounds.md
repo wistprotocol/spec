@@ -30,9 +30,9 @@ or how long one Ping's pull runs.
   addresses classified by the IPv4 address they embed. A single-machine
   deployment may admit loopback under the opt-in that admits plain HTTP.
 - **Responses are bounded before their fields are.** A Declaration,
-  Feed, Page or Mirror list is read to 1 MiB; a Delta file to 16 KiB
-  plus twice `url_cap_bytes`; a Payload to the sum of the content caps
-  plus 4 KiB. The parameterized bounds follow the caps in force at the
+  Feed, Page, Mirror list or change list (ADR-0053) is read to 1 MiB;
+  a Delta file to 16 KiB plus twice `url_cap_bytes`; a Payload to the
+  sum of the content caps plus 4 KiB. The parameterized bounds follow the caps in force at the
   request, so an amendment moves them; the fixed terms cover the fields
   no cap reaches.
 - **A pull may be shorter than a day's budget.** An Aggregator may

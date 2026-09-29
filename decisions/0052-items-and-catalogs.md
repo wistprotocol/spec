@@ -339,6 +339,10 @@ hashes, so the walk resumes at the next pull, under the Catalog then
 served, from the files held, and may discard a tree file that no last
 accepted, waiting or queued Catalog of the Collection names.
 
+An Aggregator may obtain the list of a Catalog from the change lists
+of ADR-0053 in place of the walk. The rules below read the list
+however the Aggregator obtained it.
+
 A Catalog is refused whole with `WIST2-E07` as well when its list
 holds no Item for the URL of a record that the Aggregator holds for
 the Collection and that the Collection's Scope covers under the
@@ -770,9 +774,10 @@ hold a state for the URL. A record is a state. A valid Item of kind
 a Consumer keeps with the Item's Item ID and the Catalog ID and the
 instant of the Catalog the Item was proved against. Between states
 proved against one Catalog, the state of the greater Item ID in octet
-order is taken, a record's being its Item's. No walk accepts a list
-with two Items under one key (Files), so two such states arise only in
-a Log whose Aggregator sealed an Item without the walk; the rule makes
+order is taken, a record's being its Item's. Neither a walk nor a
+chain of change lists (ADR-0053) gives a list with two Items under one
+key (Files), so two such states arise only in a Log whose Aggregator
+sealed an Item from a list it obtained otherwise; the rule makes
 the Consumers of such Logs agree. A record that narrowing or a base
 removed in a Log leaves no state in that Log. The state that a URL is
 removed stays through narrowing and through a base, and ends when a

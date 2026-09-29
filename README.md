@@ -61,6 +61,8 @@ tools/.venv/bin/python tools/gen_collection_vectors.py    # regenerates the Coll
 tools/.venv/bin/python tools/verify_collection_vectors.py # verifies them from the prose
 tools/.venv/bin/python tools/gen_catalog_vectors.py       # regenerates the Item and Catalog vectors
 tools/.venv/bin/python tools/verify_catalog_vectors.py    # verifies them from the prose
+tools/.venv/bin/python tools/gen_change_list_vectors.py   # regenerates the change list vectors
+tools/.venv/bin/python tools/verify_change_list_vectors.py # verifies them from the prose
 tools/.venv/bin/python tools/gen_sealing_vectors.py       # regenerates the sealing, Several Logs and served-file vectors
 tools/.venv/bin/python tools/verify_sealing_vectors.py    # verifies them from the prose
 tools/.venv/bin/python tools/gen_waiting_vectors.py       # regenerates the waiting, recovery and pull vectors
