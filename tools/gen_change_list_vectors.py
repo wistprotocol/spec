@@ -123,9 +123,6 @@ def catalog_of(listed, generated_at, collection="journal"):
     return inner, files
 
 
-NESTING = 100
-
-
 def max_depth(value):
     if isinstance(value, dict):
         return 1 + max((max_depth(v) for v in value.values()), default=0)
@@ -226,12 +223,13 @@ def change_list_vectors():
     form("items in ascending order of key but not of url", varied(items=items.in_list_order(by_url_order)),
          "accepted")
     form("key both dropped and listed", varied(dropped=sorted(dropped + [items.item_key(url(4)).hex()])), "form")
-    nested = []
-    for _ in range(NESTING - 4):
-        nested = [nested]
-    deep_text = varied(items=[{"url": elements[0]["url"], "z": nested}])
-    assert max_depth(json.loads(deep_text)) == NESTING
-    form("items element holding arrays nested to a depth of 100 in the file", deep_text, "accepted")
+    for depth, expected in ((items.NESTING_MAX, "accepted"), (items.NESTING_MAX + 1, "form")):
+        nested = []
+        for _ in range(depth - 4):
+            nested = [nested]
+        deep_text = varied(items=[{"url": elements[0]["url"], "z": nested}])
+        assert max_depth(json.loads(deep_text)) == depth
+        form(f"items element holding arrays nested to a depth of {depth} in the file", deep_text, expected)
     finite_text = varied(items=[{"n": 1, "url": elements[0]["url"]}])
     assert finite_text.count('"n":1,') == 1
     form("items element holding the number 1", finite_text, "accepted")
@@ -272,14 +270,14 @@ def change_list_vectors():
         "ADR-0053 Change lists: the form of a change list and its application. `form_cases`: `text` is the file's "
         "octets as UTF-8 text and `file` the 64 hexadecimal digits of its name; `expected` is \"accepted\" or "
         "\"form\". The octets are of the form when they are valid JCS input (UTF-8, no repeated member name, "
-        "strings of Unicode scalar values, numbers in the finite range), parse to an object of exactly the "
+        "strings of Unicode scalar values, numbers in the finite range, arrays and objects nested at most 64 "
+        "levels deep, the outer object being level 1), parse to an object of exactly the "
         "members previous, catalog, dropped and items, previous and catalog each \"sha256:\" followed by 64 lowercase "
         "hexadecimal digits, dropped an array of strings of 64 lowercase hexadecimal digits in strictly "
         "ascending order, items an array of objects each with a string member url in strictly ascending octet "
         "order of key (SHA-256(JCS([\"page\", url]))), no key of dropped equal to the key of an element, the "
         "octets equal the JCS serialization of that object, and catalog is \"sha256:\" followed by `file`. An "
-        "element is not judged as an Item here. No case nests deeper than 100 levels, counting the outer "
-        "object as one. Each case that fails is a twin of an accepted one differing in "
+        "element is not judged as an Item here. Each case that fails is a twin of an accepted one differing in "
         "the respect its name gives. `application_cases`: `list` is an Item list, `change_list` the text of a "
         "change list of the form; the change list is applied: every Item under a key of dropped leaves, "
         "whatever its kind, and each element of items takes the place of the Item under its key or enters. "

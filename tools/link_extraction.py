@@ -17,11 +17,16 @@ import urllib.parse
 
 import rfc8785
 
-_UNRESERVED = set(
-    b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+_UNRESERVED_TEXT = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+_UNRESERVED = set(_UNRESERVED_TEXT.encode("ascii"))
 
-_HOST_LDH = re.compile(
-    r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$")
+_SUB_DELIMS = "!$&'()*+,;="
+_REG_NAME_CHARACTERS = frozenset(_UNRESERVED_TEXT + _SUB_DELIMS + "%")
+_URI_CHARACTERS = frozenset(_UNRESERVED_TEXT + _SUB_DELIMS + ":/?#[]@%")
+_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
+_BROKEN_ESCAPE = re.compile(r"%(?![0-9A-Fa-f]{2})")
+
+_HOST_LDH = re.compile(r"[a-z0-9-]+(\.[a-z0-9-]+)*\Z")
 
 _CHAR_REF = re.compile(
     r"&(amp|lt|gt|quot|apos);|&#(\d+);|&#[xX]([0-9A-Fa-f]+);", re.ASCII)
@@ -222,18 +227,70 @@ def _renormalize_escapes(s: str):
     return "".join(out)
 
 
+def _host_span(candidate: str):
+    scheme = _SCHEME.match(candidate)
+    start = scheme.end() if scheme else 0
+    if not scheme and ":" in re.split(r"[/?#]", candidate, maxsplit=1)[0]:
+        return False
+    if not candidate.startswith("//", start):
+        return None
+    start += 2
+    end = start
+    while end < len(candidate) and candidate[end] not in "/?#":
+        end += 1
+    if "@" in candidate[start:end]:
+        return False
+    if candidate.startswith("[", start):
+        close = candidate.find("]", start, end)
+        return (start, end if close == -1 else close + 1)
+    colon = candidate.find(":", start, end)
+    return (start, end if colon == -1 else colon)
+
+
+def _uri_form(candidate: str) -> bool:
+    span = _host_span(candidate)
+    if span is False:
+        return False
+    if span is None:
+        host, outside = "", candidate
+    else:
+        host, outside = candidate[span[0]:span[1]], candidate[:span[0]] + candidate[span[1]:]
+    if any(c not in _URI_CHARACTERS or c in "[]" for c in outside):
+        return False
+    if outside.count("#") > 1 or _BROKEN_ESCAPE.search(outside):
+        return False
+    if host.startswith("["):
+        return host.endswith("]") and all(c in _URI_CHARACTERS for c in host)
+    return all(not c.isascii() or c in _REG_NAME_CHARACTERS for c in host)
+
+
+def _canonical_ascii_host(host: str):
+    host = _renormalize_escapes(host)
+    if host is None:
+        return None
+    host = host.lower()
+    if host.endswith("."):
+        host = host[:-1]
+    if len(host) > 253 or not _HOST_LDH.match(host):
+        return None
+    if any(len(label) > 63 for label in host.split(".")):
+        return None
+    return host
+
+
 def normalize_url(candidate: str, base_url: str):
     """WIST-1 §2 Normalized URL, or None. Query escapes are renormalized but
     the query is never parsed or reordered.
 
-    Reject-not-repair: a raw control octet in the candidate, a userinfo
+    Reject-not-repair: a character RFC 3986 does not allow outside the host
+    (a raw space, a control or a non-ASCII character among them), a userinfo
     (`@`) in the resolved authority, or a host that is not lowercase LDH
     all return None, as does any exception the parse steps raise — a
     hostile or malformed href discards the link rather than aborting the
     scan or guessing at a repair.
     """
-    if any(ord(c) < 0x20 for c in candidate):
-        return None          # urlsplit silently drops a raw tab/CR/LF
+    if not _uri_form(candidate):
+        return None
     try:
         resolved = urllib.parse.urljoin(base_url, candidate)
         parts = urllib.parse.urlsplit(resolved)
@@ -241,8 +298,8 @@ def normalize_url(candidate: str, base_url: str):
             return None
         if "@" in parts.netloc:
             return None       # userinfo: reject, do not strip and continue
-        host = (parts.hostname or "").lower()
-        if not _HOST_LDH.match(host):
+        host = _canonical_ascii_host(parts.hostname or "")
+        if host is None:
             return None
         if parts.port not in (None, 443):
             netloc = f"{host}:{parts.port}"

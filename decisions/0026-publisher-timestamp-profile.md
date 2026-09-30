@@ -18,8 +18,10 @@ to establish a stable ordering or an inclusive key bound.
 
 ## Decision
 
-WIST-1 §3.4 defines the Publisher timestamp profile used by `observed_at`
-and both Declaration key arrays' `valid_from`. Retain RFC 3339's ASCII
+WIST-1 §3.4 defines the Publisher timestamp profile used by an Item's
+`observed_at`. A Catalog's `generated_at`, which key windows and the clock
+rule read, uses the whole-second Log profile
+([ADR-0052](0052-items-and-catalogs.md)). Retain RFC 3339's ASCII
 grammar, four-digit Gregorian dates, arbitrary decimal fractions, lowercase
 `t`/`z`, and numeric offsets, including `-00:00`. Permit seconds 00–59
 only. Reject every `:60` spelling, including actual historical insertions
@@ -36,8 +38,9 @@ grammar; event-specific clock synchronization or smearing is not prescribed.
 
 Compare exact instants after subtracting the numeric offset, preserving
 every fractional digit. The written year must be 0000–9999; arithmetic may
-cross that range after offset subtraction. Existing `WIST1-E14` field
-precedence, `WIST1-E02` key bounds and `WIST1-E06`/`E07` Delta checks apply.
+cross that range after offset subtraction. `WIST1-E14` field precedence
+applies, and an `observed_at` later than its Catalog's `generated_at`,
+compared as exact instants, is `WIST1-E06`.
 The separate whole-second literal-Z Log profile and descriptive timestamp
 fields are unchanged.
 
@@ -62,10 +65,11 @@ or clock interpretation requires a new major version.
 
 ## Verification
 
-`vectors/wist1/declaration-fields.json` contains signed positive and negative
-timestamp cases in both key arrays and Deltas, exact key-bound comparisons,
-strict predecessor-order and inclusive 600-second skew twins, and authenticated
-Epoch rejection through recovery settlement with separate acceptance cases.
+`vectors/wist1/item-fields.json` contains positive and negative
+`observed_at` cases and its comparison with `generated_at` across offsets and
+long fractions; `vectors/wist1/declaration-fields.json` contains signed key
+window cases and authenticated Epoch rejection through recovery settlement
+with separate acceptance cases.
 Historical insertions, equivalent offsets, wrong dates/minutes, unannounced
 future labels, a hypothetical negative-leap boundary, year zero, offset
 overflow beyond the written year range and sub-nanosecond fractions
@@ -73,4 +77,4 @@ distinguish this profile from library defaults and event-table validation.
 The hypothetical deletion is a protocol-clock probe, not an event prediction.
 The independent reference uses Gregorian calendar validation and exact
 rational arithmetic. Live admission, replay, sealing, restoration and full
-Delta chain/clock validation remain separate conformance obligations.
+Catalog clock validation remain separate conformance obligations.

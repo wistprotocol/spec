@@ -1,4 +1,4 @@
-# ADR-0030: Delta and Payload version eligibility
+# ADR-0030: Catalog and Payload version eligibility
 
 **Status:** draft · **Date:** 2026-09-12
 
@@ -12,13 +12,16 @@ machine integers can also reject otherwise permitted spellings.
 
 ## Decision
 
-WIST-1 §§3.1/7 define Delta and Payload version spelling, role-independent major support
-and WIST1-E15 after complete field validation. Same-major minor and patch
+WIST-1 §§3.1/7 define Catalog and Payload version spelling, role-independent
+major support and WIST1-E15 after complete field validation. An Item carries
+no version and is read under the version of the Catalog that lists it
+([ADR-0052](0052-items-and-catalogs.md)). Same-major minor and patch
 differences alone do not reject; signed values remain unchanged and every
 rule of the implemented revision still applies. Existing diagnostic sets,
 transport wrappers and object/stage dispositions remain authoritative.
-Each Payload and its Delta are checked independently; equal major support
-does not require equal minor/patch strings. Other object diagnostics are
+Each Payload and each Catalog that lists its Item are checked
+independently; equal major support does not require equal minor/patch
+strings. Other object diagnostics are
 outside this decision.
 
 ## Alternatives and consequences
@@ -37,8 +40,9 @@ or skipping other checks. A new semantic diagnostic lets version rejection
 avoid unrelated network checks, but any check actually performed retains
 its retrieval and refresh obligations.
 
-Signed cases in `vectors/wist1/delta-fields.json` and
+Cases in `vectors/wist1/catalog-fields.json` and
 `vectors/wist1/payload-fields.json` cover supported minor/patch
 values, unbounded components, unsupported majors, malformed spellings and
 field/signature/static-error combinations. They establish supplied-context
-diagnostics, not live admission, complete chains or other objects' support.
+diagnostics, not live admission, complete Catalog eligibility or other
+objects' support.

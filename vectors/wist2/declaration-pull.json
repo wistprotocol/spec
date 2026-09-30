@@ -12073,6 +12073,605 @@
       }
     },
     {
+      "name": "fresh identity fetched under declaration_activation_epochs 0 and not yet sealed stays pending: pulled under the current Declaration alone",
+      "history_parameters": {
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 0
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "P": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "LbeXY24yPtV26bDgPifLkhcaiWtj6RhvDUpDucfTgtE",
+                "kid": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+            "alg": "Ed25519",
+            "value": "jDNmj23_p7ERxXbIhaNW6HZS02ovsAy_3xUhNWBotbT8x2WszZf9v5cXYowe16TVt1iq34d3E5kw2irPgAY2Bw"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [],
+          "parameters": {
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "url_cap_bytes": 2048
+          }
+        }
+      ],
+      "discovered": [],
+      "pull": {
+        "height": 1,
+        "sealed_at": "2026-10-01T01:00:00Z",
+        "parameters": {
+          "collections_max": 16,
+          "scope_entries_max": 32,
+          "url_cap_bytes": 2048
+        },
+        "fetch_outcome": "new_octets",
+        "fetched": "P"
+      },
+      "expected": {
+        "acceptance": "fresh_identity_pending",
+        "proceeds": true,
+        "sources": [
+          "G"
+        ],
+        "collections_pulled": [
+          "journal",
+          "store",
+          "default"
+        ],
+        "disposition": null,
+        "noise": false
+      }
+    },
+    {
+      "name": "fresh identity discovered under declaration_activation_epochs 0 and not yet sealed, served again: pulled under the current Declaration alone",
+      "history_parameters": {
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 0
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "P": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "LbeXY24yPtV26bDgPifLkhcaiWtj6RhvDUpDucfTgtE",
+                "kid": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+            "alg": "Ed25519",
+            "value": "jDNmj23_p7ERxXbIhaNW6HZS02ovsAy_3xUhNWBotbT8x2WszZf9v5cXYowe16TVt1iq34d3E5kw2irPgAY2Bw"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [],
+          "parameters": {
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "url_cap_bytes": 2048
+          }
+        }
+      ],
+      "discovered": [
+        "P"
+      ],
+      "pull": {
+        "height": 1,
+        "sealed_at": "2026-10-01T01:00:00Z",
+        "parameters": {
+          "collections_max": 16,
+          "scope_entries_max": 32,
+          "url_cap_bytes": 2048
+        },
+        "fetch_outcome": "same_octets",
+        "fetched": "P"
+      },
+      "expected": {
+        "acceptance": "idempotent",
+        "proceeds": true,
+        "sources": [
+          "G"
+        ],
+        "collections_pulled": [
+          "journal",
+          "store",
+          "default"
+        ],
+        "disposition": null,
+        "noise": false
+      }
+    },
+    {
+      "name": "fresh identity sealed under declaration_activation_epochs 0 is current at the next pull",
+      "history_parameters": {
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 0
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "P": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "LbeXY24yPtV26bDgPifLkhcaiWtj6RhvDUpDucfTgtE",
+                "kid": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+            "alg": "Ed25519",
+            "value": "jDNmj23_p7ERxXbIhaNW6HZS02ovsAy_3xUhNWBotbT8x2WszZf9v5cXYowe16TVt1iq34d3E5kw2irPgAY2Bw"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [],
+          "parameters": {
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "url_cap_bytes": 2048
+          }
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [
+            "P"
+          ],
+          "records": [],
+          "parameters": {
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "url_cap_bytes": 2048
+          }
+        }
+      ],
+      "discovered": [],
+      "pull": {
+        "height": 2,
+        "sealed_at": "2026-10-01T02:00:00Z",
+        "parameters": {
+          "collections_max": 16,
+          "scope_entries_max": 32,
+          "url_cap_bytes": 2048
+        },
+        "fetch_outcome": "same_octets",
+        "fetched": "P"
+      },
+      "expected": {
+        "acceptance": "idempotent",
+        "proceeds": true,
+        "sources": [
+          "P"
+        ],
+        "collections_pulled": [
+          "journal",
+          "default"
+        ],
+        "disposition": null,
+        "noise": false
+      }
+    },
+    {
       "name": "first Declaration accepted and unsealed ends first contact: a failed fetch after it is WIST2-E01",
       "declarations": {
         "G": {

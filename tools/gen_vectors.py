@@ -13,8 +13,11 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+import catalogs
 import ed25519_curve
+import items
 import link_extraction
+import tree_files
 from merkle import audit_path, consistency_proof, leaf_hash, node_hash
 from merkle import merkle_root as merkle_tree_root
 from merkle import entry_bundle_bytes, tile_bytes, tile_hashes, tile_path
@@ -81,18 +84,18 @@ def spaced_labels(node):
     return node
 
 
-# -------------------------------------------------- WIST-1/WIST-3: payload + delta
-# A Delta commits to its content and does not carry it (WIST-1 §3.6). The content
+# -------------------------------------------------- WIST-1/WIST-3: payload + Item + Catalog
+# An Item commits to its content and does not carry it (WIST-1 §3.6). The content
 # travels as a Payload (WIST-3 §6.1) whose salt never reaches the Log.
 #
-# A production salt is drawn from a CSPRNG, fresh per Delta. This generator has
+# A production salt is drawn from a CSPRNG, fresh per Item. This generator has
 # no random source by construction — it must stay byte-reproducible — so the
-# vector's salt is derived from a fixed domain-separated string and the Delta's
+# vector's salt is derived from a fixed domain-separated string and the Item's
 # URL. That is a property of the vector, never of a conforming Publisher.
 DELTA_URL = "https://example.com/blog/post-1"
 EXTRACT = "WIST is an open, verifiable, push-based web index protocol."
 
-# The example Delta's own page, in raw HTML octets — link_extraction.py's
+# The example Item's own page, in raw HTML octets — link_extraction.py's
 # "example-delta-page" vector fixture below runs its extraction procedure
 # over this exact byte string, so the Payload's links member is derived from
 # a page rather than asserted, and the vector and the example agree by
@@ -139,18 +142,41 @@ delta_canonical = rfc8785.dumps(delta)
 delta_id = "sha256:" + sha256_hex(delta_canonical)
 delta_envelope = sign_envelope("delta", delta, KID1)
 
+example_item = {
+    "publisher": "example.com",
+    "url": DELTA_URL,
+    "observed_at": "2026-08-02T12:00:00Z",
+    "payload": delta["payload"],
+    "meta": delta["meta"],
+}
+example_item_id = items.item_id(example_item)
+example_tree, example_tree_files = tree_files.write_tree([example_item])
+example_catalog = {
+    "wist_version": "1.0.0",
+    "publisher": "example.com",
+    "collection": "default",
+    "generated_at": "2026-08-02T12:00:00Z",
+    "size": 1,
+    "root": items.root_string([example_item]),
+    "tree": example_tree,
+}
+example_catalog_envelope = sign_envelope("catalog", example_catalog, KID1)
+example_catalog_id = catalogs.catalog_id(example_catalog)
+
 write_json(WIST1 / "keypair.json",
            {"seed_hex": SEED.hex(), "public_key": b64u(pub_raw), "kid": KID1,
             "warning": "test vector key — NEVER use in production"})
-(WIST1 / "delta.canonical").write_bytes(delta_canonical)
-write_json(WIST1 / "envelope.json", delta_envelope)
-(WIST1 / "id.txt").write_text(delta_id + "\n")
-write_json(EXAMPLES / "delta.json", delta_envelope)
+(WIST1 / "catalog.canonical").write_bytes(rfc8785.dumps(example_catalog))
+write_json(WIST1 / "envelope.json", example_catalog_envelope)
+(WIST1 / "id.txt").write_text(example_catalog_id + "\n")
+write_json(EXAMPLES / "item.json", example_item)
+(EXAMPLES / "tree-file.json").write_bytes(example_tree_files[example_tree[len("sha256:"):]])
+write_json(EXAMPLES / "catalog.json", example_catalog_envelope)
 write_json(EXAMPLES / "payload.json", payload)
-print("wist1 delta id:", delta_id)
+print("wist1 item id:", example_item_id, "catalog id:", example_catalog_id)
 print("wist1 payload salt:", payload["salt"], "commitment:", commitment,
       "bytes:", len(content_canonical))
-print("wist1 payload path: /payloads/%s.json" % delta_id.split(":")[1])
+print("wist1 payload path: /.well-known/wist/collections/default/payloads/%s.json" % items.payload_name(example_item))
 
 # The suite's second test keypair: the recovery key of the publisher example
 # below, and the fresh identity of the §5.2 sequencing vector. WIST-1 §5.2
@@ -584,17 +610,6 @@ def recovery_settlement_vectors():
             epoch, tree_leaves = seal("test-log-k1", priv, tree_leaves, entries, height,
                                       timestamp(height))
             epochs.append(epoch)
-        served = []
-        for index, (signer, key_id) in enumerate([
-                (priv, KID1), (priv3, KID3),
-                (extra["third"], kids["third"]), (extra["fourth"], kids["fourth"]),
-                (extra["alien"], kids["alien"]), (priv3, KID3)]):
-            inner = dict(delta, url=f"https://example.com/settlement/{index}",
-                         observed_at=timestamp(10))
-            env = sign_envelope_with(signer, "delta", inner, key_id)
-            served.append({"delta_id": decl_hash(inner), "signer": key_id, "envelope": env})
-        queued = [d for d in served if d["signer"] in {KID1, KID3}]
-        effective_ids = [key["kid"] for key in effective["publisher"]["keys"]]
         probes = []
         for height, env in enumerate(events[2:], 2):
             predecessor = next(e for e in events[:height]
@@ -622,197 +637,27 @@ def recovery_settlement_vectors():
         cases.append({"name": name, "epochs": epochs, "pinned_head": root_token(tree_leaves),
                       "initial_declaration": projection(initial),
                       "pre_recovery_keys": [KID1], "recovery_declaration": projection(owner),
-                      "window_declarations": [projection(env) for env in window], "served": served,
+                      "window_declarations": [projection(env) for env in window],
                       "probes": probes,
-                      "expected": {"queued": [d["delta_id"] for d in queued],
-                                   "not_queued": [d["delta_id"] for d in served if d not in queued],
-                                   "effective_keys": effective_ids,
+                      "expected": {"effective_keys": [key["kid"] for key in effective["publisher"]["keys"]],
                                    "effective_declaration": decl_hash(effective["publisher"]),
-                                   "superseded": [decl_hash(env["publisher"]) for env in superseded],
-                                   "eligible": [d["delta_id"] for d in queued if d["signer"] in effective_ids],
-                                   "rejected": [d["delta_id"] for d in queued if d["signer"] not in effective_ids]}})
-    binding_cases = []
-    sample = dict(delta, observed_at=timestamp(10), url="https://example.com/settlement/bindings")
-    old_delta = sign_envelope_with(priv, "delta", sample, KID1)
-    new_delta = sign_envelope_with(priv3, "delta", sample, KID3)
-    bad_delta = json.loads(json.dumps(new_delta))
-    bad_delta["sig"]["value"] = old_delta["sig"]["value"]
-    full_scope = {"domain": publisher["domain"], "subdomain_scope": publisher["subdomain_scope"]}
-    bare_scope = {"domain": publisher["domain"], "subdomain_scope": []}
-
-    def binding(name, before, opening, final, env, queued, eligible,
-                scopes=(full_scope, full_scope, full_scope)):
-        binding_cases.append({"name": name, "pre_recovery_keys": before,
-                              "recovery_keys": opening, "settlement_keys": final,
-                              "pre_recovery_scope": scopes[0], "recovery_scope": scopes[1],
-                              "settlement_scope": scopes[2],
-                              "envelope": env, "delta_id": decl_hash(env["delta"]),
-                              "expected_queued": queued, "expected_eligible": eligible})
-    binding("old binding queues but fails settlement", publisher["keys"], [K2],
-            [K2], old_delta, True, False)
-    binding("settlement start excludes previously queued Delta", publisher["keys"], [K2],
-            [dict(K2, nbf=nbf_at(timestamp(11)))], new_delta, True, False)
-    binding("settlement expiry excludes previously queued Delta", publisher["keys"], [K2],
-            [dict(K2, exp=nbf_at(timestamp(10)))], new_delta, True, False)
-    binding("start equality is eligible", publisher["keys"], [dict(K2, nbf=nbf_at(timestamp(10)))],
-            [dict(K2, nbf=nbf_at(timestamp(10)))], new_delta, True, True)
-    binding("expiry after the observation is eligible", publisher["keys"],
-            [dict(K2, exp=nbf_at(timestamp(11)))], [dict(K2, exp=nbf_at(timestamp(11)))],
-            new_delta, True, True)
-    binding("future start prevents queue admission", publisher["keys"], [dict(K2, nbf=nbf_at(timestamp(11)))],
-            [K2], new_delta, False, False)
-    binding("expired admission entry prevents queue admission", publisher["keys"],
-            [dict(K2, exp=nbf_at(timestamp(10)))], [K2], new_delta, False, False)
-    binding("known identifier with invalid signature is not queued", publisher["keys"], [K2],
-            [K2], bad_delta, False, False)
-    binding("unknown identifier is not queued", publisher["keys"], [K2], [K2],
-            sign_envelope_with(priv3, "delta", sample, KID5), False, False)
-    binding("later re serve of rejected Delta ID under a restored key", publisher["keys"], [K2],
-            publisher["keys"], old_delta, True, True)
-    binding_cases[-1]["re_serve_of"] = 0
-    scoped = dict(delta, observed_at=timestamp(10), url="https://blog.example.com/settlement/bindings")
-    scoped_delta = sign_envelope_with(priv3, "delta", scoped, KID3)
-    binding("scope withdrawn at settlement rejects a queued Delta", publisher["keys"], [K2], [K2],
-            scoped_delta, True, False, (full_scope, full_scope, bare_scope))
-    binding("scope granted only at settlement prevents queue admission", publisher["keys"], [K2], [K2],
-            scoped_delta, False, False, (bare_scope, bare_scope, full_scope))
+                                   "superseded": [decl_hash(env["publisher"]) for env in superseded]}})
     write_json(WIST1 / "recovery-settlement.json", {
         "note": "WIST-1 section 5.2. Each case supplies 170 authenticated hourly Epochs, "
                 "opening recovery at height 1 and settling at height 169. Declaration projections "
                 "must match their signed Envelopes and Epoch Entries. Every key in each history "
-                "has a fixed window; separate binding_cases vary the windows and the frozen "
-                "admission and settlement scopes, each given as a domain and its subdomain_scope. "
-                "Every timestamp probe uses whole-second literal-Z values; this family does not "
-                "establish the broader RFC 3339 profile of observed_at. Signed served Deltas are "
-                "distinct new URLs received in array order at hour 10; their shape and signature "
-                "eligibility are exercised, not Payload availability, quotas or actual Epoch packing. "
-                "expected.eligible denotes signature-eligible survivors in acceptance order, not proof "
-                "of their eventual inclusion. Each probe independently replaces the next Epoch's "
-                "Declaration as an unsealed candidate and must reject without changing its prefix. "
-                "Snapshot recovery is not established by these histories.",
+                "has a fixed window. expected gives the Declaration in effect after settlement, its "
+                "signing keys and the window Declarations it supersedes. Each probe independently "
+                "replaces the next Epoch's Declaration as an unsealed candidate and must reject "
+                "without changing its prefix. Queue settlement of "
+                "publications is exercised by catalog-recovery.json. Snapshot recovery is not "
+                "established by these histories.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
         "recovery_window_days": 7, "declaration_activation_epochs": 0,
-        "cases": cases, "binding_cases": binding_cases})
+        "cases": cases})
 
 
 recovery_settlement_vectors()
-
-def recovery_binding_vectors():
-    signers = {name: Ed25519PrivateKey.from_private_bytes(hashlib.sha256(
-        ("wist recovery binding " + name).encode()).digest()) for name in ("a", "b", "c")}
-    start = nbf_at("2026-08-04T10:00:00Z")
-    instant = "2026-08-04T10:00:00.0000000001Z"
-    equivalent = "2026-08-04t11:00:00.000000000100+01:00"
-    excluded = b64u((1).to_bytes(32, "little"))
-    kids = {name: kid_of(raw_public(key)) for name, key in signers.items()}
-
-    def key(name, nbf=start, public=None, exp=None):
-        return jwk_x(public or b64u(raw_public(signers[name])), nbf, exp)
-
-    def eligible(entry, at=start):
-        return entry["x"] != excluded and entry["nbf"] <= at and entry.get("exp", at + 1) > at
-
-    # Each scenario lists the pre-recovery entry of signer a and the owner's
-    # entry, which may belong to a or b. A probe's outcome follows WIST-1 §5.1
-    # over both frozen sources: no eligible named binding is WIST1-E02, an
-    # eligible binding with a failing signature is WIST1-E01.
-    scenarios = [
-        ("both eligible", key("a"), key("b")),
-        ("old future", key("a", start + 1), key("b")),
-        ("owner future", key("a"), key("b", start + 1)),
-        ("both future", key("a", start + 1), key("b", start + 1)),
-        ("old expired", key("a", start - 3600, exp=start), key("b")),
-        ("owner expired", key("a"), key("b", start - 3600, exp=start)),
-        ("same public old future", key("a", start + 1), key("a")),
-        ("same public owner future", key("a"), key("a", start + 1)),
-        ("same public owner expired", key("a"), key("a", start - 3600, exp=start)),
-        ("old excluded", key("a", public=excluded), key("b")),
-        ("owner excluded", key("a"), key("b", public=excluded)),
-        ("both excluded", key("a", public=excluded), key("b", public=excluded)),
-        ("excluded and future", key("a", public=excluded), key("b", start + 1)),
-        ("future and excluded", key("a", start + 1), key("b", public=excluded)),
-    ]
-    histories, cases = {}, []
-    for name, before, opening in scenarios:
-        def outcome(signer, named, at=start):
-            candidates = [entry for entry in (before, opening) if entry["kid"] == kids[named]]
-            if not any(eligible(entry, at) for entry in candidates):
-                return "WIST1-E02"
-            return "accepted" if signer == named else "WIST1-E01"
-        outcomes = (outcome("a", "a"), outcome("b", "b"))
-        for reverse in (False, True):
-            history_name = name + (" reversed arrays" if reverse else "")
-            old_keys = publisher["keys"] + [before]
-            new_keys = [K2, opening]
-            if reverse:
-                old_keys.reverse()
-                new_keys.reverse()
-            initial = sign_envelope("publisher", dict(publisher, keys=old_keys), KID1)
-            owner = sign_envelope_with(priv2, "publisher", dict(publisher, seq=1,
-                prev_declaration=decl_hash(initial["publisher"]), keys=new_keys,
-                recovery_keys=[R2]), KID2)
-            follower = sign_envelope_with(priv3, "publisher", dict(owner["publisher"], seq=2,
-                prev_declaration=decl_hash(owner["publisher"]), keys=[key("c")]), KID3)
-            epochs, tree_leaves = [], []
-            for height, env in enumerate((initial, owner, follower)):
-                epoch, tree_leaves = seal("test-log-k1", priv, tree_leaves,
-                                          [recovery_order_entry(env)], height,
-                                          f"2026-08-04T{height:02d}:00:00Z")
-                epochs.append(epoch)
-            histories[history_name] = {"epochs": epochs, "pinned_head": root_token(tree_leaves)}
-
-            def add(label, signer, identifier, expected, observed_at=instant, damage=None):
-                inner = dict(delta, url="https://example.com/recovery/bindings", observed_at=observed_at)
-                env = sign_envelope_with(signer, "delta", inner, identifier)
-                if damage == "signature":
-                    env["sig"]["value"] = b64u(bytes(64))
-                elif damage == "encoding":
-                    env["sig"]["value"] += "="
-                for height in (1, 2):
-                    cases.append({"name": history_name + " " + label + f" at height {height}",
-                                  "history": history_name, "prefix_height": height,
-                                  "envelope": env, "expected": expected})
-
-            for signer_name, result in zip(("a", "b"), outcomes):
-                add("signature " + signer_name, signers[signer_name], kids[signer_name], result)
-            add("forged signature under the first identifier", signers["b"], kids["a"], outcome("b", "a"))
-            add("forged signature under the second identifier", signers["a"], kids["b"], outcome("a", "b"))
-            add("invalid signature", signers["a"], kids["a"],
-                "WIST1-E02" if outcomes[0] == "WIST1-E02" else "WIST1-E01", damage="signature")
-            add("unknown identifier", signers["a"], KID5, "WIST1-E02")
-            add("pre recovery only recovery key", priv2, KID2, "WIST1-E02")
-            add("owner only recovery key", priv4, KID4, "WIST1-E02")
-            add("follower only signing key", signers["c"], kids["c"], "WIST1-E02")
-            add("retired owner signing key", priv3, KID3, "accepted")
-            add("malformed signature before missing authority", signers["a"], KID5,
-                "WIST1-E14", damage="encoding")
-            add("leap label before missing authority", signers["a"], KID5, "WIST1-E14",
-                observed_at="2016-12-31T23:59:60Z")
-            add("fraction beyond nanoseconds", signers["a"], kids["a"], outcomes[0],
-                observed_at="2026-08-04T10:00:00.00000000010000000000000000001Z")
-            add("whole second start equality", signers["a"], kids["a"], outcomes[0],
-                observed_at="2026-08-04T10:00:00Z")
-            add("fraction before the start", signers["a"], kids["a"],
-                outcome("a", "a", start - Fraction(1, 10 ** 30)),
-                observed_at="2026-08-04T09:59:59.999999999999999999999999999999Z")
-            add("offset equality", signers["b"], kids["b"], outcomes[1], observed_at=equivalent)
-    write_json(WIST1 / "recovery-bindings.json", {
-        "note": "WIST-1 sections 4, 5.1 and 5.2. Each history authenticates an initial Declaration, "
-                "a recovery owner and an ordinary recovery-chain follower in three hourly Epochs. "
-                "The supplied Log key and pinned head are trusted fixture inputs. Every independent Delta "
-                "probe uses the prefix through prefix_height; the open window freezes the initial and "
-                "owner signing bindings even after the follower. accepted denotes only successful Delta "
-                "key verification, not queue mutation, complete Delta/chain eligibility, Payload availability, "
-                "quotas, clock skew, actual sealing, settlement or Snapshot restoration. Timestamp probes "
-                "exercise exact window ordering against integer nbf and exp values and field rejection; "
-                "accepted probes supply no live clock. "
-                "Reversed-array histories re-sign Declarations and rebuild authenticated hashes.",
-        "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
-        "recovery_window_days": 7, "declaration_activation_epochs": 0,
-        "histories": histories, "cases": cases})
-
-
-recovery_binding_vectors()
 
 def recovery_heads_vectors():
     def signed(previous, seq, signer, key_id, **changes):
@@ -1278,53 +1123,6 @@ def declaration_field_vectors():
     add("unimplemented major version", ["wist_version"], "2.0.0", expected="WIST1-E15")
     add("safe integer maximum", ["seq"], 2**53 - 1, expected="ordinary_rotation")
     add("contact at bound", ["contact"], "x" * 256, expected="ordinary_rotation")
-    times = [("2026-02-30T12:00:00Z", False), ("2026-08-04T24:00:00Z", False),
-             ("2026-08-04T12:00:00", False), ("2026-08-04T12:00:00.Z", False),
-             ("2026-08-04T12:00:00+24:00", False), ("2026-08-04T12:00:00+00:60", False),
-             ("２０２６-08-04T12:00:00Z", False), (None, False),
-             ("2026-08-04T12:00:00Z", True), ("2026-08-04t12:00:00.0000000001z", True),
-             ("2026-08-04T09:00:00-03:00", True), ("0000-02-29T00:00:00Z", True)]
-    times.extend([
-        ("2026-08-04T10:00:00." + "0" * 4400 + "1Z", True),
-        ("2016-12-31T23:59:60Z", False),
-        ("2016-12-31T15:59:60-08:00", False),
-        ("2017-01-01T00:59:60+01:00", False),
-        ("2016-12-31t23:59:60.1234567890123456789z", False),
-        ("2016-12-30T23:59:60Z", False),
-        ("2016-12-31T23:58:60Z", False),
-        ("1972-06-30T23:59:60Z", False),
-        ("1990-12-31T23:59:60Z", False),
-        ("1990-12-31T15:59:60-08:00", False),
-        ("2030-06-30T23:59:60Z", False),
-        ("9999-12-31T23:59:60Z", False),
-        ("2016-12-31T23:59:59.999999999999999999999999999999Z", True),
-        ("2017-01-01T00:00:00Z", True),
-        ("2030-06-30T23:59:58Z", True),
-        ("2030-06-30T23:59:59Z", True),
-        ("2030-06-30T23:59:59.99999999999999999999Z", True),
-        ("2030-07-01T00:00:00Z", True),
-        ("2030-07-01T00:59:59+01:00", True),
-        ("2030-06-30T15:59:59-08:00", True),
-        ("0000-01-01T00:00:00+23:59", True),
-        ("9999-12-31T23:59:59.99999999999999999999-23:59", True),
-        ("0000-02-29t00:00:00.0-00:00", True),
-        ("2000-02-29T00:00:00+00:00", True),
-        ("1900-02-29T00:00:00Z", False),
-        ("0001-02-29T00:00:00Z", False),
-        ("0000-02-30T00:00:00Z", False),
-        ("-0001-12-31T23:59:59Z", False),
-        ("10000-01-01T00:00:00Z", False),
-        ("2026-08-04T12:00:61Z", False),
-        ("2026-08-04T12:60:00Z", False),
-        ("2026-08-04T12:00:00-24:00", False),
-        ("2026-08-04T12:00:00-00:60", False),
-        ("2026-08-04T12:00:00,5Z", False),
-        ("2026-08-04T12:00:00.٥Z", False),
-        ("2026-08-04T12:00:00Z\n", False),
-        ("2026-08-04 12:00:00Z", False),
-        ("2026-08-04T12:00:00+01", False),
-        ("2026-08-04T12:00:00+00:00[UTC]", False),
-    ])
     starts = [(0, True), (253402300799, True), (1754308800, True), (-1, False),
               (253402300800, False), (1.5, False), ("1754308800", False), (None, False),
               (True, False), ([1754308800], False)]
@@ -1349,18 +1147,6 @@ def declaration_field_vectors():
     cases.append({"name": "invalid fields and invalid signature",
                   "envelope": sign_envelope_with(priv4, "publisher", dict(ordinary, contact=None), KID1),
                   "expected": "WIST1-E14", "author_signature_valid": False})
-    delta_cases = []
-    for position, (value, valid) in enumerate(times):
-        inner = {key: value for key, value in delta.items() if key != "payload"}
-        inner.update(change_type="delete", observed_at=value, prev=decl_hash(delta))
-        delta_cases.append({"name": f"observed at {position}",
-                            "envelope": sign_envelope("delta", inner, KID1),
-                            "expected": "well_formed" if valid else "WIST1-E14"})
-    absent = {key: value for key, value in delta.items() if key not in ("payload", "observed_at")}
-    absent.update(change_type="delete", prev=decl_hash(delta))
-    delta_cases.append({"name": "missing observed at", "envelope": sign_envelope("delta", absent, KID1),
-                        "expected": "WIST1-E14"})
-
     key_time_cases = []
     ten = nbf_at("2026-08-04T10:00:00Z")
     for name, window, observed_at, expected in [
@@ -1470,8 +1256,7 @@ def declaration_field_vectors():
         "note": "WIST-1 sections 3.4, 5.1 and 7. Signature-valid field mutations use the supplied fixture "
                 "author key independently of eligibility. Each Declaration case replaces stored; each batch "
                 "appends to its named authenticated prefix. Rejection preserves the full accepted state and head, "
-                "including due settlement and other domains. Delta cases assert timestamp field syntax only, "
-                "not full clock, chain or Payload eligibility. Timestamp fields follow the event-independent "
+                "including due settlement and other domains. Timestamp fields follow the event-independent "
                 "Gregorian profile in WIST-1 section 3.4, rejecting every leap label; the 2030-06-30 "
                 "deletion is hypothetical and asserts no IERS announcement. Key-time cases authenticate "
                 "one supplied binding and assert only field validity and its window, inclusive at nbf "
@@ -1483,7 +1268,7 @@ def declaration_field_vectors():
         "log_key": conflicts["log_key"], "author_key": b64u(pub_raw), "stored": initial,
         "recovery_window_days": 7, "declaration_activation_epochs": 0,
         "prefixes": conflicts["prefixes"],
-        "cases": cases, "delta_cases": delta_cases, "epoch_cases": batches,
+        "cases": cases, "epoch_cases": batches,
         "key_time_cases": key_time_cases, "elapsed_cases": elapsed_cases, "relation_cases": relation_cases})
 
 
@@ -1787,12 +1572,12 @@ def keyset_at(declarations, height):
     return max(applicable, key=lambda d: d["seq"])["keys"]
 
 
-def keyset_case(name, declarations, deltas, why):
-    verifies = [d["delta_id"] for d in deltas
-                if d["signer"] in keyset_at(declarations, d["height"])]
-    rejected = [d["delta_id"] for d in deltas if d["delta_id"] not in verifies]
-    heights = sorted({d["height"] for d in deltas} | {d["height"] for d in declarations})
-    return {"name": name, "declarations": declarations, "deltas": deltas,
+def keyset_case(name, declarations, catalogs, why):
+    verifies = [c["catalog_id"] for c in catalogs
+                if c["signer"] in keyset_at(declarations, c["height"])]
+    rejected = [c["catalog_id"] for c in catalogs if c["catalog_id"] not in verifies]
+    heights = sorted({c["height"] for c in catalogs} | {d["height"] for d in declarations})
+    return {"name": name, "declarations": declarations, "catalogs": catalogs,
             "expected": {"key_set_at": [{"height": h, "keys": keyset_at(declarations, h)}
                                         for h in heights],
                          "verifies": verifies, "rejected": rejected},
@@ -1805,13 +1590,13 @@ keyset_cases = [
     keyset_case(
         "rotation retiring the old key",
         ROTATION,
-        [{"delta_id": "d-below", "height": 4, "signer": "k1"},
-         {"delta_id": "d-beside-old", "height": 5, "signer": "k1"},
-         {"delta_id": "d-beside-new", "height": 5, "signer": "k2"},
-         {"delta_id": "d-above-old", "height": 6, "signer": "k1"},
-         {"delta_id": "d-above-new", "height": 6, "signer": "k2"}],
+        [{"catalog_id": "c-below", "height": 4, "signer": "k1"},
+         {"catalog_id": "c-beside-old", "height": 5, "signer": "k1"},
+         {"catalog_id": "c-beside-new", "height": 5, "signer": "k2"},
+         {"catalog_id": "c-above-old", "height": 6, "signer": "k1"},
+         {"catalog_id": "c-above-new", "height": 6, "signer": "k2"}],
         "§5.2: the Key Set at height N is the highest-seq Declaration sealed "
-        "at or below N, so a Delta signed by the retired key verifies below "
+        "at or below N, so a Catalog signed by the retired key verifies below "
         "the rotation's Epoch and nowhere at or above it — the Epoch's own "
         "Declaration applies first (WIST-3 §3.3) — while the new key "
         "verifies from that Epoch onward."),
@@ -1819,27 +1604,27 @@ keyset_cases = [
         "rotation keeping the old key",
         [{"label": "genesis", "seq": 0, "height": 1, "keys": ["k1"]},
          {"label": "rotation", "seq": 1, "height": 5, "keys": ["k1", "k2"]}],
-        [{"delta_id": "d-beside-old", "height": 5, "signer": "k1"},
-         {"delta_id": "d-above-old", "height": 9, "signer": "k1"}],
+        [{"catalog_id": "c-beside-old", "height": 5, "signer": "k1"},
+         {"catalog_id": "c-above-old", "height": 9, "signer": "k1"}],
         "§5.2: a rotation that carries the old key forward retires nothing, "
-        "and Deltas under it verify at every height."),
+        "and Catalogs under it verify at every height."),
     keyset_case(
         "before the first declaration",
         ROTATION,
-        [{"delta_id": "d-orphan", "height": 0, "signer": "k1"}],
-        "§5.2, WIST-3 §3.3: no Declaration is sealed at or below the Delta's "
-        "height, so no Key Set applies and the Delta does not verify — the "
-        "Declaration must seal before or beside the first Delta it "
+        [{"catalog_id": "c-orphan", "height": 0, "signer": "k1"}],
+        "§5.2, WIST-3 §3.3: no Declaration is sealed at or below the Catalog's "
+        "height, so no Key Set applies and the Catalog does not verify — the "
+        "Declaration must seal before or beside the first Catalog it "
         "authorizes."),
 ]
 
 write_json(WIST1 / "keyset-at-height.json", {
     "note": ("WIST-1 §5.2 historical verification, ordinary case, over key identifiers "
              "alone: `declarations` carry seq, sealing height and keys; each "
-             "Delta carries its sealing height and signer. `expected.key_set_at` "
+             "Catalog carries its sealing height and signer. `expected.key_set_at` "
              "is the Key Set resolved at each height present, `verifies` and "
-             "`rejected` (WIST1-E02) the Deltas by that resolution. The recovery "
-             "exception is exercised by recovery-settlement.json."),
+             "`rejected` (WIST1-E02) the Catalogs by that resolution. The recovery "
+             "exception is exercised by catalog-recovery.json."),
     "cases": keyset_cases,
 })
 print("wist1 keyset-at-height vector written")
@@ -5667,577 +5452,6 @@ write_json(ROOT / "vectors/wist3/timestamps.json", {
 })
 
 
-def delta_diagnostic_vectors():
-    publisher = {
-        "wist_version": "1.0.0", "domain": "example.com", "seq": 0,
-        "keys": [jwk(pub_raw, "2026-08-01T00:00:00Z")],
-        "subdomain_scope": ["other.example"],
-    }
-    previous_source = sign_envelope("publisher", publisher, KID1)
-    cases = []
-    for binding, scope, future, chain in itertools.product(
-            ("valid", "bad signature", "missing", "future"), (True, False),
-            (False, True), (True, False)):
-        source = json.loads(json.dumps(publisher))
-        source["seq"] = 1
-        source["prev_declaration"] = "sha256:" + sha256_hex(rfc8785.dumps(publisher))
-        source["subdomain_scope"] = ["other.example"] if scope else []
-        if binding == "future":
-            source["keys"][0]["nbf"] = nbf_at("2026-08-04T11:00:00Z")
-        declaration = sign_envelope("publisher", source, KID1)
-        observed = "2026-08-04T10:10:00.00000000000000000001Z" if future else "2026-08-04T07:10:00-03:00"
-        previous = {
-            "wist_version": "1.0.0", "publisher": "example.com", "url": "https://other.example/page",
-            "change_type": "new", "observed_at": "2026-08-04T09:00:00Z" if chain else observed,
-            "payload": delta["payload"], "meta": {"lang": "en"},
-        }
-        predecessor = sign_envelope("delta", previous, KID1)
-        candidate = {
-            "wist_version": "1.0.0", "publisher": "example.com", "url": previous["url"], "change_type": "attest",
-            "observed_at": observed, "prev": "sha256:" + sha256_hex(rfc8785.dumps(previous)),
-            "meta": {"lang": "en"},
-        }
-        envelope = sign_envelope("delta", candidate, KID5 if binding == "missing" else KID1)
-        if binding == "bad signature":
-            envelope["sig"]["value"] = b64u(Ed25519PrivateKey.from_private_bytes(bytes([99]) * 32).sign(rfc8785.dumps(candidate)))
-        errors = []
-        if binding != "valid":
-            errors.append("WIST1-E01" if binding == "bad signature" else "WIST1-E02")
-        if not scope:
-            errors.append("WIST1-E03")
-        if future:
-            errors.append("WIST1-E06")
-        if not chain:
-            errors.append("WIST1-E07")
-        name = f"{binding}, scope {scope}, excess skew {future}, increasing time {chain}"
-        for field in ("valid", "timestamp", "signature encoding"):
-            probe = json.loads(json.dumps(envelope))
-            if field == "timestamp":
-                probe["delta"]["observed_at"] = "2026-08-04T10:10:60Z"
-                probe = sign_envelope("delta", probe["delta"], probe["sig"]["key_id"])
-                if binding == "bad signature":
-                    probe["sig"]["value"] = b64u(Ed25519PrivateKey.from_private_bytes(bytes([99]) * 32).sign(rfc8785.dumps(probe["delta"])))
-            elif field == "signature encoding":
-                alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
-                value = probe["sig"]["value"]
-                probe["sig"]["value"] = value[:-1] + alphabet[alphabet.index(value[-1]) + 1]
-            cases.append({"name": name + ", field " + field, "field": field,
-                          "declaration": declaration, "predecessor": predecessor,
-                          "envelope": probe, "validator_time": "2026-08-04T10:00:00Z",
-                          "clock_skew_seconds": 600,
-                          "allowed": sorted(errors) if field == "valid" else ["WIST1-E14"]})
-    return {
-        "note": "WIST-1 §7. Each case supplies the already selected Publisher's current Declaration, "
-                "its authenticated previous source and an already accepted predecessor. That predecessor "
-                "was accepted under previous_declaration with an allowance sufficient at its validation "
-                "instant (the present clock/allowance need not equal that context) and is "
-                "the only chain tip. The current source is fresh: no cached-key refresh is pending. "
-                "allowed is the complete set for the exercised checks; [] means these checks pass, not "
-                "complete admission. Field failures suppress semantic diagnostics. Signature encoding "
-                "twins retain signature bytes but set an unused base64url bit. URL fixtures are already "
-                "normalized ASCII; only authority is varied. Payload content is the standard example. "
-                "No Log inclusion, source selection, live clock/refresh/retrieval, Payload validation, "
-                "recovery or ambiguous-author attribution is established.",
-        "previous_declaration": previous_source, "cases": cases,
-    }
-
-
-write_json(WIST1 / "delta-diagnostics.json", delta_diagnostic_vectors())
-
-
-def delta_field_vectors():
-    base = {
-        "wist_version": "1.0.0", "publisher": "example.com",
-        "url": "https://example.com/page", "change_type": "new",
-        "observed_at": "2026-08-04T10:00:00Z",
-        "payload": delta["payload"], "meta": {"lang": "en"},
-    }
-    cases = []
-
-    def add(name, inner, allowed=(), envelope_changes=None):
-        for damaged in (False, True):
-            envelope = sign_envelope("delta", inner, KID1)
-            envelope = json.loads(json.dumps(envelope))
-            if damaged:
-                envelope["sig"]["value"] = b64u(
-                    Ed25519PrivateKey.from_private_bytes(bytes([99]) * 32).sign(rfc8785.dumps(inner)))
-            for path, value in (envelope_changes or []):
-                node = envelope
-                for part in path[:-1]:
-                    node = node[part]
-                if value == "REMOVE":
-                    del node[path[-1]]
-                else:
-                    node[path[-1]] = value
-            errors = set(allowed)
-            if damaged and "WIST1-E14" not in errors:
-                errors.add("WIST1-E01")
-            cases.append({"name": name + (" with invalid signature" if damaged else ""),
-                          "envelope": envelope,
-                          "id": "sha256:" + sha256_hex(rfc8785.dumps(inner)),
-                          "allowed": sorted(errors)})
-
-    def change(name, path, value, allowed=("WIST1-E14",)):
-        inner = json.loads(json.dumps(base))
-        node = inner
-        for part in path[:-1]:
-            node = node[part]
-        if value == "REMOVE":
-            del node[path[-1]]
-        else:
-            node[path[-1]] = value
-        add(name, inner, allowed)
-
-    add("valid content commitment", base)
-    change("valid predecessor spelling", ["prev"], "sha256:" + sha256_hex(rfc8785.dumps(delta)), ())
-    for version in ("1.0.1", "1.1.0", "1." + "9" * 80 + "." + "9" * 80):
-        change("supported version " + version, ["wist_version"], version, ())
-    for version in ("0.0.0", "2.0.0", "10.0.0", "9" * 80 + ".0.0"):
-        change("unsupported major " + version, ["wist_version"], version, ("WIST1-E15",))
-    for version in ("1.0", "1.0.0.0", "1.0.0-rc.1", "1.0.0+build", "2.00.0", "2.0.0\n"):
-        change("malformed version " + repr(version), ["wist_version"], version)
-    for field, value, label in (("publisher", "REMOVE", "absent Publisher"),
-                                ("extra", True, "unknown field"),
-                                ("observed_at", "invalid", "invalid timestamp")):
-        inner = json.loads(json.dumps(base)); inner["wist_version"] = "2.0.0"
-        if value == "REMOVE":
-            del inner[field]
-        else:
-            inner[field] = value
-        add("unsupported major with " + label, inner, ("WIST1-E14",))
-    inner = json.loads(json.dumps(base)); inner["wist_version"] = "2.0.0"
-    inner["change_type"] = "update"; del inner["payload"]
-    add("unsupported major with missing predecessor and commitment", inner,
-        ("WIST1-E07", "WIST1-E09", "WIST1-E15"))
-    for field in ("wist_version", "publisher", "url", "change_type", "observed_at", "meta"):
-        for value, label in (("REMOVE", "absent"), (None, "null"), (False, "boolean")):
-            change(field + " " + label, [field], value)
-    for path, value, label in [
-        (["extra"], 1, "unknown Delta member"),
-        (["change_type"], "replace", "unknown change type"),
-        (["wist_version"], "01.0.0", "leading zero version"),
-        (["wist_version"], "1.0.0\n", "version final newline"),
-        (["wist_version"], "１.0.0", "non ASCII version"),
-        (["prev"], None, "null predecessor"),
-        (["prev"], "sha256:" + "a" * 63, "short predecessor"),
-        (["prev"], "sha256:" + "a" * 64 + "\n", "predecessor final newline"),
-        (["payload"], None, "null commitment"),
-        (["payload", "extra"], 1, "unknown commitment member"),
-        (["payload", "commitment"], "REMOVE", "absent commitment digest"),
-        (["payload", "commitment"], delta["payload"]["commitment"] + "\n", "commitment final newline"),
-        (["payload", "alg"], "SHA256", "wrong commitment algorithm"),
-        (["payload", "bytes"], -1, "negative bytes"),
-        (["payload", "bytes"], 0.5, "fractional bytes"),
-        (["payload", "bytes"], True, "boolean bytes"),
-        (["payload", "bytes"], "1", "string bytes"),
-        (["payload", "bytes"], "REMOVE", "absent bytes"),
-        (["meta", "extra"], 1, "unknown metadata member"),
-        (["meta", "lang"], "REMOVE", "absent language"),
-        (["meta", "lang"], "EN", "uppercase primary language"),
-        (["meta", "lang"], "en\n", "language final newline"),
-        (["meta", "lang"], "en-abcdefghi", "long language subtag"),
-        (["meta", "topics"], None, "null topics"),
-        (["meta", "topics"], ["topic"] * 11, "eleven topics"),
-        (["meta", "topics"], ["😀" * 65], "topic scalar overflow"),
-        (["meta", "topics"], [5], "nonstrings in topics"),
-        (["meta", "license"], None, "null license"),
-        (["meta", "license"], "😀" * 65, "license scalar overflow"),
-    ]:
-        change(label, path, value)
-    for path, value, label in [
-        (["meta", "lang"], "zh-Hant-HK", "language multiple subtags"),
-        (["meta", "lang"], "en-a-a", "lexical language without registry checks"),
-        (["meta", "topics"], ["😀" * 64] * 10, "ten scalar boundary topics"),
-        (["meta", "license"], "😀" * 64, "license scalar boundary"),
-        (["meta", "license"], "", "empty license"),
-        (["payload", "bytes"], 0, "zero bytes"),
-        (["payload", "bytes"], 0.0, "decimal zero bytes"),
-        (["payload", "bytes"], 38944.0, "decimal byte cap"),
-    ]:
-        change(label, path, value, ())
-    for path, value, label in [
-        (["extra"], 1, "unknown Envelope member"),
-        (["sig", "extra"], 1, "unknown signature member"),
-        (["sig", "key_id"], "😀" * 65, "signature identifier scalar overflow"),
-        (["sig", "key_id"], None, "null signature identifier"),
-        (["sig", "alg"], "Ed448", "wrong signature algorithm"),
-        (["sig", "alg"], "REMOVE", "absent signature algorithm"),
-        (["sig"], None, "null signature"),
-        (["sig"], "REMOVE", "absent signature"),
-    ]:
-        add(label, base, ("WIST1-E14",), [(path, value)])
-    change("absent new commitment", ["payload"], "REMOVE", ("WIST1-E09",))
-    change("oversized commitment", ["payload", "bytes"], 38945, ("WIST1-E04",))
-    change("bytes beyond unsigned integer storage", ["payload", "bytes"], 1e30)
-    change("safe integer bytes above default cap", ["payload", "bytes"], 9007199254740991, ("WIST1-E04",))
-    change("unsafe integer bytes", ["payload", "bytes"], 9007199254740992.0)
-    for name, amount, cap, allowed in [
-        ("raised commitment cap", 38945, 38945, ()),
-        ("lowered commitment cap", 38944, 38943, ("WIST1-E04",)),
-    ]:
-        change(name, ["payload", "bytes"], amount, allowed)
-        for case in cases[-2:]:
-            case["commitment_cap_bytes"] = cap
-    for cap, allowed in [(26, ()), (25, ("WIST1-E11",))]:
-        add("URL active cap " + str(cap), base, allowed)
-        for case in cases[-2:]:
-            case["url_cap_bytes"] = cap
-    change("URL octet cap", ["url"], "https://example.com/" + "a" * 2028, ("WIST1-E11",))
-    change("URL raised cap", ["url"], "https://example.com/" + "a" * 2030, ())
-    for case in cases[-2:]:
-        case["url_cap_bytes"] = 2052
-    change("HTTP URL", ["url"], "http://example.com/page", ("WIST1-E03",))
-    for kind in ("attest", "delete"):
-        inner = json.loads(json.dumps(base)); inner["change_type"] = kind
-        add(kind + " forbidden commitment", inner, ("WIST1-E14",))
-        del inner["payload"]
-        add(kind + " absent predecessor", inner, ("WIST1-E07",))
-    inner = json.loads(json.dumps(base)); inner["change_type"] = "update"; del inner["payload"]
-    add("update absent predecessor and commitment", inner, ("WIST1-E07", "WIST1-E09"))
-    inner["meta"]["lang"] = "en\n"
-    add("malformed metadata precedes semantic omissions", inner, ("WIST1-E14",))
-    transports = []
-    for malformed, wrong_id, foreign in itertools.product((False, True), repeat=3):
-        inner = json.loads(json.dumps(base))
-        if malformed:
-            inner["change_type"] = "replace"
-        doc = sign_envelope("delta", inner, KID1)
-        actual_id = "sha256:" + sha256_hex(rfc8785.dumps(inner))
-        transports.append({"envelope": doc, "requested_id": "sha256:" + "0" * 64 if wrong_id else actual_id,
-                           "feed_domain": "other.example" if foreign else "example.com",
-                           "expected": "WIST1-E14" if malformed else "WIST2-E03" if wrong_id or foreign else "association_satisfied"})
-    return {"note": "WIST-1 sections 3.7/7 and WIST-2 section 5. Each allowed set covers only field, "
-            "signature, URL and static change-type/commitment checks under fresh supplied authority. "
-            "Caps use defaults unless a case supplies an active cap; no parameter schedule replay is asserted. "
-            "An empty set is not complete admission. No predecessor history, live clock, refresh/retrieval, "
-            "Payload content, Log inclusion or durable state is supplied. Commitment mutations do not "
-            "assert Payload validity. Transport cases supply logical Feed and requested ID without HTTP.",
-            "author_key": b64u(pub_raw), "cases": cases, "transport_cases": transports}
-
-
-write_json(WIST1 / "delta-fields.json", delta_field_vectors())
-
-
-def delta_attribution_vectors():
-    keys = [Ed25519PrivateKey.from_private_bytes(bytes([n]) * 32) for n in range(91, 99)]
-    parent, child, external = "example.com", "child.example.com", "elsewhere.example"
-    url = "https://child.example.com/page"
-
-    def binding(key, nbf="2026-08-01T00:00:00Z"):
-        return jwk(raw_public(key), nbf)
-
-    def declaration(domain, key, extra=(), **fields):
-        inner = {"wist_version": "1.0.0", "domain": domain, "seq": 0,
-                 "keys": [binding(key), *extra]}
-        if domain != child:
-            inner["subdomain_scope"] = [child]
-        inner.update(fields)
-        return sign_envelope_with(key, "publisher", inner, kid_of(raw_public(key)))
-
-    def signed(domain, key, **fields):
-        inner = dict(delta, publisher=domain, url=url)
-        inner.update(fields)
-        return sign_envelope_with(key, "delta", inner, kid_of(raw_public(key)))
-
-    shared = [declaration(domain, keys[0]) for domain in (parent, child)]
-    distinct = [shared[0], declaration(child, keys[1])]
-    copied = [shared[0], declaration(child, keys[1], [binding(keys[0])])]
-    cases = []
-
-    def add(name, declarations, envelopes, outcomes, **extra):
-        cases.append(dict(name=name, declarations=declarations, envelopes=envelopes,
-                          expected=outcomes, delta_ids=[decl_hash(e["delta"]) for e in envelopes], **extra))
-
-    add("shared keys retain separate authors and IDs", shared,
-        [signed(d, keys[0]) for d in (parent, child)], ["accepted", "accepted"])
-    add("distinct keys and equal content retain separate IDs", distinct,
-        [signed(parent, keys[0]), signed(child, keys[1])], ["accepted", "accepted"])
-    add("copied key does not steal an existing author's Delta", copied,
-        [signed(parent, keys[0])], ["accepted"])
-    changed = signed(parent, keys[0]); changed["delta"]["publisher"] = child
-    add("author tampering requires a new signature even with shared keys", shared, [changed], ["WIST1-E01"])
-    unlisted = signed(parent, keys[0]); unlisted["sig"]["key_id"] = kid_of(raw_public(keys[1]))
-    add("unlisted identifier cannot borrow another domain's key", copied, [unlisted], ["WIST1-E02"])
-    add("unknown author cannot borrow a scoped matching key", shared,
-        [signed("unknown.example", keys[0])], ["WIST1-E02"])
-    add("another domain's matching identifier does not suppress author", distinct,
-        [signed(child, keys[1])], ["accepted"])
-    add("explicit nonancestor scope", [declaration(external, keys[0])],
-        [signed(external, keys[0])], ["accepted"])
-    no_scope = declaration(parent, keys[0], subdomain_scope=[])
-    add("another author's scope supplies no authority", [no_scope, shared[1]],
-        [signed(parent, keys[0])], ["WIST1-E03"])
-    future = declaration(parent, keys[0], keys=[binding(keys[0], nbf="2026-08-03T00:00:00Z")])
-    add("another author's earlier key supplies no bound", [future, shared[1]],
-        [signed(parent, keys[0])], ["WIST1-E02"])
-    expired = declaration(parent, keys[0], keys=[dict(binding(keys[0]), exp=nbf_at("2026-08-01T12:00:00Z"))])
-    add("another author's unexpired key supplies no bound", [expired, shared[1]],
-        [signed(parent, keys[0])], ["WIST1-E02"])
-    excluded = declaration(parent, keys[1], keys=[binding(keys[1]),
-        jwk(b"\x01" + bytes(31), "2026-08-01T00:00:00Z")])
-    add("excluded author entry cannot borrow another domain's usable key", [excluded, shared[1]],
-        [signed(parent, keys[0])], ["WIST1-E02"])
-    for host in ("a", "xn--bcher-kva.example", "ab--cd.example"):
-        add("canonical host " + host, [declaration(host, keys[0])],
-            [signed(host, keys[0])], ["accepted"])
-    for name, host in [("missing", None), ("null", None), ("number", 1), ("array", []),
-                       ("empty", ""), ("uppercase", "EXAMPLE.com"), ("dot", "example.com."),
-                       ("Unicode", "bücher.example"), ("port", "example.com:443"),
-                       ("bad A label", "xn--.example"), ("oversized", "a" * 64 + ".com")]:
-        env = signed(parent, keys[0])
-        env["delta"]["publisher"] = host
-        if name == "missing":
-            del env["delta"]["publisher"]
-        env = sign_envelope_with(keys[0], "delta", env["delta"], kid_of(raw_public(keys[7])))
-        add("Publisher field " + name, shared, [env], ["WIST1-E14"])
-    valid = signed(parent, keys[0])
-    for feed_domain, seen, redirected, expected in [
-            (parent, False, "www.example.com", "accepted"),
-            (parent, True, "www.example.com", "accepted"),
-            (child, False, child, "WIST2-E03"), (child, True, child, "WIST2-E03")]:
-        add("Feed association " + feed_domain + (" seen" if seen else " new"),
-            [declaration(parent, keys[0], subdomain_scope=[child, "www.example.com"]), shared[1]],
-            [valid], [expected], feed_domain=feed_domain, already_seen=seen,
-            serving_host=redirected)
-    malformed = signed(parent, keys[0]); del malformed["delta"]["publisher"]
-    add("Publisher field precedes Feed association", shared, [malformed], ["WIST1-E14"],
-        feed_domain=child, already_seen=True)
-
-    start = datetime.datetime(2026, 8, 2, 12, tzinfo=datetime.timezone.utc)
-    def timestamp(height):
-        return (start + datetime.timedelta(hours=height)).isoformat().replace("+00:00", "Z")
-    first = declaration(parent, keys[0], recovery_keys=[binding(keys[7])])
-    def replacement(previous, key, signer, **fields):
-        inner = dict(previous["publisher"], seq=previous["publisher"]["seq"] + 1,
-                     prev_declaration=decl_hash(previous["publisher"]), keys=[binding(key)])
-        inner.update(fields)
-        return sign_envelope_with(signer, "publisher", inner, kid_of(raw_public(signer)))
-    ordinary = replacement(first, keys[2], keys[0])
-    owner = replacement(ordinary, keys[3], keys[7])
-    competitor = replacement(owner, keys[4], keys[4])
-    follower = replacement(owner, keys[5], keys[3], seq=4)
-    reset = replacement(follower, keys[6], keys[6], seq=5)
-    declarations_at = {0: [first, declaration(child, keys[0]), declaration(external, keys[2])],
-                       1: [ordinary], 2: [owner], 3: [competitor], 4: [follower], 171: [reset]}
-    authors_at = {0: keys[0], 1: keys[2], 2: keys[3], 3: keys[3], 4: keys[5],
-                  170: keys[5], 171: keys[6], 172: keys[6]}
-    epochs, tips, envelopes, probes = [], {}, {}, []
-    tree_leaves = []
-    for height in range(173):
-        entries = [{"type": "publisher_declaration", "body": env}
-                   for env in declarations_at.get(height, [])]
-        if height in (0, 1, 170, 171, 172):
-            env = signed(parent, authors_at[height], observed_at=timestamp(height))
-            if parent in tips:
-                env["delta"].pop("payload")
-                env["delta"].update(change_type="attest", prev=tips[parent])
-                env = sign_envelope_with(authors_at[height], "delta", env["delta"],
-                                         kid_of(raw_public(authors_at[height])))
-            entries.append({"type": "publisher_delta", "body": env})
-            tips[parent] = decl_hash(env["delta"]); envelopes[height] = env
-        if height == 0:
-            env = signed(child, keys[0], observed_at=timestamp(height))
-            entries.append({"type": "publisher_delta", "body": env})
-            tips[child] = decl_hash(env["delta"])
-        entries.sort(key=lambda e: ((0 if e["type"] == "publisher_declaration" else 2),
-                                     leaf_hash(rfc8785.dumps(e))))
-        epoch, tree_leaves = seal("log-key", priv, tree_leaves, entries, height, timestamp(height))
-        epochs.append(epoch)
-        if height in (0, 1, 3, 4, 170, 171):
-            def probe(name, domain, key, expected, stage=None, **fields):
-                stage = stage or ("admission" if height in (3, 4) else "sealing")
-                env = signed(domain, key, observed_at=timestamp(height + 1), prev=tips[domain])
-                env["delta"].pop("payload"); env["delta"]["change_type"] = "attest"
-                env["delta"].update(fields)
-                env = sign_envelope_with(key, "delta", env["delta"], kid_of(raw_public(key)))
-                probes.append(dict(name=name, height=height, stage=stage, envelope=env, expected=expected))
-            key = keys[3] if height in (3, 4) else authors_at[height]
-            probe("same author continues at " + str(height), parent, key, "accepted")
-            probe("foreign predecessor at " + str(height), parent, key, "WIST1-E07", prev=tips[child])
-            probe("wrong URL predecessor at " + str(height), parent, key, "WIST1-E07", url="https://child.example.com/other")
-            env = signed(parent, key, observed_at=timestamp(height + 1))
-            probes.append(dict(name="chain cannot restart at " + str(height), height=height,
-                               stage="admission" if height in (3, 4) else "sealing", envelope=env, expected="WIST1-E07"))
-            if height in (3, 4):
-                for candidate, expected in [(keys[2], "accepted"), (keys[3], "accepted"),
-                                            (keys[4], "WIST1-E02"), (keys[5], "WIST1-E02")]:
-                    probe("frozen recovery sources at " + str(height) + " " + str(len(probes)),
-                          parent, candidate, expected, stage="admission")
-                probe("foreign recovery source cannot authorize child " + str(height),
-                      child, keys[2], "WIST1-E02", stage="admission")
-            if height == 170:
-                probe("expired recovery union", parent, keys[2], "WIST1-E02", stage="admission")
-    versions = []
-    for name, version, mutation, expected in [
-            ("current draft", "1.0.0", None, "accepted"),
-            ("same version old draft lacks author", "1.0.0", "missing", "WIST1-E14"),
-            ("unknown fields remain forbidden", "1.0.0", "unknown", "WIST1-E14"),
-            ("unimplemented major", "2.0.0", None, "WIST1-E15")]:
-        env = signed(parent, keys[0], wist_version=version)
-        if mutation == "missing": del env["delta"]["publisher"]
-        if mutation == "unknown": env["delta"]["extra"] = True
-        env = sign_envelope_with(keys[0], "delta", env["delta"], kid_of(raw_public(keys[0])))
-        versions.append(dict(name=name, envelope=env, expected=expected))
-    return dict(
-        note="WIST-1 sections 3.1, 3.5 and 3.8, WIST-2 section 5 and WIST-3 section 7. "
-             "Cases test signed author, key, scope and optional logical Feed association, with current initial "
-             "Declarations supplied; accepted means those checks only. No live discovery or transport is exercised. "
-             "The authenticated hourly history uses the default seven-day recovery window and supplies an "
-             "independently pinned head; its Deltas exercise sealing bindings and chain ownership. Probes run "
-             "after the named Epoch's Declaration stage and accepted Deltas, using that prefix's sources/tips; "
-             "their later observed_at is a supplied test timestamp, not an inclusion claim. Clock, Payload, "
-             "quotas and Payloads remain separate. Identity projections exercise owner/reset attribution: whether "
-             "the Publisher identity current at at_height is the one that signed at reference_height. "
-             "Version cases assume a validator of this exact draft implementing only wire major 1.",
-        cases=cases, log_key=dict(key_id="log-key", public_key=b64u(pub_raw)),
-        recovery_window_days=7, declaration_activation_epochs=0, epochs=epochs,
-        pinned_head=root_token(tree_leaves), probes=probes,
-        projection_cases=[
-            dict(at_height=4, reference_height=0, publisher=parent, expected_current_identity=True),
-            dict(at_height=170, reference_height=0, publisher=parent, expected_current_identity=True),
-            dict(at_height=171, reference_height=0, publisher=parent, expected_current_identity=False),
-            dict(at_height=171, reference_height=171, publisher=parent, expected_current_identity=True),
-            dict(at_height=171, reference_height=0, publisher=child, expected_current_identity=True)],
-        version_cases=versions)
-
-
-write_json(WIST1 / "delta-attribution.json", delta_attribution_vectors())
-
-
-def recovery_scope_vectors():
-    keys = {name: Ed25519PrivateKey.from_private_bytes(hashlib.sha256(
-        ("wist recovery scope " + name).encode()).digest())
-        for name in ("old", "owner", "competitor", "recovery", "admin")}
-    start = datetime.datetime(2026, 8, 2, tzinfo=datetime.timezone.utc)
-    early = "2026-08-02T00:00:00Z"
-    later = "2026-08-02T00:00:01Z"
-    domain = "example.com"
-    hosts = [domain, "old.example", "owner.example", "retained.example",
-             "follower.example", "competitor.example", "stale.example"]
-
-    def timestamp(height):
-        return (start + datetime.timedelta(hours=height)).isoformat().replace("+00:00", "Z")
-
-    kids = {name: kid_of(raw_public(key)) for name, key in keys.items()}
-
-    def binding(name, nbf=early):
-        return jwk(raw_public(keys[name]), nbf)
-
-    histories, probes = {}, []
-    for shared in (False, True):
-        name = "shared public key with distinct bounds" if shared else "distinct source public keys"
-        owner_key = "old" if shared else "owner"
-        owner_binding = binding(owner_key, nbf=later if shared else early)
-        initial = sign_envelope_with(keys["old"], "publisher", dict(
-            wist_version="1.0.0", domain=domain, seq=0, keys=[binding("old")],
-            recovery_keys=[binding("recovery")], subdomain_scope=["stale.example"]), kids["old"])
-
-        def replace(previous, seq, bindings, scope, signer):
-            inner = dict(previous["publisher"], seq=seq,
-                         prev_declaration=decl_hash(previous["publisher"]),
-                         keys=bindings, subdomain_scope=scope)
-            return sign_envelope_with(keys[signer], "publisher", inner, kids[signer])
-
-        prior = replace(initial, 1, [binding("old")],
-                        ["old.example", "retained.example"], "old")
-        owner = replace(prior, 2, [owner_binding, binding("admin")],
-                        ["owner.example", "retained.example"], "recovery")
-        competitor = replace(owner, 3, [binding("competitor")],
-                             ["competitor.example"], "competitor")
-        follower = replace(owner, 4, [owner_binding, binding("admin")],
-                           ["old.example", "retained.example", "follower.example"], "admin")
-        latest = replace(follower, 5, [binding("competitor")], [], "competitor")
-        deadline = replace(follower, 6, [owner_binding], [], "admin")
-        deadline["publisher"].pop("subdomain_scope")
-        deadline = sign_envelope_with(keys["admin"], "publisher", deadline["publisher"], kids["admin"])
-        restored = replace(deadline, 7, [owner_binding], hosts[1:], owner_key)
-        declarations = {0: [initial], 1: [prior, owner], 2: [competitor], 3: [follower],
-                        168: [latest], 169: [deadline], 170: [restored]}
-        epochs, tree_leaves = [], []
-        for height in range(171):
-            entries = [recovery_order_entry(env) for env in declarations.get(height, [])]
-            entries.sort(key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
-            epoch, tree_leaves = seal("log-key", priv, tree_leaves, entries, height, timestamp(height))
-            epochs.append(epoch)
-        histories[name] = dict(epochs=epochs, pinned_head=root_token(tree_leaves))
-
-        def add(label, height, stage, signer, host, expected, observed_at=later,
-                identifier=None, damage=None):
-            env = sign_envelope_with(keys[signer], "delta", dict(delta,
-                publisher=domain, url="https://" + host + "/scope", observed_at=observed_at),
-                identifier or kids[signer])
-            if damage == "signature":
-                env["sig"]["value"] = b64u(bytes(64))
-            elif damage == "encoding":
-                env["sig"]["value"] += "="
-            probes.append(dict(name=label, history=name, height=height, stage=stage,
-                               envelope=env, expected=expected))
-
-        for height in (1, 2, 3, 168):
-            for signer in ("old", owner_key) if not shared else ("old",):
-                allowed = ({domain, "old.example", "owner.example", "retained.example"} if shared else
-                           {domain, "old.example", "retained.example"} if signer == "old" else
-                           {domain, "owner.example", "retained.example"})
-                for host in hosts:
-                    add(f"frozen source {signer} {host} at {height}", height, "admission", signer, host,
-                        "accepted" if host in allowed else "WIST1-E03")
-            add(f"competitor signature at {height}", height, "admission", "competitor", domain, "WIST1-E02")
-            add(f"forged signature under the old identifier at {height}", height, "admission", "competitor",
-                domain, "WIST1-E01", identifier=kids["old"])
-            add(f"unknown identifier at {height}", height, "admission", "old", domain, "WIST1-E02",
-                identifier=KID5)
-            add(f"malformed signature field at {height}", height, "admission", "old", domain, "WIST1-E14",
-                identifier=KID5, damage="encoding")
-        if shared:
-            for height in (1, 3, 168):
-                add(f"scope cannot borrow future binding at {height}", height, "admission", "old",
-                    "owner.example", "WIST1-E03", observed_at=early)
-                add(f"eligible old source at {height}", height, "admission", "old", "old.example",
-                    "accepted", observed_at=early)
-                add(f"inclusive owner bound at {height}", height, "admission", "old", "owner.example",
-                    "accepted", observed_at="2026-08-02t01:00:01.000+01:00")
-                add(f"fraction below owner bound at {height}", height, "admission", "old", "owner.example",
-                    "WIST1-E03", observed_at="2026-08-02T00:00:00.999999999999Z")
-        for host in (domain, "owner.example", "retained.example"):
-            expected = "WIST1-E13" if host == "owner.example" else "accepted"
-            add("owner queued copy settlement " + host, 169, "settlement", owner_key, host, expected)
-        for host in (domain, "old.example", "retained.example"):
-            add("old queued copy settlement " + host, 169, "settlement", "old", host,
-                "accepted" if shared else "WIST1-E13")
-        for height in (169, 170):
-            for host in hosts:
-                for stage in ("admission", "sealing"):
-                    add(f"post settlement {stage} {host} at {height}", height, stage, owner_key, host,
-                        "accepted" if height == 170 or host == domain else "WIST1-E03")
-        for host in (domain, "old.example", "owner.example", "retained.example"):
-            add("historical scope before deadline " + host, 1, "admission", owner_key, host,
-                "accepted" if shared or host != "old.example" else "WIST1-E03")
-        add("historical pre recovery scope", 0, "sealing", "old", "stale.example", "accepted")
-        add("historical scope cannot borrow later grant", 0, "sealing", "old", "old.example", "WIST1-E03")
-        add("omitted scope retains Publisher domain", 169, "sealing", owner_key, domain, "accepted")
-        add("settlement invalid signature", 169, "settlement", owner_key, domain,
-            "WIST1-E13", damage="signature")
-        add("settlement malformed field", 169, "settlement", owner_key, domain,
-            "WIST1-E14", damage="encoding")
-    return dict(note="WIST-1 sections 3.2, 5.1 and 5.2. Authenticated hourly Declaration histories "
-        "open recovery at height 1 after a same-Epoch ordinary predecessor, accept a competitor and "
-        "a legitimate follower, accept a higher-sequence competitor at 168, settle at 169, then apply "
-        "a scope-removing Declaration in that same deadline Epoch. Height 170 grants scopes again. "
-        "Admission and sealing probes run after the named Epoch's Declaration stage; settlement probes "
-        "run immediately before height 169's Declaration stage. Queued-copy probes reuse height-1 "
-        "authority-eligible Envelopes; damaged settlement probes are conditional stage inputs and do not "
-        "claim prior queue acceptance. "
-        "accepted establishes only signature/binding and scope authority. Probe timestamps are signed "
-        "inputs, not claimed live validation times. Chains, clocks, Payload, quotas, durable queue/status "
-        "effects and actual Delta inclusion are not exercised. Trusted Log key and pinned heads are "
-        "fixture inputs. Signature-invalid twins are checked independently by the reference.",
-        log_key=dict(key_id="log-key", public_key=b64u(pub_raw)), recovery_window_days=7, declaration_activation_epochs=0,
-        histories=histories, probes=probes)
-
-
-write_json(WIST1 / "recovery-scope.json", recovery_scope_vectors())
-
-
 def declaration_refresh_vectors():
     import copy
     domain = "localhost"
@@ -6599,155 +5813,6 @@ def feed_regression_vectors():
 
 write_json(ROOT / "vectors/wist2/feed-regression.json", feed_regression_vectors())
 
-def delta_cap_time_vectors():
-    start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
-
-    def at(seconds):
-        return (start + datetime.timedelta(seconds=seconds)).isoformat().replace('+00:00', 'Z')
-
-    defaults = dict(url_cap_bytes=2048, extract_cap_bytes=32768,
-                    links_cap_bytes=4096, link_url_cap_bytes=2048, summary_cap_bytes=2048)
-    low = dict(url_cap_bytes=64, extract_cap_bytes=32,
-               links_cap_bytes=256, link_url_cap_bytes=64, summary_cap_bytes=32)
-    high = {key: value * 2 for key, value in low.items()}
-    schedule = [(0, 169, low, False), (1, 169, low, True),
-                (169, 338, high, True), (170, 338, high, False),
-                (338, 507, low, False), (339, 507, low, True)]
-
-    def profile(seconds):
-        return defaults if seconds < 169 * 3600 else low if seconds < 338 * 3600 else high if seconds < 507 * 3600 else low
-
-    def links(size):
-        urls = [f'https://outside.example/{n}' + 'x' * 17 for n in range(5)]
-        value = dict(total=len(urls), urls=urls)
-        urls[-1] += 'x' * (size - len(rfc8785.dumps(value)))
-        assert len(rfc8785.dumps(value)) == size
-        return value
-
-    objects = {}
-    for cohort in ('early', 'later'):
-        for field in (*low, 'derived'):
-            for extra in (0, 1):
-                name = f'{cohort} {field} {extra}'
-                content = dict(extract='', links=dict(total=0, urls=[]), summary=dict(title=''))
-                url = 'https://example.com/' + name.replace(' ', '/')
-                if field == 'url_cap_bytes':
-                    url += 'x' * (low[field] + extra - len(rfc8785.dumps(url)))
-                elif field == 'extract_cap_bytes':
-                    content['extract'] = 'x' * (low[field] - 2 + extra)
-                elif field == 'summary_cap_bytes':
-                    content['summary']['title'] = 'x' * (low[field] - 12 + extra)
-                elif field == 'link_url_cap_bytes':
-                    link = 'https://outside.example/'
-                    link += 'x' * (low[field] + extra - len(rfc8785.dumps(link)))
-                    content['links'] = dict(total=1, urls=[link])
-                elif field == 'links_cap_bytes':
-                    content['links'] = links(low[field] + extra)
-                else:
-                    content = dict(extract='x' * (low['extract_cap_bytes'] - 2 + extra),
-                                   links=links(low['links_cap_bytes']),
-                                   summary=dict(title='x' * (low['summary_cap_bytes'] - 12)))
-                salt = hashlib.sha256(('wist cap fixture ' + name).encode()).digest()[:16]
-                payload = dict(wist_version='1.0.0', salt=b64u(salt), content=content)
-                raw = rfc8785.dumps(content)
-                body = dict(wist_version='1.0.0', publisher='example.com', url=url,
-                            observed_at='2026-08-04T04:00:00+03:00', change_type='new',
-                            meta=dict(lang='en'), payload=dict(
-                                commitment='hmac-sha256:' + hmac.new(salt, raw, hashlib.sha256).hexdigest(),
-                                alg='HMAC-SHA256', bytes=len(raw)))
-                objects[name] = dict(envelope=sign_envelope('delta', body, KID1), payload=payload,
-                                     id=decl_hash(body), sealed_height=168 if cohort == 'early' else 338)
-
-    anchor = objects['early extract_cap_bytes 1']
-    attestation_body = dict(wist_version='1.0.0', publisher='example.com',
-                            url=anchor['envelope']['delta']['url'], change_type='attest',
-                            observed_at=at(169 * 3600), meta=dict(lang='en'), prev=anchor['id'])
-    attestation = sign_envelope('delta', attestation_body, KID1)
-    replacement = objects['later extract_cap_bytes 1']
-    body = dict(replacement['envelope']['delta'], url=attestation_body['url'], change_type='update',
-                observed_at=at(337 * 3600), prev=decl_hash(attestation_body))
-    replacement.update(envelope=sign_envelope('delta', body, KID1), id=decl_hash(body))
-
-    ranks = dict(publisher_declaration=0, registry_update=1, publisher_delta=2)
-
-    def epoch(height, leaves, entries):
-        entries = sorted(entries, key=lambda entry: (ranks[entry['type']], leaf_hash(rfc8785.dumps(entry))))
-        return seal('test-log-k1', priv, leaves, entries, height, at(height * 3600))
-
-    epochs, tree_leaves = [], []
-    leaves_before = []
-    for height in range(509):
-        entries = []
-        if height == 0:
-            entries.append(dict(type='publisher_declaration', body=sign_envelope('publisher', publisher, KID1)))
-        if height == 169:
-            entries.append(dict(type='publisher_delta', body=attestation))
-        for seal_height, effective, values, links_only in schedule:
-            if height == seal_height:
-                for parameter, value in values.items():
-                    if (parameter == 'links_cap_bytes') != links_only:
-                        continue
-                    update = dict(wist_version='1.0.0', action='parameter_change', subject=parameter,
-                                  details=dict(parameter=parameter, value=value), effective_at=at(effective * 3600))
-                    entries.append(dict(type='registry_update', body=sign_envelope('update', update, 'test-log-k1')))
-        entries.extend(dict(type='publisher_delta', body=obj['envelope'])
-                       for obj in objects.values() if obj['sealed_height'] == height)
-        leaves_before.append(tree_leaves)
-        current, tree_leaves = epoch(height, tree_leaves, entries)
-        epochs.append(current)
-
-    def result(obj, caps, with_payload=True):
-        body = obj['envelope']['delta']
-        content = obj['payload']['content']
-        if len(rfc8785.dumps(body['url'])) > caps['url_cap_bytes']:
-            return 'WIST1-E11'
-        if (body['payload']['bytes'] > sum(caps[key] for key in ('extract_cap_bytes', 'links_cap_bytes', 'summary_cap_bytes')) + 32
-                or with_payload and (any(len(rfc8785.dumps(content[field])) > caps[field + '_cap_bytes'] for field in ('extract', 'links', 'summary'))
-                                     or any(len(rfc8785.dumps(url)) > caps['link_url_cap_bytes'] for url in content['links']['urls']))):
-            return 'WIST1-E04'
-        return None
-
-    probes = []
-    for name, obj in objects.items():
-        for boundary in (169, 338, 507):
-            for before in (True, False):
-                begin = boundary * 3600 - int(before)
-                caps = profile(begin)
-                probes.append(dict(name=f'{name} admission {boundary} {before}', object=name,
-                                   stage='admission', prefix_height=boundary - 1, started_at=at(begin),
-                                   completed_at=at(boundary * 3600 + 1), restart=True,
-                                   expected_profile=caps, expected_delta=result(obj, caps, False), expected=result(obj, caps)))
-            caps = profile(boundary * 3600)
-            probes.append(dict(name=f'{name} sealing {boundary}', object=name, stage='sealing',
-                               candidate_height=boundary, admitted_at=at(168 * 3600),
-                               restart=True, expected_profile=caps, expected_delta=result(obj, caps, False), expected=result(obj, caps)))
-        for replay in (obj['sealed_height'], 508):
-            caps = profile(obj['sealed_height'] * 3600)
-            probes.append(dict(name=f'{name} historical {replay}', object=name, stage='historical',
-                               prefix_height=replay, checked_at=at(replay * 3600), restart=True,
-                               expected_profile=caps, expected_delta=result(obj, caps, False), expected=result(obj, caps)))
-
-    invalid_epochs = []
-    for name, obj in objects.items():
-        if name.startswith('later') and name.endswith('1'):
-            body = dict(obj['envelope']['delta'])
-            if body['change_type'] == 'update':
-                body.update(change_type='new', url='https://example.com/invalid/extract',
-                            observed_at='2026-08-04T01:00:00Z')
-                del body['prev']
-            envelope = sign_envelope('delta', body, KID1)
-            candidate, candidate_leaves = epoch(169, leaves_before[169],
-                                                [dict(type='publisher_delta', body=envelope)])
-            invalid_epochs.append(dict(name=name, epoch=candidate, pinned_head=root_token(candidate_leaves),
-                                       payload=obj['payload'], expected=result(obj, low)))
-    return dict(note='WIST-1 section 3.6 and WIST-4 section 5. One authenticated hourly history supplies a Declaration, cap amendments and unique content-bearing Deltas. Amendments have at least seven days of grace; lower link caps precede lower aggregate caps, and larger aggregate caps precede larger link caps. Probes independently check caps at each stage, not admission membership or permission to re-admit included IDs; admission probes resume their retained attempt across a boundary, sealing probes recheck objects under a supplied earlier valid cap profile, and historical probes retrieve the committing Delta profile from its actual inclusion. Repeating a probe with restart reconstructs inputs from the pinned prefix, not current defaults. Invalid candidate Epochs branch from height 168. Cap checks, signatures, inclusion and commitments are exercised; live queue mutation, crash durability, HTTP retrieval and complete governance acceptance are not established.',
-                log_key=dict(key_id='test-log-k1', public_key=b64u(pub_raw)), defaults=defaults,
-                epochs=epochs, pinned_head=root_token(tree_leaves), objects=objects, probes=probes, invalid_epochs=invalid_epochs)
-
-
-write_json(WIST1 / 'delta-cap-time.json', delta_cap_time_vectors())
-
-
 def payload_link_vectors():
     candidates = [
         ('empty', [], 0, None),
@@ -6787,12 +5852,13 @@ def payload_link_vectors():
         content = dict(extract='Content', links=dict(total=total, urls=urls), summary=dict(title='Title'))
         salt = hashlib.sha256(f'payload link fixture {i}'.encode()).digest()[:16]
         payload = dict(wist_version='1.0.0', salt=b64u(salt), content=content)
-        body = dict(wist_version='1.0.0', publisher='example.com', url=f'https://example.com/link-case-{i}',
-                    change_type='new', observed_at='2026-08-09T12:00:00Z', meta=dict(lang='en'),
+        item = dict(publisher='example.com', url=f'https://example.com/link-case-{i}',
+                    observed_at='2026-08-09T12:00:00Z',
                     payload=dict(commitment='hmac-sha256:' + hmac.new(salt, rfc8785.dumps(content), hashlib.sha256).hexdigest(),
-                                 alg='HMAC-SHA256', bytes=len(rfc8785.dumps(content))))
-        cases.append(dict(name=name, envelope=sign_envelope('delta', body, KID1), payload=payload, expected=expected))
-    return dict(spec='WIST-1 section 3.6; WIST-2 section 5', public_key=b64u(pub_raw), cases=cases)
+                                 alg='HMAC-SHA256', bytes=len(rfc8785.dumps(content))),
+                    meta=dict(lang='en'))
+        cases.append(dict(name=name, item=item, payload=payload, expected=expected))
+    return dict(spec='WIST-1 section 3.6; WIST-2 section 5', cases=cases)
 
 
 write_json(WIST1 / 'payload-links.json', payload_link_vectors())
@@ -6817,12 +5883,12 @@ def payload_field_vectors():
         if len(salt) < 16 or corrupt:
             salt = bytes(32) if corrupt else bytes(range(16))
         commitment = 'hmac-sha256:' + hmac.new(salt, encoded, hashlib.sha256).hexdigest()
-        body = dict(wist_version='1.0.0', publisher='example.com',
-                    url=f'https://example.com/field-case-{len(cases)}', change_type='new',
-                    observed_at='2026-08-09T12:00:00Z', meta=dict(lang='en'),
+        item = dict(publisher='example.com', url=f'https://example.com/field-case-{len(cases)}',
+                    observed_at='2026-08-09T12:00:00Z',
                     payload=dict(commitment=commitment,
-                                 alg='HMAC-SHA256', bytes=len(encoded) + int(wrong_length)))
-        case = dict(name=name, envelope=sign_envelope('delta', body, KID1),
+                                 alg='HMAC-SHA256', bytes=len(encoded) + int(wrong_length)),
+                    meta=dict(lang='en'))
+        case = dict(name=name, item=item,
                     payload=payload, allowed=sorted(allowed), preimage=dict(salt=b64u(salt), content=content))
         if caps:
             caps = dict(caps)
@@ -6951,86 +6017,10 @@ def payload_field_vectors():
         cases[-1]['payload_json'] = wire
     add('escaped member', copy.deepcopy(base))
     cases[-1]['payload_json'] = raw.replace('"total": 1', '"\\u0074otal": 1')
-    return dict(spec='WIST-1 sections 3.1, 3.6 and 7; WIST-3 section 6.1',
-                public_key=b64u(pub_raw), cases=cases)
+    return dict(spec='WIST-1 sections 3.1, 3.6 and 7; WIST-3 section 6.1', cases=cases)
 
 
 write_json(WIST1 / 'payload-fields.json', payload_field_vectors())
-
-
-def delta_clock_time_vectors():
-    start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
-
-    def at(seconds):
-        return (start + datetime.timedelta(seconds=seconds)).isoformat().replace('+00:00', 'Z')
-
-    changes = [(168, 60), (169, 1200), (170, 0), (171, -60),
-               (172, 9007199254740991), (173, -9007199254740991)]
-    amendments = []
-    for hour, value in changes:
-        update = dict(wist_version='1.0.0', action='parameter_change', subject='clock_skew_seconds',
-                      details=dict(parameter='clock_skew_seconds', value=value), effective_at=at(hour * 3600))
-        amendments.append(dict(sealed_at=at(0), envelope=sign_envelope('update', update, KID1), accepted=True))
-    for label, effective, value in [('bad signature', 168 * 3600, 9000), ('short grace', 3600, 9999)]:
-        update = dict(wist_version='1.0.0', action='parameter_change', subject='clock_skew_seconds',
-                      details=dict(parameter='clock_skew_seconds', value=value), effective_at=at(effective))
-        signed = sign_envelope('update', update, KID1)
-        if label == 'bad signature':
-            signed['sig']['value'] = b64u(bytes(64))
-        amendments.append(dict(sealed_at=at(0), envelope=signed, accepted=False))
-
-    def allowance(seconds):
-        return next((value for hour, value in reversed(changes) if hour * 3600 <= seconds), 600)
-
-    probes = []
-
-    def add(name, stage, clock_s, observed, expected, **context):
-        body = dict(delta, observed_at=observed, url='https://example.com/clock/' + str(len(probes)))
-        probes.append(dict(name=name, stage=stage, envelope=sign_envelope('delta', body, KID1),
-                           expected_clock=at(clock_s), expected_allowance=allowance(clock_s),
-                           expected=expected, **context))
-
-    for hour, value in changes:
-        for offset in [-3600, 0]:
-            instant = hour * 3600 + offset
-            skew = allowance(instant)
-            if abs(skew) < 10000:
-                boundary = at(instant + skew)
-                observations = [(boundary.replace('Z', '.00000000000000000001Z'), 'WIST1-E06'),
-                                (boundary, None),
-                                (at(instant + skew - 1).replace('Z', '.99999999999999999999Z'), None)]
-            else:
-                observations = [(at(instant), None if skew > 0 else 'WIST1-E06'),
-                                ('0000-01-01T00:00:00+23:59', None if skew > 0 else 'WIST1-E06'),
-                                ('9999-12-31T23:59:59-23:59', None if skew > 0 else 'WIST1-E06')]
-            for index, (observed, expected) in enumerate(observations):
-                add(f'historical {hour} {offset} {index}', 'historical', instant, observed, expected,
-                    sealed_at=at(instant), checked_at=at(174 * 3600))
-                add(f'sealing {hour} {offset} {index}', 'sealing', instant, observed, expected,
-                    candidate_sealed_at=at(instant), admitted_at=at(instant - 1))
-        instant = hour * 3600 - 1
-        skew = allowance(instant)
-        observed_offset = skew if abs(skew) < 10000 else 0
-        for extra in [0, 1]:
-            observed = at(instant + observed_offset)
-            if extra:
-                observed = observed.replace('Z', '.00000000000000000001Z')
-            observed_scaled = observed_offset * 10**20 + extra
-            add(f'admission across {hour} {extra}', 'admission', instant, observed,
-                None if observed_scaled <= skew * 10**20 else 'WIST1-E06',
-                started_at=at(instant), completed_at=at(instant + 2))
-            add(f'new attempt after {hour} {extra}', 'admission', instant + 2, observed,
-                None if observed_scaled <= (2 + allowance(instant + 2)) * 10**20 else 'WIST1-E06',
-                started_at=at(instant + 2), completed_at=at(instant + 3))
-    return dict(description='WIST-1 section 3.4 and WIST-4 section 5. Signed candidates with supplied '
-                'inclusion contexts; amendments share the initial Epoch in listed order. Only the '
-                'clock_skew_seconds parameter varies. Context timestamps do not prove Epoch inclusion. '
-                'Clock relation outcomes assume other Delta obligations have passed; each new attempt '
-                'captures its own context. Historical checked_at and sealing admitted_at are distractors.',
-                public_key=b64u(pub_raw), default=600, amendments=amendments, probes=probes)
-
-
-write_json(WIST1 / 'delta-clock-time.json', delta_clock_time_vectors())
 
 
 # --------------------------------------------- WIST-2 §5 and §8: fetch bounds
@@ -7224,32 +6214,29 @@ def key_directory_vectors():
     entry("next keys well formed", variant(next_keys=fingerprint_of([{"kid": KID3}])), priv, KID1, "initial")
     entry("next keys malformed", variant(next_keys="sha256:" + "0" * 63), priv, KID1, "WIST1-E14")
 
+    empty_tree, _ = tree_files.write_tree([])
+    def empty_catalog(signer, kid, generated_at):
+        inner = {"wist_version": "1.0.0", "publisher": "example.com", "collection": "default",
+                 "generated_at": generated_at, "size": 0, "root": items.root_string([]), "tree": empty_tree}
+        return sign_envelope_with(signer, "catalog", inner, kid)
+
     window_cases = []
     base_nbf = nbf_at(timestamp(10))
-    def window(name, keys, signer, kid, observed_at, expected):
+    def window(name, keys, signer, kid, generated_at, expected):
         declaration = sign_envelope_with(priv, "publisher", variant(keys=keys), KID1)
-        inner = dict(delta, url="https://example.com/key-directory", observed_at=observed_at)
         window_cases.append({"name": name, "declaration": declaration,
-                             "envelope": sign_envelope_with(signer, "delta", inner, kid), "expected": expected})
+                             "envelope": empty_catalog(signer, kid, generated_at), "expected": expected})
     bounded = [jwk(pub_raw, base_nbf, base_nbf + 3600)]
-    window("half a second before nbf", bounded, priv, KID1, timestamp(10, -1)[:-1] + ".5Z", "WIST1-E02")
     window("at nbf", bounded, priv, KID1, timestamp(10), "accepted")
-    window("fraction after nbf", bounded, priv, KID1, timestamp(10)[:-1] + ".000000000000000000001Z", "accepted")
-    window("half a second before exp", bounded, priv, KID1, timestamp(10, 3599)[:-1] + ".5Z", "accepted")
     window("at exp", bounded, priv, KID1, timestamp(11), "WIST1-E02")
-    window("fraction after exp", bounded, priv, KID1, timestamp(11)[:-1] + ".000000000000000000001Z", "WIST1-E02")
-    window("offset spelling inside window", bounded, priv, KID1, "2026-08-04T07:30:00-03:00", "accepted")
-    window("offset spelling at exp", bounded, priv, KID1, "2026-08-04T12:00:00+01:00", "WIST1-E02")
     window("valid signature outside window", bounded, priv, KID1, timestamp(12), "WIST1-E02")
     overlap = [jwk(pub_raw, base_nbf - 86400, base_nbf + 3600), jwk(pub3_raw, base_nbf + 1800)]
     window("overlap outgoing key before its exp", overlap, priv, KID1, timestamp(10, 1800), "accepted")
     window("overlap outgoing key at its exp", overlap, priv, KID1, timestamp(11), "WIST1-E02")
-    window("overlap incoming key before its nbf", overlap, priv3, KID3, timestamp(10, 1799)[:-1] + ".999Z", "WIST1-E02")
     window("overlap incoming key at its nbf", overlap, priv3, KID3, timestamp(10, 1800), "accepted")
     window("overlap incoming key without exp far later", overlap, priv3, KID3, "2030-01-01T00:00:00Z", "accepted")
     window("overlap outgoing key signature under incoming kid", overlap, priv, KID3, timestamp(10, 1800), "WIST1-E01")
     window("nbf zero admits the Unix time origin", [jwk(pub_raw, 0)], priv, KID1, "1970-01-01T00:00:00Z", "accepted")
-    window("instant before the Unix time origin precedes every nbf", [jwk(pub_raw, 0)], priv, KID1, "1969-12-31T23:59:59.999Z", "WIST1-E02")
     window("nbf at the last NumericDate", [jwk(pub_raw, 253402300799)], priv, KID1, "9999-12-31T23:59:59Z", "accepted")
     window("recovery only key supplies no authority", bounded, priv2, KID2, timestamp(10), "WIST1-E02")
 
@@ -7361,11 +6348,10 @@ def key_directory_vectors():
         rejection("re-serve of the pending head installs nothing", "activated", 3, fresh, "idempotent"),
     ]
 
-    delta_probes = []
+    catalog_probes = []
     def probe(name, history_name, height, signer, kid, expected):
-        inner = dict(delta, url="https://example.com/activation", observed_at=timestamp(height))
-        delta_probes.append({"name": name, "history": history_name, "prefix_height": height,
-                             "envelope": sign_envelope_with(signer, "delta", inner, kid), "expected": expected})
+        catalog_probes.append({"name": name, "history": history_name, "prefix_height": height,
+                               "envelope": empty_catalog(signer, kid, timestamp(height)), "expected": expected})
     probe("pending key supplies no authority", "activated", 3, priv3, KID3, "WIST1-E02")
     probe("current key keeps authority while pending", "activated", 3, priv, KID1, "accepted")
     probe("activated key has authority", "activated", 26, priv3, KID3, "accepted")
@@ -7379,13 +6365,14 @@ def key_directory_vectors():
     write_json(WIST1 / "key-directory.json", {
         "note": "WIST-1 sections 5.1 and 5.2. thumbprints are RFC 7638 known answers; fingerprints and "
                 "dns_record apply the Key Set fingerprint. entry_cases are initial Declarations judged on "
-                "field and uniqueness rules. window_cases judge a Delta's key check under the supplied "
-                "Declaration alone: accepted means the named binding is inside its window and verifies. "
+                "field and uniqueness rules. window_cases judge a Catalog's key check under the supplied "
+                "Declaration alone, the window read at generated_at: accepted means the named binding is "
+                "inside its window and verifies. Every Catalog is of an empty default Collection. "
                 "commitment_cases evaluate fetched against stored as declaration-binding.json does. "
                 "Each history is an authenticated hourly Epoch chain; expected_states hold after the "
                 "named height applies, snapshot_tuples are the WIST-3 section 7 tuples at that height, "
                 "rejections apply a candidate to the next Epoch after prefix_height and must leave the "
-                "prefix state unchanged when rejected, and delta_probes judge only the key check against "
+                "prefix state unchanged when rejected, and catalog_probes judge only the key check against "
                 "the Declaration current after prefix_height. The parameter map is a trusted fixture "
                 "input; a history's own declaration_activation_epochs overrides the file default. No live "
                 "transport, queue, Payload or quota behavior is established.",
@@ -7394,7 +6381,7 @@ def key_directory_vectors():
         "thumbprints": thumbprints, "fingerprints": fingerprints, "dns_record": dns_record,
         "entry_cases": entry_cases, "window_cases": window_cases, "commitment_cases": commitment_cases,
         "histories": histories, "snapshot_tuples": snapshot_tuples, "rejections": rejections,
-        "delta_probes": delta_probes})
+        "catalog_probes": catalog_probes})
 
 
 key_directory_vectors()

@@ -1,29 +1,19 @@
 {
   "spec": "WIST-1 sections 3.1, 3.6 and 7; WIST-3 section 6.1",
-  "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
   "cases": [
     {
       "name": "valid",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-0",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-0",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "TuZ-PGL5ae7fDSQHuPxBEWM0Q_6J_70kSpDlgO0nn5NGlT2R5Q9M577AnhaYqyU2S7KnaNntKcstLYCTPDd2Aw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -61,26 +51,17 @@
     },
     {
       "name": "missing wist_version",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-1",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-1",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "SPbhrSpUqVl2pOA4HGkrtoS4PzsIaAybwF_gDHgpXWfY_c46Pyj56E8SRXm12XelWsdeqvZGIR2t9SDIkw1lBA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -119,26 +100,17 @@
     },
     {
       "name": "missing salt",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-2",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-2",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "Qk8UNJp6Th41yldDTqiVrqXwzqilLT9IwjJMYHeRweJFck0PAQNkU2dg9SnyfekpsANKiIw_J2XKOzsemKtbCQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -177,26 +149,17 @@
     },
     {
       "name": "missing content",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-3",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-3",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "SWRnD7JwTN9BITfgYxQiuQLJTB0GGzDmHYGNxn95PB5mmBzPwPjpZVBshL8pfykkHPusF-w0n1LLy4P2aT5qAw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -224,26 +187,17 @@
     },
     {
       "name": "unknown at root",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-4",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-4",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "gT2fBou94Ryxis3i5GcNcTsnpsA9anzBfBeY0zAv7AJKKKrWN-wM1LWddu7zJqbl605bjrZwL-yJhxLbbE6LCw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -284,26 +238,17 @@
     },
     {
       "name": "object type root None",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-5",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-5",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "_jthKbQwLGlt88Ozj9JoxrQVIOs5pmGOqfgBUCL6EdPln34sSfpqdQTWgem548bf4QpKxDh7oIpQcd4_xv6YAg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": null,
@@ -328,26 +273,17 @@
     },
     {
       "name": "object type root []",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-6",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-6",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "db6g60-xeTm0J4EYWlx8bOMmB64yTKDV6z8Fnp2jJlvW02TkvI-8P0weqsG6v3AUBOGtitZ4eVKCwZsaRFtxCQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": [],
@@ -372,26 +308,17 @@
     },
     {
       "name": "object type root 'object'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-7",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-7",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "3lYReqJ0_sZD2XMiH_SsoHlabsar-ykmTyEzCwOnzsPluoANWZL6ICvNW7OSCdhTJAqFf6rhi_zK9RPfqvgiDg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": "object",
@@ -416,26 +343,17 @@
     },
     {
       "name": "missing content.extract",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-8",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:06d581608dece09a1c0fb6a98db0ec8e72de7b9a912242d9099726084650136e",
-            "alg": "HMAC-SHA256",
-            "bytes": 81
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-8",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:06d581608dece09a1c0fb6a98db0ec8e72de7b9a912242d9099726084650136e",
+          "alg": "HMAC-SHA256",
+          "bytes": 81
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "mJJr_aubfmQM66x1PzSaZ6WhTqe4AFom37dQiaqtcdirrjRMuV3T4tY3uXVmiXf8NMdkNt0AmNiLBCMfy0G8DA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -473,26 +391,17 @@
     },
     {
       "name": "missing content.links",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-9",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:afc3010d77485bc85cc9d127c2b04a58366b550adc954b39a50ff8f4a1c14805",
-            "alg": "HMAC-SHA256",
-            "bytes": 49
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-9",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:afc3010d77485bc85cc9d127c2b04a58366b550adc954b39a50ff8f4a1c14805",
+          "alg": "HMAC-SHA256",
+          "bytes": 49
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "UioIjC97MDe28e-4JB3itgurtbiPXI73s8DH_-qpWlc8CQ0Wm8IjoSJFDnH-nwwns4UlYYDxXriwphjwrxAxAQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -520,26 +429,17 @@
     },
     {
       "name": "missing content.summary",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-10",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:97b2507d94a6fa5e9b8e6c403d551bb1611f5885326ee5147fe389dea8b835a2",
-            "alg": "HMAC-SHA256",
-            "bytes": 73
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-10",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:97b2507d94a6fa5e9b8e6c403d551bb1611f5885326ee5147fe389dea8b835a2",
+          "alg": "HMAC-SHA256",
+          "bytes": 73
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "Ijcoo5Sioc5r19gArR0efW7YsatVv13bUAW8A0_xVHkCf9KRlfHCkSb-aOwrAztInkYl1EGD2R4su0A9mCQUCA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -573,26 +473,17 @@
     },
     {
       "name": "unknown at content",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-11",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:af8edbb74c6949f20cee70fcef90f37db7f06c1e03ae2d9dbf5fd85ddd0c7977",
-            "alg": "HMAC-SHA256",
-            "bytes": 116
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-11",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:af8edbb74c6949f20cee70fcef90f37db7f06c1e03ae2d9dbf5fd85ddd0c7977",
+          "alg": "HMAC-SHA256",
+          "bytes": 116
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "Ac2-qsXGRUjZK1dXxc1JPMZwMWUzKdiKq-SeKbpPAiTuHThFv-1enXBGAWI5pDS34oNyheTU2gTuP0SkBLt8Bg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -634,26 +525,17 @@
     },
     {
       "name": "object type content None",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-12",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:be686e4614c79a03432ef1d4285e343cea824fb6521c67be68c2e41d33349613",
-            "alg": "HMAC-SHA256",
-            "bytes": 4
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-12",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:be686e4614c79a03432ef1d4285e343cea824fb6521c67be68c2e41d33349613",
+          "alg": "HMAC-SHA256",
+          "bytes": 4
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "s1ZyXMr-fjRvbxgm-ISAiLPsQwslXzcUcC_LAAa5Rd6DNlQ0DEDi4iu0oP8x8WfzlX8PNY_RXmjFw_fmvoWtDw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -671,26 +553,17 @@
     },
     {
       "name": "object type content []",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-13",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:7e21c9d4c5584b7cb70dcac470d3c12757ddf2225875cb4a18438b4459da787a",
-            "alg": "HMAC-SHA256",
-            "bytes": 2
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-13",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:7e21c9d4c5584b7cb70dcac470d3c12757ddf2225875cb4a18438b4459da787a",
+          "alg": "HMAC-SHA256",
+          "bytes": 2
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "gS1ph7eclc20ppz6bu46zV-_nmfxCImUmZofmTNb3_sjJN0MHk_LUN1fNVVUq5LOZbhiYHz2IkNPqRWf4UWSCg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -708,26 +581,17 @@
     },
     {
       "name": "object type content 'object'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-14",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:8a046198f27106baff1d6b4cd42737797f77bdfdaa45e7488fa8ae901428c41f",
-            "alg": "HMAC-SHA256",
-            "bytes": 8
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-14",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:8a046198f27106baff1d6b4cd42737797f77bdfdaa45e7488fa8ae901428c41f",
+          "alg": "HMAC-SHA256",
+          "bytes": 8
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "KxfRkmDFGbXnwf6u1nbfG1aTh6KdKrj_vyTsFKZ1bdxcr1B_YhU_yMPsQGbQgGpwSlkPYkC4Hrus3kEaa1e0Cw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -745,26 +609,17 @@
     },
     {
       "name": "missing content.links.total",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-15",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:50ab51910a3d73ecab1a8517d8b2a3d2cf06fb52963aefa8848034b103f258ca",
-            "alg": "HMAC-SHA256",
-            "bytes": 91
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-15",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:50ab51910a3d73ecab1a8517d8b2a3d2cf06fb52963aefa8848034b103f258ca",
+          "alg": "HMAC-SHA256",
+          "bytes": 91
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "AFI3Mw4YLfUy0isAnYD--TB-M4E_HT1uxFCVmeLRKUZpA0qnK-7I3uxd7jp849XASgOmZnSJbYgPbqP2en5HCg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -802,26 +657,17 @@
     },
     {
       "name": "missing content.links.urls",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-16",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:f44f776c67cc44e29dbe809b1e03357fb8509748e327e48fe67da86354a0e534",
-            "alg": "HMAC-SHA256",
-            "bytes": 69
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-16",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:f44f776c67cc44e29dbe809b1e03357fb8509748e327e48fe67da86354a0e534",
+          "alg": "HMAC-SHA256",
+          "bytes": 69
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "JrZTXmwUtG8OzouClVcfwioNkezXlWfYSlwts5GBk0WR5i4No3wYPbI3gnojlOz8uQWAissFm_d0qby-bFsGBA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -855,26 +701,17 @@
     },
     {
       "name": "unknown at content.links",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-17",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:2e087f11ee7a6d291ea974ea6acdba375773af9119568dce744f9c91e2ffb7e3",
-            "alg": "HMAC-SHA256",
-            "bytes": 116
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-17",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:2e087f11ee7a6d291ea974ea6acdba375773af9119568dce744f9c91e2ffb7e3",
+          "alg": "HMAC-SHA256",
+          "bytes": 116
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "SaVq90Rgozo5dxqXjUd1Wo5GaQlx099QrJgQaE_jZeI3yImoy_gESk08mNhrg0Yt_pFsdw1IK2duWC459xJ1Dg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -916,26 +753,17 @@
     },
     {
       "name": "object type content.links None",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-18",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:7af0ba8d3b30e6aa1545cc0b03ad9f0aaeaf45b3c88c3f0fdb62abc1a1a7f564",
-            "alg": "HMAC-SHA256",
-            "bytes": 62
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-18",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:7af0ba8d3b30e6aa1545cc0b03ad9f0aaeaf45b3c88c3f0fdb62abc1a1a7f564",
+          "alg": "HMAC-SHA256",
+          "bytes": 62
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "kXY7B2RH601a5UNbmlzBDivVf7KUJG7O7TNvL5Uz4PeCzQxY-hmKnUQt0430K8oP0LjEGKUEkA4b-9lEa6oVAA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -965,26 +793,17 @@
     },
     {
       "name": "object type content.links []",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-19",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:da28a9c39d4e1d680ea339078a1b2b178cbfb42f6ccb402f601045cd752a4f5e",
-            "alg": "HMAC-SHA256",
-            "bytes": 60
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-19",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:da28a9c39d4e1d680ea339078a1b2b178cbfb42f6ccb402f601045cd752a4f5e",
+          "alg": "HMAC-SHA256",
+          "bytes": 60
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "MvyF3L576dbOtc-rwP1CE60JqIjfP554vQAk7fkwExRm-3tV7hHovCsCjVcneOMFxvoT_pdnWHxrDGXVLxeTDg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1014,26 +833,17 @@
     },
     {
       "name": "object type content.links 'object'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-20",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:d057c626d2ef53e08790b479a66c4db510081ee28d02cafbf3104f9aa9e600a8",
-            "alg": "HMAC-SHA256",
-            "bytes": 66
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-20",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:d057c626d2ef53e08790b479a66c4db510081ee28d02cafbf3104f9aa9e600a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 66
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "-_dAzDtcObU1dLtJfpKWeFUJ0g6cJvd3MX3c6i74Ikd_7T1gbO19_h1XjMYEa7kGB9UMjFyyVhWX5lZPMP9UCA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1063,26 +873,17 @@
     },
     {
       "name": "missing content.summary.title",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-21",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:0c63b2d9650f68d6cc7fa315182f7e07f62506b15b42794619d1c737ff01fc54",
-            "alg": "HMAC-SHA256",
-            "bytes": 86
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-21",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:0c63b2d9650f68d6cc7fa315182f7e07f62506b15b42794619d1c737ff01fc54",
+          "alg": "HMAC-SHA256",
+          "bytes": 86
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "LCmTB8eEXthCq2z9iZCVHBOyu-A-wTyx_7gEbsXDITXe1O6fxOpQL1xMUzoY8G8jJIg5rSy5oU0DiB-B18AyAQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1118,26 +919,17 @@
     },
     {
       "name": "unknown at content.summary",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-22",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:789a9485cc79e6fdbcec526b239a9b80960de750721f60c2bdceb33a3a4d20c9",
-            "alg": "HMAC-SHA256",
-            "bytes": 116
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-22",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:789a9485cc79e6fdbcec526b239a9b80960de750721f60c2bdceb33a3a4d20c9",
+          "alg": "HMAC-SHA256",
+          "bytes": 116
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "WDVyguTPNTtaOmfqk4lNPUbcNYxSd0XN7DRtSbVBIoYqqq4mNZ5q3jdlSxSEjrxTudYo-_zkhe1FqRFBno1mBA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1179,26 +971,17 @@
     },
     {
       "name": "object type content.summary None",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-23",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:0027f8e87a523a8fad12afec2224b90b4991b0fa5621118635ee089c29f7299a",
-            "alg": "HMAC-SHA256",
-            "bytes": 88
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-23",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:0027f8e87a523a8fad12afec2224b90b4991b0fa5621118635ee089c29f7299a",
+          "alg": "HMAC-SHA256",
+          "bytes": 88
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "O2z-5JxWP4pQ5I0wvuZdmEB9tn-xDU6kU4Gv4_WvKG5gC5NopmbRjyn3bwrgxbt-srfkcbttuVSF2lmKuOAEDA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1234,26 +1017,17 @@
     },
     {
       "name": "object type content.summary []",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-24",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:127eae716cb3b73de284e08c49a80c5dc4880d16f7d4366cffdbbbd2c9e8d0e9",
-            "alg": "HMAC-SHA256",
-            "bytes": 86
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-24",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:127eae716cb3b73de284e08c49a80c5dc4880d16f7d4366cffdbbbd2c9e8d0e9",
+          "alg": "HMAC-SHA256",
+          "bytes": 86
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "3ZifvwNAPh4XA76HD45AZ-yMdRQMjRJK9fO2UT9MoJOt3KznYQC9yUQXmudO_a64oa2Kw8Ob-_RWY8gvUl2yDA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1289,26 +1063,17 @@
     },
     {
       "name": "object type content.summary 'object'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-25",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:19788a8124548c2364ac554dc1d5a5b8c7f7bb410abeebc8e62a095bd88dd7ae",
-            "alg": "HMAC-SHA256",
-            "bytes": 92
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-25",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:19788a8124548c2364ac554dc1d5a5b8c7f7bb410abeebc8e62a095bd88dd7ae",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "d3fUhK67I_JxagaHTNSNAFlQUSn-Eqkd-As-hKtQSYlyHZ6oe8KQtL6KeCGb-zr4Gt9hlM1nahpze4bnSx2-Aw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1344,26 +1109,17 @@
     },
     {
       "name": "field type wist_version None",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-26",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-26",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "Bh8UqU0JY5VzBHyi7-R5DkBmdbOumu3_upCJo8oH8hwbKRdoMFhvsZdpYhqDH46FT46tJI7apQK-FZyBrtbzDg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1403,26 +1159,17 @@
     },
     {
       "name": "field type wist_version {}",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-27",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-27",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "KBk3XzokhIVEzFbM6y2D0WjyJAWOa_SWk1h00uhnXl6MCmSJ_Jtvg5mw4xqyPU_8UH0WwxNDO82ekJxgOSv1AQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1462,26 +1209,17 @@
     },
     {
       "name": "field type wist_version True",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-28",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-28",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "WcXm7-8ck8OoQ91rQ8Ve11-7Fum-sGZ2MrGrDbn-WVYSayGCnnRQIZZfkSLcU9d4lMIurHet5pZAr75hKlRpBg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1521,26 +1259,17 @@
     },
     {
       "name": "field type salt None",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-29",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-29",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "PvDz0bOq_qGQqeZosxALryzcKUg5XEbQxw1Em9YMDbEpi936Iyfq6CC7pfh0jX-yVZ_-0_vB_bW23m8rbxsBCw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1580,26 +1309,17 @@
     },
     {
       "name": "field type salt {}",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-30",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-30",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "-FLiSISWKSGNKuT1peAyMuPx_Ihud46ZdLXbpyw6TOarGt9dYDTrRV8Hajp-n6CxrAtgdfo8ZCrUwlZg6Um8AQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1639,26 +1359,17 @@
     },
     {
       "name": "field type salt True",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-31",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-31",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "hN416m0TkpYeYmRZ0I-FkS53DCUrMusVd-QLeKQhSR6JR8k-gaoeEYU3PslIBDzXOg9KdPkvDwMJCpcBpUvtDw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1698,26 +1409,17 @@
     },
     {
       "name": "field type content.extract None",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-32",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:808728cd5b2c97bfdf2b55ad3dcb075ca1c55ff7a22e46490ebcdfbc586f7eff",
-            "alg": "HMAC-SHA256",
-            "bytes": 96
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-32",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:808728cd5b2c97bfdf2b55ad3dcb075ca1c55ff7a22e46490ebcdfbc586f7eff",
+          "alg": "HMAC-SHA256",
+          "bytes": 96
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "kCSmTDXrfpYVJCjz20b6pfbuuHri5v1U_aWy8ZNKwtprnM4TI3VVfAQWgDBL-D2p9CN2lEEv6DLV9ZFtwD6RDQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1757,26 +1459,17 @@
     },
     {
       "name": "field type content.extract {}",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-33",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:0a3865247dc8d5e2b33b03ee9aa9f70448007c0b7f7c562d69206a3cad98ffd6",
-            "alg": "HMAC-SHA256",
-            "bytes": 94
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-33",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:0a3865247dc8d5e2b33b03ee9aa9f70448007c0b7f7c562d69206a3cad98ffd6",
+          "alg": "HMAC-SHA256",
+          "bytes": 94
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "QCOJ-tlHVD70GuuvdoSy709AzhCKuJdTguSxuhDjAfGuKxmFVhsk8-5v6myzK1MGlPI1iJqBNlixHGgG2oV6Dg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1816,26 +1509,17 @@
     },
     {
       "name": "field type content.extract True",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-34",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:579c79483729e64ab94f2c75e0d5a5aceef0ffa9b3347247871c1d03f0127829",
-            "alg": "HMAC-SHA256",
-            "bytes": 96
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-34",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:579c79483729e64ab94f2c75e0d5a5aceef0ffa9b3347247871c1d03f0127829",
+          "alg": "HMAC-SHA256",
+          "bytes": 96
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "A8OuZJ4GKUNamiOk6CrWACIKY3BDOD2YFLl8KkkTFnLBBmfH_POxuTk2-r8ECcBE-VhyZOiJ6xP24Rioxh6JBA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1875,26 +1559,17 @@
     },
     {
       "name": "field type content.links.urls None",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-35",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:9e607c29201f5168e733e88ef56eabf9cc03961a9bce40f1419ff281cc0a88cd",
-            "alg": "HMAC-SHA256",
-            "bytes": 81
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-35",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:9e607c29201f5168e733e88ef56eabf9cc03961a9bce40f1419ff281cc0a88cd",
+          "alg": "HMAC-SHA256",
+          "bytes": 81
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "3zHcopgi6fnZIYtzyV4cB7_2oKrSzSSIm3lQKRJVZLICiRTaDvKtcS1YOgSu45beCAqY2vyCrqFcqCEOsY8_Dw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1930,26 +1605,17 @@
     },
     {
       "name": "field type content.links.urls {}",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-36",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:90faf26b4fca98c59349a61a339d633eeabb9317a212c2069adc0c7a3777f59b",
-            "alg": "HMAC-SHA256",
-            "bytes": 79
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-36",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:90faf26b4fca98c59349a61a339d633eeabb9317a212c2069adc0c7a3777f59b",
+          "alg": "HMAC-SHA256",
+          "bytes": 79
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "egIzzL3u6xkhglcwKq2OeBzoRR3ikpT9O7S1qY3MQ2fwY9VeUy5nuXzAasENFaOXApM4jAjk3shPDfUZE_bcCQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -1985,26 +1651,17 @@
     },
     {
       "name": "field type content.links.urls True",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-37",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:5120ff42e957218f0e39a8a1e2b5dccba92d9c8138bdc8c68a6679bfb9eaa7c3",
-            "alg": "HMAC-SHA256",
-            "bytes": 81
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-37",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:5120ff42e957218f0e39a8a1e2b5dccba92d9c8138bdc8c68a6679bfb9eaa7c3",
+          "alg": "HMAC-SHA256",
+          "bytes": 81
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "PJFVvqXQZ9OVB9-TsuoZsVlvC2EfNObi1Kb4dJXODZFspSPr0C5urLlPotw1RNKM90f1LOGR8V4VUOdVX6CoCA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2040,26 +1697,17 @@
     },
     {
       "name": "field type content.links.total None",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-38",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:9db284c9246f066b28f5b0da22d6683f8cfc152bf409b05262fb692e2658ab93",
-            "alg": "HMAC-SHA256",
-            "bytes": 104
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-38",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:9db284c9246f066b28f5b0da22d6683f8cfc152bf409b05262fb692e2658ab93",
+          "alg": "HMAC-SHA256",
+          "bytes": 104
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "fVdsOkCNjT_OFWdxKcjVj9v6MmmyVZf25mBwO_AoEYAK1ikoOUkbOq15plDqQPPrJq4-zl9pUORyGuxV1ehzAQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2099,26 +1747,17 @@
     },
     {
       "name": "field type content.links.total {}",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-39",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:2e48027a7dec34d5636cc3bc510bf331a766273da509ba9fd0f6ef63d31717ae",
-            "alg": "HMAC-SHA256",
-            "bytes": 102
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-39",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:2e48027a7dec34d5636cc3bc510bf331a766273da509ba9fd0f6ef63d31717ae",
+          "alg": "HMAC-SHA256",
+          "bytes": 102
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "NtRgahUzTrm8PqY766tDMbn2umJxvgtEVW_XCJ9QkNEi9hpz6CvLe9JT2UGsnzLGAUpV3VhM37vMrOFNx3FHCw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2158,26 +1797,17 @@
     },
     {
       "name": "field type content.links.total True",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-40",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:2ed0d4f422a19d4e12dba7c6d0143bbe6a27685914941f381c15d39c0482b723",
-            "alg": "HMAC-SHA256",
-            "bytes": 104
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-40",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:2ed0d4f422a19d4e12dba7c6d0143bbe6a27685914941f381c15d39c0482b723",
+          "alg": "HMAC-SHA256",
+          "bytes": 104
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "DzEMUteIaj60iGDe-vG3fIAdan2aKeo_TJUOPNEfciarFn-x65gTkbDIYEjpKRbtAlSZaTPKepS9hAGjOwMdBw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2217,26 +1847,17 @@
     },
     {
       "name": "field type content.summary.title None",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-41",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:7306b409031b2e7fa998adbee87440a286764e26e4a17afa6d3efc2b9a2f7fcd",
-            "alg": "HMAC-SHA256",
-            "bytes": 98
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-41",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:7306b409031b2e7fa998adbee87440a286764e26e4a17afa6d3efc2b9a2f7fcd",
+          "alg": "HMAC-SHA256",
+          "bytes": 98
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "bZlTNn2BedZdS3dK8swmU24XYtFF0K1AJxPM_XnOsD6k_b3shPxItDQsYLmNqBSoPz-Kp8xwpCYtAQrlEFboDw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2276,26 +1897,17 @@
     },
     {
       "name": "field type content.summary.title {}",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-42",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:fb0652e9916d9f44a152a8d25150013b24d3918484040bf232bc02dd35e77bb6",
-            "alg": "HMAC-SHA256",
-            "bytes": 96
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-42",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:fb0652e9916d9f44a152a8d25150013b24d3918484040bf232bc02dd35e77bb6",
+          "alg": "HMAC-SHA256",
+          "bytes": 96
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "_UpqFJOy1KuGkEhYeI_CnjIp7Z1HeltMDAb0DxyFMVlW0K8KpviCq--fWhwCJQiyFAZmpEPrytSWYP4quUNSBA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2335,26 +1947,17 @@
     },
     {
       "name": "field type content.summary.title True",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-43",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:7d0257d65e669b5f97a4cc17ca75b0ba7099119d15ef4f979061c690cedcd626",
-            "alg": "HMAC-SHA256",
-            "bytes": 98
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-43",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:7d0257d65e669b5f97a4cc17ca75b0ba7099119d15ef4f979061c690cedcd626",
+          "alg": "HMAC-SHA256",
+          "bytes": 98
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "gSje6YYQBg8NOEWJSYqBWIK34t4z9_27eiKI3SxSzr6h6DEOlzIUp1wC7ibMFU1WgGz4W3pmQNzfD9PIT1q1Dg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2394,26 +1997,17 @@
     },
     {
       "name": "field type content.summary.abstract None",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-44",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:2339a43d1a0036da85e999baf5ebd674893848c689704c9b1ba2f9ceb514b3aa",
-            "alg": "HMAC-SHA256",
-            "bytes": 117
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-44",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:2339a43d1a0036da85e999baf5ebd674893848c689704c9b1ba2f9ceb514b3aa",
+          "alg": "HMAC-SHA256",
+          "bytes": 117
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "JDhQWUOZgHWA7s9sL00NvCr1Cr3ColwzDlY-KnB0c69Nn3zX119ENTkmNbNT14-B_fLcT6owFig_iulcBE2uDw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2455,26 +2049,17 @@
     },
     {
       "name": "field type content.summary.abstract {}",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-45",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:f521f494c3e4a41aff340423e2e3702cadfe9567254a37038fc0d03b3b3e7f86",
-            "alg": "HMAC-SHA256",
-            "bytes": 115
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-45",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:f521f494c3e4a41aff340423e2e3702cadfe9567254a37038fc0d03b3b3e7f86",
+          "alg": "HMAC-SHA256",
+          "bytes": 115
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "2oqh2Qte0LWrDQGllUT6F6fM8P3sw0a5rssHbNyoeZi3R9u7o5373ClFflEd3267U8G17dpOa26Ar-m1VRWmAQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2516,26 +2101,17 @@
     },
     {
       "name": "field type content.summary.abstract True",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-46",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:689684291acdc8413c4101cc9501479f647e2c12fbe57db2def40748b891c81a",
-            "alg": "HMAC-SHA256",
-            "bytes": 117
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-46",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:689684291acdc8413c4101cc9501479f647e2c12fbe57db2def40748b891c81a",
+          "alg": "HMAC-SHA256",
+          "bytes": 117
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "y-569OtyG6xwN5A8JLTnl3lMXiU1tY8CDTPkyNP4KyaTVAEgBZS068FSVSzqsbXeISJ2nzWN3mmceESxTOJoAg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2577,26 +2153,17 @@
     },
     {
       "name": "nonstring URL",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-47",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:9d1bc8511bbcefc4a1341408028f8c2e78b47bff34cd5437baa9e56ac4e5b4cd",
-            "alg": "HMAC-SHA256",
-            "bytes": 80
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-47",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:9d1bc8511bbcefc4a1341408028f8c2e78b47bff34cd5437baa9e56ac4e5b4cd",
+          "alg": "HMAC-SHA256",
+          "bytes": 80
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "ylemNvhlKZO06spGTaWiDzGm87Yo0aoge_dCNNAqxRgQEyuB3scoJE5RsnW98qAS3B8ZHGLn5DvDw7z-wZ4_DQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2636,26 +2203,17 @@
     },
     {
       "name": "unsupported 0.0.0",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-48",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-48",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "XrcH5_5z-I6e5vPXEQumHX9IwYeW1VbBTcJEkBwsUz8XDuoKP1g0rmad68FvQbHfb1UNiTkguq28_IUs2dG7Bw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2695,26 +2253,17 @@
     },
     {
       "name": "unsupported 2.0.0",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-49",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-49",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "6ed-D7tWJ1HjWdlT6VySzBMA_Wu0FmVVuAYcOkUa1HAwFnlPd_xUw31Ds0NpbuK0F36i-gmp-dBoTsEzhzjRAg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2754,26 +2303,17 @@
     },
     {
       "name": "unsupported 9999999999999999999999999999999999999999.0.0",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-50",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-50",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "QPsL1_tfa9xhb8W1QnRjSOe33cpei4_SYKy05IiSu3O4TNjgzzorNUn-KlNWn6Iq1OLimgcpcXTzIxhRUeKKCg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2813,26 +2353,17 @@
     },
     {
       "name": "supported 1.1.0",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-51",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-51",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "z6osbZ962y7efuMuyaUjlrmTZn94Zr0qasJCEO21F4oUm0ROoCfx4uKstdQjkYFs7vhkQ-5YuoBEevAYgKxvBw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2870,26 +2401,17 @@
     },
     {
       "name": "supported 1.0.1",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-52",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-52",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "yeCHvfmEQeAVJ8J--0Q_otZlpNU9LgPvidrVNnorz2IBw9IleQnJyJURK7vMzoCL4PUTDxXiDnmxB5Ps3ynSDg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2927,26 +2449,17 @@
     },
     {
       "name": "supported 1.9999999999999999999999999999999999999999.8888888888888888888888888888888888888888",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-53",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-53",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "2gmkuqIheVqhY7es_lx-0mRzJlXGDXZu3AOdh3zIhmqYTA562KvehJJUWy2bMiCh1lohkrEe4Ly3ZtlcriiYBA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -2984,26 +2497,17 @@
     },
     {
       "name": "version spelling ''",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-54",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-54",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "pPCA0tWrCPZvdByYX2wcPKxI_Nb_eyXp2jObAigdGteaM8b6BWmZmq6UFXySRCgHoDTFiN6djWUAhJ41KXICBA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3043,26 +2547,17 @@
     },
     {
       "name": "version spelling '01.0.0'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-55",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-55",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "A_EcBPih8hNN-jypciU5s0JjmMTf9l6SvVtNfGTqY0i24SobA7mV46ov3qWuj_4VWEVtcg7MjC-9DK-lGK2_BQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3102,26 +2597,17 @@
     },
     {
       "name": "version spelling '1.01.0'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-56",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-56",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "zNNnrtX_57MYqt0q2tOT7GJ0sL8-QCi3MZz7rHIFCXAnwfvVw906-ViLBgoFKZoIfi4Bg3_rKPB_4gtfAUS-DQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3161,26 +2647,17 @@
     },
     {
       "name": "version spelling '1.0.00'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-57",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-57",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "m9_cA1x4wkyu1a63NMuOzkNdM4PyMeAkwr7XZUjVX4NvLtU1Yw7EqVManuYUseqTT8dPMHj6N9bvuRW8bnu_BQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3220,26 +2697,17 @@
     },
     {
       "name": "version spelling '1.0'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-58",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-58",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "mU3gi5nzf4ffyaSovHrA6G--MirGhNUXDhNuARsiSnrnsYrkAhyFcW5E04AitrvVQ-sP0So-ijw5LApKwvTWAA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3279,26 +2747,17 @@
     },
     {
       "name": "version spelling '1.0.0.0'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-59",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-59",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "oM3k2k5WhCDLjDLVaAOsfkgV2jHa70mWpsdCv_CgoUujEtqQR-bA9gqZooACBUyD_kSExD0uhIGzU1yUOOFmAA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3338,26 +2797,17 @@
     },
     {
       "name": "version spelling '1.0.0-alpha'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-60",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-60",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "a-sYz0MGA8klvcHjKSOy0uooERiAdALPV3PHH0d_IAxnYZLlwByIB5IAP3KSyL-EfRUEGEH_zcnbsyUf6rOAAg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3397,26 +2847,17 @@
     },
     {
       "name": "version spelling '1.0.0+build'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-61",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-61",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "bk78tokVslz1VrM3T2a4dq3evqSVi71ag5ucs0KOtS74XUaRTdA4pci8cL-0eXmumO07hOfVHeOC_clBoLPABA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3456,26 +2897,17 @@
     },
     {
       "name": "version spelling '1.0.0\\n'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-62",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-62",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "KmXr_crAM6PsLTWU5AkV2dms1ZdBAufvS7AXE2__khxvxS63r9ofnHayiPQbrWzvkp8_jDBHx770ILzy7fgBBA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3515,26 +2947,17 @@
     },
     {
       "name": "version spelling '\u0661.0.0'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-63",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-63",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "FcNBnh0B5jk2YgIggKQ3SiEZPvVneiuP_4MYUGNQ-OvHN1Azl7xTK9iOSyfW82x6qf4wAqM5F-WHOvjf9EN6Dw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3574,26 +2997,17 @@
     },
     {
       "name": "version spelling '1.\u0660.0'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-64",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-64",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "4jYe1NZZezv7kXyk7nUp0g0_N3DaTXrpV3fnB7Zb5xsam_KhhFNUYGOmCY9oT-OleEmKW0Z5K7GglSxvl6g6Ag"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3633,26 +3047,17 @@
     },
     {
       "name": "salt spelling ''",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-65",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-65",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "bagYB1IFwUry1XLXKbVbAyzHE_9SIjbtGWQLqiaeTy92wvcTWsu_NOoMTIhcbhVtZ_n5xwiGtlnCaUogYoXMCA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3692,26 +3097,17 @@
     },
     {
       "name": "salt spelling 'AAAAAAAAAAAAAAAAAAAA'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-66",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-66",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "rb3Dkp7ORrEjxMpvtj5Z2ptrESFWiooI8oBygfJb9Bp12MvF4ElvzqbNwfMXGmd-lW67ku8FPHOHjefMlvRsBA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3751,26 +3147,17 @@
     },
     {
       "name": "salt spelling 'AAECAwQFBgcICQoLDA0ODw='",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-67",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-67",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "bkIPIGYz2IwpcUgyWKlSqZc2QHVJOtWiG6H_WDWoz1Tw9e_x4vKw8kSdFCEZo0J-tKugfTV27Pue2rkdlml7DQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3810,26 +3197,17 @@
     },
     {
       "name": "salt spelling 'AAECAwQFBgcICQoLDA0ODw\\n'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-68",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-68",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "KBTuVKE-LillsPO6sRyW7wb5rqmtipe01msw91r86HRmrJPdlNsFRf6BXJjj40hZQj5-Zl_p81-3hyTiBPQ2Cw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3869,26 +3247,17 @@
     },
     {
       "name": "salt spelling 'AAECAwQFBgcICQoLDA0ODx'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-69",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-69",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "8vq20V4qIASWZ-si7dHbsDI424cVimKXVUXm1YIFW7fkoIhBQGioxr22l-f-whfuYUDM5m9IJBIcGYlmsuTMAQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3928,26 +3297,17 @@
     },
     {
       "name": "salt spelling '++++++++++++++++++++++'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-70",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:92e457796b0e3cb73f41b952e2ec04df0cf50bb7ed8eb138396074755aa7360b",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-70",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:92e457796b0e3cb73f41b952e2ec04df0cf50bb7ed8eb138396074755aa7360b",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "LgfkPKnWOWGLjbVK-uP-EpL5tHcI_kq6BMnwqJD_QVG_CID0ktXxl_EMVjb8yyl__G0Udye-r457IvXRAk1cBg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -3987,26 +3347,17 @@
     },
     {
       "name": "salt spelling 'AAAAAAAAAAAAAAAAAAAAAAA/'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-71",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:b753f7de51eb1a0a7d0c2be3370e6f2b9a683c69f95f6bb05b87c45a3b60e2b7",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-71",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:b753f7de51eb1a0a7d0c2be3370e6f2b9a683c69f95f6bb05b87c45a3b60e2b7",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "2Vz-KgYqbcACnas1lXTcRMk8RJCXmMJtOyPucrgDnVsuRHtHVA5lduDKuf-nI6VCaV4Zwk6y0vpoiMxaXWpQCQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4046,26 +3397,17 @@
     },
     {
       "name": "salt octets 16",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-72",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:e39614048b2aa9c75673ac2754f2ae0ac39dc1fdb883c09a2bb20515b0736270",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-72",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:e39614048b2aa9c75673ac2754f2ae0ac39dc1fdb883c09a2bb20515b0736270",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "QfI3FxuirMhVU0Fz0pzfW5xTv7MYxSC5XgvGzAh2gEMnl3Mg4Q51BzOvMNQdOTZ3tLf7J26L4sHIUQ8RkpzEDQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4103,26 +3445,17 @@
     },
     {
       "name": "salt octets 17",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-73",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:e39614048b2aa9c75673ac2754f2ae0ac39dc1fdb883c09a2bb20515b0736270",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-73",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:e39614048b2aa9c75673ac2754f2ae0ac39dc1fdb883c09a2bb20515b0736270",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "bCa3hnxDGpsbLO414Z3d9-EPf3yUwgqjvVr9U19pr2lPBdj4LEyr9HhI7pkTWsGix2AdDg9uMke_sbkvizCnCA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4160,26 +3493,17 @@
     },
     {
       "name": "salt octets 18",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-74",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:e39614048b2aa9c75673ac2754f2ae0ac39dc1fdb883c09a2bb20515b0736270",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-74",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:e39614048b2aa9c75673ac2754f2ae0ac39dc1fdb883c09a2bb20515b0736270",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "k8vqSrgQQ5lMW48ehHIi-CoixXUoEOmU0B2lu5OaqyaN_UhTIykhvZDm_7vgwosgAJHSaP1EOUOfgkBkU3ukCw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4217,26 +3541,17 @@
     },
     {
       "name": "salt octets 32",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-75",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:e39614048b2aa9c75673ac2754f2ae0ac39dc1fdb883c09a2bb20515b0736270",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-75",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:e39614048b2aa9c75673ac2754f2ae0ac39dc1fdb883c09a2bb20515b0736270",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "3jdVNU_4dRI-8YSHpjMpcQs5gzmUW7N59LtIukOrs_ss3jzuyhERYYLoaS5Z7hYYmYpVq-2e2iWSEhn-dscvDg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4274,26 +3589,17 @@
     },
     {
       "name": "integer value zero",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-76",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:940983d4260590818b4290b79a8c5f50d506a4d038e260bcc75e37feeb0afdf6",
-            "alg": "HMAC-SHA256",
-            "bytes": 79
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-76",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:940983d4260590818b4290b79a8c5f50d506a4d038e260bcc75e37feeb0afdf6",
+          "alg": "HMAC-SHA256",
+          "bytes": 79
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "0Ke_DvGP_k1zdpSTwRpfszSMouGsxI7UpEFpc27_GHk8ZoKuTMw_1ZUYeEGpzlfDWC64zrq5X2DbXgtaPNxIAA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4327,26 +3633,17 @@
     },
     {
       "name": "integer value decimal integral",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-77",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-77",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "Ug6nbqSGP4spOd_4ucsICH1HOdho-vYJ3aPavaj42kE5HL658g3oGyGVkA2xha_YqOo89IhchtVpn2gCWUDeAw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4384,26 +3681,17 @@
     },
     {
       "name": "integer value exponent integral",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-78",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-78",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "S7QzyI_3gZqls1-voyO1rCohH3HYeFK468ClEzXIatsesmP231CPtePzILlwAqModkdsuT8XxV6TLz_3gRFnBg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4442,26 +3730,17 @@
     },
     {
       "name": "integer value maximum safe",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-79",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:91775955e68db6f184ce5197448587bec255c59ff9f6adb6733311a23f164698",
-            "alg": "HMAC-SHA256",
-            "bytes": 116
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-79",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:91775955e68db6f184ce5197448587bec255c59ff9f6adb6733311a23f164698",
+          "alg": "HMAC-SHA256",
+          "bytes": 116
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "ardA1m-UIqdaie42RM0wIazr7E2RH8jHgy4iGyrETgE3jmnazVSIYzpfS47MjJDpAMUVwvbCzRtOrj0kelp0CA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4499,26 +3778,17 @@
     },
     {
       "name": "negative zero",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-80",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:940983d4260590818b4290b79a8c5f50d506a4d038e260bcc75e37feeb0afdf6",
-            "alg": "HMAC-SHA256",
-            "bytes": 79
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-80",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:940983d4260590818b4290b79a8c5f50d506a4d038e260bcc75e37feeb0afdf6",
+          "alg": "HMAC-SHA256",
+          "bytes": 79
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "CKaUPhSZQ3qtmJCWTp-JCJjeaXaFAW4kKE9nAHJrn-DceW51KQJ6XcMbwzcAkBKZCRR3cD7RV0-FTgs8p173DQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4552,26 +3822,17 @@
     },
     {
       "name": "invalid integer -1",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-81",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:559796612e8cb93e5ccf82052f9718f9b212d8e6fd22b0eded28a7f04acffc43",
-            "alg": "HMAC-SHA256",
-            "bytes": 102
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-81",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:559796612e8cb93e5ccf82052f9718f9b212d8e6fd22b0eded28a7f04acffc43",
+          "alg": "HMAC-SHA256",
+          "bytes": 102
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "w2f6AClcWqTwPvhalTxuEQiVRVRfUyB1e91GFmOg2nf5PVyWWL6Mq1vCUSv7k7qusisEFog5hw976-wwbYF1Cg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4611,26 +3872,17 @@
     },
     {
       "name": "invalid integer 0.5",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-82",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:1141246d8aebc4c991366325c36efa5ccf909226f79c32d7ed0d93b0c44da1ba",
-            "alg": "HMAC-SHA256",
-            "bytes": 103
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-82",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1141246d8aebc4c991366325c36efa5ccf909226f79c32d7ed0d93b0c44da1ba",
+          "alg": "HMAC-SHA256",
+          "bytes": 103
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "5YEP--JLW6MEVdV1Q4wj9H3V-rKDjn5R03WSHDAzuAMb6bJgjW1SisbuzZtWloC7n_NUgy0riM2QwM2cnzvVBg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4670,26 +3922,17 @@
     },
     {
       "name": "invalid integer 9007199254740992.0",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-83",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:9975e7727e58e707c5377407574fe0465281ae34c82b13ae01a19eef24c233b9",
-            "alg": "HMAC-SHA256",
-            "bytes": 116
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-83",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:9975e7727e58e707c5377407574fe0465281ae34c82b13ae01a19eef24c233b9",
+          "alg": "HMAC-SHA256",
+          "bytes": 116
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "IziFHnbrBcwB_YtC-u_a0dgvcuG5sYPll5cJp305llbktA6p0EByBG_WhZhDidNse-K5FBhaCBZVUbgjiMnwCg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4729,26 +3972,17 @@
     },
     {
       "name": "invalid integer '1'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-84",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:a9e0ede00463cc083aabaa829bf6e2c51274858f05905bd6d0c0bb872b5c603f",
-            "alg": "HMAC-SHA256",
-            "bytes": 103
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-84",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:a9e0ede00463cc083aabaa829bf6e2c51274858f05905bd6d0c0bb872b5c603f",
+          "alg": "HMAC-SHA256",
+          "bytes": 103
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "1xg0QqZHKBx6C8f9kpHJaZUPJGrD_jPUjivNwFRgRqdU6uAWuN6ivywNkM2bWjco8AdZQmGXTOO5gW-3IrTLBw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4788,26 +4022,17 @@
     },
     {
       "name": "title boundary",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-85",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:8e883ad0e1a5f0d9e312c141876dc9f913f9f71e8bcc3bf99671f901ec89c55a",
-            "alg": "HMAC-SHA256",
-            "bytes": 352
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-85",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:8e883ad0e1a5f0d9e312c141876dc9f913f9f71e8bcc3bf99671f901ec89c55a",
+          "alg": "HMAC-SHA256",
+          "bytes": 352
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "lVLkA9GcT8Kawm20_qM1vPIiXzjfbZw7xqk_T6H_vuajWMhJ0z4OcoDLEC7PO0RTwjj-Vw-O_ka2bqrO6Wz6Bw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4848,26 +4073,17 @@
     },
     {
       "name": "title excess",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-86",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:1b06d7b06be08a623a6a67b663b071778e2520ce9d866a04fd78797330ce7129",
-            "alg": "HMAC-SHA256",
-            "bytes": 353
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-86",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1b06d7b06be08a623a6a67b663b071778e2520ce9d866a04fd78797330ce7129",
+          "alg": "HMAC-SHA256",
+          "bytes": 353
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "k5sdYrkgYkZHtss-E_oHX7Nj2MbiPKuTWQQboOCE4Fxq7Ogx4EHsFHmbwAT60zNsfI80yCz_gSYitiGgcPaDDA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4910,26 +4126,17 @@
     },
     {
       "name": "title astral",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-87",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:0c1b095117ad4b3ba249318c06b755d9e4e08bac70fa0fc6f489da2debf6b7c9",
-            "alg": "HMAC-SHA256",
-            "bytes": 1120
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-87",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:0c1b095117ad4b3ba249318c06b755d9e4e08bac70fa0fc6f489da2debf6b7c9",
+          "alg": "HMAC-SHA256",
+          "bytes": 1120
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "_6LR2MC228OhHu-0n3pep7U38q6nQWa68zRtlXOgDa2sKUAThTnYKGcJ-qjSLaDQTE_akdcq5FiuUc8Q1AmHDw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -4970,26 +4177,17 @@
     },
     {
       "name": "title astral excess",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-88",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:dda74339cec26992bb2b7cc80a76b8a3baa7cf8e08e7375fa5584c08f82f0c48",
-            "alg": "HMAC-SHA256",
-            "bytes": 1124
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-88",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:dda74339cec26992bb2b7cc80a76b8a3baa7cf8e08e7375fa5584c08f82f0c48",
+          "alg": "HMAC-SHA256",
+          "bytes": 1124
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "iY7xEBYZIbUrTAqWUZwfy7POWEt8F_4x1j_APq9RLFdWl-oUuH6wf9RjIG1PZLomWsHP8SXePWoDfCsxDN3gDA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5032,26 +4230,17 @@
     },
     {
       "name": "abstract boundary",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-89",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:809a27124e57b90053a72e72d14a86d05d91f562f84fd6d841e1483ad96ff97c",
-            "alg": "HMAC-SHA256",
-            "bytes": 1615
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-89",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:809a27124e57b90053a72e72d14a86d05d91f562f84fd6d841e1483ad96ff97c",
+          "alg": "HMAC-SHA256",
+          "bytes": 1615
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "g1chG-50Nc0yx1RkmLvNU9rq69EGIvKbhCQ0M_-66swWT_veUvhPEjqrLnuNWmRm4nIn2kJq1AIb_ZnnnJ7TAQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5094,26 +4283,17 @@
     },
     {
       "name": "abstract excess",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-90",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:7f318a04f9648598d69e683275166dd1a2f6e56c99ceba898db8b0bc74eaa43f",
-            "alg": "HMAC-SHA256",
-            "bytes": 1616
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-90",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:7f318a04f9648598d69e683275166dd1a2f6e56c99ceba898db8b0bc74eaa43f",
+          "alg": "HMAC-SHA256",
+          "bytes": 1616
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "_iJ92X0KEhMN2Q_TReOeAHMKEMstkF6sKrBne0-mhVBgHQ1MvzJr5Dq5_hH3mfj0uo2hXjLk28gYySb_Pq58BQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5158,26 +4338,17 @@
     },
     {
       "name": "abstract astral",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-91",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:c554c78f769fd5955034c6ffdc99a9359379975807beb6fb1397502aa73e3d2a",
-            "alg": "HMAC-SHA256",
-            "bytes": 6115
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-91",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:c554c78f769fd5955034c6ffdc99a9359379975807beb6fb1397502aa73e3d2a",
+          "alg": "HMAC-SHA256",
+          "bytes": 6115
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "az7i4g4Alo_yGa_GJpSurPpjKOAFhTIInQquGB-N9g35iS9rcffinpkRYS3IXwAdZqf0l3nbevbk4uTXjSpRAw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5220,26 +4391,17 @@
     },
     {
       "name": "abstract astral excess",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-92",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:30ad2a05fcef52929201c71d28adb57062953b2cba1666bef376914d8474e8d3",
-            "alg": "HMAC-SHA256",
-            "bytes": 6119
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-92",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:30ad2a05fcef52929201c71d28adb57062953b2cba1666bef376914d8474e8d3",
+          "alg": "HMAC-SHA256",
+          "bytes": 6119
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "lOl4TcUi9i1v-N3dnrmLrhecJoP9ZDS3k5EDLO5tLXmV4gKdj5YBbwF3p0hRTTyKJBihCBIH6rwZms54P1qMAQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5284,26 +4446,17 @@
     },
     {
       "name": "empty abstract",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-93",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:fb8756bd8afcdff3690284fbb7f7df477f770fb65967cc706c20a74e15df2963",
-            "alg": "HMAC-SHA256",
-            "bytes": 115
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-93",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:fb8756bd8afcdff3690284fbb7f7df477f770fb65967cc706c20a74e15df2963",
+          "alg": "HMAC-SHA256",
+          "bytes": 115
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "0F0sm2DRkiIzBdTgsSA9COTljnAJvCpE6PQuRxu6lGuO3vTx4bfC63gmJ2Y5WOioMrDp8_7bH23R0_3iIBdiDw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5343,26 +4496,17 @@
     },
     {
       "name": "increased cap extract",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-94",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:c23fc5836312dfa5b5c573934e0bb9b39414c06b8baf0dd4cf750b68113b79c3",
-            "alg": "HMAC-SHA256",
-            "bytes": 32863
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-94",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:c23fc5836312dfa5b5c573934e0bb9b39414c06b8baf0dd4cf750b68113b79c3",
+          "alg": "HMAC-SHA256",
+          "bytes": 32863
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "LC8Gm-xOySphUsJ9yq39tI0gUxWDsArf2VqtmrzCOuEBv3AS9vaFml052JPGhWaQqj0kBp_HT3KYIMs_Sl07Dw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5403,26 +4547,17 @@
     },
     {
       "name": "increased cap links",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-95",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:f703005d17d6b72e2f2c8ab0cda700c124fa4f07129b380a3fdbb6a9171603a4",
-            "alg": "HMAC-SHA256",
-            "bytes": 2201
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-95",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:f703005d17d6b72e2f2c8ab0cda700c124fa4f07129b380a3fdbb6a9171603a4",
+          "alg": "HMAC-SHA256",
+          "bytes": 2201
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "zJIHzSLNNcbsrGAd3RgxqiirHK2PQvwKD76fuW3SenGOxm1fH-4dbon0ir92vAyYGBpPZa43XY7qA1f9AuAeCg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5464,26 +4599,17 @@
     },
     {
       "name": "exact cap extract 'xxxxxxxx'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-96",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:8111723a0f061fdbed73074ac2feb10df0b429f16feb6dcf18e6228e0c036104",
-            "alg": "HMAC-SHA256",
-            "bytes": 102
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-96",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:8111723a0f061fdbed73074ac2feb10df0b429f16feb6dcf18e6228e0c036104",
+          "alg": "HMAC-SHA256",
+          "bytes": 102
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "FD_2gAETqqptt7xbkDig7-nNLm1ksWndbP3DPps-K9-dMpN0KFu0LWH5_k4XBxQPQKoMdzXlprdiZ92wIQOdBQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5524,26 +4650,17 @@
     },
     {
       "name": "exceeded cap extract 'xxxxxxxx'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-97",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:8111723a0f061fdbed73074ac2feb10df0b429f16feb6dcf18e6228e0c036104",
-            "alg": "HMAC-SHA256",
-            "bytes": 102
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-97",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:8111723a0f061fdbed73074ac2feb10df0b429f16feb6dcf18e6228e0c036104",
+          "alg": "HMAC-SHA256",
+          "bytes": 102
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "XU-bozOBUK3bV4GgHRIGj5moYE0sbu7CDA2ynQIX2zKX3IU8MIhfDKWiJzDru78Zplyo_MpVSuUyLlmergduCg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5586,26 +4703,17 @@
     },
     {
       "name": "exact cap extract '\ud83d\ude00\ud83d\ude00'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-98",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:60dd877b22cae744792afed7cae12eb2cbd733644cb996b903184ec777888ec2",
-            "alg": "HMAC-SHA256",
-            "bytes": 102
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-98",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:60dd877b22cae744792afed7cae12eb2cbd733644cb996b903184ec777888ec2",
+          "alg": "HMAC-SHA256",
+          "bytes": 102
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "DOKukHCYRA26ppHQXIo9hNfeSIm_Tc5NnfWyoyi-qoNc0ZeKBHHyZywwvZNDNH1JQ5NIfKA1Go3_y2M0nxe8AQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5646,26 +4754,17 @@
     },
     {
       "name": "exceeded cap extract '\ud83d\ude00\ud83d\ude00'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-99",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:60dd877b22cae744792afed7cae12eb2cbd733644cb996b903184ec777888ec2",
-            "alg": "HMAC-SHA256",
-            "bytes": 102
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-99",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:60dd877b22cae744792afed7cae12eb2cbd733644cb996b903184ec777888ec2",
+          "alg": "HMAC-SHA256",
+          "bytes": 102
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "NEHoHZ9uRl4Di47CgOrwItHMNKVv4HQ_M3HyuD9YRdNV2Fr9082ezSFwYTzPQmife4EA-h6OSjjNZJk5_oiiAg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5708,26 +4807,17 @@
     },
     {
       "name": "exact cap extract '\\n\\n\\n\\n'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-100",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:ac3ed9afc7dcac04dacfb95147484c1eb19d40191cf82b0dbc8e0e349a6d0591",
-            "alg": "HMAC-SHA256",
-            "bytes": 102
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-100",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:ac3ed9afc7dcac04dacfb95147484c1eb19d40191cf82b0dbc8e0e349a6d0591",
+          "alg": "HMAC-SHA256",
+          "bytes": 102
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "HZWUxDQy3ZgagaTWyo_hdHS9NGaxKv4V1GGX97nxYsYmrRGWGcG8jVbFh-WoGuR4JxD6AZc_tCuQC0j9c_1tCA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5768,26 +4858,17 @@
     },
     {
       "name": "exceeded cap extract '\\n\\n\\n\\n'",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-101",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:ac3ed9afc7dcac04dacfb95147484c1eb19d40191cf82b0dbc8e0e349a6d0591",
-            "alg": "HMAC-SHA256",
-            "bytes": 102
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-101",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:ac3ed9afc7dcac04dacfb95147484c1eb19d40191cf82b0dbc8e0e349a6d0591",
+          "alg": "HMAC-SHA256",
+          "bytes": 102
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "4dwGa32-uNhapXKXEyqRJ0RLy7BN8fDFZWaCijWSZ70OsZ1yCTZbj75UL4NqEuHTEHrTMmwgeBQ8BYCAbZESCw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5830,26 +4911,17 @@
     },
     {
       "name": "exact cap links {'total': 1, 'urls': ['https://example.org/']}",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-102",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-102",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "G4IuXoLQuxLRYPqfYOVj2aL6GGJVYRhk-BgxWgLHdksH_mhgbkdMNbb84QOhbWvynvo9KCFvIIfh-dUEhg0GAA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5891,26 +4963,17 @@
     },
     {
       "name": "exceeded cap links {'total': 1, 'urls': ['https://example.org/']}",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-103",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-103",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "SW27PtAPYNnthx4k3W6nGG70Erl6NHXCX01MXnJxnWov_0fZSmg2t6whLADLLBPTknmxwxy4LhsuiIP2-iNuCg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -5954,26 +5017,17 @@
     },
     {
       "name": "exact cap summary {'title': 'Title'}",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-104",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-104",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "k3nT-shH5-FUyaJB79tQLFO_BHyygo8nVYO5kgol8AuX7JvzZ9b-fDJXVn2onl0e9JJt7uPRmQvkqx51FSAfDw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6014,26 +5068,17 @@
     },
     {
       "name": "exceeded cap summary {'title': 'Title'}",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-105",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-105",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "sN2Q-j6cV8hVhI-XwOrVG-nS9E1rSjp348CgTEN_B5PywHqnhJr6WMJZFZBTIUNW2WOClnCmvOEmiPc-yVobDw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6076,26 +5121,17 @@
     },
     {
       "name": "URL octet cap",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-106",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-106",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "ka_DJsQQbVRd9QUCRaP07Xkoqx8pxM50gOtPc5hbPYQgfQsR1c_0llZktOyfQ9a4PItuC_iwY23MtQ6b7cSMCQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6138,26 +5174,17 @@
     },
     {
       "name": "declared length",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-107",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 102
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-107",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 102
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "qfQ9FjJFU1UdiB7dbAyeGogmSa9X_-_vOL9sdqlF9McTYyzTwQSfXsPsap_TpA3jf2-gJ0fjHDm1hGDl7hM7CQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6197,26 +5224,17 @@
     },
     {
       "name": "commitment mismatch",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-108",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:e39614048b2aa9c75673ac2754f2ae0ac39dc1fdb883c09a2bb20515b0736270",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-108",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:e39614048b2aa9c75673ac2754f2ae0ac39dc1fdb883c09a2bb20515b0736270",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "1aJc2CJY9GWmuNnS5aZfTf7V1cVh4a431J4Gqxk7Sqz4oMy_RxdattWCUyVOlM46wSSwnk0o6U7b5L_QTnLBDA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6256,26 +5274,17 @@
     },
     {
       "name": "duplicate links",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-109",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:cf525fd91e85afc821f35ffe91e61cb34bfd8a5410725fe814b5fda85e594289",
-            "alg": "HMAC-SHA256",
-            "bytes": 124
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-109",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:cf525fd91e85afc821f35ffe91e61cb34bfd8a5410725fe814b5fda85e594289",
+          "alg": "HMAC-SHA256",
+          "bytes": 124
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "GsDf8ewLlnrLPDRjOUDLPwRD-qpNAp08QgNF5_DGKdcd0WGn7k5c-adF4IwltGNHT6_tTVDbJiU7ElBJpLWUAA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6317,26 +5326,17 @@
     },
     {
       "name": "non-normalized link",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-110",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:0ff4c11138e89d1ca4f732f1a571338381bd833dcf1a587d522b45812abf6215",
-            "alg": "HMAC-SHA256",
-            "bytes": 100
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-110",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:0ff4c11138e89d1ca4f732f1a571338381bd833dcf1a587d522b45812abf6215",
+          "alg": "HMAC-SHA256",
+          "bytes": 100
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "XYeujx9mctqmRK1YQ-eeYQbndxvSXPWWjpeceyUPNZoyup6JZ4T9D6ZMRuq6xjwF6w7D81Om2MH26nRSCtVyCg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6376,26 +5376,17 @@
     },
     {
       "name": "internal link",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-111",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:47a8f2901ebb55b78cb5fece4751169490754d28e72cccbfdf31ce4da0b16947",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-111",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:47a8f2901ebb55b78cb5fece4751169490754d28e72cccbfdf31ce4da0b16947",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "VWPWS1KrBY_vpWKKVueuNx1Mjwkwxj189vhCu8dkHwFMa0HA7RXLoFbNvaW8agXCfLW2vlBoZjgaGp7pOZ3tBw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6435,26 +5426,17 @@
     },
     {
       "name": "underdeclared links",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-112",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:70b2d8c234391c3965b36b7bafe3597acd4924cd861f3783f82620d56f4575eb",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-112",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:70b2d8c234391c3965b36b7bafe3597acd4924cd861f3783f82620d56f4575eb",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "dyV2G77dLprZ_Dt_GHYHJncFYYZ4x-U9Z_ySW6prMyQvFpW5QwNMfVjZzF3ReyeOjnAaTdrCaRvCxHxWwf0qBA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6494,26 +5476,17 @@
     },
     {
       "name": "semantic combination",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-113",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:b1703a7515d5536e8fea916aeac13b0e7fd033302c858913d025f6a94912630a",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-113",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:b1703a7515d5536e8fea916aeac13b0e7fd033302c858913d025f6a94912630a",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "Om6_84wtNx5tyfs1P5irJa765J5GNoTNsyHK0LMpTUcqiB9opXaKpAgipwYnLF9cB-X_z4EvXCgFkIzJC6FdAQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6559,26 +5532,17 @@
     },
     {
       "name": "field precedence content.summary.abstract",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-114",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:3b8aecfc3df6a5dff46389c56d6bea07fd976521386d5024b8b42ce0779d8151",
-            "alg": "HMAC-SHA256",
-            "bytes": 117
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-114",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:3b8aecfc3df6a5dff46389c56d6bea07fd976521386d5024b8b42ce0779d8151",
+          "alg": "HMAC-SHA256",
+          "bytes": 117
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "iSQLT0xkrMp7PA3o2xt3RfTpkqoO3az7Ew7BcjSvp5Wv8GGJ1ZIjitkByqLWiTueXF4dte2DPS0r0oZngc-zCw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6623,26 +5587,17 @@
     },
     {
       "name": "field precedence wist_version",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-115",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:b1703a7515d5536e8fea916aeac13b0e7fd033302c858913d025f6a94912630a",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-115",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:b1703a7515d5536e8fea916aeac13b0e7fd033302c858913d025f6a94912630a",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "pQswmeh7i3NG83nxPgbdnsXBpw3GRCVe_LcFabUmGCzC6Nk8Ov8XIjyG9ma49uFOOC4wPeCCsPSnCpVJLK80Ag"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6685,26 +5640,17 @@
     },
     {
       "name": "field precedence content.links.total",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-116",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:e789d6c9699769994fe2cfd6a24f2a31cd105e5946c77ec236e1dd5098b64337",
-            "alg": "HMAC-SHA256",
-            "bytes": 103
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-116",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:e789d6c9699769994fe2cfd6a24f2a31cd105e5946c77ec236e1dd5098b64337",
+          "alg": "HMAC-SHA256",
+          "bytes": 103
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "PzA7f1e0ksk_3jhrrd3xZIEDJUoSpdxgtMWEr8UFfnKvSBaeSD7IHv5tA6kGSRgEDeo8gfM59ImjpQcq0Nw3AQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6747,26 +5693,17 @@
     },
     {
       "name": "duplicate version",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-117",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-117",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "SfJ1jg3tnK-dszxCTghLM_3Mgux-8WCeQxI_5lx-l4pZV1GxJdo2o9tJslYn117CyWB8c-8KZB6B03Pya_W8Aw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6807,26 +5744,17 @@
     },
     {
       "name": "identical duplicate",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-118",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-118",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "pItZblvM1ggwRD38JcKSnoSIbg9mmTy01Mga1nhvVWKCaoNhNx5iFL0JvhmU03zz-Uh9myK_TIH0mR5oNtrXDw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6867,26 +5795,17 @@
     },
     {
       "name": "duplicate content",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-119",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-119",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "jQ7MDiIIy6zcU3oWShWZmSJXhOCD_HEgElgJpf2AB29TCxuZP9-jXb83qUI7EDtLVfRedp19hCuqApteePTGCA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6927,26 +5846,17 @@
     },
     {
       "name": "duplicate total",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-120",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-120",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "I2cBw8drCrEJKa1U1UNSpI_-oDJj5kOJ_F3DwFiG2pyBgjWI0mCy9c_OFA_dW87MCAf3-Sts-HyVodaYBsubAg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -6987,26 +5897,17 @@
     },
     {
       "name": "escaped duplicate",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-121",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-121",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "D4S4GuN7xZrFX5nBgkHHDN1LAe_antQj-8rB6XyCTazl88ZfiryfZzPqY7RJP6B4Zqx-hZ_g7NOShBOKlfgGDQ"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -7047,26 +5948,17 @@
     },
     {
       "name": "duplicate before field error",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-122",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-122",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "A_61HKAeIX5bWspyWk1IHmucYGRdJ6qjvp81J2diXUYvZbZLpILYUIGGFHQTrYWrE1gdzqKzgcsRdKtgiWiVAw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -7107,26 +5999,17 @@
     },
     {
       "name": "lone surrogate",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-123",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-123",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "2oIdU352bcXT4dRVxNylipe_vqbA7XrfmfBXLbMUMRaChRZF0uCtOQQ7_dx2K6ONUUh_ShBnGBWR0owq09KEBg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -7167,26 +6050,17 @@
     },
     {
       "name": "nonfinite magnitude",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-124",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-124",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "M8gzamDbDF8L8MnIcpw4h3_XMn_CSU9RPLsh8f0ghLOMgmCtDhpWOAl9dlUpPgDdsls0X6aQlaPoEVwEzVXLAg"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -7227,26 +6101,17 @@
     },
     {
       "name": "invalid number",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-125",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-125",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "yLePjTx1TXwV47tU5vSnV7nLz9u1vF3rv-M45Uun2l7_teIgbXbFO5YSokwh8Su3z32MJzEK7R-ohayH3faoAA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -7287,26 +6152,17 @@
     },
     {
       "name": "trailing document",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-126",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-126",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "0dDJaHc4zejMtPuLvwj3Q_er2UrE-llSv1D2mDgKoU_ECKNDBvymJusloP1rPeZqqn6iIeHEXOEq2UZDnk7pDA"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {
@@ -7347,26 +6203,17 @@
     },
     {
       "name": "escaped member",
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/field-case-127",
-          "change_type": "new",
-          "observed_at": "2026-08-09T12:00:00Z",
-          "meta": {
-            "lang": "en"
-          },
-          "payload": {
-            "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
-            "alg": "HMAC-SHA256",
-            "bytes": 101
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/field-case-127",
+        "observed_at": "2026-08-09T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:85eba3e103b6dfc7bc43e3592b7bd29b829a9d3de272cba3b981f2abae98d625",
+          "alg": "HMAC-SHA256",
+          "bytes": 101
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "-dhch8ynN_bkwQP08Sjqhgx2AsuExzhhm0FNT6FgygXp7fBA_VojhMDR93zz4NkzDoyj4p3mrDPoqyCgMO9IBw"
+        "meta": {
+          "lang": "en"
         }
       },
       "payload": {

@@ -44,7 +44,7 @@ two recoveries whose sequence order reverses their leaf-hash order.
 from the map in force at the owner Epoch, including amendments effective
 exactly at its `sealed_at`. Add that many 86,400-second days and retain the
 end through later amendments and recoveries inside the window. Recomputing
-from the current map could release queued Deltas early or extend their hold;
+from the current map could release queued Catalogs early or extend their hold;
 reanchoring at a follower would let repeated rotations postpone settlement.
 A new window after settlement reads its own owner Epoch’s map.
 `recovery_window_cases` in
@@ -70,43 +70,49 @@ may report different applicable diagnostics, since their processing order
 does not affect Epoch rejection or retained state. Signed cases and positive
 controls in `vectors/wist1/declaration-conflicts.json` exercise these rules.
 
-**Admission is the union.** A Delta is queued when it verifies under either
-the Key Set in effect immediately before the recovery or the recovery
-Declaration's own. The recovering Publisher keeps publishing; the
-compromised key's Deltas still reach the queue, where the settlement rejects
-them in the open rather than at an ingest no replaying party can see.
-Freeze both signing sets at the owner's application, including any
-same-Epoch predecessor; later competitors and legitimate followers replace
-neither admission source. WIST-1 §5.1 and
+**Admission reads either source.** A Catalog is queued when either the
+Declaration in effect immediately before the recovery or the recovery
+Declaration accepts it, each read alone with its own keys, Collections and
+Scopes ([ADR-0051](0051-collections-scope-and-keys.md)); the queue holds,
+per Collection name and signing key, the Catalog of latest `generated_at`
+([ADR-0052](0052-items-and-catalogs.md)). The recovering Publisher keeps
+publishing; the compromised key's Catalogs still reach the queue, where the
+settlement rejects them in the open rather than at an ingest no replaying
+party can see. Freeze both source Declarations at the owner's application,
+including any same-Epoch predecessor; later competitors and legitimate
+followers replace neither admission source. WIST-1 §5.1 and
 [ADR-0023](0023-declaration-key-binding.md) retain complete named bindings,
 filter key usability and each timestamp bound before signature verification,
 and assign E02 when no eligible binding remains or E01 when all eligible
-bindings fail verification. The union applies only to queue admission;
+bindings fail verification. The two sources apply only to queue admission;
 settlement and historical verification retain their selected single source.
-`vectors/wist1/recovery-bindings.json` authenticates the owner and a later
-follower, exercising fixed sources and diagnostics with signed Delta probes.
+`vectors/wist1/catalog-recovery.json` authenticates the owner and a later
+follower, exercising fixed sources with signed Catalogs.
 
 **Scope stays with its signing source.** Freeze the complete pre-recovery
 and owner Declarations, retaining each source's scope with its bindings.
-Queue authority requires a verifying eligible binding and a covered host
-from the same source. Pooling keys and scopes independently would let a
+Queue authority requires, from the same source, a verifying eligible
+binding and the Catalog's Collection; an Item passes the Item conditions
+only under a source that accepts its Catalog. Pooling keys and scopes independently would let a
 compromised predecessor key acquire a hostname granted only to the owner's
 new key. Competitors and followers cannot change either frozen admission
 source. Repeated public keys remain separate bindings with separate scopes
 and timestamp bounds; no successful check borrows another source's result.
-WIST-1 §5.1's E02/E01 binding distinction remains unchanged, and §3.2 assigns
-E03 when a verifying eligible binding has no covering source of its own.
+WIST-1 §5.1's E02/E01 binding distinction remains unchanged, and §5.2
+assigns E03 to a Catalog that verifies only under a source that does not
+name its Collection.
 
-Settlement rechecks both bindings and scope against the recovery-chain head
-immediately before deadline-Epoch Declarations. Either authority failure
-drops the queued copy with E13 after mandatory field checks. A surviving
+Settlement judges every queued Catalog by C1 of ADR-0052 under the
+recovery-chain head fixed immediately before deadline-Epoch Declarations,
+with the settling event's instant as the clock; a failure drops the queued
+copy with E13. A surviving
 copy must still satisfy the Declaration applicable at actual sealing, where
 a scope failure is E03. Later scope expansion can permit a previously dropped
-Delta to be re-served; neither scope rejection nor recovery rejection creates
-a permanent ID ban. Historical scope follows the same height-specific
+Catalog to be served again; neither scope rejection nor recovery rejection
+creates a permanent ID ban. Historical scope follows the same height-specific
 Declaration as historical keys, without rewriting earlier sealed authority.
 Signed histories in
-`vectors/wist1/recovery-scope.json` distinguish frozen source pairing,
+`vectors/wist1/catalog-recovery.json` distinguish frozen sources,
 competitors, followers, settlement, deadline-Epoch changes and re-serving.
 
 **Supersession covers everything outside the recovery chain.** At the
@@ -164,7 +170,7 @@ post-settlement admission semantics; its actual identity effect still follows
 Log application order, including any new window opened by an earlier Entry.
 Signed Declaration Envelopes with supplied admission events and Epoch traces in
 `vectors/wist1/recovery-admission.json` exercise those distinctions without
-claiming live queue durability or complete Delta eligibility.
+claiming live queue durability or complete Catalog eligibility.
 
 **A fresh identity inside a window is accepted and superseded.** Fresh
 classification alone is not `WIST1-E08`; all sequence, predecessor, signature
@@ -182,7 +188,8 @@ a separate requirement.
 
 Declarations preceding the owner in its own Epoch are not competitors. A
 fresh predecessor resets normally, and the owner preserves that new identity.
-The entire opening Epoch still belongs to the Delta-queuing interval.
+The entire opening Epoch still belongs to the interval in which Catalogs
+and Items are queued.
 After settlement, a fresh Declaration naming the restored head resets
 normally unless another window has already opened in application order.
 
@@ -190,20 +197,19 @@ normally unless another window has already opened in application order.
 recovery Declaration's own signing bindings and scope unless a legitimate
 follower was sealed inside the window.
 
-**`WIST1-E13` drops the queued copy, not the identity.** The same Delta
-re-served later and satisfying the signing and scope authority then in force
-remains eligible subject to all other checks.
+**`WIST1-E13` drops the queued copy, not the identity.** The same Catalog
+served again later and satisfying the authority then in force remains
+eligible subject to all other checks.
 
 `vectors/wist1/recovery-settlement.json` carries seven authenticated hourly
-Declaration histories and signed Delta inputs. Fresh competitors preserve
+Declaration histories. Fresh competitors preserve
 their named predecessor's recovery set; their ordinary descendants remain
 off-chain. A shared signing key naming a competitor does not extend recovery,
 whereas the same key naming the recovery head does. Independent candidate
 probes reject unauthorized recovery-set replacement, stale predecessors and
-invalid author signatures. Separate Delta binding probes distinguish public
-key reuse, identifier renaming, `valid_from`, invalid signatures and later
-re-serving of a rejected Delta ID. Survivors are signature-eligible inputs,
-not proof of eventual inclusion.
+invalid author signatures. Queue settlement of Catalogs is exercised by
+`vectors/wist1/catalog-recovery.json`; survivors there are eligible, not
+assured of inclusion.
 `vectors/wist1/recovery-heads.json` carries a signed hourly Epoch chain,
 Declaration predecessors and independent candidate probes across settlement.
 It distinguishes accepted sequence from restored head, authenticates chain
@@ -303,10 +309,10 @@ leaves no sealed trace, so a Consumer replaying the Log cannot see that a
 thief tried, and the rejection uses a code whose registry row lists no such
 cause.
 
-**Bar the Delta ID permanently on `WIST1-E13`.** Rejected because it makes
+**Bar the Catalog ID permanently on `WIST1-E13`.** Rejected because it makes
 replay agreement depend on a per-Log list of dropped IDs that every Consumer
 must carry and agree on, to prevent something the Key Set already prevents:
-a Delta signed by a superseded key does not verify, whenever it is served.
+a Catalog signed by a superseded key does not verify, whenever it is served.
 
 ## Consequences
 

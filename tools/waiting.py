@@ -237,7 +237,7 @@ class Aggregator:
             self.supersede(publisher)
         for found in self.discovered.get(publisher, []):
             try:
-                replay.apply(found["envelope"], self.height + 1, seconds(clock), [])
+                replay.apply(found["envelope"], self.height + 1, seconds(clock), [], sealing=False)
             except narrowing.HistoryRejected:
                 continue
         if replay.floor is not None:
@@ -254,7 +254,7 @@ class Aggregator:
         replay.parameters = {k: parameters[k] for k in sealing.DECLARATION_PARAMETERS}
         transitions = []
         try:
-            replay.fetch(envelope, self.height + 1, seconds(clock), transitions)
+            replay.fetch(envelope, self.height + 1, seconds(clock), transitions, sealing=False)
         except narrowing.HistoryRejected as rejection:
             return self.no_pull(rejection.code), None, None
         kind = transitions[0]["kind"]

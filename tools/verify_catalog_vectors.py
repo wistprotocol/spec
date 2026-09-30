@@ -10,11 +10,10 @@ import sys
 import rfc8785
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from link_extraction import normalize_url
 from verify_collection_vectors import (
     VerifierError, authority, b64u_canonical, b64u_encode, canonical_host, check_keys_block, collection_named,
-    collection_names, entry_covers, public_raw, require_accepted, signature_verifies, strict_load, url_host,
-    usable_public, DEFAULT_PARAMETERS)
+    collection_names, entry_covers, normalized, public_raw, require_accepted, signature_verifies, strict_load,
+    url_host, usable_public, DEFAULT_PARAMETERS)
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -26,6 +25,8 @@ SUITE_CATALOG_REFRESH_SECONDS = 604800
 REMOVAL_RETENTION_SECONDS = 180 * 86400
 ITEM_BOUND_OCTETS = 16384
 CATALOG_JSON_READ_OCTETS = 16384
+NESTING_LEVELS_MAX = 64
+STRING_LITERAL = re.compile(r'"(?:[^"\\]|\\.)*"', re.DOTALL)
 PARAMETER_FLOORS = {"catalog_items_max": 16777216, "tree_file_cap_bytes": 65536, "tree_depth_max": 16}
 SIZE_CAP_BOUNDS = {"url_cap_bytes": (14, 32768), "extract_cap_bytes": (2, None), "links_cap_bytes": (21, None),
                    "link_url_cap_bytes": (14, None), "summary_cap_bytes": (12, None)}
@@ -104,7 +105,20 @@ def _scalar_values(value):
             _scalar_values(v)
 
 
+def nesting_depth(text):
+    deepest = level = 0
+    for bracket in STRING_LITERAL.sub("", text):
+        if bracket in "[{":
+            level += 1
+            deepest = max(deepest, level)
+        elif bracket in "]}":
+            level -= 1
+    return deepest
+
+
 def parse_json_text(text):
+    if nesting_depth(text) > NESTING_LEVELS_MAX:
+        raise NotJcsInput("nested beyond 64 levels")
     def pairs(items):
         out = {}
         for key, value in items:
@@ -322,7 +336,7 @@ def judge_item(item, inner, publisher, parameters):
         return E14
     codes = set()
     url = item["url"]
-    if normalize_url(url, "") != url or url_host(url) not in authority(publisher) \
+    if normalized(url, "") != url or url_host(url) not in authority(publisher) \
             or not covered(publisher, inner["collection"], url):
         codes.add("WIST1-E03")
     page = "removed" not in item
@@ -384,7 +398,7 @@ def judge_payload(payload, item, parameters):
             or len(jcs(content["summary"])) > parameters["summary_cap_bytes"]:
         codes.add("WIST1-E04")
     if len(set(urls)) != len(urls) or len(urls) > integer(content["links"]["total"]) \
-            or any(normalize_url(u, "") != u or internal(u, item["publisher"]) for u in urls):
+            or any(normalized(u, "") != u or internal(u, item["publisher"]) for u in urls):
         codes.add("WIST1-E12")
     message = jcs(content)
     digest = hmac.new(b64u_bytes(payload["salt"]), message, hashlib.sha256).hexdigest()
@@ -527,7 +541,7 @@ def judge_body(body, inner):
         codes.add("WIST1-E17")
     if item["publisher"] != inner["publisher"]:
         codes.add("WIST2-E03")
-    if normalize_url(item["url"], "") != item["url"]:
+    if normalized(item["url"], "") != item["url"]:
         codes.add("WIST1-E03")
     if publisher_time(item["observed_at"]) > log_time(inner["generated_at"]):
         codes.add("WIST1-E06")

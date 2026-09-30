@@ -33,11 +33,12 @@ MATCHES = ("prefix", "exact")
 
 HOST_PATTERN = re.compile(r"[a-z0-9-]{1,63}(?:\.[a-z0-9-]{1,63})*")
 NAME_PATTERN = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?")
-VERSION_PATTERN = re.compile(r"(\d+)\.\d+\.\d+")
+VERSION_PATTERN = re.compile(r"([0-9]+)\.[0-9]+\.[0-9]+")
 HASH_PATTERN = re.compile(r"sha256:[0-9a-f]{64}")
 B64URL_ALPHABET = re.compile(r"[A-Za-z0-9_-]*")
 TIMESTAMP_PATTERN = re.compile(
-    r"(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(?:([Zz])|([+-])(\d{2}):(\d{2}))")
+    r"([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]+))?"
+    r"(?:([Zz])|([+-])([0-9]{2}):([0-9]{2}))")
 
 
 class RuleViolation(Exception):

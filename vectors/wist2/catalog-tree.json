@@ -1,5 +1,5 @@
 {
-  "note": "ADR-0052 tree files. Each case walks the tree of `catalog` (an inner object; size, root and tree are read) with `parameters` (tree_file_cap_bytes, tree_depth_max) over `tree_files`, a map from the 64-digit hex SHA-256 naming each served file to the file's octets as UTF-8 text; a name absent from the map is an unavailable file. `expected` is {\"list\": [Item IDs in walk order]} or {\"refused\": \"WIST2-E07\"}. The walk starts at the file named by tree, prefix \"\", level 1, counted by size. A file is refused when unavailable, above tree_file_cap_bytes octets, of another SHA-256 than its name, not the JCS serialization of the one-member object it parses to, or of a member other than items or children. A bucket's items is an array of objects with a string url, keys (SHA-256(JCS([\"page\", url]))) strictly ascending, each key's lowercase hex beginning with the bucket's prefix, as many as the count naming it. An inner file is not at level tree_depth_max; its children is an array of 1 to 16 objects of exactly prefix (the file's prefix and one lowercase hex digit), count (an integer of at least 1) and file (sha256: + 64 lowercase hex naming the child), prefixes strictly ascending, counts adding up to the count naming the file; children are walked in order, one level down. The Items of the buckets in walk order are the list; it must hold size Items and its root (WIST-3 section 4 over the leaves SHA-256(0x00 || key || SHA-256(JCS(item)))) must equal root. Each refused case is a twin of an accepted one differing in the named respect; where one respect necessarily breaks a second rule, the walk refuses at the first it meets (seventeen children also repeat a prefix; prefixes out of order and bucket keys out of order also change the root of the list; an uppercase prefix digit leaves no key in its subtree beginning with it; size above the Items listed also breaks the root file's count). A count spelled 2.0 has the value 2 and is refused only because the file's octets are not the JCS serialization of its object. Where a tree divides is the Publisher's choice; the walk reads the tree as served. tree_file_cap_bytes and tree_depth_max are not amended below 65 536 and 16, so each case supplies those values or values amended above them. The reference writer divides a bucket that lists more than 16 Items or whose file would exceed tree_file_cap_bytes, down to tree_depth_max; the case of sixteen Items of 2 000-octet URLs is a tree it wrote.",
+  "note": "ADR-0052 tree files. Each case walks the tree of `catalog` (an inner object; size, root and tree are read) with `parameters` (tree_file_cap_bytes, tree_depth_max) over `tree_files`, a map from the 64-digit hex SHA-256 naming each served file to the file's octets as UTF-8 text; a name absent from the map is an unavailable file. `expected` is {\"list\": [Item IDs in walk order]} or {\"refused\": \"WIST2-E07\"}. The walk starts at the file named by tree, prefix \"\", level 1, counted by size. A file is refused when unavailable, above tree_file_cap_bytes octets, of another SHA-256 than its name, not valid JCS input (WIST-1 section 4, which bounds arrays and objects to 64 levels of nesting, the file's object being level 1), not the JCS serialization of the one-member object it parses to, or of a member other than items or children. A bucket's items is an array of objects with a string url, keys (SHA-256(JCS([\"page\", url]))) strictly ascending, each key's lowercase hex beginning with the bucket's prefix, as many as the count naming it. An inner file is not at level tree_depth_max; its children is an array of 1 to 16 objects of exactly prefix (the file's prefix and one lowercase hex digit), count (an integer of at least 1) and file (sha256: + 64 lowercase hex naming the child), prefixes strictly ascending, counts adding up to the count naming the file; children are walked in order, one level down. The Items of the buckets in walk order are the list; it must hold size Items and its root (WIST-3 section 4 over the leaves SHA-256(0x00 || key || SHA-256(JCS(item)))) must equal root. Each refused case is a twin of an accepted one differing in the named respect; where one respect necessarily breaks a second rule, the walk refuses at the first it meets (seventeen children also repeat a prefix; prefixes out of order and bucket keys out of order also change the root of the list; an uppercase prefix digit leaves no key in its subtree beginning with it; size above the Items listed also breaks the root file's count). A count spelled 2.0 has the value 2 and is refused only because the file's octets are not the JCS serialization of its object. Where a tree divides is the Publisher's choice; the walk reads the tree as served. tree_file_cap_bytes and tree_depth_max are not amended below 65 536 and 16, so each case supplies those values or values amended above them. The reference writer divides a bucket that lists more than 16 Items or whose file would exceed tree_file_cap_bytes, down to tree_depth_max; the case of sixteen Items of 2 000-octet URLs is a tree it wrote.",
   "cases": [
     {
       "name": "empty Collection: one bucket with no Items",
@@ -1393,6 +1393,52 @@
         "list": [
           "sha256:f8791d2a5cfcf1905b1ad7c9f0f992378ae4a9f63404044eac53b12238a0a8ff"
         ]
+      }
+    },
+    {
+      "name": "bucket nested to 64 levels by an Item's unknown member",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:72941eaba8a5797c1f5a178b3b2a226027122673efcaf906628ed891c85575ea",
+        "tree": "sha256:b8caec8e6380bad64461835977f9e73e9974aba29931bba838bcf409cff0b90e"
+      },
+      "parameters": {
+        "tree_file_cap_bytes": 65536,
+        "tree_depth_max": 16
+      },
+      "tree_files": {
+        "b8caec8e6380bad64461835977f9e73e9974aba29931bba838bcf409cff0b90e": "{\"items\":[{\"extra\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-20T08:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":146,\"commitment\":\"hmac-sha256:3a633f2846be70cb977cbda8c3ec70cc09c1945c0b95c997a48450cece662f41\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/t002\"}]}"
+      },
+      "expected": {
+        "list": [
+          "sha256:869c63780007cf30e7181e15ce4875819cd8a072775734d79de6c43dfd813d0a"
+        ]
+      }
+    },
+    {
+      "name": "bucket nested to 65 levels by an Item's unknown member",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:065c45d3104be3885cd10c25935701b739a6c7a494075bd952d7fe9062905868",
+        "tree": "sha256:d58b9fe71d58140f2a9c88cdd911c8d693c9f1dc8aff440b4c258b83cca49993"
+      },
+      "parameters": {
+        "tree_file_cap_bytes": 65536,
+        "tree_depth_max": 16
+      },
+      "tree_files": {
+        "d58b9fe71d58140f2a9c88cdd911c8d693c9f1dc8aff440b4c258b83cca49993": "{\"items\":[{\"extra\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-20T08:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":146,\"commitment\":\"hmac-sha256:3a633f2846be70cb977cbda8c3ec70cc09c1945c0b95c997a48450cece662f41\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/t002\"}]}"
+      },
+      "expected": {
+        "refused": "WIST2-E07"
       }
     },
     {

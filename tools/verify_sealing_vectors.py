@@ -191,7 +191,7 @@ def apply_declarations(log, entries, height, sealed_at, parameters, removed):
                 raise EpochRejected(rejection.code, f"Declaration group {groups[domain][seq]}")
             if outcome.get("narrows"):
                 narrow_records(log, domain, outcome["declaration"], removed)
-        activate(log, domain, height, removed)
+            activate(log, domain, height, removed)
 
 
 def c1_codes(body, publisher, parameters, clock):

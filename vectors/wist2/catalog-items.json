@@ -539,6 +539,56 @@
       }
     },
     {
+      "name": "journal Catalog whose bucket an Item's unknown member nests to 64 levels",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "tree_file_cap_bytes": 65536,
+        "tree_depth_max": 16,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:fc1b8ec3c71ad62d64365dcdd6114cb9bcad3095b07cdb52b2b4197e669cce2b",
+          "tree": "sha256:0f75dce15420a47f42e38d20c8336e0be5b5fb5f78c35973fa18eb5da0899921"
+        },
+        "sig": {
+          "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+          "alg": "Ed25519",
+          "value": "94QDzTHt4VLoI7w2tHEi3LWiq5xhFBdnSPhYVIbj7mVBkP6v_87AtMrY6ShGbd_RB5KpsMkflWONW45V9eQ1Aw"
+        }
+      },
+      "tree_files": {
+        "0f75dce15420a47f42e38d20c8336e0be5b5fb5f78c35973fa18eb5da0899921": "{\"items\":[{\"extra\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":150,\"commitment\":\"hmac-sha256:3c9f99041406085fc869f5c37fe9242d74e089c1f4e78a84b84e3a3a9959c682\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/nested\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":140,\"commitment\":\"hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/a\"}]}"
+      },
+      "expected": {
+        "catalog": "accepted",
+        "items": [
+          {
+            "url": "https://example.com/journal/nested",
+            "item_id": "sha256:319302d577c693eefbf510ce97ba6512e425bef8f4b98b3880334a094869488c",
+            "expected": "WIST1-E14"
+          },
+          {
+            "url": "https://example.com/journal/a",
+            "item_id": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+            "expected": "accepted"
+          }
+        ]
+      }
+    },
+    {
       "name": "Catalog naming a Collection the Declaration lacks",
       "declaration": "collections",
       "clock": "2026-10-01T12:00:00Z",

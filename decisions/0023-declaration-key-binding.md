@@ -15,16 +15,21 @@ belongs to.
 ## Decision
 
 Require each public key to occur once across a Declaration's signing and
-recovery arrays, including identical duplicates. Reject violations with
-WIST1-E08. Identifier uniqueness follows, because `kid` is the key's
+recovery arrays and the keys of its Collections
+([ADR-0051](0051-collections-scope-and-keys.md)), including identical
+duplicates. Reject violations with WIST1-E08. Identifier uniqueness follows, because `kid` is the key's
 thumbprint; retain the prohibition on public-key overlap between signing
 and recovery sets.
 
 Resolve a replacement signature against the entries whose `kid` matches in
 the previous signing/recovery sets and the incoming signing set; the same
-`kid` in two sources names the same key. Classify the authenticated public bytes by membership in the previous sets:
-signing preserves ordinary continuity, recovery preserves recovery authority,
-and neither establishes fresh identity. An incoming recovery key cannot
+`kid` in two sources names the same key. No candidate comes from a
+Collection's keys, so a Declaration signed by a key its predecessor lists
+in a Collection authenticates only when it lists that key in its own `keys`.
+Classify the authenticated public bytes by membership in the previous
+signing and recovery sets alone: signing preserves ordinary continuity,
+recovery preserves recovery authority, and neither, a Collection key
+included, establishes fresh identity. An incoming recovery key cannot
 self-authorize. Apply recovery-set protection after classification.
 
 Derive usable signing and recovery sets by excluding public bytes that do
@@ -34,35 +39,39 @@ Keep all original signed entries for signatures, hashes, idempotence,
 identifier uniqueness, cross-set disjointness and recovery-set protection.
 Filter before resolving signer candidates: a `kid` with only excluded
 bindings is E02; usable candidates with no verifying signature are E01.
-Classification uses usable previous sets. This derivation also governs Delta and frozen appeal Key Sets.
+Classification uses usable previous sets. This derivation also governs
+the keys that authenticate a Catalog, a Collection's included.
 
-For Delta authentication, retain every complete named signing binding from
-the source sets authorized by WIST-1 §5.2. Filter usability, then each
-binding's `nbf`/`exp` window, comparing the exact Publisher instant with
-the NumericDate integers. No remaining binding is E02; at least one
-remaining binding but no verifying signature is E01. Accept the key check
-if any remaining binding verifies. The same binding must satisfy both
-conditions. A valid signature under an out-of-window binding plus an
-invalid signature under an eligible binding is E01; even a valid signature
-cannot authorize a Delta when every named binding is out of window or
-excluded.
+For Catalog authentication, retain every complete named signing binding
+from `keys` and from the keys of the Collection the Catalog names, in the
+sources authorized by WIST-1 §5.2. Filter usability, then each binding's
+`nbf`/`exp` window, comparing the Catalog's `generated_at` with the
+NumericDate integers. No remaining binding is E02, a key of another
+Collection included; at least one remaining binding but no verifying
+signature is E01. Accept the key check if any remaining binding verifies.
+The same binding must satisfy both conditions. A valid signature under an
+out-of-window binding plus an invalid signature under an eligible binding
+is E01; even a valid signature cannot authorize a Catalog when every named
+binding is out of window or excluded. An Item is authenticated through the
+Catalog that lists it.
 
-The recovery admission union preserves both source sets at the owner's
-application. A later follower or competitor cannot replace either source.
+Recovery admission preserves both source Declarations at the owner's
+application and reads each alone, with its own keys, Collections and
+Scopes. A later follower or competitor cannot replace either source.
 One key listed by both sources with distinct windows keeps both; source or
 array iteration order cannot affect the result. Recovery-only entries and
-pending Declarations supply no Delta authority. This refines diagnostics
+pending Declarations supply no Catalog authority. This refines diagnostics
 within the existing key-binding mechanism under PUBLICATION.md, with no
 object-field or schema change. Encoding and Publisher timestamp errors retain E14 precedence;
-settlement retains its E13 disposition, and neither Declaration nor appeal
-authentication acquires a Delta timestamp filter.
+settlement retains its E13 disposition, and Declaration authentication
+acquires no key window filter.
 
 A nonempty signing array can yield no usable key. A replacement can still
 be authorized by its predecessor, while an initial Declaration with no
 usable signing key fails E02. A nonempty recovery array remains protected
 even if all its keys are excluded; without a usable recovery key, no signer
 can authorize a change to that array. Declaration authentication applies no
-Delta `nbf`/`exp` window.
+`nbf`/`exp` window.
 
 Assume the strictly verified Ed25519 signature identifies its signing public
 key; repeated references to identical public bytes do not create distinct
@@ -102,7 +111,7 @@ or appeal-process result. Its canonical base64url fixtures do not establish
 a complete Declaration field profile. [ADR-0025](0025-canonical-base64url.md)
 separately rejects malformed encodings before this key derivation.
 
-First-match Delta lookup can suppress an eligible owner binding behind a
+First-match Catalog key lookup can suppress an eligible owner binding behind a
 future or invalid predecessor binding. Deduplicating by public bytes can
 likewise erase a different bound. Trying signatures first and using the
 bound of whichever key verifies would assign E02 to mixed failures;
@@ -113,14 +122,12 @@ signature before that binding's own activation. These alternatives either
 depend on iteration order, obscure the rejection condition or broaden
 authority.
 
-`vectors/wist1/recovery-bindings.json` supplies authenticated Declaration
-histories and independent signed Delta probes for excluded points, one key
-with two windows, exact fractions and offsets, malformed fields, mixed failures and owner bindings retained after
-a legitimate follower. Reversed-array histories rebuild signatures and
-hashes. The independent reference derives the sources and checks their
-complete bindings. Successful key verification alone establishes no Delta
-chain eligibility, live clock check, durable queue, Payload availability,
-quota result, sealing, settlement or Snapshot restoration.
+`vectors/wist1/catalog-fields.json` supplies signed Catalogs under owner
+and Collection keys, a key of another Collection and binding windows at
+`nbf` and `exp`; `vectors/wist1/catalog-recovery.json` supplies the two
+frozen sources and owner sources retained after a follower. Successful key
+verification alone establishes no live clock check, durable queue, Payload
+availability, quota result, sealing, settlement or Snapshot restoration.
 
 For Pages, the named entry is looked up by `kid` in each permitted source
 independently: a Page cut under a key the current Declaration has since

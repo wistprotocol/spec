@@ -205,7 +205,7 @@ def apply_declarations(log, entries, height, sealed_at, parameters, removed):
                 raise EpochRejected(rejection.code, f"Declaration group {groups[domain][seq]}")
             if outcome.get("narrows"):
                 narrow_records(log, domain, outcome["declaration"], removed)
-        activate(log, domain, height, removed)
+            activate(log, domain, height, removed)
 
 
 def c1_codes(body, publisher, parameters, clock):
@@ -884,12 +884,11 @@ class Replay:
             queued = self.queue[key]
             row = {"publisher": domain, "collection": key[1], "key": self.key_name(queued["envelope"]),
                    "catalog": queued["id"]}
-            codes = c1_codes(queued["envelope"], source, parameters, clock)
             floor = self.log["latest"].get((domain, key[1]))
-            if codes:
-                row.update(outcome="WIST1-E13", condition_code=OneOf(codes))
-            elif floor is not None and generated(queued["envelope"]) <= generated(floor["envelope"]):
+            if floor is not None and generated(queued["envelope"]) <= generated(floor["envelope"]):
                 row["outcome"] = "WIST2-E05"
+            elif codes := c1_codes(queued["envelope"], source, parameters, clock):
+                row.update(outcome="WIST1-E13", condition_code=OneOf(codes))
             else:
                 survivors.setdefault(key[1], []).append((queued, row))
             rows.append(row)

@@ -4,10 +4,11 @@ import json
 import pathlib
 import re
 import sys
+from decimal import Decimal
 
 import rfc8785
 
-from link_extraction import normalize_url
+from verify_collection_vectors import normalized
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -38,6 +39,7 @@ NUMBER = re.compile(r"-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?", re.
 COUNT = re.compile(r"0|[1-9][0-9]*", re.ASCII)
 STRING_RUN = re.compile(r'[^"\\\x00-\x1f]*')
 HEX4 = re.compile(r"[0-9A-Fa-f]{4}", re.ASCII)
+DOUBLE_OVERFLOW = Decimal(2**1024 - 2**970)
 ESCAPES = {'"': '"', "\\": "\\", "/": "/", "b": "\b", "f": "\f", "n": "\n", "r": "\r", "t": "\t"}
 
 
@@ -92,7 +94,7 @@ class LineParser:
                 self.i += len(word)
                 return val
         m = NUMBER.match(self.s, self.i)
-        if not m:
+        if not m or abs(Decimal(m.group())) >= DOUBLE_OVERFLOW:
             raise Malformed
         self.i = m.end()
         return Num(m.group())
@@ -343,7 +345,7 @@ def decode_text_references(value):
 
 
 def link_of(candidate, base, domain, params):
-    url = normalize_url(candidate.strip(TRIMMED), base)
+    url = normalized(candidate.strip(TRIMMED), base)
     return url if keep_link(url, domain, params) else None
 
 
@@ -494,7 +496,7 @@ def read_stream(octets, declaration, collection, params):
             raise Refusal("stream-form", number)
         if not emission_form_ok(obj, mode):
             raise Refusal("emission-form", number)
-        url = normalize_url(obj["url"], "")
+        url = normalized(obj["url"], "")
         if url is None:
             raise Refusal("url", number)
         if url in seen:
@@ -775,7 +777,7 @@ def check_derivation(case):
     if found or "page" not in case:
         return found
     page = case["page"].encode("utf-8")
-    url = normalize_url(emission["url"], "")
+    url = normalized(emission["url"], "")
     links = links_object(html_links(page, url, declaration["domain"], params), params["links_cap_bytes"])
     found = difference(case["page_links"], links, "$.page_links")
     return found or difference(case["page_extract"], observed_text(page), "$.page_extract")

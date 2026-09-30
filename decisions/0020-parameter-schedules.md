@@ -152,10 +152,12 @@ necessary. Pending reductions constrain production immediately.
 `vectors/wist4/parameter-combinations.json` exercises prospective maps,
 cadence transitions, retention, wire bounds and Epoch-size guarantees,
 including ordering, exact endpoints, pending increases and restoration.
-`vectors/wist1/delta-cap-time.json` adds signed size-cap histories and
-admission/sealing/retrieval probes across increases and decreases.
-`vectors/wist1/delta-clock-time.json` distinguishes frozen attempt clocks,
-sealing rechecks and historical clock/allowance anchors across amendments,
-including signed negative allowances and exact fractional endpoints.
+`vectors/wist1/item-fields.json` and `vectors/wist3/catalog-sealing.json`
+carry the size-cap maps an Item is judged under at admission and at its
+candidate Epoch, an Item whose Payload fails a cap amended before that
+Epoch included. `vectors/wist1/catalog-fields.json` judges a Catalog's
+`generated_at` against a supplied clock and `clock_skew_seconds`. A frozen
+attempt clock across an amendment and a signed negative allowance are not
+exercised by these families.
 Live pacing, durable publication and recovery additionally require the
 WIST-3 and WIST-4 role checks.

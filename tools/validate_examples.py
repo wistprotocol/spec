@@ -9,8 +9,11 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import ValidationError
+from referencing import Registry, Resource
 
+import catalogs
 import ed25519_curve
+import items as item_rules
 import link_extraction
 from merkle import audit_path, consistency_proof, leaf_hash, merkle_root, node_hash
 
@@ -328,6 +331,9 @@ def verify_inclusion(epoch, proof):
     assert "sha256:" + h.hex() == epoch["root"], "root mismatch"
 
 # 1. Schema validation: examples/<stem>.json <-> schemas/<stem>.schema.json
+SCHEMA_REGISTRY = Registry().with_resources(
+    (s["$id"], Resource.from_contents(s))
+    for s in (json.loads(p.read_text()) for p in sorted((ROOT / "schemas").glob("*.schema.json"))))
 EXAMPLE_SCHEMA = {"label-feed": "feed"}
 for example in sorted((ROOT / "examples").glob("*.json")):
     schema_path = ROOT / "schemas" / f"{EXAMPLE_SCHEMA.get(example.stem, example.stem)}.schema.json"
@@ -336,11 +342,11 @@ for example in sorted((ROOT / "examples").glob("*.json")):
             raise FileNotFoundError(f"no schema for {example.name}")
         schema = json.loads(schema_path.read_text())
         Draft202012Validator.check_schema(schema)
-        Draft202012Validator(schema).validate(json.loads(example.read_text()))
+        Draft202012Validator(schema, registry=SCHEMA_REGISTRY).validate(json.loads(example.read_text()))
     check(f"schema:{example.name}", _v)
 
 INNER_KEY = {
-    "delta.json": "delta", "publisher.json": "publisher", "feed.json": "feed",
+    "catalog.json": "catalog", "publisher.json": "publisher", "feed.json": "feed",
     "snapshot-manifest.json": "manifest",
     "snapshot-index.json": "index", "snapshot-state.json": "state",
     "registry-update.json": "update", "label.json": "label", "label-feed.json": "feed",
@@ -348,9 +354,240 @@ INNER_KEY = {
     "log-anchor.json": "anchor",
     "mirrors.json": "mirrors",
     "status.json": None,  # not a signed Envelope — plain JSON (WIST-2 §7.1)
-    "payload.json": None,  # unsigned: its integrity comes from the Delta's
+    "payload.json": None,  # unsigned: its integrity comes from the Item's
                            # commitment, not from a signature (WIST-3 §6.1)
+    "item.json": None,  # unsigned: the Catalog's root commits to it (WIST-1 §4)
+    "tree-file.json": None,  # unsigned JCS octets, named by their SHA-256 (WIST-1 §4)
 }
+
+# The Delta Envelope form that the multi-Log and WIST-2 fixtures still carry.
+DELTA_ENVELOPE_SCHEMA = json.loads(r'''{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "required": [
+        "delta",
+        "sig"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "delta": {
+            "type": "object",
+            "required": [
+                "wist_version",
+                "publisher",
+                "url",
+                "change_type",
+                "observed_at",
+                "meta"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "wist_version": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$(?![\\s\\S])"
+                },
+                "publisher": {
+                    "type": "string",
+                    "format": "wist-canonical-host",
+                    "minLength": 1,
+                    "maxLength": 253,
+                    "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])"
+                },
+                "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "pattern": "^https://[^#]*$",
+                    "maxLength": 2048
+                },
+                "change_type": {
+                    "enum": [
+                        "new",
+                        "update",
+                        "delete",
+                        "attest"
+                    ]
+                },
+                "observed_at": {
+                    "type": "string",
+                    "format": "wist-publisher-timestamp",
+                    "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]+)?([Zz]|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$(?![\\s\\S])"
+                },
+                "prev": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"
+                },
+                "payload": {
+                    "type": "object",
+                    "required": [
+                        "commitment",
+                        "alg",
+                        "bytes"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                        "commitment": {
+                            "type": "string",
+                            "pattern": "^hmac-sha256:[0-9a-f]{64}$(?![\\s\\S])"
+                        },
+                        "alg": {
+                            "const": "HMAC-SHA256"
+                        },
+                        "bytes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 38944
+                        }
+                    }
+                },
+                "meta": {
+                    "type": "object",
+                    "required": [
+                        "lang"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                        "lang": {
+                            "type": "string",
+                            "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{1,8})*$(?![\\s\\S])"
+                        },
+                        "topics": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "maxLength": 64
+                            },
+                            "maxItems": 10
+                        },
+                        "license": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    }
+                }
+            }
+        },
+        "sig": {
+            "type": "object",
+            "required": [
+                "key_id",
+                "alg",
+                "value"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "key_id": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "alg": {
+                    "const": "Ed25519"
+                },
+                "value": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{85}[AQgw]$(?![\\s\\S])"
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "if": {
+                "required": [
+                    "delta"
+                ],
+                "properties": {
+                    "delta": {
+                        "required": [
+                            "change_type"
+                        ],
+                        "properties": {
+                            "change_type": {
+                                "enum": [
+                                    "new",
+                                    "update"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "delta": {
+                        "required": [
+                            "payload"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "required": [
+                    "delta"
+                ],
+                "properties": {
+                    "delta": {
+                        "required": [
+                            "change_type"
+                        ],
+                        "properties": {
+                            "change_type": {
+                                "enum": [
+                                    "attest",
+                                    "delete"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "delta": {
+                        "not": {
+                            "required": [
+                                "payload"
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "required": [
+                    "delta"
+                ],
+                "properties": {
+                    "delta": {
+                        "required": [
+                            "change_type"
+                        ],
+                        "properties": {
+                            "change_type": {
+                                "enum": [
+                                    "update",
+                                    "delete",
+                                    "attest"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "delta": {
+                        "required": [
+                            "prev"
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}''')
 
 def load_test_pubkey():
     return b64u_decode(json.loads((ROOT / "vectors" / "wist1" / "keypair.json").read_text())["public_key"])
@@ -370,18 +607,48 @@ for example in sorted((ROOT / "examples").glob("*.json")):
               lambda e=example, i=inner: verify_envelope(
                   json.loads(e.read_text()), i, load_test_pubkey()))
 
-# 2. WIST-1 vectors: recompute ID and verify signature
+# 2. WIST-1 vectors: recompute the Catalog's ID and signature and the Item's
+# ID, key, leaf and root against the worked example
 wist1 = ROOT / "vectors" / "wist1"
 if (wist1 / "envelope.json").exists():
     def _dc1():
         env = json.loads((wist1 / "envelope.json").read_text())
+        assert env == json.loads((ROOT / "examples" / "catalog.json").read_text()), \
+            "the vector Envelope differs from examples/catalog.json"
         keys = json.loads((wist1 / "keypair.json").read_text())
-        canonical = rfc8785.dumps(env["delta"])
-        assert canonical == (wist1 / "delta.canonical").read_bytes(), "canonical bytes mismatch"
-        delta_id = "sha256:" + hashlib.sha256(canonical).hexdigest()
-        assert delta_id == (wist1 / "id.txt").read_text().strip(), "delta ID mismatch"
+        catalog = env["catalog"]
+        canonical = rfc8785.dumps(catalog)
+        assert canonical == (wist1 / "catalog.canonical").read_bytes(), "canonical bytes mismatch"
+        catalog_id = "sha256:" + hashlib.sha256(canonical).hexdigest()
+        assert catalog_id == (wist1 / "id.txt").read_text().strip(), "Catalog ID mismatch"
+        assert env["sig"]["key_id"] == keys["kid"], "the Envelope is not signed under the vector key"
         pub = Ed25519PublicKey.from_public_bytes(b64u_decode(keys["public_key"]))
         pub.verify(b64u_decode(env["sig"]["value"]), canonical)
+
+        item = json.loads((ROOT / "examples" / "item.json").read_text())
+        item_octets = rfc8785.dumps(item)
+        assert item_rules.item_id(item) == "sha256:" + hashlib.sha256(item_octets).hexdigest()
+        key = hashlib.sha256(rfc8785.dumps(["page", item["url"]])).digest()
+        assert key == item_rules.item_key(item["url"]), "Item key mismatch"
+        leaf = hashlib.sha256(b"\x00" + key + hashlib.sha256(item_octets).digest()).digest()
+        assert leaf == item_rules.leaf(item), "Item leaf mismatch"
+        assert catalog["size"] == 1 and catalog["root"] == "sha256:" + leaf.hex(), \
+            "a one-Item root is not that Item's leaf"
+        assert catalog["root"] == item_rules.root_string([item])
+
+        tree_octets = (ROOT / "examples" / "tree-file.json").read_bytes()
+        assert catalog["tree"] == "sha256:" + hashlib.sha256(tree_octets).hexdigest(), \
+            "tree does not name the root tree file"
+        assert tree_octets == rfc8785.dumps({"items": [item]}), \
+            "the root tree file is not the JCS octets of the bucket listing the Item"
+        payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+        content = rfc8785.dumps(payload["content"])
+        assert len(content) == item["payload"]["bytes"]
+        assert item["payload"]["commitment"] == "hmac-sha256:" + hmac.new(
+            b64u_decode(payload["salt"]), content, hashlib.sha256).hexdigest()
+        assert catalogs.catalog_disposition(
+            env, json.loads((ROOT / "examples" / "publisher.json").read_text())["publisher"],
+            catalog["generated_at"]) == "accepted"
     check("vectors:wist1", _dc1)
 
 def _registry_table_defaults():
@@ -442,12 +709,11 @@ def _url_bound():
     literal in this file would go on asserting the superseded number.
     """
     cap = _registry_table_defaults()["url_cap_bytes"]
-    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
-    url_schema = schema["properties"]["delta"]["properties"]["url"]
+    schema = json.loads((ROOT / "schemas" / "item.schema.json").read_text())
+    url_schema = schema["oneOf"][0]["properties"]["url"]
     assert url_schema.get("maxLength") == cap, \
-        f"delta.url carries no maxLength {cap} first-pass bound"
-    env = json.loads((ROOT / "examples" / "delta.json").read_text())
-    url = env["delta"]["url"]
+        f"a page Item's url carries no maxLength {cap} first-pass bound"
+    url = json.loads((ROOT / "examples" / "item.json").read_text())["url"]
     assert len(rfc8785.dumps(url)) <= cap, "example url exceeds url_cap_bytes octets"
     assert len(rfc8785.dumps("https://a.b/")) == 14, "published floor (14) drifted"
 
@@ -458,11 +724,11 @@ def _url_bound_twin():
     it *on the length bound* — a rejection by any other keyword would leave
     the octet cap itself unexercised."""
     cap = _registry_table_defaults()["url_cap_bytes"]
-    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
-    env = json.loads((ROOT / "examples" / "delta.json").read_text())
-    env["delta"]["url"] = "https://example.com/" + "a" * (cap + 52)
+    schema = json.loads((ROOT / "schemas" / "item.schema.json").read_text())
+    item = json.loads((ROOT / "examples" / "item.json").read_text())
+    item["url"] = "https://example.com/" + "a" * (cap + 52)
     try:
-        Draft202012Validator(schema).validate(env)
+        Draft202012Validator(schema["oneOf"][0] | {"$defs": schema["$defs"]}).validate(item)
     except ValidationError as e:
         assert e.validator == "maxLength", \
             f"rejected, but not by the length bound: {e.validator} — {e.message}"
@@ -526,11 +792,11 @@ def _payload_links_rules():
     combined = _combined_content_cap()
     content_octets = len(rfc8785.dumps(payload["content"]))
     assert content_octets <= combined, "JCS(content) exceeds the derived cap"
-    delta = json.loads((ROOT / "examples" / "delta.json").read_text())
-    assert delta["delta"]["payload"]["bytes"] == content_octets, \
+    item = json.loads((ROOT / "examples" / "item.json").read_text())
+    assert item["payload"]["bytes"] == content_octets, \
         "declared bytes != JCS(content) octets"
-    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
-    assert schema["properties"]["delta"]["properties"]["payload"]["properties"]["bytes"][
+    schema = json.loads((ROOT / "schemas" / "item.schema.json").read_text())
+    assert schema["oneOf"][0]["properties"]["payload"]["properties"]["bytes"][
         "maximum"] == combined, "schema bytes maximum is not the derived cap"
 
 check("spec:payload-links-rules", _payload_links_rules)
@@ -799,10 +1065,10 @@ def _recovery_queue_disposition():
     """WIST-1 §5.2 / WIST-4 §5: the recovery window and the inclusion
     ceiling were two MUSTs one Aggregator could not both keep, and the
     queue's disposition at window end was unstated."""
-    w1 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    w1 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-item-format.md").read_text())
     w4 = re.sub(r"\s+", " ",
                 (ROOT / "specs" / "WIST-4-governance.md").read_text())
-    assert "revalidated against the signing bindings and scope of that chain's newest Declaration" in w1
+    assert "Every queued Catalog is judged again by C1 (WIST-3 §3.3) under the settlement source" in w1
     assert w1.count("WIST1-E13") >= 2, "E13 must appear in §5.2 and the §7 registry"
     assert "queued under WIST-1 §5.2" in w4, "the §5 ceiling needs the recovery carve-out"
 
@@ -923,9 +1189,9 @@ _SCAN_ORACLE = [
     # the extracted URL's query at the `&` — rather than the link reading
     # `?y=Az` the way a wrongly-decoded `&#٦٥;` (65 = 'A') would produce,
     # with no `#` left over to start a fragment at all.
-    ("non-ASCII decimal digits in a numeric reference are not decoded",
+    ("a numeric reference in non-ASCII decimal digits is not decoded, and the fragment its # opens holds non-ASCII digits, so the candidate has no Normalized URL",
      ('<a href="https://example.org/x?y=&#٦٥;z">t</a>'
-      .encode("utf-8")), ["https://example.org/x?y=&"]),
+      .encode("utf-8")), []),
 ]
 
 def _link_normalization_oracle(normalize_table=_NORMALIZE_ORACLE, scan_table=_SCAN_ORACLE):
@@ -1119,34 +1385,25 @@ def _schema_node_at(schema_file, path):
 # A declaration pointing at a check that never reads it is an orphan and fails.
 #
 # Only a check listed in COVERAGE_ASSERTED may be named, because only those
-# make that assertion. Paths are ROOT-relative: `examples/delta.json` and
+# make that assertion. Paths are ROOT-relative: `examples/item.json` and
 # `vectors/wist3/epoch.json` are different locations and are declared separately.
 COVERAGE_ASSERTED = {"payload:commitment"}
 
 SALTED_COMMITMENTS = {          # (schema file, JSON path) -> proving check
-    ("delta.schema.json",
-     "properties/delta/properties/payload/properties/commitment"): "payload:commitment",
+    ("item.schema.json",
+     "oneOf[0]/properties/payload/properties/commitment"): "payload:commitment",
 }
 
 SALTED_COMMITMENT_VALUES = {
-    ("vectors/wist1/delta-clock-time.json", "commitment"): "payload:commitment",
+    # (ROOT-relative file, key) -> proving check
+    ("examples/item.json", "commitment"): "payload:commitment",
+    ("examples/tree-file.json", "commitment"): "payload:commitment",
     ("vectors/wist1/payload-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist1/payload-links.json", "commitment"): "payload:commitment",
-    ("vectors/wist1/delta-cap-time.json", "commitment"): "payload:commitment",    # (ROOT-relative file, key) -> proving check
-    ("examples/delta.json", "commitment"): "payload:commitment",
-    ("vectors/wist1/key-directory.json", "commitment"): "payload:commitment",
-    ("vectors/wist1/envelope.json", "commitment"): "payload:commitment",
-    ("vectors/wist1/recovery-settlement.json", "commitment"): "payload:commitment",
-    ("vectors/wist1/recovery-bindings.json", "commitment"): "payload:commitment",
-    ("vectors/wist1/delta.canonical", "commitment"): "payload:commitment",
     ("vectors/wist3/epoch.json", "commitment"): "payload:commitment",
     ("vectors/wist3/checkpoints.json", "commitment"): "payload:commitment",
     ("vectors/wist1/declaration-fields.json", "commitment"): "payload:commitment",
-    ("vectors/wist1/delta-diagnostics.json", "commitment"): "payload:commitment",
-    ("vectors/wist1/delta-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist2/declaration-refresh.json", "commitment"): "payload:commitment",
-    ("vectors/wist1/delta-attribution.json", "commitment"): "payload:commitment",
-    ("vectors/wist1/recovery-scope.json", "commitment"): "payload:commitment",
     ("vectors/multilog/dedup.json", "commitment"): "payload:commitment",
     ("vectors/wist1/item-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist1/item-roots.json", "commitment"): "payload:commitment",
@@ -1292,11 +1549,6 @@ def _assert_schema_instances(check_name, recomputed):
             f"shipped file carries an instance at .../{'/'.join(suffix)} for it to "
             "have recomputed")
         for rel, trail, got in values:
-            if (schema_file == "delta.schema.json" and rel == "vectors/wist1/delta-fields.json"
-                    and trail == ("cases", "envelope", "delta", "payload", "commitment")
-                    and got.endswith("\n") and got[:-1] in recomputed):
-                assert not re.fullmatch(field["pattern"], got)
-                continue
             assert got in recomputed, (
                 f"{schema_file}: {spath} is declared covered by {check_name}, but the "
                 f"instance at .../{'/'.join(suffix)} is {got[:28]}…, which "
@@ -1324,13 +1576,13 @@ def _assert_coverage(check_name, covered_values, covered_schema):
         assert not undeclared, (
             f"{check_name} recomputes undeclared {label} location(s): {undeclared}")
 
-# 2b. The payload commitment: the only thing binding a Delta to content that
+# 2b. The payload commitment: the only thing binding an Item to content that
 # the Log does not carry. Everything downstream — the audit metric, snapshot
 # materialization, the withdrawal guarantee — rests on this recomputation.
-def _load_payload_and_delta():
+def _load_payload_and_item():
     payload = json.loads((ROOT / "examples" / "payload.json").read_text())
-    delta = json.loads((ROOT / "examples" / "delta.json").read_text())["delta"]
-    return payload, delta
+    item = json.loads((ROOT / "examples" / "item.json").read_text())
+    return payload, item
 
 def _commit(salt_b64: str, content: dict) -> str:
     return "hmac-sha256:" + hmac.new(
@@ -1350,30 +1602,24 @@ def _multilog_commitment():
     return got
 
 def _payload_commitment():
-    payload, delta = _load_payload_and_delta()
-    assert delta["payload"]["alg"] == "HMAC-SHA256", "commitment algorithm is not HMAC-SHA256"
+    payload, item = _load_payload_and_item()
+    assert item["payload"]["alg"] == "HMAC-SHA256", "commitment algorithm is not HMAC-SHA256"
     assert len(b64u_decode(payload["salt"])) >= 16, "salt is shorter than 128 bits (WIST-1 §3.6)"
     expected = _commit(payload["salt"], payload["content"])
-    assert expected == delta["payload"]["commitment"], \
-        "the Payload does not reproduce the Delta's commitment"
+    assert expected == item["payload"]["commitment"], \
+        "the Payload does not reproduce the Item's commitment"
     recomputed = {expected, _multilog_commitment()}
     link_vectors = json.loads((ROOT / "vectors/wist1/payload-links.json").read_text())
     for case in link_vectors["cases"]:
         content = case["payload"]
         actual = _commit(content["salt"], content["content"])
-        assert actual == case["envelope"]["delta"]["payload"]["commitment"]
+        assert actual == case["item"]["payload"]["commitment"]
         recomputed.add(actual)
     field_vectors = json.loads((ROOT / "vectors/wist1/payload-fields.json").read_text())
     for case in field_vectors["cases"]:
         preimage = case["preimage"]
         actual = _commit(preimage["salt"], preimage["content"])
-        assert actual == case["envelope"]["delta"]["payload"]["commitment"]
-        recomputed.add(actual)
-    cap_vectors = json.loads((ROOT / "vectors/wist1/delta-cap-time.json").read_text())
-    for obj in cap_vectors["objects"].values():
-        content = obj["payload"]
-        actual = _commit(content["salt"], content["content"])
-        assert actual == obj["envelope"]["delta"]["payload"]["commitment"]
+        assert actual == case["item"]["payload"]["commitment"]
         recomputed.add(actual)
     for rel in CATALOG_COMMITMENT_FILES:
         recomputed |= _carried_payload_commitments(json.loads((ROOT / rel).read_text()))
@@ -1386,9 +1632,6 @@ def _payload_commitment():
         values = _values_at(rel, key)
         assert values, f"{rel}: no {key!r} to recompute, but it is declared here"
         for got in values:
-            if rel == "vectors/wist1/delta-fields.json" and got.endswith("\n"):
-                assert got[:-1] in recomputed
-                continue
             assert got in recomputed, \
                 f"{rel}: {key} = {got[:28]}… is not HMAC(salt, JCS(content))"
     # Located, not read off the declarations, so an undeclared copy also fails.
@@ -1411,11 +1654,11 @@ def _payload_length():
     rather than hard-coding the total is what keeps the schema's number and
     WIST-1 §3.6's arithmetic from drifting apart again.
     """
-    payload, delta = _load_payload_and_delta()
+    payload, item = _load_payload_and_item()
     content = payload["content"]
     n = len(rfc8785.dumps(content))
-    assert delta["payload"]["bytes"] == n, \
-        f"the Delta declares {delta['payload']['bytes']} octets, JCS(content) is {n}"
+    assert item["payload"]["bytes"] == n, \
+        f"the Item declares {item['payload']['bytes']} octets, JCS(content) is {n}"
 
     caps = _registry_table_defaults()
     e_cap = caps["extract_cap_bytes"]
@@ -1436,13 +1679,13 @@ def _payload_length():
     assert n <= combined, f"JCS(content) is {n} octets, over the {combined}-octet cap (WIST-1 §3.6)"
     assert e + lk + s + wrapper == n, "the JCS lengths do not add up; the derivation is wrong"
 
-    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
-    declared = schema["properties"]["delta"]["properties"]["payload"][
+    schema = json.loads((ROOT / "schemas" / "item.schema.json").read_text())
+    declared = schema["oneOf"][0]["properties"]["payload"][
         "properties"]["bytes"]["maximum"]
     assert declared == combined, (
-        f"delta.schema.json bounds payload.bytes at {declared}, but "
+        f"item.schema.json bounds payload.bytes at {declared}, but "
         f"{e_cap} + {lk_cap} + {s_cap} + {wrapper} = {combined} (WIST-1 §3.6)")
-    spec = (ROOT / "specs" / "WIST-1-delta-format.md").read_text()
+    spec = (ROOT / "specs" / "WIST-1-item-format.md").read_text()
     assert str(combined) in spec, f"WIST-1 §3.6 does not state the {combined}-octet bound"
     assert "34816" not in spec, "WIST-1 still cites the old combined cap, which omitted the JCS wrapper"
     assert "34839" not in spec, "WIST-1 still cites the pre-links combined cap"
@@ -1458,8 +1701,8 @@ def _payload_tamper():
     the salt that keys it, and every one must fail to reproduce it.
     """
     import copy
-    payload, delta = _load_payload_and_delta()
-    committed = delta["payload"]["commitment"]
+    payload, item = _load_payload_and_item()
+    committed = item["payload"]["commitment"]
     assert _commit(payload["salt"], payload["content"]) == committed, \
         "the untampered Payload does not verify, so no mutation below proves anything"
 
@@ -1663,9 +1906,9 @@ def _assert_links_materialization(vec_links):
     passing, and it stays true however weak the positive check becomes.
     """
     payload = json.loads((ROOT / "examples" / "payload.json").read_text())
-    delta = json.loads((ROOT / "examples" / "delta.json").read_text())["delta"]
+    item = json.loads((ROOT / "examples" / "item.json").read_text())
     expected = [
-        {"source_url": delta["url"], "target_url": u, "position": i}
+        {"source_url": item["url"], "target_url": u, "position": i}
         for i, u in enumerate(payload["content"]["links"]["urls"])]
     assert vec_links == expected, "links materialization != derivation from Payload"
 
@@ -1813,13 +2056,10 @@ def _dc3_chain_materialization():
         i in c["ignored_indices"] for c in ineligible
         for i, d in enumerate(c["deltas"]) if d.get("eligible") is False)
     prose3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
-    prose1 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
     assert "is not the chain tip the state carries" in prose3, \
         "WIST-3 §7 does not state the tip rule"
     assert "The same disposition covers every other WIST-1 §7 Delta check" in prose3, \
         "WIST-3 §3.3 does not state the ineligible-Delta disposition"
-    assert "never sealed ahead of the Delta its `prev` names" in prose1, \
-        "WIST-1 §3.5 does not state the sealing order"
 check("vectors:wist3-chain-materialization", _dc3_chain_materialization)
 
 def _dc3_chain_materialization_twin():
@@ -2138,7 +2378,7 @@ def _recovery_parameter_windows():
     assert "| WIST-1 §5.2 recovery window length | Window owner Declaration's Epoch;" in prose
     flat = re.sub(r"\s+", " ", prose)
     assert "would end a window opened at that instant after `9999-12-31T23:59:59Z`" in flat
-    flat1 = re.sub(r"\s+", " ", (ROOT / "specs/WIST-1-delta-format.md").read_text())
+    flat1 = re.sub(r"\s+", " ", (ROOT / "specs/WIST-1-item-format.md").read_text())
     assert "an Aggregator MUST NOT seal a recovery Declaration whose window would end there" in flat1
 
 
@@ -2327,13 +2567,19 @@ check("vectors:wist4-parameter-wire-range", _dc4_parameter_wire_range)
 # be an `hmac-sha256:` commitment under the Payload salt, or it fails. Adding a
 # field here is the deliberate act of asserting it carries no content.
 NON_CONTENT_DIGESTS = {
+    ("catalog.schema.json", "properties/catalog/properties/publisher"): "the signed Canonical Host of the Publisher, not a content digest",
+    ("catalog.schema.json", "properties/catalog/properties/collection"): "a Collection name chosen by the Publisher (WIST-1 §3.5), not a content digest",
+    ("publisher.schema.json", "properties/publisher/properties/collections/items/properties/name"): "a Collection name chosen by the Publisher (WIST-1 §3.5), not a content digest",
+    ("catalog.schema.json", "properties/catalog/properties/root"): "an Item list root (WIST-1 §4): a Merkle Tree Hash over leaves that carry only a URL hash and an Item hash",
+    ("catalog.schema.json", "properties/catalog/properties/tree"): "a tree file name (WIST-1 §4): SHA-256 over a file of Items that carry only a salted commitment",
+    **{("item.schema.json", path): "the Canonical Host of the Publisher, not a content digest"
+       for path in ("$defs/publisher", "oneOf[0]/properties/publisher", "oneOf[1]/properties/publisher")},
+    ("tree-file.schema.json", "oneOf[1]/properties/children/items/properties/prefix"): "leading hexadecimal digits of Item keys (WIST-1 §4): SHA-256 over a URL, which the Log carries in the clear",
+    ("tree-file.schema.json", "oneOf[1]/properties/children/items/properties/file"): "a tree file name (WIST-1 §4): SHA-256 over a file of Items that carry only a salted commitment",
     ('feed.schema.json', 'properties/feed/properties/domain'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
-    ('delta.schema.json', 'properties/delta/properties/publisher'): 'the signed Canonical Host of the Publisher, not a content digest',
     ('publisher.schema.json', 'properties/publisher/properties/domain'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
     ('publisher.schema.json', 'properties/publisher/properties/subdomain_scope/items'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
     ('status.schema.json', 'properties/domain'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
-    ("delta.schema.json", "properties/delta/properties/prev"):
-        "a Delta ID: SHA-256 of Canonical Bytes, which carry the salted commitment and no content",
     ("publisher.schema.json", "properties/publisher/properties/prev_declaration"):
         "SHA-256 of a Declaration, which carries keys and no content",
     ("publisher.schema.json", "properties/publisher/properties/next_keys"):
@@ -2401,13 +2647,13 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
-    ("vectors/wist1/payload-fields.json", "public_key"): "an Ed25519 public key",
-    ("vectors/wist1/payload-fields.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/payload-fields.json", "salt"): "Payload salts and malformed encoding probes",
 
     ("vectors/wist4/parameter-combinations.json", "wire_public_key"): "an Ed25519 public key",
     ("vectors/wist4/parameter-combinations.json", "value"): "an Ed25519 signature when opaque",
-        ("examples/delta.json", "value"): "an Ed25519 signature",
+    ("examples/catalog.json", "value"): "an Ed25519 signature",
+    ("examples/catalog.json", "root"): "an Item list root (WIST-1 §4): a Merkle Tree Hash over leaves that carry only a URL hash and an Item hash",
+    ("examples/catalog.json", "tree"): "a tree file name (WIST-1 §4): SHA-256 over a file of Items that carry only a salted commitment",
     ("examples/feed.json", "deltas"): "Delta IDs",
     ("examples/feed.json", "value"): "an Ed25519 signature",
     ("examples/log-anchor.json", "public_key"): "an Ed25519 public key",
@@ -2443,8 +2689,14 @@ NON_CONTENT_VALUES = {
     ("vectors/wist3/snapshot-records.json", "content_digest"):
         "WIST-3 §7's record-tuple digest, recomputed by `snapshot:content-digest` from the records this file publishes",
     ("examples/status.json", "delta_id"): "a Delta ID",
-        ("vectors/wist1/envelope.json", "value"): "an Ed25519 signature",
-        ("vectors/wist1/id.txt", None): "the WIST-1 vector's Delta ID",
+    ("vectors/wist1/envelope.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/envelope.json", "root"): "an Item list root (WIST-1 §4): a Merkle Tree Hash over leaves that carry only a URL hash and an Item hash",
+    ("vectors/wist1/envelope.json", "tree"): "a tree file name (WIST-1 §4): SHA-256 over a file of Items that carry only a salted commitment",
+    ("vectors/wist1/catalog.canonical", "root"): "an Item list root (WIST-1 §4): a Merkle Tree Hash over leaves that carry only a URL hash and an Item hash",
+    ("vectors/wist1/catalog.canonical", "tree"): "a tree file name (WIST-1 §4): SHA-256 over a file of Items that carry only a salted commitment",
+    ("vectors/wist1/id.txt", None): "the WIST-1 vector's Catalog ID: SHA-256 over a Catalog that carries a root, a tree hash and no page content",
+    ("vectors/wist1/key-directory.json", "root"): "the root of an empty Item list (WIST-1 §4): SHA-256 of the empty string",
+    ("vectors/wist1/key-directory.json", "tree"): "a tree file name (WIST-1 §4): SHA-256 over the empty bucket",
     ("vectors/wist1/keypair.json", "seed_hex"): "the test signing seed",
     ("vectors/wist1/keypair.json", "public_key"): "an Ed25519 public key",
         ("vectors/wist3/epoch.json", "root"): "root over Entries, which carry commitments only",
@@ -2557,27 +2809,7 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/page-bindings.json", "prev_declaration"): "SHA-256 of the previous publisher object",
     ("vectors/wist2/page-bindings.json", "x"): "a usable or deliberately excluded Ed25519 point",
     ("vectors/wist2/page-bindings.json", "value"): "an Ed25519 signature",
-    ("vectors/wist1/payload-links.json", "public_key"): "the Delta signing public key",
-    ("vectors/wist1/payload-links.json", "value"): "an Ed25519 Delta signature",
     ("vectors/wist1/payload-links.json", "salt"): "the Payload commitment salt",
-    ("vectors/wist1/delta-clock-time.json", "public_key"): "the fixture signing key",
-    ("vectors/wist1/delta-clock-time.json", "value"): "signed integer allowance or valid/deliberately invalid signature",
-    ("vectors/wist1/delta-cap-time.json", "prev"): "the signed predecessor Delta ID",
-    ("vectors/wist1/delta-cap-time.json", "id"): "SHA-256 of a signed Delta",
-    ("vectors/wist1/delta-cap-time.json", "pinned_head"): "the trusted final Epoch header hash",
-    ("vectors/wist1/delta-cap-time.json", "public_key"): "an Ed25519 public key",
-    ("vectors/wist1/delta-cap-time.json", "value"): "an Ed25519 signature or integer parameter value",
-    ("vectors/wist1/delta-cap-time.json", "salt"): "the Payload commitment salt",
-    ("vectors/wist1/delta-fields.json", "prev"): "a supplied predecessor ID or malformed spelling; chain eligibility is not asserted",
-    ("vectors/wist1/delta-fields.json", "id"): "SHA-256 of the signed Delta",
-    ("vectors/wist1/delta-fields.json", "requested_id"): "a supplied matching or mismatching transport ID",
-    ("vectors/wist1/delta-fields.json", "author_key"): "the fixture author public key",
-    ("vectors/wist1/delta-fields.json", "value"): "a valid or deliberately damaged Ed25519 signature",
-    ("vectors/wist1/delta-diagnostics.json", "prev"): "SHA-256 of the supplied signed predecessor Delta",
-    ("vectors/wist1/delta-diagnostics.json", "prev_declaration"): "SHA-256 of the authenticated preceding publisher object",
-    ("vectors/wist1/delta-diagnostics.json", "x"): "an Ed25519 public key",
-    ("vectors/wist1/delta-diagnostics.json", "value"): "an Ed25519 signature or noncanonical signature encoding probe",
-    ("vectors/wist1/recovery-scope.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/recovery-admission.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/recovery-admission.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/recovery-admission.json", "prev_declaration"): "SHA-256 of a named predecessor publisher object",
@@ -2585,15 +2817,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/recovery-admission.json", "last_inside_pin"): "the trusted last pre-deadline Epoch hash",
     ("vectors/wist1/recovery-admission.json", "deadline_pin"): "the trusted deadline Epoch hash",
     ("vectors/wist1/recovery-admission.json", "pin"): "the trusted alternate deadline Epoch hash",
-    ("vectors/wist1/recovery-scope.json", "value"): "an Ed25519 signature or malformed encoding",
-    ("vectors/wist1/recovery-scope.json", "prev_declaration"): "the authenticated predecessor Declaration hash",
-    ("vectors/wist1/recovery-scope.json", "pinned_head"): "the trusted final Epoch header hash",
-    ("vectors/wist1/delta-attribution.json", "public_key"): "an Ed25519 public key",
-    ("vectors/wist1/delta-attribution.json", "value"): "an Ed25519 signature",
-    ("vectors/wist1/delta-attribution.json", "delta_ids"): "SHA-256 of each original signed inner Delta",
-    ("vectors/wist1/delta-attribution.json", "prev"): "the authenticated predecessor Delta ID",
-    ("vectors/wist1/delta-attribution.json", "prev_declaration"): "the authenticated predecessor Declaration hash",
-    ("vectors/wist1/delta-attribution.json", "pinned_head"): "the independently trusted Epoch head",
 
     ("vectors/wist1/declaration-fields.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/declaration-fields.json", "value"): "an Ed25519 signature or malformed signature-field probe",
@@ -2609,10 +2832,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-conflicts.json", "recovery_envelope"): "SHA-256 of the recovery-chain Declaration Envelope including signature",
     ("vectors/wist1/declaration-conflicts.json", "first_candidate"): "SHA-256 of a Declaration Envelope used to discriminate leaf order",
     ("vectors/wist1/recovery-settlement.json", "public_key"): "an Ed25519 public key",
-    ("vectors/wist1/recovery-bindings.json", "public_key"): "an Ed25519 public key or excluded point",
-    ("vectors/wist1/recovery-bindings.json", "value"): "an Ed25519 signature or malformed signature encoding",
-    ("vectors/wist1/recovery-bindings.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
-    ("vectors/wist1/recovery-bindings.json", "pinned_head"): "the trusted final Epoch header hash",
     ("vectors/wist1/recovery-settlement.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/recovery-settlement.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
     ("vectors/wist1/recovery-settlement.json", "pinned_head"): "the trusted final Epoch header hash",
@@ -2620,11 +2839,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/recovery-settlement.json", "predecessor"): "SHA-256 of a named predecessor publisher object",
     ("vectors/wist1/recovery-settlement.json", "effective_declaration"): "SHA-256 of the effective publisher object",
     ("vectors/wist1/recovery-settlement.json", "superseded"): "SHA-256 identifiers of superseded publisher objects",
-    ("vectors/wist1/recovery-settlement.json", "delta_id"): "SHA-256 of a signed Delta object",
-    ("vectors/wist1/recovery-settlement.json", "queued"): "SHA-256 identifiers of queued Delta objects",
-    ("vectors/wist1/recovery-settlement.json", "not_queued"): "SHA-256 identifiers of nonadmitted Delta objects",
-    ("vectors/wist1/recovery-settlement.json", "eligible"): "SHA-256 identifiers of signature-eligible Delta objects",
-    ("vectors/wist1/recovery-settlement.json", "rejected"): "SHA-256 identifiers of rejected Delta objects",
     ("vectors/wist1/recovery-heads.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/recovery-heads.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/recovery-heads.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
@@ -2679,7 +2893,7 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-sequence.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/declaration-sequence.json", "prev_declaration"):
         "SHA-256 over a Declaration's publisher object (WIST-1 §5.2) — keys, domain and scope, no page content",
-    ("examples/delta.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
+    ("examples/catalog.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("examples/dispute.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("examples/feed.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("examples/label-definition.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
@@ -2693,19 +2907,10 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-hosts.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/declaration-key-eligibility.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/declaration-sequence.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/delta-attribution.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/delta-cap-time.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/delta-clock-time.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/delta-diagnostics.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/delta-fields.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/envelope.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/payload-fields.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/payload-links.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/recovery-admission.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/recovery-bindings.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/recovery-heads.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/recovery-order.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/recovery-scope.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/recovery-settlement.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist2/declaration-refresh.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist2/disputes.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
@@ -2730,15 +2935,8 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-hosts.json", "x"): "an Ed25519 public key or a deliberately excluded or malformed point encoding",
     ("vectors/wist1/declaration-key-eligibility.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/declaration-sequence.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/delta-attribution.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/delta-attribution.json", "x"): "an Ed25519 public key or a deliberately excluded or malformed point encoding",
-    ("vectors/wist1/delta-cap-time.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/delta-cap-time.json", "x"): "an Ed25519 public key or a deliberately excluded or malformed point encoding",
-    ("vectors/wist1/delta-diagnostics.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/recovery-admission.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/recovery-admission.json", "x"): "an Ed25519 public key or a deliberately excluded or malformed point encoding",
-    ("vectors/wist1/recovery-bindings.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/recovery-bindings.json", "x"): "an Ed25519 public key or a deliberately excluded or malformed point encoding",
     ("vectors/wist1/recovery-heads.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/key-directory.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/key-directory.json", "kids"): "JWK thumbprints in byte order, the Key Set fingerprint's input (WIST-1 §5.1)",
@@ -2755,8 +2953,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/recovery-heads.json", "x"): "an Ed25519 public key or a deliberately excluded or malformed point encoding",
     ("vectors/wist1/recovery-order.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/recovery-order.json", "x"): "an Ed25519 public key or a deliberately excluded or malformed point encoding",
-    ("vectors/wist1/recovery-scope.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist1/recovery-scope.json", "x"): "an Ed25519 public key or a deliberately excluded or malformed point encoding",
     ("vectors/wist1/recovery-settlement.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/recovery-settlement.json", "x"): "an Ed25519 public key or a deliberately excluded or malformed point encoding",
     ("vectors/wist2/declaration-refresh.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
@@ -2804,6 +3000,7 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/declaration-pull.json", "value"): "an Ed25519 signature",
     ("vectors/wist2/declaration-pull.json", "seed_hex"): "a test-only Ed25519 seed, no page content",
     ("vectors/wist2/declaration-pull.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
+    ("vectors/wist2/declaration-pull.json", "acceptance"): "a Declaration acceptance class of WIST-1 §5.2, no page content",
     ("vectors/wist1/item-fields.json", "x"): "an Ed25519 public key",
     ("vectors/wist1/item-fields.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/item-fields.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
@@ -2952,8 +3149,12 @@ def _spec_derived_constants():
     published figure and the sweep flags it.
     """
     out = set()
-    canonical = (ROOT / "vectors" / "wist1" / "delta.canonical").read_bytes()
+    canonical = (ROOT / "vectors" / "wist1" / "catalog.canonical").read_bytes()
     out.add(canonical.hex())                      # WIST-1 App A quotes leading chunks
+    item = json.loads((ROOT / "examples" / "item.json").read_text())
+    out.add(item_rules.item_id(item)[len("sha256:"):])  # WIST-1 App A's Payload path
+    out.add(item_rules.item_key(item["url"]).hex())      # WIST-1 App A's key and leaf
+    out.add(item_rules.leaf(item).hex())
     out.add(hashlib.sha256(b"\x00").hexdigest())  # WIST-3 §4's empty-tree constant
     payload = json.loads((ROOT / "examples" / "payload.json").read_text())
     out.add(b64u_decode(payload["salt"]).hex())   # WIST-1 App A shows the salt in hex
@@ -3511,7 +3712,7 @@ def _keyset_at(declarations, height):
     return best["keys"] if best else []
 
 def _wist1_keyset_at_height():
-    """WIST-1 §5.2: the Key Set a sealed Delta verifies under is resolved at
+    """WIST-1 §5.2: the Key Set a sealed Catalog verifies under is resolved at
     its own sealing height, with WIST-3 §3.3's Declarations-first order."""
     v = _keyset_vector()
     saw_beside_rejected = saw_beside_verified = saw_orphan = False
@@ -3523,43 +3724,43 @@ def _wist1_keyset_at_height():
         for q in case["expected"]["key_set_at"]:
             assert _keyset_at(decls, q["height"]) == q["keys"], \
                 f"{name}: Key Set at {q['height']}"
-        verifies = [d["delta_id"] for d in case["deltas"]
-                    if d["signer"] in _keyset_at(decls, d["height"])]
-        rejected = [d["delta_id"] for d in case["deltas"] if d["delta_id"] not in verifies]
+        verifies = [c["catalog_id"] for c in case["catalogs"]
+                    if c["signer"] in _keyset_at(decls, c["height"])]
+        rejected = [c["catalog_id"] for c in case["catalogs"] if c["catalog_id"] not in verifies]
         assert verifies == case["expected"]["verifies"], f"{name}: verifies"
         assert rejected == case["expected"]["rejected"], f"{name}: WIST1-E02"
-        for d in case["deltas"]:
-            beside = [x for x in decls if x["height"] == d["height"]]
-            if beside and d["signer"] not in beside[-1]["keys"] and d["delta_id"] in rejected:
+        for c in case["catalogs"]:
+            beside = [x for x in decls if x["height"] == c["height"]]
+            if beside and c["signer"] not in beside[-1]["keys"] and c["catalog_id"] in rejected:
                 saw_beside_rejected = True
-            if beside and d["signer"] in beside[-1]["keys"] and d["delta_id"] in verifies:
+            if beside and c["signer"] in beside[-1]["keys"] and c["catalog_id"] in verifies:
                 saw_beside_verified = True
-            if not any(x["height"] <= d["height"] for x in decls):
-                saw_orphan = d["delta_id"] in rejected
+            if not any(x["height"] <= c["height"] for x in decls):
+                saw_orphan = c["catalog_id"] in rejected
     assert saw_beside_rejected and saw_beside_verified and saw_orphan, \
-        "the vector must exercise a Delta beside the retiring Declaration, one " \
+        "the vector must exercise a Catalog beside the retiring Declaration, one " \
         "beside the admitting one, and one below every Declaration"
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-item-format.md").read_text())
     for marker in (
-            "MUST NOT seal a Delta that does not verify under the Key Set resolved "
-            "at its sealing height, the sealing Epoch's own Declaration Entries included",
-            "rejected with `WIST1-E02` at sealing"):
+            "The Declaration in force for a Publisher at Epoch N, which judges its "
+            "`publisher_catalog` and `publisher_item` Entries sealed in Epoch N",
+            "settlements and activations have applied under this section"):
         assert marker in prose, f"§5.2 does not state: {marker!r}"
 check("vectors:wist1-keyset-at-height", _wist1_keyset_at_height)
 
 def _wist1_keyset_at_height_twin():
-    """The check above must notice a Delta sealed beside the Declaration
+    """The check above must notice a Catalog sealed beside the Declaration
     retiring its key: with that Declaration read one Epoch late, the
-    Delta would verify."""
+    Catalog would verify."""
     v = _keyset_vector()
     case = next(c for c in v["cases"] if c["name"] == "rotation retiring the old key")
     late = [dict(d, height=d["height"] + 1) if d["seq"] > 0 else d
             for d in case["declarations"]]
-    beside = next(d for d in case["deltas"] if d["delta_id"] == "d-beside-old")
+    beside = next(c for c in case["catalogs"] if c["catalog_id"] == "c-beside-old")
     assert beside["signer"] in _keyset_at(late, beside["height"]), \
-        "the twin's late Declaration did not admit the stranded Delta"
+        "the twin's late Declaration did not admit the stranded Catalog"
     assert beside["signer"] not in _keyset_at(case["declarations"], beside["height"]), \
-        "recomputation is blind to a Declaration sealed beside the Delta"
+        "recomputation is blind to a Declaration sealed beside the Catalog"
 check("negative:wist1-keyset-at-height", _wist1_keyset_at_height_twin)
 
 def _ed25519_profile_verdict(a_bytes: bytes, sig: bytes, msg: bytes):
@@ -3628,7 +3829,7 @@ def _wist1_verification_profile():
                 "cofactored equation rejects it too"
     assert seen_accept and seen_reject, "the vector exercises only one outcome"
 
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-item-format.md").read_text())
     for marker in ("the **cofactorless** one, `[s]B = R + [k]A`",
                    "`s` MUST be canonically reduced, `0 \u2264 s < L`",
                    "MUST NOT be a point of small order"):
@@ -3739,7 +3940,7 @@ def _wist1_host_canonicalization():
     to the mapped form the case cites.
     """
     v = json.loads((ROOT / "vectors" / "wist1" / "host-canonicalization.json").read_text())
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-item-format.md").read_text())
     for flag, value in v["flags"].items():
         assert f"`{flag}={str(value).lower()}`" in prose, \
             f"§2 does not pin {flag}={value}"
@@ -3805,7 +4006,7 @@ def _dc1_declaration_sequence_vector():
     assert seen == outcomes, f"outcomes never exercised: {sorted(outcomes - seen)}"
     assert any(c.get("recovery_window_open") for c in v["cases"]), \
         "no case exercises an open recovery window"
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-item-format.md").read_text())
     assert ("MUST NOT list the same public key (`x`, equivalently `kid`) in both "
             "`keys` and `recovery_keys`") in prose, \
         "§5.2 does not forbid a key serving as both a signing and a recovery key"
@@ -4488,16 +4689,9 @@ def _declaration_field_vectors():
         assert valid == case["author_signature_valid"], case["name"]
         result = field_error(env) or _declaration_binding_result(vector["stored"], env)
         assert result == case["expected"], case["name"]
-    for case in vector["delta_cases"]:
-        env = case["envelope"]
-        author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["delta"]))
-        value = env["delta"].get("observed_at")
-        result = "well_formed" if isinstance(value, str) and _publisher_timestamp_format(value) else "WIST1-E14"
-        assert result == case["expected"], case["name"]
-    delta_validator = Draft202012Validator(json.loads(
-        (ROOT / "schemas/delta.schema.json").read_text()), format_checker=formats)
-    for case in vector["delta_cases"]:
-        assert delta_validator.is_valid(case["envelope"]) == (case["expected"] == "well_formed"), case["name"]
+    def observed_at_valid(envelope):
+        value = envelope["delta"].get("observed_at")
+        return isinstance(value, str) and _publisher_timestamp_format(value)
     for case in vector["key_time_cases"]:
         declaration, envelope = case["declaration"], case["envelope"]
         for env, inner in ((declaration, "publisher"), (envelope, "delta")):
@@ -4514,7 +4708,7 @@ def _declaration_field_vectors():
             else:
                 raise AssertionError("changed timestamp retained its signature")
         result = field_error(declaration)
-        if result is None and not delta_validator.is_valid(envelope):
+        if result is None and not observed_at_valid(envelope):
             result = "WIST1-E14"
         if result is None:
             observed = publisher_instant(envelope["delta"]["observed_at"])
@@ -4523,7 +4717,7 @@ def _declaration_field_vectors():
         assert result == case["expected"], case["name"]
     for case in vector["relation_cases"]:
         env = case["envelope"]
-        assert delta_validator.is_valid(env), case["name"]
+        assert observed_at_valid(env), case["name"]
         author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["delta"]))
         observed, reference = publisher_instant(env["delta"]["observed_at"]), publisher_instant(case["reference"])
         if case["kind"] == "clock":
@@ -4704,43 +4898,8 @@ check("vectors:wist1-base64url", _base64url_vectors)
 def _wist1_recovery_settlement():
     vector = json.loads((ROOT / "vectors/wist1/recovery-settlement.json").read_text())
     apply, _, replay, _ = _recovery_history_reference(vector)
-    validator = Draft202012Validator(json.loads((ROOT / "schemas/delta.schema.json").read_text()))
     def digest(inner):
         return "sha256:" + hashlib.sha256(rfc8785.dumps(inner)).hexdigest()
-    def fixture_time(value):
-        assert re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z", value), \
-            "settlement fixtures require whole-second UTC time"
-        return log_seconds(value)
-    def verifies(env, keys):
-        key = next((key for key in keys if key["kid"] == env["sig"]["key_id"]), None)
-        if key is None or not _in_window(key, fixture_time(env["delta"]["observed_at"])):
-            return False
-        try:
-            Ed25519PublicKey.from_public_bytes(b64u_decode(key["x"])).verify(
-                b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["delta"]))
-            return True
-        except Exception:
-            return False
-    def covers(env, scope):
-        import urllib.parse
-        host = urllib.parse.urlsplit(env["delta"]["url"]).hostname
-        return host == scope["domain"] or host in scope["subdomain_scope"]
-
-    for case in vector["binding_cases"]:
-        env = case["envelope"]
-        validator.validate(env)
-        assert digest(env["delta"]) == case["delta_id"]
-        queued = any(verifies(env, case[keys]) and covers(env, case[scope])
-                     for keys, scope in (("pre_recovery_keys", "pre_recovery_scope"),
-                                         ("recovery_keys", "recovery_scope")))
-        assert queued == case["expected_queued"], case["name"]
-        settled = verifies(env, case["settlement_keys"]) and covers(env, case["settlement_scope"])
-        assert (queued and settled) == case["expected_eligible"], case["name"]
-        if "re_serve_of" in case:
-            earlier = vector["binding_cases"][case["re_serve_of"]]
-            assert earlier["envelope"] == env and earlier["delta_id"] == case["delta_id"]
-            assert earlier["expected_queued"] and not earlier["expected_eligible"]
-            assert case["expected_eligible"]
     saw_named_competitor = False
     for case in vector["cases"]:
         name = case["name"]
@@ -4776,23 +4935,6 @@ def _wist1_recovery_settlement():
                 signer_key = bindings[env["sig"]["key_id"]]["x"]
                 saw_named_competitor |= signer_key in {key["x"] for key in old_head["keys"]}
         assert superseded == expected["superseded"], name
-        queued, not_queued, eligible, rejected = [], [], [], []
-        for served in case["served"]:
-            env = served["envelope"]
-            validator.validate(env)
-            assert served["delta_id"] == digest(env["delta"])
-            assert served["signer"] == env["sig"]["key_id"]
-            admitted = any(verifies(env, projection["envelope"]["publisher"]["keys"])
-                           for projection in (initial, recovery))
-            (queued if admitted else not_queued).append(served["delta_id"])
-            if admitted:
-                (eligible if verifies(env, head["publisher"]["keys"]) else rejected).append(served["delta_id"])
-            mutated = copy.deepcopy(env)
-            mutated["delta"]["url"] += "/changed"
-            assert not any(verifies(mutated, projection["envelope"]["publisher"]["keys"])
-                           for projection in (initial, recovery)), "signature mutation queued"
-        assert queued == expected["queued"] and not_queued == expected["not_queued"], name
-        assert eligible == expected["eligible"] and rejected == expected["rejected"], name
         for probe in case["probes"]:
             height = probe["prefix_height"] + 1
             state = copy.deepcopy(states[height - 1])
@@ -4802,136 +4944,15 @@ def _wist1_recovery_settlement():
             assert result == probe["expected_result"], (name, probe["name"], result)
             assert state == before, "rejected candidate changed its prefix"
     assert saw_named_competitor, "a shared key must not join the chain via a competitor"
-    prose = re.sub(r"\s+", " ", (ROOT / "specs/WIST-1-delta-format.md").read_text())
+    prose = re.sub(r"\s+", " ", (ROOT / "specs/WIST-1-item-format.md").read_text())
     for marker in (
-            "verifies under **either** the Key Set in effect immediately before the recovery **or** the recovery Declaration's own",
-            "revalidated against the signing bindings and scope of that chain's newest Declaration",
-            "The rejection is of the queued copy and not of the Delta's identity"):
+            "each source is read alone, with its own Collections, Scopes and keys",
+            "Every queued Catalog is judged again by C1 (WIST-3 §3.3) under the settlement source",
+            "The rejection is of the queued copy and not of the Catalog's identity"):
         assert marker in prose
 
 
 check("vectors:wist1-recovery-settlement", _wist1_recovery_settlement)
-
-def _recovery_binding_vectors():
-    vector = json.loads((ROOT / "vectors/wist1/recovery-bindings.json").read_text())
-    original = copy.deepcopy(vector)
-    log_id = vector["log_key"]["key_id"]
-    log_keys = {log_id: b64u_decode(vector["log_key"]["public_key"])}
-    formats = FormatChecker(formats=[])
-    formats.checks("wist-canonical-host")(_declaration_host_format)
-    formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
-    validators = {name: Draft202012Validator(json.loads(
-        (ROOT / f"schemas/{name}.schema.json").read_text()), format_checker=formats)
-        for name in ("publisher", "delta")}
-
-    def usable(key):
-        raw = canonical_b64u_decode(key["x"])
-        assert len(raw) == 32
-        try:
-            point = ed25519_curve.string_to_point(raw)
-        except ed25519_curve.InvalidProof:
-            return False
-        return not ed25519_curve._is_identity(ed25519_curve._mul(8, point))
-
-    def verifies(key, envelope, inner):
-        return _ed25519_profile_verdict(canonical_b64u_decode(key["x"] if "kty" in key else key["public_key"]),
-            canonical_b64u_decode(envelope["sig"]["value"]),
-            rfc8785.dumps(envelope[inner]))[0]
-
-    def declaration_result(previous, envelope):
-        validators["publisher"].validate(envelope)
-        return _declaration_binding_result(previous, envelope, usable,
-            lambda key, env: verifies(key, env, "publisher"))
-
-    def admission(envelope, sources):
-        try:
-            observed = publisher_instant(envelope["delta"].get("observed_at"))
-            signature = canonical_b64u_decode(envelope["sig"]["value"])
-            if len(signature) != 64:
-                return "WIST1-E14"
-        except (KeyError, TypeError, ValueError):
-            return "WIST1-E14"
-        validators["delta"].validate(envelope)
-        candidates = [key for keys in sources for key in keys
-                      if key["kid"] == envelope["sig"]["key_id"] and usable(key)
-                      and _in_window(key, observed)]
-        if not candidates:
-            return "WIST1-E02"
-        return ("accepted" if any(verifies(key, envelope, "delta") for key in candidates)
-                else "WIST1-E01")
-
-    prefixes = {}
-    for name, history in vector["histories"].items():
-        authenticated = _declaration_history_epochs(vector, history["epochs"], history["pinned_head"])
-        current, frozen, deadline = None, None, None
-        prefixes[name] = {}
-        classifications = []
-        for header, declarations in authenticated:
-            epoch = history["epochs"][header["epoch_number"]]
-            verify_checkpoint(epoch["checkpoint"], log_id, log_keys)
-            assert len(declarations) == 1
-            envelope = declarations[0]
-            result = declaration_result(current, envelope)
-            assert result in {"initial", "ordinary_rotation", "recovery_rotation"}, (name, result)
-            classifications.append(result)
-            if result == "recovery_rotation" and frozen is None:
-                assert current is not None
-                frozen = [current["publisher"]["keys"], envelope["publisher"]["keys"]]
-                deadline = log_seconds(header["sealed_at"]) + vector["recovery_window_days"] * 86400
-            if frozen is not None:
-                assert log_seconds(header["sealed_at"]) < deadline
-                prefixes[name][header["epoch_number"]] = copy.deepcopy(frozen)
-            tampered = copy.deepcopy(envelope)
-            tampered["publisher"]["subdomain_scope"] = ["changed.example.com"]
-            assert declaration_result(current, tampered) == "WIST1-E01", name
-            current = envelope
-        assert classifications == ["initial", "recovery_rotation", "ordinary_rotation"], name
-        assert prefixes[name][1] == prefixes[name][2]
-        damaged = copy.deepcopy(history["epochs"])
-        damaged[-1]["entries"][0]["body"]["publisher"]["domain"] = "tampered.example"
-        try:
-            _declaration_history_epochs(vector, damaged, history["pinned_head"])
-        except AssertionError:
-            pass
-        else:
-            raise AssertionError("unauthenticated recovery binding history accepted")
-        damaged = copy.deepcopy(history["epochs"][-1])
-        cp_lines = damaged["checkpoint"].split("\n")
-        cp_lines[4] = "sealed_at 2026-08-09T00:00:00Z"
-        damaged["checkpoint"] = "\n".join(cp_lines)
-        try:
-            verify_checkpoint(damaged["checkpoint"], log_id, log_keys)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError("tampered sealed_at retained a verifying signature")
-
-    outcomes, exercised_prefixes, seen_names = set(), set(), set()
-    for case in vector["cases"]:
-        assert case["name"] not in seen_names
-        seen_names.add(case["name"])
-        sources = prefixes[case["history"]][case["prefix_height"]]
-        envelope = case["envelope"]
-        result = admission(envelope, sources)
-        assert result == case["expected"], (case["name"], result)
-        for ordered in (list(reversed(sources)), [list(reversed(keys)) for keys in sources],
-                        [list(reversed(keys)) for keys in reversed(sources)]):
-            assert admission(envelope, ordered) == result, case["name"]
-        if result == "accepted":
-            matching = [key for keys in sources for key in keys
-                        if key["kid"] == envelope["sig"]["key_id"] and usable(key)]
-            assert any(verifies(key, envelope, "delta") for key in matching), case["name"]
-            tampered = copy.deepcopy(envelope)
-            tampered["delta"]["url"] += "/changed"
-            assert admission(tampered, sources) == "WIST1-E01", case["name"]
-        outcomes.add(result)
-        exercised_prefixes.add(case["prefix_height"])
-    assert outcomes == {"accepted", "WIST1-E01", "WIST1-E02", "WIST1-E14"}
-    assert exercised_prefixes == {1, 2}
-    assert vector == original, "binding validation mutated signed input"
-
-
-check("vectors:wist1-recovery-bindings", _recovery_binding_vectors)
 
 def _recovery_state_from_tuples(declaration, window, pending=None):
     """WIST-3 §7/§8: the reference state a Consumer resumes from the tuples."""
@@ -5047,6 +5068,33 @@ def _delta_key_check(declaration_inner, envelope):
     return "WIST1-E01"
 
 
+def _catalog_key_check(declaration_inner, envelope):
+    """WIST-1 §5.1 key check of a Catalog of the default Collection against one
+    Declaration's signing set, the window read at generated_at."""
+    catalog = envelope["catalog"]
+    Draft202012Validator(json.loads((ROOT / "schemas/catalog.schema.json").read_text())).validate(envelope)
+    assert catalog["collection"] == "default" and catalog["size"] == 0
+    assert catalog["root"] == "sha256:" + hashlib.sha256(b"").hexdigest()
+    assert catalog["tree"] == "sha256:" + hashlib.sha256(rfc8785.dumps({"items": []})).hexdigest()
+    generated = log_seconds(catalog["generated_at"])
+    named = [k for k in declaration_inner["keys"] if k["kid"] == envelope["sig"]["key_id"]]
+    eligible = [k for k in named if k["nbf"] <= generated and ("exp" not in k or generated < k["exp"])]
+    if not eligible:
+        result = "WIST1-E02"
+    else:
+        result = "WIST1-E01"
+        for key in eligible:
+            try:
+                Ed25519PublicKey.from_public_bytes(b64u_decode(key["x"])).verify(
+                    b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(catalog))
+                result = "accepted"
+                break
+            except Exception:
+                continue
+    assert catalogs.catalog_disposition(envelope, declaration_inner, catalog["generated_at"]) == result
+    return result
+
+
 def _key_directory_vectors():
     vector = json.loads((ROOT / "vectors/wist1/key-directory.json").read_text())
     validator = Draft202012Validator(json.loads((ROOT / "schemas/publisher.schema.json").read_text()))
@@ -5061,9 +5109,9 @@ def _key_directory_vectors():
     record = vector["dns_record"]
     assert record["name"] == "_wist." + example["domain"] and record["domain"] == example["domain"]
     assert record["txt"] == "v=wist1; keys=" + _keyset_fingerprint(example["keys"])
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-item-format.md").read_text())
     assert "`v=wist1; keys=<fingerprint>`" in prose
-    assert "MUST NOT let the result change whether a Declaration or a Delta is accepted" in prose
+    assert "MUST NOT let the result change whether a Declaration or a Catalog is accepted" in prose
 
     def initial_result(envelope):
         if not validator.is_valid(envelope):
@@ -5080,7 +5128,7 @@ def _key_directory_vectors():
     for case in vector["window_cases"]:
         declaration = case["declaration"]
         assert initial_result(declaration) == "initial", case["name"]
-        assert _delta_key_check(declaration["publisher"], case["envelope"]) == case["expected"], case["name"]
+        assert _catalog_key_check(declaration["publisher"], case["envelope"]) == case["expected"], case["name"]
         seen.add(case["expected"])
     assert seen == {"accepted", "WIST1-E02", "WIST1-E01"}
 
@@ -5158,9 +5206,9 @@ def _key_directory_vectors():
     assert "| `pending_declaration` | domain | the pending head Envelope, its sealing height, the activation height |" in prose3
 
     seen = set()
-    for case in vector["delta_probes"]:
+    for case in vector["catalog_probes"]:
         state = replayed[case["history"]][case["prefix_height"]]
-        assert _delta_key_check(state["current"]["publisher"], case["envelope"]) == case["expected"], case["name"]
+        assert _catalog_key_check(state["current"]["publisher"], case["envelope"]) == case["expected"], case["name"]
         seen.add(case["expected"])
     assert seen == {"accepted", "WIST1-E02"}
     for target in ("author", "header", "omission"):
@@ -5195,7 +5243,7 @@ def _multilog_declaration_and_delta_signatures():
     publisher_validator = Draft202012Validator(
         json.loads((ROOT / "schemas/publisher.schema.json").read_text()), format_checker=formats)
     delta_validator = Draft202012Validator(
-        json.loads((ROOT / "schemas/delta.schema.json").read_text()), format_checker=formats)
+        DELTA_ENVELOPE_SCHEMA, format_checker=formats)
     v = json.loads((ROOT / "vectors" / "multilog" / "dedup.json").read_text())
 
     def verify_declaration(envelope):
@@ -5649,10 +5697,11 @@ PUBLISHER_TIMESTAMP_PATTERN = '^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]
 TIMESTAMP_FIELDS = {
     ("feed.schema.json", "properties/feed/properties/generated_at"): ANCHORED,
     ("registry-update.schema.json", "properties/update/properties/effective_at"): ANCHORED,
-    ("delta.schema.json", "properties/delta/properties/observed_at"):
-        "Publisher-supplied and never compared to an Epoch: its only comparisons are to the "
-        "`observed_at` of the Delta named by `prev` and to the validator's own clock under "
-        "WIST-1 §3.4's 10-minute skew allowance",
+    **{("item.schema.json", path):
+        "Publisher-supplied and never compared to an Epoch: compared to the `generated_at` of the "
+        "Catalog that lists the Item (WIST1-E06), and a removed Item's to later `generated_at` "
+        "values under `removal_retention_days`"
+       for path in ("$defs/observed_at", "oneOf[0]/properties/observed_at", "oneOf[1]/properties/observed_at")},
     ("label.schema.json", "properties/label/properties/asserted_at"):
         "Publisher-supplied and read exactly as a Delta's `observed_at` (WIST-2 §3.3): compared "
         "to the same Labeler's other Labels of the subject and name, and to the validator's own "
@@ -5757,7 +5806,7 @@ def _timestamp_anchoring():
                 f"{schema_name}: {spath} is compared against an Epoch `sealed_at` but carries "
                 f"pattern {pattern!r}, not the whole-second-plus-Z form that field carries")
         else:
-            publisher_field = (schema_name in ("delta.schema.json", "publisher.schema.json",
+            publisher_field = (schema_name in ("item.schema.json", "publisher.schema.json",
                                                "label.schema.json", "dispute.schema.json",
                                                "label-definition.schema.json")
                                or spath.endswith(("oneOf[6]/prefixItems[5]", "oneOf[6]/prefixItems[6]/oneOf[0]",
@@ -5795,7 +5844,7 @@ def _timestamp_anchoring():
     wist4 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
     assert "MUST have `effective_at` ≥ 7 days after the Epoch's `sealed_at`" in wist4, \
         "WIST-4 §5 no longer measures the grace period from the Epoch's `sealed_at`"
-    wist1 = (ROOT / "specs" / "WIST-1-delta-format.md").read_text()
+    wist1 = (ROOT / "specs" / "WIST-1-item-format.md").read_text()
     assert "opens at the `sealed_at` of the Epoch" in wist1, \
         "WIST-1 §5.2 no longer anchors the recovery window to the Declaration's own Entry"
 check("schema:timestamp-anchoring", _timestamp_anchoring)
@@ -5919,7 +5968,7 @@ def _single_discovery_channel():
     """
     label = re.compile(r"_wist\.")
     heading = re.compile(r"^#{2,6}\s.*\b(DNS|TXT)\b.*\bfallback\b", re.I | re.M)
-    wist1 = (ROOT / "specs" / "WIST-1-delta-format.md").read_text()
+    wist1 = (ROOT / "specs" / "WIST-1-item-format.md").read_text()
     security = wist1.split("## 8. Security Considerations")[1].split("## 9.")[0]
     fingerprint = wist1.split("**DNS fingerprint record.**")[1].split("\n\n")[0]
     assert "carries no key" in fingerprint and "MUST NOT let the result change" in fingerprint, \
@@ -6175,351 +6224,35 @@ def _log_timestamp_vectors():
 
 check("vectors:wist3-timestamps", _log_timestamp_vectors)
 
-def _delta_diagnostic_vectors():
-    vector = json.loads((ROOT / "vectors/wist1/delta-diagnostics.json").read_text())
-    original = copy.deepcopy(vector)
-    previous_source = vector["previous_declaration"]
-    assert _declaration_binding_result(None, previous_source) == "initial"
-    formats = FormatChecker(formats=[])
-    formats.checks("wist-canonical-host")(_declaration_host_format)
-    formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
-    validators = {name: Draft202012Validator(json.loads(
-        (ROOT / f"schemas/{name}.schema.json").read_text()), format_checker=formats)
-        for name in ("publisher", "delta")}
-    validators["publisher"].validate(previous_source)
-    key = previous_source["publisher"]["keys"][0]
-    public = canonical_b64u_decode(key["x"])
-
-    def signed(envelope, inner):
-        return _ed25519_profile_verdict(public, b64u_decode(envelope["sig"]["value"]),
-                                       rfc8785.dumps(envelope[inner]))[0]
-
-    def diagnostics(case):
-        envelope = case["envelope"]
-        rfc8785.dumps(envelope["delta"])
-        try:
-            observed = publisher_instant(envelope["delta"].get("observed_at"))
-            if len(canonical_b64u_decode(envelope["sig"]["value"])) != 64:
-                raise ValueError("signature length")
-        except ValueError:
-            return {"WIST1-E14"}
-        validators["delta"].validate(envelope)
-        source = case["declaration"]["publisher"]
-        bindings = [binding for binding in source["keys"]
-                    if binding["kid"] == envelope["sig"]["key_id"]
-                    and _in_window(binding, observed)]
-        errors = set()
-        if not bindings:
-            errors.add("WIST1-E02")
-        elif not signed(envelope, "delta"):
-            errors.add("WIST1-E01")
-        url = envelope["delta"]["url"]
-        assert url == "https://other.example/page"
-        if "other.example" not in [source["domain"], *source.get("subdomain_scope", [])]:
-            errors.add("WIST1-E03")
-        if observed > publisher_instant(case["validator_time"]) + case["clock_skew_seconds"]:
-            errors.add("WIST1-E06")
-        previous = case["predecessor"]["delta"]
-        assert previous["url"] == url
-        assert envelope["delta"]["prev"] == "sha256:" + hashlib.sha256(rfc8785.dumps(previous)).hexdigest()
-        if observed <= publisher_instant(previous["observed_at"]):
-            errors.add("WIST1-E07")
-        return errors
-
-    sets, fields, signatures = set(), set(), set()
-    for case in vector["cases"]:
-        source, predecessor, envelope = case["declaration"], case["predecessor"], case["envelope"]
-        validators["publisher"].validate(source)
-        validators["delta"].validate(predecessor)
-        assert _declaration_binding_result(previous_source, source) == "ordinary_rotation"
-        assert source["publisher"]["keys"][0]["x"] == key["x"]
-        assert signed(predecessor, "delta")
-        assert predecessor["sig"]["key_id"] == key["kid"]
-        assert _in_window(key, publisher_instant(predecessor["delta"]["observed_at"]))
-        assert "other.example" in previous_source["publisher"]["subdomain_scope"]
-        got = diagnostics(case)
-        assert got == set(case["allowed"]), case["name"]
-        sets.add(frozenset(got))
-        fields.add(case["field"])
-        signatures.add(signed(envelope, "delta"))
-        if case["field"] == "signature encoding":
-            decoded = b64u_decode(envelope["sig"]["value"])
-            repaired = copy.deepcopy(case)
-            repaired["envelope"]["sig"]["value"] = base64.urlsafe_b64encode(decoded).rstrip(b"=").decode()
-            assert "WIST1-E14" not in diagnostics(repaired)
-        damaged = copy.deepcopy(predecessor)
-        damaged["delta"]["observed_at"] = "2026-08-01T01:00:00Z"
-        assert not signed(damaged, "delta")
-    expected_sets = {frozenset(subset) for size in range(5)
-                     for subset in itertools.combinations(
-                         ("WIST1-E01", "WIST1-E02", "WIST1-E03", "WIST1-E06", "WIST1-E07"), size)
-                     if not {"WIST1-E01", "WIST1-E02"} <= set(subset)}
-    assert sets == expected_sets | {frozenset({"WIST1-E14"})}
-    assert len(vector["cases"]) == 96
-    assert fields == {"valid", "timestamp", "signature encoding"}
-    assert signatures == {True, False}
-    assert vector == original
-
-
-check("vectors:wist1-delta-diagnostics", _delta_diagnostic_vectors)
-
-
-def _delta_field_vectors():
-    vector = json.loads((ROOT / "vectors/wist1/delta-fields.json").read_text())
-    original = copy.deepcopy(vector)
-    schema = json.loads((ROOT / "schemas/delta.schema.json").read_text())
-    fields = copy.deepcopy(schema)
-    fields["allOf"] = [fields["allOf"][1]]
-    properties = fields["properties"]["delta"]["properties"]
-    properties["url"] = {"type": "string"}
-    properties["payload"]["properties"]["bytes"]["maximum"] = 9007199254740991
-    formats = FormatChecker(formats=[])
-    formats.checks("wist-canonical-host")(_declaration_host_format)
-    formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
-    validator = Draft202012Validator(fields, format_checker=formats)
-    complete = Draft202012Validator(schema, format_checker=formats)
-    public = canonical_b64u_decode(vector["author_key"])
-
-    def diagnostics(doc, url_cap=2048, commitment_cap=38944):
-        rfc8785.dumps(doc)
-        if not validator.is_valid(doc):
-            return {"WIST1-E14"}
-        body = doc["delta"]
-        errors = set()
-        if body["wist_version"].partition(".")[0] != "1":
-            errors.add("WIST1-E15")
-        if not _ed25519_profile_verdict(public, canonical_b64u_decode(doc["sig"]["value"]),
-                                       rfc8785.dumps(body))[0]:
-            errors.add("WIST1-E01")
-        if body["change_type"] != "new" and "prev" not in body:
-            errors.add("WIST1-E07")
-        if body["change_type"] in ("new", "update") and "payload" not in body:
-            errors.add("WIST1-E09")
-        if body.get("payload", {}).get("bytes", 0) > commitment_cap:
-            errors.add("WIST1-E04")
-        if len(rfc8785.dumps(body["url"])) > url_cap:
-            errors.add("WIST1-E11")
-        assert re.fullmatch(r"https?://example\.com/[a-z]*", body["url"])
-        if not body["url"].startswith("https:"):
-            errors.add("WIST1-E03")
-        return errors
-
-    errors_seen = set()
-    for case in vector["cases"]:
-        doc = case["envelope"]
-        assert case["id"] == "sha256:" + hashlib.sha256(rfc8785.dumps(doc["delta"])).hexdigest()
-        actual = diagnostics(doc, case.get("url_cap_bytes", 2048), case.get("commitment_cap_bytes", 38944))
-        assert actual == set(case["allowed"]), (case["name"], actual)
-        errors_seen |= actual
-        if not actual - {"WIST1-E01", "WIST1-E11"} and "commitment_cap_bytes" not in case and "url_cap_bytes" not in case:
-            complete.validate(doc)
-        if isinstance(doc.get("sig"), dict) and "value" in doc["sig"]:
-            verified = _ed25519_profile_verdict(public, canonical_b64u_decode(doc["sig"]["value"]),
-                                               rfc8785.dumps(doc["delta"]))[0]
-            assert verified == (not case["name"].endswith(" with invalid signature")), case["name"]
-    assert errors_seen == {"WIST1-E01", "WIST1-E03", "WIST1-E04", "WIST1-E07", "WIST1-E09", "WIST1-E11", "WIST1-E14", "WIST1-E15"}
-    assert len(vector["cases"]) == 200
-    for case in vector["transport_cases"]:
-        doc = case["envelope"]
-        assert _ed25519_profile_verdict(public, canonical_b64u_decode(doc["sig"]["value"]),
-                                       rfc8785.dumps(doc["delta"]))[0]
-        actual_id = "sha256:" + hashlib.sha256(rfc8785.dumps(doc["delta"])).hexdigest()
-        got = "WIST1-E14" if not validator.is_valid(doc) else (
-            "WIST2-E03" if actual_id != case["requested_id"] or doc["delta"]["publisher"] != case["feed_domain"]
-            else "association_satisfied")
-        assert got == case["expected"]
-    assert len(vector["transport_cases"]) == 8
-    assert vector == original
-
-
-check("vectors:wist1-delta-fields", _delta_field_vectors)
-
-
-def _delta_attribution_vectors():
-    vector = json.loads((ROOT / "vectors/wist1/delta-attribution.json").read_text())
-    original = copy.deepcopy(vector)
-    formats = FormatChecker(formats=[])
-    formats.checks("wist-canonical-host")(_declaration_host_format)
-    formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
-    validators = {name: Draft202012Validator(json.loads(
-        (ROOT / f"schemas/{name}.schema.json").read_text()), format_checker=formats)
-        for name in ("publisher", "delta")}
-
-    def digest(inner):
-        return "sha256:" + hashlib.sha256(rfc8785.dumps(inner)).hexdigest()
-
-    def result(env, sources, scopes, feed=None, tips=None, sealed=None, seen=None):
-        inner = env["delta"]
-        try:
-            if not isinstance(inner.get("publisher"), str) or not _declaration_host_format(inner["publisher"]):
-                return "WIST1-E14"
-            observed = publisher_instant(inner.get("observed_at"))
-            signature = canonical_b64u_decode(env["sig"]["value"])
-            if len(signature) != 64:
-                return "WIST1-E14"
-        except (ValueError, TypeError):
-            return "WIST1-E14"
-        validators["delta"].validate(env)
-        domain = inner["publisher"]
-        if feed is not None and domain != feed:
-            return "WIST2-E03"
-        if feed is not None and seen is not None and digest(inner) in seen.get(feed, set()):
-            return "accepted"
-        candidates = []
-        for source in sources.get(domain, []):
-            for key in source["publisher"]["keys"]:
-                if key["kid"] != env["sig"]["key_id"]:
-                    continue
-                public = canonical_b64u_decode(key["x"])
-                try:
-                    point = ed25519_curve.string_to_point(public)
-                except ValueError:
-                    continue
-                if ed25519_curve._is_identity(ed25519_curve._mul(8, point)):
-                    continue
-                if _in_window(key, observed):
-                    candidates.append(public)
-        if not candidates:
-            return "WIST1-E02"
-        if not any(_ed25519_profile_verdict(public, signature, rfc8785.dumps(inner))[0]
-                   for public in candidates):
-            return "WIST1-E01"
-        host = inner["url"].split("/", 3)[2]
-        if host not in scopes[domain]:
-            return "WIST1-E03"
-        if tips is not None:
-            key = domain, inner["url"]
-            previous = inner.get("prev")
-            if previous != tips.get(key):
-                return "WIST1-E07"
-            if previous is not None:
-                old = sealed[previous]["delta"]
-                if (old["publisher"], old["url"]) != key:
-                    return "WIST1-E07"
-                if observed <= publisher_instant(old["observed_at"]):
-                    return "WIST1-E07"
-        return "accepted"
-
-    for case in vector["cases"]:
-        declarations = case["declarations"]
-        for env in declarations:
-            validators["publisher"].validate(env)
-            assert _declaration_binding_result(None, env) == "initial", case["name"]
-        assert len(case["envelopes"]) == len(case["expected"]) == len(case["delta_ids"])
-        for order in (declarations, list(reversed(declarations))):
-            sources = {env["publisher"]["domain"]: [env] for env in order}
-            scopes = {domain: [domain, *envs[0]["publisher"].get("subdomain_scope", [])]
-                      for domain, envs in sources.items()}
-            for env, expected, id_ in zip(case["envelopes"], case["expected"], case["delta_ids"]):
-                assert digest(env["delta"]) == id_
-                seen = {env["delta"].get("publisher", "example.com"): {id_}} if case.get("already_seen") else {}
-                if "serving_host" in case:
-                    assert case["serving_host"] in scopes[case["feed_domain"]]
-                assert result(env, sources, scopes, case.get("feed_domain"), seen=seen) == expected, case["name"]
-                if expected == "accepted":
-                    damaged = copy.deepcopy(env)
-                    damaged["delta"]["observed_at"] = "2026-08-02T12:00:01Z"
-                    assert result(damaged, sources, scopes, case.get("feed_domain")) == "WIST1-E01"
-        if len(case["envelopes"]) == 2:
-            left, right = case["envelopes"]
-            assert len(set(case["delta_ids"])) == 2
-            assert {k: v for k, v in left["delta"].items() if k != "publisher"} == {
-                    k: v for k, v in right["delta"].items() if k != "publisher"}
-            assert left["sig"]["value"] != right["sig"]["value"]
-    cases = {case["name"]: case for case in vector["cases"]}
-    assert len(cases) == 31
-    assert cases["author tampering requires a new signature even with shared keys"]["delta_ids"][0] == cases[
-        "shared keys retain separate authors and IDs"]["delta_ids"][1]
-    assert cases["unlisted identifier cannot borrow another domain's key"]["delta_ids"][0] == cases[
-        "shared keys retain separate authors and IDs"]["delta_ids"][0]
-    for name in ("Feed association child.example.com seen", "Feed association child.example.com new"):
-        assert cases[name]["expected"] == ["WIST2-E03"]
-
-    authenticated = _declaration_history_epochs(vector, vector["epochs"], vector["pinned_head"],
-                                                 ("publisher_declaration", "publisher_delta"))
-    _, _, _, apply_epoch = _recovery_history_reference(vector)
-    states, frozen, tips, sealed, snapshots, accepted_at = {}, {}, {}, {}, {}, {}
-    for header, declarations in authenticated:
-        height = header["epoch_number"]
-        before = copy.deepcopy(states)
-        outcome, states = apply_epoch(states, header, declarations)
-        assert outcome == "accepted"
-        for domain, state in states.items():
-            if state["chain"] is None:
-                frozen.pop(domain, None)
-            elif domain not in frozen:
-                owner = state["chain"]
-                previous = before[domain]["current"]
-                assert owner["publisher"]["prev_declaration"] == digest(previous["publisher"])
-                frozen[domain] = [previous, owner]
-        current = {domain: [state["chain"] or state["current"]] for domain, state in states.items()}
-        scopes = {domain: [domain, *envs[0]["publisher"].get("subdomain_scope", [])]
-                  for domain, envs in current.items()}
-        for entry in vector["epochs"][height]["entries"]:
-            if entry["type"] != "publisher_delta":
-                continue
-            env = entry["body"]; domain = env["delta"]["publisher"]
-            assert states[domain]["chain"] is None, "open recovery cannot seal Deltas"
-            assert result(env, current, scopes, tips=tips, sealed=sealed) == "accepted", height
-            id_ = digest(env["delta"])
-            assert id_ not in sealed
-            sealed[id_] = env
-            tips[(domain, env["delta"]["url"])] = id_
-            accepted_at[(height, domain)] = env
-        snapshots[height] = copy.deepcopy((states, frozen, tips, sealed, scopes))
-    assert len(sealed) == 6 and len(tips) == 2
-    assert snapshots[170][0]["example.com"]["floor"] == 4
-    assert snapshots[171][0]["example.com"]["reset_height"] == 171
-    assert snapshots[4][0]["example.com"]["reset_height"] is None
-    for probe in vector["probes"]:
-        states, frozen, tips, sealed, scopes = snapshots[probe["height"]]
-        sources = {domain: [state["chain"] or state["current"]] for domain, state in states.items()}
-        if probe["stage"] == "admission":
-            sources.update(frozen)
-        actual = result(probe["envelope"], sources, scopes, tips=tips, sealed=sealed)
-        assert actual == probe["expected"], (probe["name"], actual, probe["expected"])
-    for case in vector["projection_cases"]:
-        states = snapshots[case["at_height"]][0]
-        env = accepted_at[(case["reference_height"], case["publisher"])]
-        domain = env["delta"]["publisher"]
-        assert domain == case["publisher"]
-        reset = states[domain]["reset_height"]
-        counted = reset is None or case["reference_height"] >= reset
-        assert counted == case["expected_current_identity"]
-        eligible_subjects = {subject for subject in states if counted and subject == domain}
-        assert eligible_subjects == ({case["publisher"]} if case["expected_current_identity"] else set())
-        assert ("child.example.com" in eligible_subjects) == (
-            case["publisher"] == "child.example.com" and case["expected_current_identity"])
-    for case in vector["version_cases"]:
-        env = case["envelope"]
-        if not validators["delta"].is_valid(env):
-            actual = "WIST1-E14"
-        elif env["delta"]["wist_version"].partition(".")[0] != "1":
-            actual = "WIST1-E15"
-        else:
-            source = vector["cases"][0]["declarations"][0]
-            actual = result(env, {"example.com": [source]},
-                            {"example.com": ["example.com", "child.example.com"]})
-        assert actual == case["expected"]
-    assert vector == original
-
-
-check("vectors:wist1-delta-attribution", _delta_attribution_vectors)
-
-def _signed_delta_appendices():
+def _signed_catalog_appendices():
     envelope = json.loads((ROOT / "vectors/wist1/envelope.json").read_text())
-    canonical = rfc8785.dumps(envelope["delta"])
-    delta_id = "sha256:" + hashlib.sha256(canonical).hexdigest()
-    prose = (ROOT / "specs/WIST-1-delta-format.md").read_text().split("## Appendix A.")[1]
-    inner = prose.split("**Delta (inner object):**")[1].split("```json\n")[1].split("\n```")[0]
-    assert json.loads(inner) == envelope["delta"]
+    canonical = rfc8785.dumps(envelope["catalog"])
+    catalog_id = "sha256:" + hashlib.sha256(canonical).hexdigest()
+    assert catalog_id == (ROOT / "vectors/wist1/id.txt").read_text().strip()
+    assert canonical == (ROOT / "vectors/wist1/catalog.canonical").read_bytes()
+    prose = (ROOT / "specs/WIST-1-item-format.md").read_text().split("## Appendix A.")[1]
+    inner = prose.split("**Catalog (inner object):**")[1].split("```json\n")[1].split("\n```")[0]
+    assert json.loads(inner) == envelope["catalog"]
+    item = json.loads(prose.split("**Item of kind `page` (")[1].split("```json\n")[1].split("\n```")[0])
+    assert item == json.loads((ROOT / "examples/item.json").read_text())
     payload = prose.split("**Payload (")[1].split("```json\n")[1].split("\n```")[0]
     assert json.loads(payload) == json.loads((ROOT / "examples/payload.json").read_text())
     size = len(rfc8785.dumps(json.loads(payload)["content"]))
-    assert size == envelope["delta"]["payload"]["bytes"]
+    assert size == item["payload"]["bytes"]
     assert f"`JCS(content)` is {size} octets" in prose
-    assert delta_id in prose and envelope["sig"]["value"] in prose
+    item_canonical = rfc8785.dumps(item)
+    item_id = "sha256:" + hashlib.sha256(item_canonical).hexdigest()
+    key = hashlib.sha256(rfc8785.dumps(["page", item["url"]])).digest()
+    leaf = hashlib.sha256(b"\x00" + key + hashlib.sha256(item_canonical).digest()).digest()
+    assert item_id in prose and key.hex() in prose and leaf.hex() in prose
+    assert envelope["catalog"]["root"] == "sha256:" + leaf.hex()
+    tree_octets = (ROOT / "examples/tree-file.json").read_bytes()
+    assert tree_octets == rfc8785.dumps({"items": [item]})
+    assert envelope["catalog"]["tree"] == "sha256:" + hashlib.sha256(tree_octets).hexdigest()
+    assert tree_octets.decode() in prose and hashlib.sha256(tree_octets).hexdigest() in prose
+    assert catalog_id in prose and envelope["sig"]["value"] in prose
     assert canonical[:32].hex() in prose and canonical[32:64].hex() in prose
+    assert f"/payloads/{item_id[7:]}.json" in prose
     epoch = json.loads((ROOT / "vectors/wist3/epoch.json").read_text())
     prose = (ROOT / "specs/WIST-3-logbook-distribution.md").read_text().split("## Appendix A.")[1]
     leaves = [leaf_hash(rfc8785.dumps(entry)) for entry in epoch["entries"]]
@@ -6530,135 +6263,9 @@ def _signed_delta_appendices():
     assert base64.b64encode(cp["root"]).decode() in prose
     for index in (0, 2):
         assert hashlib.sha256(b"\x01" + leaves[index] + leaves[index + 1]).hexdigest() in prose
-    assert f"/payloads/{delta_id[7:]}.json" in prose
 
 
-check("spec:signed-delta-appendices", _signed_delta_appendices)
-
-def _recovery_scope_vectors():
-    vector = json.loads((ROOT / "vectors/wist1/recovery-scope.json").read_text())
-    original = copy.deepcopy(vector)
-    formats = FormatChecker(formats=[])
-    formats.checks("wist-canonical-host")(_declaration_host_format)
-    formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
-    validators = {name: Draft202012Validator(json.loads(
-        (ROOT / f"schemas/{name}.schema.json").read_text()), format_checker=formats)
-        for name in ("publisher", "delta")}
-    _, _, _, apply_epoch = _recovery_history_reference(vector)
-    snapshots, settlements = {}, {}
-
-    def digest(inner):
-        return "sha256:" + hashlib.sha256(rfc8785.dumps(inner)).hexdigest()
-
-    for name, history in vector["histories"].items():
-        authenticated = _declaration_history_epochs(vector, history["epochs"], history["pinned_head"])
-        states, frozen = {}, {}
-        accepted = {}
-        for header, declarations in authenticated:
-            height = header["epoch_number"]
-            for domain, state in states.items():
-                if state["end"] and log_seconds(header["sealed_at"]) >= log_seconds(state["end"]):
-                    settlements[name, height, domain] = state["chain"]
-                    frozen.pop(domain)
-            for env in declarations:
-                validators["publisher"].validate(env)
-            outcome, updated = apply_epoch(states, header, declarations)
-            assert outcome == "accepted", (name, height, outcome)
-            by_domain = {}
-            for env in declarations:
-                by_domain.setdefault(env["publisher"]["domain"], []).append(env)
-            for domain, envelopes in by_domain.items():
-                state = states.get(domain)
-                chain = state["chain"] if state and state["end"] and (
-                    log_seconds(header["sealed_at"]) < log_seconds(state["end"])) else None
-                for env in sorted(envelopes, key=lambda item: item["publisher"]["seq"]):
-                    predecessor = accepted.get(env["publisher"].get("prev_declaration"))
-                    classification = _declaration_binding_result(predecessor, env)
-                    assert classification in {"initial", "ordinary_rotation", "recovery_rotation", "fresh_identity"}
-                    if chain is None and classification == "recovery_rotation":
-                        frozen[domain] = [predecessor, env]
-                        chain = env
-                    accepted[digest(env["publisher"])] = env
-            states = updated
-            sources = {domain: frozen.get(domain, [state["current"]]) for domain, state in states.items()}
-            snapshots[name, height] = copy.deepcopy((states, sources))
-        assert len(authenticated) == 171
-        state, sources = snapshots[name, 1]
-        assert [env["publisher"]["seq"] for env in sources["example.com"]] == [1, 2]
-        assert snapshots[name, 168][0]["example.com"]["current"]["publisher"]["seq"] == 5
-        assert settlements[name, 169, "example.com"]["publisher"]["seq"] == 4
-        assert snapshots[name, 169][0]["example.com"]["current"]["publisher"]["seq"] == 6
-
-    def authority(env, sources, stage):
-        inner = env["delta"]
-        try:
-            observed = publisher_instant(inner["observed_at"])
-            signature = canonical_b64u_decode(env["sig"]["value"])
-            if len(signature) != 64 or not _declaration_host_format(inner["publisher"]):
-                return "WIST1-E14"
-        except (ValueError, TypeError):
-            return "WIST1-E14"
-        validators["delta"].validate(env)
-        eligible, verified, covering = [], [], []
-        for source in sources:
-            declaration = source["publisher"]
-            if declaration["domain"] != inner["publisher"]:
-                continue
-            for binding in declaration["keys"]:
-                if binding["kid"] != env["sig"]["key_id"]:
-                    continue
-                raw = canonical_b64u_decode(binding["x"])
-                try:
-                    point = ed25519_curve.string_to_point(raw)
-                except ValueError:
-                    continue
-                if ed25519_curve._is_identity(ed25519_curve._mul(8, point)) or not _in_window(binding, observed):
-                    continue
-                eligible.append(binding)
-                if _ed25519_profile_verdict(raw, signature, rfc8785.dumps(inner))[0]:
-                    verified.append(binding)
-                    if inner["url"].split("/", 3)[2] in {
-                            declaration["domain"], *declaration.get("subdomain_scope", [])}:
-                        covering.append(binding)
-        result = ("WIST1-E02" if not eligible else "WIST1-E01" if not verified else
-                  "WIST1-E03" if not covering else "accepted")
-        if stage == "settlement" and result != "accepted":
-            return "WIST1-E13"
-        return result
-
-    outcomes, settlement_copies = set(), set()
-    for probe in vector["probes"]:
-        name, height, stage, env = (probe[key] for key in ("history", "height", "stage", "envelope"))
-        domain = env["delta"]["publisher"]
-        states, admission = snapshots[name, height]
-        if stage == "settlement":
-            sources = [settlements[name, height, domain]]
-        elif stage == "admission":
-            sources = admission[domain]
-        else:
-            assert stage == "sealing" and states[domain]["chain"] is None
-            sources = [states[domain]["current"]]
-        for ordering in (sources, list(reversed(sources))):
-            actual = authority(env, ordering, stage)
-            assert actual == probe["expected"], (name, probe["name"], actual, probe["expected"])
-        outcomes.add(actual)
-        if stage == "settlement" and "queued copy" in probe["name"]:
-            assert authority(env, snapshots[name, 1][1][domain], "admission") == "accepted"
-            settlement_copies.add((name, digest(env["delta"])))
-            if probe["expected"] == "WIST1-E13" and "owner queued" in probe["name"]:
-                assert authority(env, snapshots[name, 170][1][domain], "admission") == "accepted"
-        if actual == "accepted":
-            damaged = copy.deepcopy(env)
-            damaged["sig"]["value"] = base64.urlsafe_b64encode(bytes(64)).rstrip(b"=").decode()
-            assert authority(damaged, sources, stage) == ("WIST1-E13" if stage == "settlement" else "WIST1-E01")
-        if probe["name"] == "historical pre recovery scope":
-            assert authority(env, snapshots[name, 169][1][domain], "sealing") != "accepted"
-    assert outcomes == {"accepted", "WIST1-E01", "WIST1-E02", "WIST1-E03", "WIST1-E13", "WIST1-E14"}
-    assert len(settlement_copies) == 8
-    assert vector == original
-
-
-check("vectors:wist1-recovery-scope", _recovery_scope_vectors)
+check("spec:signed-catalog-appendices", _signed_catalog_appendices)
 
 def _recovery_admission_vectors():
     vector = json.loads((ROOT / "vectors/wist1/recovery-admission.json").read_text())
@@ -6782,7 +6389,8 @@ def _declaration_refresh_vectors():
     formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
     schemas = {kind: Draft202012Validator(json.loads(
         (ROOT / f"schemas/{kind}.schema.json").read_text()), format_checker=formats)
-        for kind in ("publisher", "delta", "feed")}
+        for kind in ("publisher", "feed")}
+    schemas["delta"] = Draft202012Validator(DELTA_ENVELOPE_SCHEMA, format_checker=formats)
 
     def verifies(key, doc, kind):
         return _ed25519_profile_verdict(canonical_b64u_decode(key["x"]),
@@ -7167,150 +6775,6 @@ def _feed_regression_vectors():
 check("vectors:wist2-feed-regression", _feed_regression_vectors)
 
 
-def _delta_cap_time_vectors():
-    vector = json.loads((ROOT / 'vectors/wist1/delta-cap-time.json').read_text())
-    original = copy.deepcopy(vector)
-    epochs = vector['epochs']
-    permitted = ('publisher_declaration', 'registry_update', 'publisher_delta')
-    _declaration_history_epochs(vector, epochs, vector['pinned_head'], permitted)
-    public = Ed25519PublicKey.from_public_bytes(b64u_decode(vector['log_key']['public_key']))
-    schemas = {name: Draft202012Validator(json.loads((ROOT / f'schemas/{name}.schema.json').read_text()))
-               for name in ('publisher', 'registry-update', 'delta', 'payload')}
-    defaults = dict(url_cap_bytes=2048, extract_cap_bytes=32768, links_cap_bytes=4096,
-                    link_url_cap_bytes=2048, summary_cap_bytes=2048)
-    assert vector['defaults'] == defaults
-    amendments, inclusion = [], {}
-    for height, epoch in enumerate(epochs):
-        for index, entry in enumerate(epoch['entries']):
-            doc = entry['body']
-            inner = {'publisher_declaration': 'publisher', 'registry_update': 'update', 'publisher_delta': 'delta'}[entry['type']]
-            schemas['registry-update' if inner == 'update' else inner].validate(doc)
-            public.verify(b64u_decode(doc['sig']['value']), rfc8785.dumps(doc[inner]))
-            if inner == 'publisher':
-                assert height == 0 and doc['publisher']['domain'] == 'example.com'
-                assert doc['publisher']['keys'][0]['x'] == vector['log_key']['public_key']
-                assert doc['publisher']['keys'][0]['kid'] == doc['sig']['key_id']
-            elif inner == 'update':
-                update = doc['update']
-                assert doc['sig']['key_id'] == vector['log_key']['key_id']
-                assert update['action'] == 'parameter_change'
-                assert log_seconds(update['effective_at']) >= log_seconds(epoch_sealed_at(epoch)) + 7 * 86400
-                amendments.append((height, index, update))
-            else:
-                ident = 'sha256:' + hashlib.sha256(rfc8785.dumps(doc['delta'])).hexdigest()
-                assert ident not in inclusion
-                inclusion[ident] = height
-
-    def parameters(at, prefix):
-        result, selected = defaults.copy(), {}
-        for height, index, update in amendments:
-            effective = log_seconds(update['effective_at'])
-            if height > prefix or effective > at:
-                continue
-            key = update['details']['parameter']
-            position = (effective, height, index)
-            if key not in selected or position > selected[key]:
-                result[key] = update['details']['value']
-                selected[key] = position
-        return result
-
-    for height, _, update in amendments:
-        for at in {log_seconds(epoch_sealed_at(epochs[height]))} | {
-                log_seconds(candidate['effective_at']) for sealed, _, candidate in amendments if sealed <= height}:
-            caps = parameters(at, height)
-            assert caps['links_cap_bytes'] >= caps['link_url_cap_bytes'] + 21
-            assert caps['extract_cap_bytes'] >= 2 and caps['summary_cap_bytes'] >= 12
-            assert caps['url_cap_bytes'] >= 14 and caps['link_url_cap_bytes'] >= 14
-            assert sum(caps[k] for k in ('extract_cap_bytes', 'links_cap_bytes', 'summary_cap_bytes')) + 32 + 8 * 1024 * 1024 <= 1024 * 1024 * 1024
-
-    def diagnose(obj, caps, with_payload=True):
-        body, payload = obj['envelope']['delta'], obj['payload']
-        content = payload['content']
-        checks = [(len(rfc8785.dumps(body['url'])), caps['url_cap_bytes'], 'WIST1-E11')]
-        if with_payload:
-            checks += [(len(rfc8785.dumps(value)), caps[key + '_cap_bytes'], 'WIST1-E04')
-                       for key, value in content.items()]
-            checks += [(len(rfc8785.dumps(link)), caps['link_url_cap_bytes'], 'WIST1-E04')
-                       for link in content['links']['urls']]
-        checks.append((body['payload']['bytes'], caps['extract_cap_bytes'] + caps['summary_cap_bytes'] + caps['links_cap_bytes'] + 32, 'WIST1-E04'))
-        errors = {code for size, limit, code in checks if size > limit}
-        assert len(errors) <= 1
-        return next(iter(errors), None)
-
-    for name, obj in vector['objects'].items():
-        schemas['delta'].validate(obj['envelope'])
-        schemas['payload'].validate(obj['payload'])
-        body = obj['envelope']['delta']
-        assert obj['envelope']['sig']['key_id'] == _jwk_thumbprint(vector['log_key']['public_key'])
-        public.verify(b64u_decode(obj['envelope']['sig']['value']), rfc8785.dumps(body))
-        assert obj['id'] == 'sha256:' + hashlib.sha256(rfc8785.dumps(body)).hexdigest()
-        assert body['publisher'] == 'example.com' and body['url'].startswith('https://example.com/')
-        assert publisher_instant(body['observed_at']) <= log_seconds(epoch_sealed_at(epochs[obj['sealed_height']]))
-        assert body['payload']['commitment'] == _commit(obj['payload']['salt'], obj['payload']['content'])
-        assert body['payload']['bytes'] == len(rfc8785.dumps(obj['payload']['content']))
-        assert inclusion[obj['id']] == obj['sealed_height']
-        instant = log_seconds(epoch_sealed_at(epochs[obj['sealed_height']]))
-        assert diagnose(obj, parameters(instant, obj['sealed_height'])) is None, name
-
-    stages, outcomes = collections.Counter(), collections.Counter()
-    for probe in vector['probes']:
-        obj = vector['objects'][probe['object']]
-        if probe['stage'] == 'admission':
-            at, prefix = log_seconds(probe['started_at']), probe['prefix_height']
-            assert log_seconds(probe['completed_at']) >= at
-        elif probe['stage'] == 'sealing':
-            prefix = probe['candidate_height']
-            at = log_seconds(epoch_sealed_at(epochs[prefix]))
-            admission = log_seconds(probe['admitted_at'])
-            assert admission < at
-            assert diagnose(obj, parameters(admission, 168)) is None
-        else:
-            assert probe['stage'] == 'historical'
-            prefix = inclusion[obj['id']]
-            at = log_seconds(epoch_sealed_at(epochs[prefix]))
-            assert probe['prefix_height'] >= prefix and log_seconds(probe['checked_at']) >= at
-        caps = parameters(at, prefix)
-        assert caps == probe['expected_profile'], probe['name']
-        result = diagnose(obj, caps)
-        assert result == probe['expected'], probe['name']
-        assert diagnose(obj, caps, False) == probe['expected_delta'], probe['name']
-        assert probe['restart'] and parameters(at, prefix) == caps
-        stages[probe['stage']] += 1
-        outcomes[result] += 1
-    assert stages == dict(admission=144, sealing=72, historical=48)
-    assert set(outcomes) == {None, 'WIST1-E04', 'WIST1-E11'}
-    for case in vector['invalid_epochs']:
-        candidate = case['epoch']
-        _declaration_history_epochs(vector, epochs[:169] + [candidate], case['pinned_head'], permitted)
-        doc = candidate['entries'][0]['body']
-        public.verify(b64u_decode(doc['sig']['value']), rfc8785.dumps(doc['delta']))
-        obj = dict(envelope=doc, payload=case['payload'])
-        assert doc['delta']['payload']['commitment'] == _commit(case['payload']['salt'], case['payload']['content'])
-        assert doc['delta']['change_type'] == 'new' and 'prev' not in doc['delta']
-        assert publisher_instant(doc['delta']['observed_at']) <= log_seconds(epoch_sealed_at(candidate))
-        assert all(entry['body']['delta']['url'] != doc['delta']['url']
-                   for epoch in epochs[:169] for entry in epoch['entries'] if entry['type'] == 'publisher_delta')
-        cap = parameters(log_seconds(epoch_sealed_at(candidate)), 168)
-        assert diagnose(obj, cap) == case['expected'] and case['expected'] is not None
-    deltas = {obj['id']: obj['envelope']['delta'] for obj in vector['objects'].values()}
-    for entry in epochs[169]['entries']:
-        if entry['type'] == 'publisher_delta':
-            body = entry['body']['delta']
-            deltas['sha256:' + hashlib.sha256(rfc8785.dumps(body)).hexdigest()] = body
-    damaged = copy.deepcopy(epochs)
-    damaged[0]['entries'][-1]['body']['update']['details']['value'] += 1
-    try:
-        _declaration_history_epochs(vector, damaged, vector['pinned_head'], permitted)
-    except AssertionError:
-        pass
-    else:
-        raise AssertionError('unauthenticated cap amendment accepted')
-    assert vector == original
-
-
-check('vectors:wist1-delta-cap-time', _delta_cap_time_vectors)
-
-
 def _payload_link_vectors():
     import copy
     import hmac
@@ -7318,12 +6782,14 @@ def _payload_link_vectors():
     import link_extraction
     vector = json.loads((ROOT / 'vectors/wist1/payload-links.json').read_text())
     original = copy.deepcopy(vector)
+    item_schema = Draft202012Validator(json.loads((ROOT / 'schemas/item.schema.json').read_text()))
     names = set()
     for case in vector['cases']:
         assert case['name'] not in names
         names.add(case['name'])
-        verify_envelope(case['envelope'], 'delta', b64u_decode(vector['public_key']))
-        body, payload = case['envelope']['delta'], case['payload']
+        item_schema.validate(case['item'])
+        assert 'removed' not in case['item'], case['name']
+        body, payload = case['item'], case['payload']
         content = rfc8785.dumps(payload['content'])
         assert len(content) == body['payload']['bytes']
         assert 'hmac-sha256:' + hmac.new(b64u_decode(payload['salt']), content, hashlib.sha256).hexdigest() == body['payload']['commitment']
@@ -7356,30 +6822,24 @@ def _payload_field_vectors():
     del props['links']['properties']['urls']['uniqueItems']
     props['links']['properties']['urls']['items'] = dict(type='string')
     validator = Draft202012Validator(fields)
+    item_schema = Draft202012Validator(json.loads((ROOT / 'schemas/item.schema.json').read_text()))
     seen = set()
     names = set()
-
-    def unique(pairs):
-        obj = {}
-        for key, value in pairs:
-            if key in obj:
-                raise ValueError('duplicate JSON member')
-            obj[key] = value
-        return obj
 
     for case in vector['cases']:
         assert case['name'] not in names
         names.add(case['name'])
-        verify_envelope(case['envelope'], 'delta', b64u_decode(vector['public_key']))
+        item_schema.validate(case['item'])
+        assert 'removed' not in case['item'], case['name']
         try:
-            payload = json.loads(case['payload_json'], object_pairs_hook=unique) if 'payload_json' in case else case['payload']
+            payload = item_rules.strict_loads(case['payload_json'].encode('utf-8')) if 'payload_json' in case else case['payload']
             rfc8785.dumps(payload)
-        except (ValueError, rfc8785.CanonicalizationError):
+        except (ValueError, item_rules.NotJcsInput, rfc8785.CanonicalizationError):
             assert case['allowed'] == ['WIST1-E05'], case['name']
             seen.add('WIST1-E05')
             continue
         assert payload == case['payload']
-        body = case['envelope']['delta']
+        body = case['item']
         errors = set()
         if not validator.is_valid(payload):
             errors.add('WIST1-E14')
@@ -7423,81 +6883,11 @@ def _payload_field_vectors():
 check('vectors:wist1-payload-fields', _payload_field_vectors)
 
 
-def _delta_clock_time_vectors():
-    vector = json.loads((ROOT / 'vectors/wist1/delta-clock-time.json').read_text())
-    original = copy.deepcopy(vector)
-    public = b64u_decode(vector['public_key'])
-    schemas = {name: Draft202012Validator(json.loads((ROOT / f'schemas/{name}.schema.json').read_text()))
-               for name in ('delta', 'registry-update')}
-    accepted = []
-    for index, candidate in enumerate(vector['amendments']):
-        doc = candidate['envelope']
-        schemas['registry-update'].validate(doc)
-        update = doc['update']
-        assert update['action'] == 'parameter_change'
-        assert update['details']['parameter'] == 'clock_skew_seconds'
-        value = update['details']['value']
-        assert isinstance(value, int) and abs(value) <= 9007199254740991
-        try:
-            verify_envelope(doc, 'update', public)
-            valid = True
-        except InvalidSignature:
-            valid = False
-        sealed = log_seconds(candidate['sealed_at'])
-        effective = log_seconds(update['effective_at'])
-        valid = valid and effective >= sealed + 7 * 86400
-        assert valid == candidate['accepted']
-        if valid:
-            accepted.append((effective, index, value))
-
-    def allowance(at):
-        applicable = [change for change in accepted if change[0] <= at]
-        return max(applicable)[2] if applicable else vector['default']
-
-    names = set()
-    alternatives = collections.Counter()
-    for probe in vector['probes']:
-        assert probe['name'] not in names
-        names.add(probe['name'])
-        doc = probe['envelope']
-        schemas['delta'].validate(doc)
-        verify_envelope(doc, 'delta', public)
-        observed = publisher_instant(doc['delta']['observed_at'])
-        clock_field = {'admission': 'started_at', 'sealing': 'candidate_sealed_at',
-                       'historical': 'sealed_at'}[probe['stage']]
-        clock = publisher_instant(probe[clock_field])
-        skew = allowance(clock)
-        assert probe['expected_clock'] == probe[clock_field]
-        assert probe['expected_allowance'] == skew
-        expected = None if observed <= clock + skew else 'WIST1-E06'
-        assert expected == probe['expected'], probe['name']
-        later_field = {'admission': 'completed_at', 'sealing': 'admitted_at',
-                       'historical': 'checked_at'}[probe['stage']]
-        later = publisher_instant(probe[later_field])
-        for label, bound in [('clock', later + skew), ('allowance', clock + allowance(later)),
-                             ('both', later + allowance(later))]:
-            alternative = None if observed <= bound else 'WIST1-E06'
-            alternatives[probe['stage'], label] += alternative != expected
-    assert len(names) == 96
-    for stage in ('admission', 'sealing', 'historical'):
-        for changed in ('clock', 'allowance', 'both'):
-            assert alternatives[stage, changed], (stage, changed)
-    assert vector == original
-
-
-check('vectors:wist1-delta-clock-time', _delta_clock_time_vectors)
-
-
 def _withdrawal_vector():
     return json.loads((ROOT / "vectors/wist4/withdrawal.json").read_text())
 
 def _strict_json(raw):
-    def no_duplicates(pairs):
-        keys = [k for k, _ in pairs]
-        if len(keys) != len(set(keys)):
-            raise ValueError("duplicate member")
-        return dict(pairs)
-    return json.loads(raw, object_pairs_hook=no_duplicates)
+    return item_rules.strict_loads(raw.encode("utf-8") if isinstance(raw, str) else raw)
 
 def _registry_update_eligibility(raw, validator):
     """WIST-4 §5.1: JSON/JCS eligibility (WIST1-E05), then the schema, where a
@@ -7506,7 +6896,7 @@ def _registry_update_eligibility(raw, validator):
     try:
         doc = _strict_json(raw)
         rfc8785.dumps(doc)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, item_rules.NotJcsInput):
         return "WIST1-E05", None
     errors = list(validator.iter_errors(doc))
     if any("allOf" not in e.absolute_schema_path for e in errors):

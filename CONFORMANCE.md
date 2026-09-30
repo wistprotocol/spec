@@ -27,6 +27,16 @@ query. On Python 3.13, resolving `https://example.org/?` against itself drops
 Python 3.14 preserves it. Correct resolution independently of that library
 difference and verify the existing case on both versions.
 
+`normalize_url` and `is_canonical_host` in `tools/collection_rules.py` accept
+only ASCII letter-digit-hyphen host labels: a host spelled with U-labels,
+which WIST-1 §2 has a Normalized URL, yields none in the reference, and an
+`xn--` label is not judged at all. The vectors of Items, Catalogs, Scopes and
+declared links therefore carry ASCII hosts only; Canonical Host processing
+is exercised by `vectors/wist1/declaration-hosts.json` and
+`host-canonicalization.json` through the harness's pinned UTS #46 backend.
+An implementation must apply §2's processing to every host, not the
+reference's subset.
+
 ## Recovery history resolution
 
 ### Declaration field and key eligibility
@@ -36,7 +46,7 @@ Field validation and diagnostic precedence are defined by WIST-1 §§3.4,
 `declaration-fields.json` covers signed field mutations and atomic Epoch
 rejection. Admission, historical replay, sealing and durable restoration
 must adopt those checks. The reference's structural, ASCII-host and Publisher
-timestamp checks do not establish complete hostname, Delta chain/clock,
+timestamp checks do not establish complete hostname, Catalog clock,
 key-eligibility or live-service conformance.
 
 Usable-key derivation and original-entry protections are defined by WIST-1
@@ -44,7 +54,7 @@ Usable-key derivation and original-entry protections are defined by WIST-1
 `declaration-key-eligibility.json` anchors curve checks to the strictness
 corpus but assumes valid ordinary fields and canonical base64url. It does
 not establish temporal authority selection. Full field/encoding validation,
-authenticated Delta history and durable service adoption remain required.
+authenticated Catalog history and durable service adoption remain required.
 
 Canonical encoding and its diagnostics are defined by WIST-1 §2 and
 [ADR-0025](decisions/0025-canonical-base64url.md). `base64url.json` checks
@@ -179,8 +189,9 @@ the registry term set and the tie order. Every case is validated at the
 vector's `clock` under its `clock_skew_seconds`, with `asserted_at` at
 the inclusive bound in two spellings, a second beyond it and a fraction
 beyond it (WIST-1 §3.4's clock rule read over a Label); which clock an
-attempt or a sealed Label selects is fixed for Deltas and Labels alike by
-`vectors/wist1/delta-clock-time.json`. Live Label Feed pulls,
+attempt or a sealed Label selects is fixed for Catalogs and Labels alike by
+WIST-1 §3.4, which `vectors/wist1/catalog-fields.json` exercises for a
+Catalog at a supplied clock. Live Label Feed pulls,
 `WIST2-E06` reporting, sealing as `label` Entries under the inclusion
 ceiling, `tier1/labels.parquet` and Consumer subscription need
 integrated validation.
@@ -209,39 +220,41 @@ pattern, including year zero and offset arithmetic outside the written year
 range. The specified clock is independent of physical UTC leap events.
 
 `declaration-fields.json` exercises signed field mutations in both key
-arrays and Delta `observed_at`, preserved recovery-key protection, exact
-inclusive key bounds, isolated signed E06/E07 clock-skew and predecessor
-comparison twins, and authenticated whole-Epoch rejection through due
-settlement. Historical insertion labels and their offset equivalents
+arrays, preserved recovery-key protection, exact key windows and
+authenticated whole-Epoch rejection through due settlement;
+`item-fields.json` exercises `observed_at` spellings and its comparison with
+`generated_at` across offsets and fractions of 5 000 digits. Historical insertion labels and their offset equivalents
 reject; wrong dates/minutes, future dates, a hypothetical negative-leap
 boundary, arbitrary fractions beyond common parser limits and offset/year
 boundaries discriminate alternative readings. The reference uses Python's
 Gregorian calendar and exact rational arithmetic, independently of the
 hard-coded expected cases. The hypothetical event predicts no real leap
-announcement. This evidence does not establish live admission, authenticated
-Delta chains, live clock acquisition/skew enforcement, recovery-union
-diagnostics, sealing or durable restoration. Independent vector consumption and adoption in
+announcement. This evidence does not establish live admission, live clock
+acquisition/skew enforcement, recovery-source diagnostics, sealing or
+durable restoration. Independent vector consumption and adoption in
 every role remain required. An implementation that merely orders `:60`
 without rejecting it, rounds fractions, or rejects offset-adjusted values
 beyond its calendar range does not conform to this profile.
 
 **Resolved recovery-binding diagnostics — WIST-1 §5.1/§5.2 and draft
 ADR-0023.** Queue admission retains the pre-recovery and window-owner
-signing sets, including each source's complete per-key `nbf`/`exp` bindings.
-Filter unusable and out-of-window named bindings before signature verification:
-none remaining is WIST1-E02; remaining bindings with no verifying signature
-is WIST1-E01. A single binding must satisfy both checks. Encoding and
-Publisher timestamp errors retain
-WIST1-E14 precedence, and settlement retains WIST1-E13. The signed
-`recovery-bindings.json` histories and independent reference exercise mixed
-failures, exact fractional/offset bounds, exclusions, one key with two
-windows, reversed signed arrays and fixed owner sources after a legitimate
-follower. They
-establish source selection and key diagnostics, not full Delta/chain
-eligibility, live clock checks, durable queues, Payload availability, quotas,
-sealing, settlement or Snapshot restoration. Independent role consumption
-and integrated admission/replay/restoration remain required. Selecting only
-the first identifier match, merging distinct windows or substituting a later
+Declarations, each read alone with its keys, Collections, Scopes and
+complete per-key `nbf`/`exp` bindings. Filter unusable and out-of-window
+named bindings before signature verification: none remaining is WIST1-E02;
+remaining bindings with no verifying signature is WIST1-E01. A single
+binding must satisfy both checks. Encoding and timestamp errors retain
+WIST1-E14 precedence, and settlement retains WIST1-E13.
+`catalog-fields.json` exercises binding windows at `nbf` and `exp` and keys
+of other Collections; `catalog-recovery.json` exercises the two frozen
+sources, a shortened key window at settlement and fixed owner sources after
+a follower sealed in the owner's Epoch. Validation must also exercise one
+key listed by the two sources with different windows, and the `WIST1-E03`
+of a Catalog verifying only under a source that does not name its
+Collection. These establish source selection and key diagnostics, not live clock
+checks, durable queues, Payload availability, quotas, sealing or Snapshot
+restoration. Independent role consumption and integrated
+admission/replay/restoration remain required. Selecting only the first
+identifier match, merging distinct windows or substituting a later
 Declaration does not conform.
 
 **Resolved key directory, commitment and activation — WIST-1 §5.1/§5.2
@@ -249,8 +262,8 @@ and draft ADR-0045.** A Declaration key entry is an Ed25519 JWK whose `kid`
 is its RFC 7638 thumbprint, so an identifier names one key and a key one
 identifier; a `kid` that is not that thumbprint, or an `exp` not greater
 than `nbf`, is WIST1-E14 and is checked before the WIST1-E08 uniqueness
-rule. A signing binding admits a Delta whose `observed_at` satisfies
-`nbf` ≤ `observed_at` < `exp`, comparing the exact instant with the
+rule. A signing binding admits a Catalog whose `generated_at` satisfies
+`nbf` ≤ `generated_at` < `exp`, comparing the instant with the
 NumericDate integers; Declaration signer resolution and classification
 ignore the window, so an expired or not-yet-started entry still rotates.
 Under a predecessor's `next_keys`, an ordinary rotation either keeps that
@@ -263,7 +276,7 @@ entry field cases, window boundaries, satisfied and unsatisfied
 commitments, and authenticated histories for a delayed activation, a
 signing-key reversal, a recovery-key reversal and a zero delay, with their
 `pending_declaration` tuples. The histories establish Declaration state
-transitions and Delta key checks, not queuing, Payload availability,
+transitions and Catalog key checks (`catalog_probes`), not queuing, Payload availability,
 quotas, sealing or live discovery. The `_wist.<domain>` TXT record is
 published for comparison only; a validator that lets its content change an
 acceptance decision does not conform.
@@ -343,24 +356,18 @@ WIST-1 §5.2 preserves the recovery owner's identity from its application
 onward: in-window fresh competitors cause no reset in any prefix, a fresh
 predecessor earlier in the owner's Epoch resets normally, and so does a
 valid fresh replacement after settlement unless a new window has opened.
-The identity projections of `vectors/wist1/delta-attribution.json`
-exercise which Publisher identity is current at a height; Snapshot resume
-conformance is not established.
+`vectors/wist1/declaration-conflicts.json` carries the reset height each
+history leaves; Snapshot resume conformance is not established.
 
 `vectors/wist1/recovery-settlement.json` authenticates seven 170-Epoch hourly
 histories through the settlement boundary, with admissible fresh competitors,
 ordinary descendants and legitimate ordinary/recovery followers. Signed
 rejection twins enforce recovery-key protection, predecessor eligibility and
 Declaration authorship. A shared key naming a competitor cannot advance the
-recovery chain. Signed Delta inputs exercise admission under the frozen union
-and signature-eligible settlement survivors; separate binding probes cover
-key windows, bad signatures and later re-serving of a rejected ID. These replace inadmissible abstract recovery-set rotations.
-The histories do not establish durable queuing, Payload availability, quotas,
-actual survivor inclusion, status reporting or complete historical Delta
-verification. Its timestamp comparisons exercise whole-second literal-Z
-fixtures only; integrated §3.4 Publisher timestamp validation for `observed_at`
-against integer `nbf`/`exp` windows, including exact fractional-second
-ordering, remains an integrated validation obligation.
+recovery chain. Queue settlement of publications is exercised by
+`catalog-recovery.json`. The histories do not establish durable queuing,
+Payload availability, quotas, actual survivor inclusion, status reporting
+or complete historical Catalog verification.
 
 WIST-3 §7's Snapshot `declaration` tuple carries only the current Envelope
 and sealing height, and `recovery_window` carries only owner height and end.
@@ -384,108 +391,100 @@ parameter restriction is selected here. Implementations must retain exact
 replay arithmetic; rejection before publication does not establish full-range
 serving conformance.
 
-## Delta cross-check diagnostics
+## Catalog and Item diagnostics
 
-WIST-1 §7 and [ADR-0027](decisions/0027-delta-diagnostic-selection.md)
-require the complete E14 field checks before semantic rejection and permit
-any established applicable semantic error afterward. The complete binding
-check retains its E02/E01 distinction; choosing one failed semantic check
-does not waive retrieval/refresh prerequisites or object/stage dispositions.
+WIST-1 §7 checks a Catalog for `WIST1-E05` and then its `WIST1-E14`
+fields, and an Item for its `WIST1-E14` conditions with the `url` and
+`payload.bytes` exceptions, before any other diagnostic, and permits any
+established applicable diagnostic among the rest. The complete binding
+check retains its E02/E01 distinction; choosing one failed check does not
+waive a prerequisite of a check performed or an object or stage
+disposition.
 
-`vectors/wist1/delta-diagnostics.json` covers 96 signed candidates: all
-combinations of valid/failed/missing/future bindings, in/out-of-scope URLs,
-inclusive/excess clock bounds and increasing/non-increasing predecessor
-times, with malformed timestamp and noncanonical signature-encoding twins.
-The reference authenticates Declaration sources and predecessors and derives
-the complete permitted sets for these checks independently of fixture labels.
-Prior acceptance, current source selection and validation times are supplied
-context, not authenticated Log history. The corpus does not establish full
-Delta field validation, other semantic checks, live clock acquisition,
-Declaration re-fetches, predecessor retrieval, Payload handling, recovery,
-transport wrapping, status accounting or restart. Integrated role validation
-must exercise those obligations and consume permitted sets rather than
-require one semantic diagnostic order. Publisher attribution is specified separately below.
+`vectors/wist1/catalog-fields.json` judges signed Catalogs under a
+Declaration with Collections and one with the implicit `default`: owner and
+Collection keys, a key of another Collection, a recovery key, a Catalog of
+another Publisher, binding windows at `nbf` and `exp`, the inclusive clock
+bound under positive and zero allowances with fractional and offset
+clocks, `size` at and above `catalog_items_max` and by value, a Collection
+the Declaration does not name, version spellings and unsupported majors,
+Envelope and inner-object field mutations, and `catalog.json` read bounds
+and `WIST1-E05` inputs. `vectors/wist1/item-fields.json` judges Items of
+both kinds with their Catalog: member sets and forms, Normalized URL,
+authority and Scope, `url_cap_bytes` and the `JCS(item)` bound, the derived
+cap and `observed_at` against `generated_at` across offsets and long
+fractions. The Declaration, the clock and the parameter map are supplied,
+not authenticated Log history. The corpora do not establish live pulls,
+the walk, Payload retrieval, recovery, status accounting or restart;
+integrated role validation must exercise those obligations and consume
+permitted diagnostic sets rather than require one diagnostic order.
 
-The isolated clock vectors in `vectors/wist1/declaration-fields.json` and
-the diagnostic combinations use the inclusive default 600-second relation.
-WIST-4 §5's signed integer parameter `clock_skew_seconds` controls the active
-allowance, including negative values; the clock relation uses exact signed
-addition at the clock selected by WIST-1 §3.4.
+WIST-1 §§3.1/7 and ADR-0030 resolve Catalog and Payload version
+eligibility for every validator role: E14 spelling first, E15 for an
+unsupported major, supported minor/patch values accepted and components
+beyond machine-integer ranges accepted. Integrated roles must enforce these
+checks before acceptance, idempotent re-serves and restoration included.
 
-## Delta Publisher attribution
+## Catalog and Item Publisher attribution
 
 WIST-1 §3.8 and ADR-0029 require a canonical Publisher domain inside each
-signed Delta. It selects the sole Declaration history supplying authority;
-copying keys or changing an unsigned identifier cannot change the author.
-Chains use `(publisher, url)` across rotations, recovery and fresh identities.
-WIST-2 §5 rejects foreign-Publisher Deltas in a Feed/Page with WIST2-E03;
-physical redirect and Mirror hosts do not determine this association.
+signed Catalog and each Item. The Catalog's selects the sole Declaration
+history supplying authority, Collections, Scopes and keys; copying keys or
+changing an unsigned identifier cannot change the author. An Item whose
+`publisher` is not its Catalog's is refused alone with `WIST2-E03`, and the
+Publisher of a `publisher_item` Entry is its named Catalog's (WIST-3 §3.3).
 
-`vectors/wist1/delta-attribution.json` exercises shared and distinct keys,
-copied bindings, author tampering, missing/ineligible author sources, literal
-nonancestor scope, canonical host fields, Feed association and exact-draft
-version acceptance. Its signed hourly Checkpoint history authenticates ordinary
-rotation, recovery ownership/competition/followers, settlement and fresh reset,
-with scoped chain and binding probes. Identity projections test which
-Publisher identity is current at a height.
+`vectors/wist1/catalog-fields.json` carries a Catalog of another Publisher
+signed by a key of the Declaration and noncanonical `publisher` spellings;
+`vectors/wist1/item-fields.json` carries Items of both kinds whose
+`publisher` is not the Catalog's; `vectors/wist1/item-roots.json` carries a
+`publisher_item` body whose Item names another Publisher. Independent role
+adoption remains required: emit and validate the signed field without
+synthesizing it into signed bytes, select only the authenticated
+Declaration history of that domain, derive the Publisher of an Item Entry
+from its named Catalog, and derive Label authorship and materialization
+from the same author.
 
-Required independent role adoption remains: emit and validate the signed
-field without synthesizing it into old bytes; select only its authenticated
-Declaration/key history; enforce Publisher/URL predecessors and logical Feed
-association before idempotence; preserve domain-scoped recovery queues and
-chain tips across restart; derive Label authorship and materialization
-from the same author. Update every dependent
-ID, signature, Payload path, Epoch and Snapshot when changing fixture bytes.
-Existing signed objects without the field fail this exact draft, even when
-they say `1.0.0`. Passing supplied-source or conditional projection tests
-establishes neither live discovery nor integrated process conformance.
+### Recovery sources and remaining materialization questions
 
-### Recovery scope authority and remaining materialization questions
+WIST-1 §5.2 reads the two frozen sources of a recovery each alone: a
+Catalog is queued when a source names its Collection and supplies a
+candidate under which its binding check passes, and an Item passes the
+Item conditions only under a source that accepts its Catalog. Settlement
+judges every queued Catalog again by C1 (WIST-3 §3.3) under the settlement
+source and drops a failing copy with `WIST1-E13`; a survivor is judged
+again at its sealing Epoch.
 
-WIST-1 §3.2/§5.2 and draft ADR-0015 pair each frozen recovery-admission
-Declaration's scope with its complete signing bindings. A candidate cannot
-borrow scope across sources. Settlement checks the newest recovery-chain
-Declaration before deadline-Epoch Declarations and drops either binding or
-scope failures with E13; actual sealing checks its own applicable Declaration.
-Historical scope remains tied to the Delta's sealing height.
-
-`vectors/wist1/recovery-scope.json` authenticates differing-scope Declaration
-histories and independently verifies signed stage probes, including same-Epoch
-source selection, repeated keys, exact timestamp bounds, deadline changes,
-re-serving and signature-invalid twins. These probes supply validation stages;
-they do not prove complete Delta admission, chain/clock eligibility, durable
-queue restoration, Payload/quotas, status publication or survivor inclusion.
-Independent role implementations must consume the vectors and retain complete
-source provenance through admission, settlement, sealing and restart. Existing
-signature-only settlement checks do not establish this authority requirement.
-No wire fields or schema constraints change.
+`vectors/wist1/catalog-recovery.json` carries signed Declarations, Catalog
+Envelopes and tree files fed to an Aggregator as events in time order: the
+two frozen sources before and after the rotation is sealed, the queue per
+Collection name and signing key, settlement at a pull and at the Epoch,
+equal instants decided by Catalog ID, places after settlement, a survivor
+refused by a Declaration of the settlement Epoch, an idempotent re-serve
+inside the window, a competitor that reduces authority, a recovery that
+narrows a Scope, records sealed under a key an attacker held, and a
+rotation that fails at its candidate Epoch. The events stand for pulls and
+Epochs; the histories do not establish live fetches, durable queues,
+Payload retrieval, status publication or restart.
 
 Source-paired checks alone do not establish source selection. An implementation
 that selects the highest sealed sequence without excluding recovery-superseded
 competitors violates WIST-1 §5.2, even if each supplied source's binding and
-scope are checked correctly. Validation must demonstrate a legitimate survivor
+Scope are checked correctly. Validation must demonstrate a legitimate survivor
 sealing despite a higher-sequence competitor, and distinguish the last follower
 sealed inside the window from an accepted but unsealed replacement. Admission
 at or after the deadline must settle first and use the resulting current
 Declaration. Replay must preserve the accepted sequence floor, allow both
 eligible predecessor heads while the window is open, and allow only the
 restored current head after settlement. Restoring a sealed head must not
-introduce a new first installation.
-Dropped queue copies must not permanently suppress their IDs or leave invalid
-chain tips: test re-serving after authority changes, including after restart.
-Queue validation must also cover Deltas accepted before the recovery opening
-but excluded from intermediate Epochs by capacity. They still require recovery
-settlement, including E13 rejection and deadline-based inclusion-turn accounting.
-Movement between pending and recovery queues must preserve original acceptance
-order across both populations; canonical leaf order is only storage order.
-Test reversed leaf hashes under a restrictive per-domain capacity at settlement.
-Also test a rejected predecessor with otherwise eligible accepted descendants:
-none may seal with an unresolved lower predecessor, and removing those copies
-must restore the surviving tip without suppressing later re-serving. Upgrading
-persistent queues must not invent original acceptance order from row identifiers
-that prior transfers may have assigned in leaf order. Demonstrate either
-independent order evidence or rejection of ambiguous restoration, preserving
-copies and status atomically on failure.
+introduce a new first installation. A dropped queued copy must not suppress
+its Catalog ID: test serving the same Catalog again after authority changes,
+including after restart. Queue validation must also cover Catalogs and
+Items that waited when the window opened, with their places, eligibility
+Epochs and ceilings through settlement. Persistent queues must restore each
+queued Catalog's key and place; restoration must not derive a place from
+storage order, and must reject an ambiguous restoration, preserving queue
+and status atomically on failure.
 These are requirements of the existing rules, not alternative interpretations.
 
 Admission validation must distinguish an ordinary successor of a competing
@@ -525,13 +524,13 @@ cancels a removed recovery copy's remaining sealing duty without excusing an
 already-incurred latency violation.
 
 Independent role consumption and live adoption remain required. Demonstrate
-atomic restoration/removal with queue, status, seen-ID and chain-tip effects;
-preserve completion of admission settlement across reopen and the first deadline
-Epoch so later accepted replacements are not overwritten or their new Deltas
-revalidated as copies from the closed window. Exercise capacity-deferred
-Declaration chains and failure/retry before committing a new Epoch. The signed
-traces establish Declaration stages and selected source identity, not full
-Delta eligibility, actual E13 processing, inclusion turns, Payload availability,
+atomic restoration/removal with queue and status effects; preserve completion
+of admission settlement across reopen and the first deadline Epoch so later
+accepted replacements are not overwritten or their new Catalogs revalidated as
+copies from the closed window. Exercise capacity-deferred Declaration chains
+and failure/retry before committing a new Epoch. The signed traces establish
+Declaration stages and selected source identity, not full Catalog
+eligibility, actual E13 processing, inclusion turns, Payload availability,
 quotas or Snapshot restoration.
 
 WIST-3 §7 and draft [ADR-0039](decisions/0039-scoped-host-materialization.md)
@@ -553,12 +552,14 @@ arithmetic checks do not establish live-service behavior.
 
 | Surface | Required evidence |
 |---|---|
-| WIST-1 §4 canonicalization | Correctly rounded binary64 edge cases, fractional JSON values in signed objects and rejection outside the finite range |
+| WIST-1 §4 canonicalization | Correctly rounded binary64 edge cases, fractional JSON values in signed objects, rejection outside the finite range, and `WIST1-E05` for repeated member names, lone surrogates and nesting deeper than 64 levels in every object a role parses; `catalog-fields.json` carries such inputs for `catalog.json` alone |
 | WIST-1 §5.2 Declaration key binding | Initial admission, replacement and historical replay consume `declaration-binding.json`; duplicate keys and thumbprint mismatches reject, and the authenticated public key's set membership fixes its identity/recovery class |
-| WIST-1 §5.1/§5.2 Delta recovery bindings | Consume `recovery-bindings.json` with independent signature and timestamp implementations. Preserve frozen source provenance and complete bindings in admission, authenticated replay and durable restoration; distinguish E14 fields, E02 absence of eligible authority and E01 failed signatures without borrowing the union for sealing or historical verification. Exercise complete Delta/chain and live-clock eligibility separately. |
+| WIST-1 §§3, 4 Items, Catalogs, roots and proofs | Consume `item-fields.json`, `catalog-fields.json` and `item-roots.json` with independent JCS, SHA-256 and Ed25519 implementations: recompute every Item ID, key, leaf, root, Catalog ID and Inclusion Proof, the empty Collection and the lone leaf included, and apply the Item and Catalog conditions with their field precedence. `envelope.json`, `catalog.canonical` and `id.txt` are the known answer. The walk of tree files, its bounds and `WIST2-E07` are WIST-2 §5's and are carried by `vectors/wist2/catalog-tree.json` |
+| WIST-1 §5.1 Collections and Scopes | Consume `collection-fields.json`, `collection-scope.json`, `collection-keys.json` and `collection-narrowing.json`: Collection and Scope forms (`WIST1-E14`), names, host authority, disjointness and counts (`WIST1-E16`), the Entry bound (`WIST1-E04`), coverage with the port, a publication signed by another Collection's key, unique keys across `keys`, `recovery_keys` and every Collection, a Declaration signed by a Collection key as a fresh identity, and narrowing at each transition's height. Live pulls under the sources of WIST-1 §5.2, the hold and durable Declaration state remain integrated obligations |
+| WIST-1 §5.1/§5.2 Catalog bindings under recovery | Consume `catalog-fields.json` and `catalog-recovery.json` with independent signature and timestamp implementations. Read each frozen source alone with its keys, Collections and Scopes in admission, authenticated replay and durable restoration; distinguish E14 fields, E02 absence of eligible authority and E01 failed signatures, and never borrow the two sources for sealing or historical verification. |
 | WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json`, `recovery-heads.json` and `declaration-conflicts.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Epoch Declarations. Reject conflicting groups and failed Declaration acceptance atomically; canonical storage order cannot choose a winner or replace a recovery owner. Snapshot state requires the resolution listed above. |
-| WIST-1 §5.1/§5.2 key directory and activation | Consume `key-directory.json`: recompute every thumbprint and fingerprint, apply the entry field rules before uniqueness, admit Deltas only inside a binding's window, enforce `next_keys` on ordinary rotations, and replay the histories so that a pending identity supplies no authority, activates at its frozen height and is discarded on reversal. Snapshot resumption requires the `pending_declaration` tuple. Live discovery, the DNS record's retrieval and integrated role behavior remain separate obligations. |
-| WIST-1 §5.2 recovery settlement | Consume `recovery-settlement.json`, authenticating Declaration acceptance separately from Epoch inclusion and verifying full Delta key bindings. Preserve the fixed admission union, named recovery chain, original queue order and WIST1-E13 status effects. Demonstrate durable queue recovery, applicable quotas, Payload availability and actual survivor sealing; signature eligibility alone does not establish these duties. |
+| WIST-1 §5.1/§5.2 key directory and activation | Consume `key-directory.json`: recompute every thumbprint and fingerprint, apply the entry field rules before uniqueness, admit Catalogs only inside a binding's window, enforce `next_keys` on ordinary rotations, and replay the histories so that a pending identity supplies no authority, activates at its frozen height, at once under a zero delay, and is discarded on reversal (`catalog_probes`). `keyset-at-height.json` resolves the Key Set at each height for Catalogs. Snapshot resumption requires the `pending_declaration` tuple. Live discovery, the DNS record's retrieval and integrated role behavior remain separate obligations. |
+| WIST-1 §5.2 recovery settlement | Consume `recovery-settlement.json`'s Declaration histories, authenticating Declaration acceptance separately from Epoch inclusion, and `catalog-recovery.json`'s settlement of the queue. Preserve the frozen sources, the named recovery chain, queued places and WIST1-E13 status effects. Demonstrate durable queue recovery, applicable quotas, Payload availability and actual survivor sealing; signature eligibility alone does not establish these duties. |
 | WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
 | WIST-2 §§3.3, 5 Labels | Live Label Feed pulls under the ingest budget, `WIST2-E06` reporting with the Label or Dispute ID, sealing as `label` and `dispute` Entries under the inclusion ceiling, the per-domain capacity and the per-Labeler cap, `tier1/labels.parquet`, `tier1/disputes.parquet`, `tier1/labelers.parquet` and the `label` and `dispute` tuples from authenticated Log replay, expiry and Delta binding applied at materialization |
 | WIST-2 §7 and WIST-4 §5 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day anchor and live quota and ingest-budget application per Registrable Domain under the snapshot in force |
@@ -590,8 +591,8 @@ compatibility claims must identify an exact specification commit and enforce
 its complete field set. The exception ends on stable publication or the first
 Log sealing Epochs consumed by a third party, whichever happens first.
 
-The signed version cases in `delta-attribution.json` exercise current fields,
-a same-version object lacking its Publisher, unknown fields and an
+The version cases in `catalog-fields.json` exercise current fields, unknown
+members, malformed spellings, supported minor/patch values and an
 unimplemented major. Independent role consumption and publication-boundary
 verification remain required; an offline vector cannot establish deployment
 status or waive the frozen edition's immutability.
@@ -616,94 +617,70 @@ cache expiry, resumption, durable admission or bounded fetch/work. Integrated
 implementations must exercise those obligations; excluding discovery from the content budget does not bound
 Declaration response sizes or total discovery traffic.
 
-## Complete Delta field diagnostics
-
-WIST-1 §§3.7/7 and ADR-0027 define field validation and its semantic
-exceptions; WIST-2 §5 preserves those diagnostics during pull.
-`vectors/wist1/delta-fields.json` tests 200 signed field/version candidates, scalar-length
-and safe-integer boundaries, supplied active caps, signature precedence and
-eight Feed/ID association cases. Parameter schedule replay is not asserted.
-The reference uses the schema independently of the generator's expected
-labels and verifies signatures and IDs. This does not establish complete
-Delta admission, authenticated chain replay, live transport/refresh/retrieval,
-Payload validation or durable rejection handling; integrated roles must
-exercise those obligations and consume the vectors independently.
-
-WIST-1 §§3.1/7 and ADR-0030 resolve Delta version eligibility for every
-validator role. Signed cases in `delta-fields.json` exercise E14 precedence,
-E15 semantic combinations, unsupported majors, supported minor/patch values
-and components exceeding machine-integer ranges. The reference independently
-checks schema spelling and derives major eligibility and permitted errors.
-Integrated roles must enforce these checks before acceptance, including
-fetched predecessors, duplicate handling and restoration. These Delta cases
-do not establish version support for other objects or complete chain replay.
-
-### Delta size-cap parameter time
+## Size-cap parameter time
 
 WIST-1 §3.6, WIST-4 §5 and ADR-0020 fix admission-attempt, sealing and
-historical cap profiles. `vectors/wist1/delta-cap-time.json` supplies 509
-signed hourly Epochs, 24 signed content-bearing Deltas with complete
-Payloads, one attestation, 264 stage probes and six invalid signed
-candidate Epochs. The reference verifies Epoch
-chaining, ordering, signatures, roots and pinned heads; it derives profiles
-from signed amendments and recomputes IDs, commitments and JCS sizes.
-Separate Delta-only and retrieved-Payload results distinguish all five caps
-and the derived bound at exact limits and one octet above, across reductions
-and increases, delayed retrieval and reconstruction after restart.
+historical cap profiles for Items, their Payloads, Catalogs and
+Declarations. `item-fields.json` reads `url_cap_bytes` and the Payload caps
+from a supplied map, an amendment to 32 768 read and one to 32 769
+refused; `catalog-fields.json` reads `catalog_items_max` amended above its
+value; `payload-fields.json` supplies size-cap contexts. The histories of
+`vectors/wist3/catalog-sealing.json` and `vectors/wist3/catalog-waiting.json`
+carry a parameter map per pull and per Epoch.
 
-The fixture checks amendment signatures, grace and the affected size
-combinations; it does not establish complete governance acceptance.
-Restart probes reconstruct supplied inputs in memory, not durable state.
-Integrated roles must independently consume these vectors and enforce
-attempt-profile retention, candidate-Epoch rechecks and historical
-inclusion profiles. Live queue rejection and successor handling, HTTP
-retrieval, crash recovery and cross-Log validation remain unexercised. Supplied-cap field vectors
-alone establish no temporal adoption.
+Integrated roles must independently consume these vectors and retain the
+attempt map through the walk and Payload retrieval, recheck every candidate
+Catalog and Item at the candidate Epoch and a Payload at its Item's turn,
+and apply the sealing Epoch's map on replay. Live queue refusal, HTTP
+retrieval, crash recovery and cross-Log validation remain unexercised.
+Supplied-map field vectors alone establish no temporal adoption.
 
 ## Payload link validation
 
 `vectors/wist1/payload-links.json` isolates WIST-1 §3.6's WIST1-E12
-checks in 31 signed, correctly committed candidates. It covers duplicates,
-exact URL normalization, internal hosts, count bounds, ports, query identity
-and permitted incomplete prefixes. The reference verifies signatures and
-commitments independently; its normalization coverage retains the URL
-resolution limits above. These cases do not establish live admission,
-source retrieval, sealing, restart, full Payload fields or the correctness
-of a declared prefix against the page. Role adoption and those obligations
-remain required.
+checks in correctly committed candidates, each with the Item that commits
+to it. It covers duplicates, exact URL normalization, internal hosts, count
+bounds, ports, query identity and permitted incomplete prefixes. The
+reference verifies commitments independently; its normalization coverage
+retains the URL resolution limits above. These cases do not establish live
+admission, Payload retrieval, sealing, restart, full Payload fields or the
+extraction of the declared links from emitted content (WIST-2 §11). Role
+adoption and those obligations remain required.
 
 ## Payload field and version eligibility
 
 WIST-1 §§3.1/3.6/7, WIST-3 §6.1 and draft ADR-0030/0034 define complete
 Payload fields, version support and field-before-semantic diagnostics.
-`vectors/wist1/payload-fields.json` supplies independently signed Delta
-commitments, explicit preimages, Payload mutations and size-cap contexts.
+`vectors/wist1/payload-fields.json` supplies committing Items, explicit
+preimages, Payload mutations and size-cap contexts.
 The reference checks complete fields, unbounded release components,
 optional nulls, numeric-value safe integers, scalar boundaries, cap overrides
 and E04/E10/E12/E15 combinations after E14 precedence. Raw Payload probes
 exercise RFC 8785 §§3.1/3.2.2's E05 rejection of duplicate decoded member
 names, lone surrogates and invalid/nonfinite numbers before field checks.
 They include escaped-name and nested-duplicate cases. Other objects' raw
-input boundaries still require duplicate-rejection validation; ordinary
-JSON object parsing can discard that evidence before JCS or schema checks.
+input boundaries, the nesting bound of WIST-1 §4 included, still require
+rejection validation; ordinary JSON object parsing can discard that
+evidence before JCS or schema checks.
 
 Supplied profiles do not establish accepted parameter schedules, retrieval,
 sealing, historical reference selection, restart or page agreement. Each role
 must adopt these rules independently; typed deserialization alone is
 insufficient, and accepted Payload distribution must preserve original bytes.
 
-## Historical Delta clock parameter time
+## Clock parameter time
 
-WIST-1 §3.4, WIST-4 §5 and draft ADR-0020 select the committing Epoch's
-`sealed_at` for both the historical clock and `clock_skew_seconds` anchor.
-Unsealed attempts freeze their clock and accepted schedule; sealing rechecks
-against the candidate Epoch. Later clocks or amendments cannot repair an
-invalid inclusion or invalidate an earlier valid one.
+WIST-1 §3.4, WIST-4 §5 and draft ADR-0020 bound a Catalog's
+`generated_at` by the validator's clock and `clock_skew_seconds` at an
+unsealed attempt, by the candidate Epoch's `sealed_at` before sealing, by
+the sealing Epoch's `sealed_at` for both the clock and the parameter
+anchor on replay, and by the settling event's instant at a recovery
+settlement. Later clocks or amendments cannot repair an invalid inclusion
+or invalidate an earlier valid one.
 
-`vectors/wist1/delta-clock-time.json` supplies signed Deltas and parameter
-candidates with explicit inclusion contexts. Its independent reference checks
-signatures, amendment eligibility for this unbounded parameter, exact rational
-clock comparisons, amendment endpoints, frozen attempts and alternate anchors.
-These supplied contexts establish no Epoch inclusion, complete Declaration or
-Delta eligibility, live queue behavior or restart conformance. Each role must
-bind the check to authenticated history and exercise sealing and replay.
+`catalog-fields.json` fixes the inclusive bound at a supplied clock under
+positive and zero allowances, with fractional and offset clocks.
+`catalog-recovery.json` settles queues at a pull's instant and at the
+settlement Epoch's `sealed_at`. These supplied contexts establish no
+selection of the clock from authenticated history; each role must bind the
+check to authenticated history and exercise sealing and replay.

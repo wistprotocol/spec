@@ -909,6 +909,402 @@
       }
     },
     {
+      "label": "declared link with raw space in path discarded uncounted",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/raw-space",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Raw space",
+        "links": [
+          " https://example.org/a b ",
+          "https://example.org/a%20b"
+        ],
+        "text": "Raw space."
+      },
+      "expected": {
+        "url": "https://example.com/notes/raw-space",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Raw space.",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/a%20b"
+            ]
+          },
+          "summary": {
+            "title": "Raw space"
+          }
+        }
+      }
+    },
+    {
+      "label": "declared link with non ascii path character discarded uncounted",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/non-ascii",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Non-ASCII",
+        "links": [
+          "https://example.org/caf\u00e9",
+          "https://example.org/caf%C3%A9"
+        ],
+        "text": "Non-ASCII."
+      },
+      "expected": {
+        "url": "https://example.com/notes/non-ascii",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Non-ASCII.",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/caf%C3%A9"
+            ]
+          },
+          "summary": {
+            "title": "Non-ASCII"
+          }
+        }
+      }
+    },
+    {
+      "label": "declared link host with trailing dot normalized counted",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/trailing-dot",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Host or port",
+        "links": [
+          "https://example.org./a"
+        ],
+        "text": "Host or port."
+      },
+      "expected": {
+        "url": "https://example.com/notes/trailing-dot",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Host or port.",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/a"
+            ]
+          },
+          "summary": {
+            "title": "Host or port"
+          }
+        }
+      }
+    },
+    {
+      "label": "declared link host with percent encoded unreserved octet normalized counted",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/host-escape",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Host or port",
+        "links": [
+          "https://ex%61mple.org/x"
+        ],
+        "text": "Host or port."
+      },
+      "expected": {
+        "url": "https://example.com/notes/host-escape",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Host or port.",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/x"
+            ]
+          },
+          "summary": {
+            "title": "Host or port"
+          }
+        }
+      }
+    },
+    {
+      "label": "declared link host label beginning with hyphen normalized counted",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/host-hyphen",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Host or port",
+        "links": [
+          "https://-a.example.org/"
+        ],
+        "text": "Host or port."
+      },
+      "expected": {
+        "url": "https://example.com/notes/host-hyphen",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Host or port.",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://-a.example.org/"
+            ]
+          },
+          "summary": {
+            "title": "Host or port"
+          }
+        }
+      }
+    },
+    {
+      "label": "declared link empty port removed counted",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/empty-port",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Host or port",
+        "links": [
+          "https://example.org:/a"
+        ],
+        "text": "Host or port."
+      },
+      "expected": {
+        "url": "https://example.com/notes/empty-port",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Host or port.",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/a"
+            ]
+          },
+          "summary": {
+            "title": "Host or port"
+          }
+        }
+      }
+    },
+    {
+      "label": "declared link port 0443 removed counted",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/port-0443",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Host or port",
+        "links": [
+          "https://example.org:0443/a"
+        ],
+        "text": "Host or port."
+      },
+      "expected": {
+        "url": "https://example.com/notes/port-0443",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Host or port.",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/a"
+            ]
+          },
+          "summary": {
+            "title": "Host or port"
+          }
+        }
+      }
+    },
+    {
+      "label": "declared link port 00080 written 80 counted",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/port-00080",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Host or port",
+        "links": [
+          "https://example.org:00080/a"
+        ],
+        "text": "Host or port."
+      },
+      "expected": {
+        "url": "https://example.com/notes/port-00080",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Host or port.",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org:80/a"
+            ]
+          },
+          "summary": {
+            "title": "Host or port"
+          }
+        }
+      }
+    },
+    {
+      "label": "declared link port above 65535 discarded uncounted",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/port-70000",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Host or port",
+        "links": [
+          "https://example.org:70000/a"
+        ],
+        "text": "Host or port."
+      },
+      "expected": {
+        "url": "https://example.com/notes/port-70000",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Host or port.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Host or port"
+          }
+        }
+      }
+    },
+    {
       "label": "unnormalized url",
       "publisher": {
         "domain": "example.com",

@@ -29,6 +29,7 @@ SIZE_CAP_FLOORS = {"url_cap_bytes": 14, "extract_cap_bytes": 2, "links_cap_bytes
 LINKS_STRUCTURE_OCTETS = 21
 CATALOG_ITEMS_MAX = 16777216
 CONTENT_STRUCTURE_OCTETS = 32
+NESTING_MAX = 64
 PAYLOAD_VERSION = "1.0.0"
 
 PAGE_MEMBERS = frozenset(("publisher", "url", "observed_at", "payload", "meta"))
@@ -91,9 +92,32 @@ def _scalars_only(node):
     return True
 
 
+def _nesting_within(text, bound):
+    depth, in_string, escaped = 0, False, False
+    for c in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif c == "\\":
+                escaped = True
+            elif c == '"':
+                in_string = False
+        elif c == '"':
+            in_string = True
+        elif c in "[{":
+            depth += 1
+            if depth > bound:
+                return False
+        elif c in "]}":
+            depth -= 1
+    return True
+
+
 def strict_loads(octets):
     try:
         text = octets.decode("utf-8")
+        if not _nesting_within(text, NESTING_MAX):
+            raise NotJcsInput("arrays and objects nested deeper than 64 levels")
         value = json.loads(text, object_pairs_hook=_members, parse_int=_integer, parse_float=_double,
                            parse_constant=_reject_constant)
     except (UnicodeDecodeError, ValueError, RecursionError) as error:

@@ -40,8 +40,7 @@ its benefit is one object version describing the edition eventually validated
 and frozen. It grants no exception after that boundary and changes no
 cryptographic canonicalization or unknown-major rejection rule.
 
-`vectors/wist1/delta-attribution.json` includes signed objects with the
-current field set, the same version missing its required Publisher, an
-unknown field and an unimplemented major. These discriminate object
+`vectors/wist1/catalog-fields.json` includes signed Catalogs with the
+current field set, an unknown member and an unimplemented major. These discriminate object
 acceptance at an exact revision; the publication boundary is an operational
 fact that these offline fixtures cannot establish.

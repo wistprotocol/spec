@@ -5,22 +5,22 @@ Development and publication rules: [PUBLICATION.md](PUBLICATION.md).
 
 An open, verifiable, push-based web index protocol for local AI agents.
 
-Sites publish signed **deltas** about their own URLs, and signed
-**labels** about other sites; an **aggregator** sequences them into a
-public, append-only log (the Certificate Transparency
-model); **consumers** download a compact snapshot once, then follow an
-hourly delta stream — and query everything locally, ranking under a
-policy of their own choosing. Consumers verify signatures and hashes
-locally.
+Sites publish **Items**, their current statements about their own URLs,
+committed by one signed **Catalog** per Collection, and signed **labels**
+about other sites; an **aggregator** sequences them into a public,
+append-only log (the Certificate Transparency model); **consumers**
+download a compact snapshot once, then follow an hourly Epoch stream — and
+query everything locally, ranking under a policy of their own choosing.
+Consumers verify signatures, proofs and hashes locally.
 
 ```
 Publisher                 Aggregator                    Mirrors / Consumers
-   │ writes delta to          │                               │
-   │ /.well-known/      ──►   │ pulls, validates signature,   │
-   │ and sends ping           │ dedups, queues                │
-   │                          │ seals hourly Epoch,     ──►   │ sync Epochs,
+   │ serves Catalog, tree     │                               │
+   │ files and Payloads ──►   │ pulls, validates signature,   │
+   │ under /.well-known/      │ recomputes the root, queues   │
+   │ and sends ping           │ seals hourly Epoch,     ──►   │ sync Epochs,
    │                          │ signs, chains                 │ verify chain,
-   │ signs labels about   ──►  │ seals them beside deltas ──►  │ apply to local index,
+   │ signs labels about   ──►  │ seals them beside Items ──►   │ apply to local index,
    │ other sites              │                               │ rank by own policy
 ```
 
@@ -28,7 +28,7 @@ Publisher                 Aggregator                    Mirrors / Consumers
 
 | Doc | Title | Status |
 |-----|-------|--------|
-| [WIST-1](specs/WIST-1-delta-format.md) | Delta Format & Identity — the signed delta object, JCS canonicalization, domain-anchored Ed25519 keys | v1.0.0-draft |
+| [WIST-1](specs/WIST-1-item-format.md) | Item Format & Identity — Items, the signed Catalog of each Collection, JCS canonicalization, domain-anchored Ed25519 keys, Collections and their Scopes | v1.0.0-draft |
 | [WIST-2](specs/WIST-2-site-publication.md) | Site Publication — `.well-known` layout, feed, ping + pull, unsigned-hint compatibility | v1.0.0-draft |
 | [WIST-3](specs/WIST-3-logbook-distribution.md) | Logbook & Distribution — Epochs, Merkle proofs, checkpoints, snapshots and tiers, sync | v1.0.0-draft |
 | [WIST-4](specs/WIST-4-governance.md) | Governance & Parameters — governance acts, constitutional invariants, the Parameter Registry, the Label Registry | v1.0.0-draft |
@@ -39,11 +39,11 @@ Publisher                 Aggregator                    Mirrors / Consumers
 specs/       the four protocol documents
 schemas/     JSON Schema (draft 2020-12) for every normative object
 examples/    one validated example per object type
-vectors/     deterministic test vectors (WIST-1 signature and Declaration
-             sequencing, WIST-2 link extraction, Labels, disputes and
-             label definitions, WIST-3 Merkle, snapshot records and
-             label tables, WIST-4 parameter schedules, withdrawals and
-             registrable domains)
+vectors/     deterministic test vectors (WIST-1 Items, Catalogs,
+             Collections, signatures and Declaration sequencing, WIST-2
+             link extraction, Labels, disputes and label definitions,
+             WIST-3 Merkle, snapshot records and label tables, WIST-4
+             parameter schedules, withdrawals and registrable domains)
 tools/       vector generator and validation harness
 decisions/   ADRs recording the load-bearing design decisions
 ```
@@ -72,9 +72,10 @@ tools/.venv/bin/python tools/measure_change_list_costs.py # reports pull transfe
 ```
 
 The harness validates every example against its schema, recomputes the
-WIST-1 delta ID and Ed25519 signature, recomputes the payload commitment
-that binds a delta to content the log does not carry, and recomputes the
-WIST-3 Merkle root and inclusion proof. Vector generation is fully
+WIST-1 Catalog ID and Ed25519 signature and the Item ID, key, leaf and
+root, recomputes the payload commitment that binds an Item to content the
+log does not carry, and recomputes the WIST-3 Merkle root and inclusion
+proof. Vector generation is fully
 deterministic: fixed test seed, fixed timestamps, no wall-clock.
 [tools/VERIFICATION.md](tools/VERIFICATION.md) inventories, per vector
 family, the independent anchor its verification rests on.
@@ -108,8 +109,8 @@ family, the independent anchor its verification rests on.
 - [ADR-0026](decisions/0026-publisher-timestamp-profile.md) — Deterministic Publisher timestamps
 
 - [ADR-0028](decisions/0028-unreleased-object-version.md) — One unreleased signed-object version
-- [ADR-0029](decisions/0029-signed-delta-publisher.md) — Publisher identity bound into Delta signatures and IDs
-- [ADR-0030](decisions/0030-delta-version-eligibility.md) — Delta and Payload version eligibility and diagnostics
+- [ADR-0029](decisions/0029-signed-delta-publisher.md) — Publisher identity bound into Catalog signatures and IDs
+- [ADR-0030](decisions/0030-delta-version-eligibility.md) — Catalog and Payload version eligibility and diagnostics
 
 - [ADR-0034](decisions/0034-payload-field-diagnostics.md) — Payload field diagnostics and size-bound interpretation
 - [ADR-0036](decisions/0036-registry-update-eligibility.md) — Registry Update field, version and authenticity dispositions

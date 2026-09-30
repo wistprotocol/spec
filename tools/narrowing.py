@@ -9,7 +9,7 @@ import collection_rules as rules
 
 LOG_TIMESTAMP_MAX_S = 253402300799
 DAY_S = 86400
-LOG_TIMESTAMP = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
+LOG_TIMESTAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
 
 
 class HistoryRejected(Exception):
@@ -158,14 +158,14 @@ class Replay:
             return [self.window["before"], self.window["owner"]]
         return [self.current] if self.current is not None else []
 
-    def fetch(self, envelope, height, sealed_at, transitions):
+    def fetch(self, envelope, height, sealed_at, transitions, sealing=True):
         incoming = validated(envelope, self.parameters, read_parameters=False)
         if self.chain_head_served_again(incoming):
             self.still("recovery_chain_head", incoming, transitions)
             return
-        self.apply(envelope, height, sealed_at, transitions)
+        self.apply(envelope, height, sealed_at, transitions, sealing=sealing)
 
-    def apply(self, envelope, height, sealed_at, transitions, read_parameters=True):
+    def apply(self, envelope, height, sealed_at, transitions, read_parameters=True, sealing=True):
         incoming = validated(envelope, self.parameters, read_parameters=False)
         if self.current is not None and self.served_again(incoming):
             self.still("idempotent", incoming, transitions)
@@ -223,7 +223,7 @@ class Replay:
         else:
             self.pending = {"head": incoming, "activation_height": height + self.declaration_activation_epochs}
             self.still("fresh_identity_pending", incoming, transitions)
-            if self.pending["activation_height"] == height:
+            if sealing and self.pending["activation_height"] == height:
                 self.activate(height, transitions)
 
     def apply_group(self, envelopes, height, sealed_at, transitions):
@@ -324,7 +324,7 @@ def pull(replay, fetch_outcome, fetched_envelope, height, sealed_at, discovered=
     state = copy.deepcopy(replay)
     for envelope in discovered:
         try:
-            state.apply(envelope, height, sealed_at, [], read_parameters=False)
+            state.apply(envelope, height, sealed_at, [], read_parameters=False, sealing=False)
         except HistoryRejected:
             continue
     if not rules.pull_proceeds(fetch_outcome):
@@ -332,7 +332,7 @@ def pull(replay, fetch_outcome, fetched_envelope, height, sealed_at, discovered=
     admission = copy.deepcopy(state)
     transitions = []
     try:
-        state.fetch(fetched_envelope, height, sealed_at, transitions)
+        state.fetch(fetched_envelope, height, sealed_at, transitions, sealing=False)
     except HistoryRejected as rejection:
         return stopped_pull(admission, rejection.code)
     sources = state.sources()

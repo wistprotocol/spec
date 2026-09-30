@@ -17,9 +17,10 @@ links, which no publisher controls.
 
 ## Decision
 
-The Payload carries the page's external links and their true count
-(WIST-1 §3.6), extracted by one deterministic procedure (WIST-2 §11) that binds
-Publisher and Auditor alike; Snapshots materialize the graph
+The Payload carries the external links of the published content and their
+true count (WIST-1 §3.6), extracted from an emitted HTML fragment by one
+deterministic procedure (WIST-2 §11) or listed by an Emission of text
+([ADR-0050](0050-emitted-publications.md)); Snapshots materialize the graph
 (`tier1/links.parquet`, WIST-3 §7); audits read a `link_agreement` and
 link fraud carries its own verdicts and a severity of its own, below
 content fabrication (WIST-4 §5, §7). The protocol transports these
@@ -28,14 +29,18 @@ aggregate of the graph: ranking — PageRank, HITS, anything — happens at
 consumption, where competing systems compute over the same commons and
 no publisher can buy position.
 
-The declared subset is the first N links in raw-HTML document order.
-The rule converts declaration from an unaudited choice into an
-auditable function of the page, and it forces manipulation to be
-visible in the page itself, where humans and ranking layers can see it.
-It does not remove editorial discretion over the page: a publisher
-still chooses what its page links to and in what order. No declaration
-rule could remove that, because the page is the publisher's to write —
-what the rule removes is the gap between the page and its declaration.
+The declared subset is the first N links in the order of the emitted
+content: the document order of an emitted HTML fragment, or the order an
+Emission of text lists them in. The rule converts declaration from an
+unaudited choice into a function of the published content, so
+manipulation is visible in the publication itself, where humans and
+ranking layers can see it. It does not remove editorial discretion: a
+publisher still chooses what its content links to and in what order. No
+declaration rule could remove that, because the content is the
+publisher's to write — what the rule removes is the gap between the
+published content and its declaration. WIST-2 §11 applies to a served
+page only for a party that chooses to compare the page with the
+publication.
 
 ## Consequences
 

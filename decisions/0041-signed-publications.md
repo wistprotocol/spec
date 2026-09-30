@@ -44,7 +44,7 @@ page carry its own signature, are being withdrawn by their vendors.
 
 ### The Payload is the publication
 
-A Delta's Payload is what the Publisher publishes for a URL: `extract` is
+An Item's Payload is what the Publisher publishes for a URL: `extract` is
 the canonical text, `links` the citations the Publisher vouches for,
 `summary` the structured summary, all as WIST-1 §3.6 shapes them. The
 URL locates the publication and scopes it under the Publisher's
@@ -54,9 +54,12 @@ records it and no consequence follows from it. A Consumer MAY present
 the signed publication directly and MAY link to the URL.
 
 `observed_at` keeps its meaning as the instant the Publisher asserts the
-publication for; the clock rule of WIST-1 §3.4 still bounds it at
-acceptance. `attest` keeps its meaning as a freshness claim over the
-anchor Payload; `delete` ends the URL's publication. Payload
+publication for; its Catalog's `generated_at`, which the clock rule of
+WIST-1 §3.4 bounds at acceptance, bounds it in turn. An Item of kind
+`removed` ends the URL's publication. Freshness is the instant of a
+Collection's latest sealed Catalog, which says that the Publisher stated
+the Collection then and nothing of any one record
+([ADR-0052](0052-items-and-catalogs.md)). Payload
 commitments and salts stay as WIST-1 §3.6 defines them: they bind
 content that lives outside the Log so that withdrawal can erase it
 (ADR-0007), and they need no audit to be useful.
@@ -75,10 +78,11 @@ Aggregator key acts, Payload withdrawal, the constitutional invariants,
 security and privacy considerations.
 
 Quota and inclusion no longer read a reputation. Every domain has the
-same Ping quota, `quota_base` per UTC day, and every accepted Delta is
-eligible for the next Epoch, bounded by `max_inclusion_epochs` and the
-per-domain Epoch capacity exactly as before. The per-domain ingest
-budget, the Delta caps and the clock rule are unchanged.
+same Ping quota, `quota_base` per UTC day, and every accepted Catalog and
+Item is eligible for the Epoch that follows the event at which it took its
+place (ADR-0052), bounded by `max_inclusion_epochs` and the per-domain
+Epoch capacity. The per-domain ingest budget, the Item caps and the clock
+rule are unchanged.
 
 ### Labelers are Publishers
 
@@ -103,7 +107,8 @@ the suite transports the raw citation graph, never a score. Ranking is a
 Consumer policy, expected to be selectable and shareable: text
 relevance, trust propagated from seed domains along the signed link
 graph, distrust propagated from bad seeds, the domain's age and
-publication history read from the Log, chain freshness, and subscribed
+publication history read from the Log, the instant of a Collection's
+latest Catalog, and subscribed
 Labels. Because every Consumer at one height holds the same graph, the
 same Labels and the same history, a ranking is reproducible from a
 profile and a height. A tier-1 domain-to-domain edge table with counts
@@ -134,7 +139,8 @@ MAY be added as raw data.
   that guarantee and no stronger one.
 - Bait and switch — signing one text and serving another — is a reader's
   observation and a Labeler's subject, not a protocol finding. Stale
-  publications are a freshness question the chain answers.
+  publications are a freshness question the instant of a Collection's
+  latest Catalog answers for the Collection as a whole.
 - WIST-1 loses its audit references; WIST-2 loses the Auditor pull
   rules, `robots.txt` audit exemptions and the roster submissions path,
   and its extraction procedures (§11, §12) become the recommended way

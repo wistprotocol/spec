@@ -151,6 +151,8 @@ def field_vectors():
         return inner
 
     case("without collections", declaration(), "accepted")
+    case("wist_version whose major is the Arabic-Indic digit one", mutated(["wist_version"], "\u0661.0.0"),
+         "WIST1-E14")
     case("two Collections", BASE, "accepted")
     case("default named beside other Collections",
          with_collections([JOURNAL, STORE, collection("default", [prefix("https://www.example.com/")])]),
@@ -219,8 +221,22 @@ def field_vectors():
             ("entry url with a lowercase escape", "https://example.com/journal/a%2fb"),
             ("entry url with an empty path", "https://example.com"),
             ("entry url with no Normalized URL", "https://example.com/journal/%zz"),
-            ("entry url over http", "http://example.com/journal/")):
+            ("entry url over http", "http://example.com/journal/"),
+            ("entry url with a raw space in the path", "https://example.com/journal/a b"),
+            ("entry url with a non-ASCII character in the path", "https://example.com/journal/caf\u00e9"),
+            ("entry url with the control character U+007F in the path", "https://example.com/journal/a\u007fb"),
+            ("entry url with the control character U+001F in the path", "https://example.com/journal/a\u001fb"),
+            ("entry url with userinfo", "https://owner@example.com/journal/"),
+            ("entry url with a trailing dot on its host", "https://example.com./a"),
+            ("entry url with the port 00080", "https://example.com:00080/a")):
         case(label, mutated(["collections", 0, "scope", 0, "url"], url), "WIST1-E14")
+    for label, url in (
+            ("entry url with a percent-encoded space in the path", "https://example.com/journal/a%20b"),
+            ("entry url with a percent-encoded non-ASCII character in the path",
+             "https://example.com/journal/caf%C3%A9"),
+            ("entry url with an at sign in the path", "https://example.com/journal/@owner"),
+            ("entry url with the port 80", "https://example.com:80/a")):
+        case(label, mutated(["collections", 0, "scope", 0, "url"], url), "accepted")
     at_cap = "https://example.com/journal/" + "a" * (2046 - len("https://example.com/journal/"))
     assert len(rfc8785.dumps(at_cap)) == 2048
     case("entry url whose JCS is exactly url_cap_bytes", mutated(["collections", 0, "scope", 0, "url"], at_cap),
@@ -666,6 +682,21 @@ def narrowing_vectors():
                      record("journal", "https://example.com/journal/2026/five")])},
         {2: [("fresh_identity_pending", []), ("activation", [J2["url"], S1["url"]])]},
         declaration_activation_epochs=0))
+    owner_again = successor(fresh, keys=[key("owner")], collections=copy.deepcopy(N_G["collections"]))
+    histories.append(history(
+        "fresh identity activated at once meets a later Declaration of the Epoch as current",
+        "Under declaration_activation_epochs 0, height 2 seals P, a fresh identity, and then V, of a higher seq, "
+        "naming P and signed by the owner key G lists and P does not. P becomes current when it applies and its "
+        "activation removes the 2025 journal record and the store record; V is then a fresh identity naming the "
+        "current P, not a replacement of a pending head, and activates at once. V's Scopes would keep both "
+        "records, which do not return.",
+        {"G": ("owner", N_G), "P": ("fresh", fresh), "V": ("owner", owner_again)}, 4,
+        {0: (["G"], base_records),
+         2: (["P", "V"], [record("store", "https://example.com/store/item-3")])},
+        {2: [("fresh_identity_pending", []), ("activation", [J2["url"], S1["url"]]),
+             ("fresh_identity_pending", []), ("activation", [])]},
+        live=[(J1["url"], "journal"), ("https://example.com/store/item-3", "store"), (D1["url"], "default")],
+        declaration_activation_epochs=0))
 
     replacement = successor(fresh, collections=[
         collection("journal", [prefix("https://example.com/journal/")], [key("journal")]),
@@ -812,7 +843,9 @@ def narrowing_vectors():
                      "in order; an Epoch lists the labels of the Declaration Envelopes it seals (from "
                      "`declarations`) and the records it seals as {url, collection}. Within an Epoch: settle a "
                      "window whose end is at or before sealed_at, activate a pending head whose activation height "
-                     "is this height, apply the Declarations in ascending seq (WIST-1 section 5.2), then read the "
+                     "is this height, apply the Declarations in ascending seq (WIST-1 section 5.2), a fresh identity "
+                     "whose activation height is this height activating when it applies and before the next "
+                     "Declaration, then read the "
                      "Epoch's records under the Declaration then current: a record outside its Collection's Scope "
                      "is WIST1-E03 and never a record. A narrowing transition removes every live record sealed "
                      "below its height that the Declaration taking effect does not keep. `expected.epochs` give, "
@@ -825,27 +858,31 @@ def narrowing_vectors():
                      "trusted fixture input."),
             "parameter_note": (
                 "parameter_histories replay `epochs` as histories do, each Epoch under the `parameters` map in force "
-                "at its sealed_at (collections_max, scope_entries_max, url_cap_bytes). `expected.epochs` give the "
+                "at its sealed_at (collections_max, scope_entries_max, url_cap_bytes, and "
+                "declaration_activation_epochs where the map carries it, 24 where it does not). `expected.epochs` give the "
                 "state after each accepted Epoch as in histories; `expected.rejected` is null, or the height of the "
                 "first Epoch whose Declaration fails its checks under that Epoch's map with the code, after which "
                 "nothing is replayed."),
             "keys": KEYS_MEMBER, "histories": histories, "parameter_histories": parameter_histories()}
 
 
-def parameter_history(name, why, declarations, epochs, expected_rejection):
+def parameter_history(name, why, declarations, epochs, expected_rejection, records=None):
     signed = {label: sign(signer, "publisher", inner) for label, (signer, inner) in declarations.items()}
     labels = {rules.declaration_hash(envelope["publisher"]): label for label, envelope in signed.items()}
     replay = narrowing.Replay(HISTORY_DEFAULTS["recovery_window_days"],
                               HISTORY_DEFAULTS["declaration_activation_epochs"], DEFAULTS)
+    records = records or {}
     written, results, rejected = [], [], None
     for height, (sealed, parameters) in enumerate(epochs):
         parameters = {**DEFAULTS, **(parameters or {})}
         epoch = {"height": height, "sealed_at": timestamp(T0 + height * HOUR), "parameters": parameters,
-                 "declarations": list(sealed), "records": []}
+                 "declarations": list(sealed), "records": records.get(height, [])}
         written.append(epoch)
         if rejected is not None:
             continue
-        replay.parameters = parameters
+        replay.parameters = {k: parameters[k] for k in DEFAULTS}
+        replay.declaration_activation_epochs = parameters.get("declaration_activation_epochs",
+                                                              HISTORY_DEFAULTS["declaration_activation_epochs"])
         try:
             result = replay.epoch(dict(epoch, declarations=[signed[label] for label in sealed]))
         except narrowing.HistoryRejected as rejection:
@@ -867,6 +904,13 @@ def parameter_histories():
         collection(f"c{i:02d}", [prefix(f"https://example.com/c{i:02d}/")]) for i in range(4, 21)])
     other = successor(twenty, contact="mailto:owner@example.com")
     raised = {"collections_max": 24}
+    at_once = {"declaration_activation_epochs": 0}
+    fresh = successor(N_G, keys=[key("fresh")], collections=NARROW_2026)
+    reversal = successor(fresh, keys=[key("owner")], collections=[
+        collection("store", [prefix("https://example.com/store/")], [key("store")]),
+        collection("default", [prefix("https://www.example.com/")])])
+    reversal["seq"] = 2
+    reversal["prev_declaration"] = rules.declaration_hash(N_G)
     return [
         parameter_history(
             "Declaration of 20 Collections sealed again under a collections_max lowered from 24 to 16 is idempotent",
@@ -880,6 +924,15 @@ def parameter_histories():
             "of D with 20 Collections, which the lowered count rejects.",
             {"G": ("owner", N_G), "D": ("owner", twenty), "E": ("owner", other)},
             [(["G"], None), (["D"], raised), (["E"], None)], {"height": 2, "code": "WIST1-E16"}),
+        parameter_history(
+            "Declaration naming the Declaration a fresh identity activated at once replaced is WIST1-E08",
+            "Under declaration_activation_epochs 0, height 2 seals P, a fresh identity that becomes current when "
+            "it applies, and then V, of a higher seq, naming G and signed by G's owner key. G is no longer current "
+            "and nothing is pending, so V names no eligible predecessor and the Epoch is rejected; V would have "
+            "reversed P had P remained a pending head until the Epoch's Declarations had all applied.",
+            {"G": ("owner", N_G), "P": ("fresh", fresh), "V": ("owner", reversal)},
+            [(["G"], at_once), ([], at_once), (["P", "V"], at_once)], {"height": 2, "code": "WIST1-E08"},
+            records={0: [J1, J2, S1, D1]}),
     ]
 
 
@@ -1201,6 +1254,31 @@ def state_pulls():
         [(["G"], None), (["P"], None)] + [([], None)] * 23,
         {"fetch_outcome": "same_octets", "fetched": "P",
          "expect": {"acceptance": "idempotent", "sources": ["G"]}}))
+    cases.append(state_pull(
+        "fresh identity fetched under declaration_activation_epochs 0 and not yet sealed stays pending: pulled under "
+        "the current Declaration alone",
+        {"G": ("owner", N_G), "P": ("fresh", fresh)},
+        [(["G"], None)],
+        {"fetch_outcome": "new_octets", "fetched": "P",
+         "expect": {"acceptance": "fresh_identity_pending", "sources": ["G"],
+                    "collections_pulled": ["journal", "store", "default"]}},
+        history_parameters={"declaration_activation_epochs": 0}))
+    cases.append(state_pull(
+        "fresh identity discovered under declaration_activation_epochs 0 and not yet sealed, served again: pulled "
+        "under the current Declaration alone",
+        {"G": ("owner", N_G), "P": ("fresh", fresh)},
+        [(["G"], None)],
+        {"fetch_outcome": "same_octets", "fetched": "P",
+         "expect": {"acceptance": "idempotent", "sources": ["G"],
+                    "collections_pulled": ["journal", "store", "default"]}},
+        discovered=["P"], history_parameters={"declaration_activation_epochs": 0}))
+    cases.append(state_pull(
+        "fresh identity sealed under declaration_activation_epochs 0 is current at the next pull",
+        {"G": ("owner", N_G), "P": ("fresh", fresh)},
+        [(["G"], None), (["P"], None)],
+        {"fetch_outcome": "same_octets", "fetched": "P",
+         "expect": {"acceptance": "idempotent", "sources": ["P"], "collections_pulled": ["journal", "default"]}},
+        history_parameters={"declaration_activation_epochs": 0}))
     cases.append(state_pull(
         "first Declaration accepted and unsealed ends first contact: a failed fetch after it is WIST2-E01",
         {"G": ("owner", N_G)}, [],

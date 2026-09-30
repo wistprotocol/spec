@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wistprotocol.org/schemas/tree-file.schema.json",
+  "title": "WIST tree file (WIST-1)",
+  "description": "One file of a Catalog's tree, served as the JCS octets of this object and named by the SHA-256 of those octets: a bucket listing Items, or a node listing its children by key-digit prefix (WIST-1 §4). It is not signed; the Catalog's `tree` commits to the root file.",
+  "oneOf": [
+    {
+      "title": "Bucket",
+      "type": "object",
+      "required": ["items"],
+      "additionalProperties": false,
+      "properties": {
+        "items": {"type": "array", "items": {"$ref": "item.schema.json"}}
+      }
+    },
+    {
+      "title": "Node",
+      "type": "object",
+      "required": ["children"],
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "required": ["prefix", "count", "file"],
+            "additionalProperties": false,
+            "properties": {
+              "prefix": {"type": "string", "pattern": "^[0-9a-f]+$(?![\\s\\S])", "description": "The leading hexadecimal digits of the key shared by every Item under this child (WIST-1 §4)."},
+              "count": {"type": "integer", "minimum": 1, "description": "The number of Items under this child."},
+              "file": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "SHA-256 of the octets of the child's tree file."}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

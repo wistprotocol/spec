@@ -13,6 +13,13 @@ Publisher identity is an Ed25519 Key Set published at
 `/.well-known/wist/publisher.json`, anchored to the domain over
 HTTPS and nowhere else. No DIDs, no blockchain.
 
+The Declaration's `keys` are the owner's: they sign Declarations and the
+Catalog of every Collection. A Collection may list keys of its own, which
+sign that Collection's Catalogs and nothing else
+([ADR-0051](0051-collections-scope-and-keys.md)); a Declaration signed by
+one is a fresh identity. Items carry no signature: the Catalog that lists
+them does ([ADR-0052](0052-items-and-catalogs.md)).
+
 The `_wist.<domain>` DNS TXT fallback this decision originally
 carried is not part of it. Plain DNS is unauthenticated and DNSSEC is
 neither universally deployed nor universally validated, so the fallback
@@ -33,6 +40,9 @@ records the closed door.
 - Verification requires nothing but HTTPS and an Ed25519 library.
 - Key rotation/revocation is self-service (new Key Set signed by the old
   key); domain resale without key continuity resets reputation.
+- A platform that publishes for a domain holds a Collection key, which
+  cannot sign a Declaration or another Collection's Catalog, rather than
+  the domain's identity.
 - Ed25519 specifically: deterministic signatures (no nonce-reuse
   disasters), 64-byte signatures, universal library support.
 

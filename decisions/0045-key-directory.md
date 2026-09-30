@@ -32,8 +32,9 @@ or produce.
   public key once across both sets, and every rule that preserved alias
   bindings collapses to a lookup by `kid`.
 - **Validity is a window.** `nbf` is REQUIRED and `exp` OPTIONAL, both
-  NumericDate integers. A signing binding authorizes a Delta whose
-  `observed_at` lies in [`nbf`, `exp`). Listing the outgoing key with an
+  NumericDate integers. A signing binding authorizes a Catalog whose
+  `generated_at` lies in [`nbf`, `exp`)
+  ([ADR-0052](0052-items-and-catalogs.md)). Listing the outgoing key with an
   `exp` beside the incoming key with a later `nbf` is the overlap
   window; omitting the outgoing key remains immediate revocation.
   Declaration signing authority stays set membership by public key and
@@ -41,7 +42,9 @@ or produce.
   key and a validator never needs a clock to classify a Declaration.
 - **A Key Set has a fingerprint.** The fingerprint of a signing set is
   `sha256:` over the JCS array of its `kid` values in ascending byte
-  order. It serves the two features below.
+  order. It serves the two features below, and covers a Declaration's
+  `keys` alone, never the keys of a Collection
+  ([ADR-0051](0051-collections-scope-and-keys.md)).
 - **A Declaration may commit to its successor's keys.** An optional
   `next_keys` member carries the fingerprint of the signing set the next
   ordinary rotation will install. While a commitment stands, an ordinary
@@ -59,7 +62,13 @@ or produce.
   previous Key Set or its recovery keys, naming the previous current
   Declaration and sealed before that height, reverses the pending
   identity: it is discarded and never becomes current. The pending head
-  and its activation height are Snapshot state.
+  and its activation height are Snapshot state. With
+  `declaration_activation_epochs` at 0 the fresh identity becomes current
+  when its Declaration applies, so a Declaration of higher `seq` applied
+  later in the same Epoch meets it as current and cannot reverse it, and
+  its activation narrows the Publisher's records (ADR-0051) before that
+  Declaration applies. A Declaration signed by a key of a Collection is
+  signed by neither set and is a fresh identity (ADR-0051).
 - **The fingerprint may be published in DNS.** A `_wist.<domain>` TXT
   record MAY carry the current signing set's fingerprint for operators
   and monitors to compare against the served Declaration. It carries no
@@ -80,7 +89,8 @@ or produce.
   thumbprint set leaves the timing of the rotation to the rotation.
 - **A delay measured in time.** Epochs are what a replaying Consumer
   can count without a clock; the recovery window is time-based because
-  it bounds Delta queuing, whereas activation only orders Declarations.
+  it bounds the queuing of Catalogs, whereas activation only orders
+  Declarations.
 - **Delaying every Declaration.** An ordinary or recovery rotation is
   authenticated by a key the domain already listed; delaying it would
   slow the honest case for no gain, and the recovery window already
@@ -93,7 +103,7 @@ or produce.
   the old identifiers is re-signed or re-declared before publication.
 - Aggregators and Consumers drop alias handling and add the pending
   state: a domain may carry a current Declaration and a pending head at
-  once, Deltas verify only under the current one, and Log replay derives
+  once, Catalogs verify only under the current one, and Log replay derives
   activation and reversal from heights alone.
 - A `pending_declaration` Snapshot tuple carries the pending head, its
   sealing height and its activation height (WIST-3 §7).

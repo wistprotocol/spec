@@ -1,5 +1,5 @@
 {
-  "note": "WIST-1 sections 5.1 and 5.2. thumbprints are RFC 7638 known answers; fingerprints and dns_record apply the Key Set fingerprint. entry_cases are initial Declarations judged on field and uniqueness rules. window_cases judge a Delta's key check under the supplied Declaration alone: accepted means the named binding is inside its window and verifies. commitment_cases evaluate fetched against stored as declaration-binding.json does. Each history is an authenticated hourly Epoch chain; expected_states hold after the named height applies, snapshot_tuples are the WIST-3 section 7 tuples at that height, rejections apply a candidate to the next Epoch after prefix_height and must leave the prefix state unchanged when rejected, and delta_probes judge only the key check against the Declaration current after prefix_height. The parameter map is a trusted fixture input; a history's own declaration_activation_epochs overrides the file default. No live transport, queue, Payload or quota behavior is established.",
+  "note": "WIST-1 sections 5.1 and 5.2. thumbprints are RFC 7638 known answers; fingerprints and dns_record apply the Key Set fingerprint. entry_cases are initial Declarations judged on field and uniqueness rules. window_cases judge a Catalog's key check under the supplied Declaration alone, the window read at generated_at: accepted means the named binding is inside its window and verifies. Every Catalog is of an empty default Collection. commitment_cases evaluate fetched against stored as declaration-binding.json does. Each history is an authenticated hourly Epoch chain; expected_states hold after the named height applies, snapshot_tuples are the WIST-3 section 7 tuples at that height, rejections apply a candidate to the next Epoch after prefix_height and must leave the prefix state unchanged when rejected, and catalog_probes judge only the key check against the Declaration current after prefix_height. The parameter map is a trusted fixture input; a history's own declaration_activation_epochs overrides the file default. No live transport, queue, Payload or quota behavior is established.",
   "log_key": {
     "key_id": "test-log-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
@@ -541,72 +541,6 @@
   ],
   "window_cases": [
     {
-      "name": "half a second before nbf",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785837600,
-              "exp": 1785841200
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "nHccX8KvSyvStBGiIEwqvb3ALDIWDTxNBkKzcGBEaTnVkVIUck0r58vTQhz9PJZnUN-j7t5iiXZ4WeFOVBehAg"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T09:59:59.5Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "J4bGjgUGQ76JFg3CCGiHSaVCHUhktijDVxHCfK6_92lmbuLG1lELJnCkq1b8A8XxqxH6qn6dm12qa03yivCKBg"
-        }
-      },
-      "expected": "WIST1-E02"
-    },
-    {
       "name": "at nbf",
       "declaration": {
         "publisher": {
@@ -645,161 +579,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T10:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-04T10:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "RD-15syakacJ3u3ttEOhIDqTF1u_WnvW-r78YbewRRD8L52kl4i8Y-Di8D7YVcYN0dXOajO4EX6BY_KOjJzpBg"
-        }
-      },
-      "expected": "accepted"
-    },
-    {
-      "name": "fraction after nbf",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785837600,
-              "exp": 1785841200
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "nHccX8KvSyvStBGiIEwqvb3ALDIWDTxNBkKzcGBEaTnVkVIUck0r58vTQhz9PJZnUN-j7t5iiXZ4WeFOVBehAg"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T10:00:00.000000000000000000001Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "cA8m2w-WXv8juYq2bvoCARjZOAevqJCwQSfoCG0sWA69i8QvIXavxukNEPtqk7gRcNY_lgCzjgNm_a6JCuaXBA"
-        }
-      },
-      "expected": "accepted"
-    },
-    {
-      "name": "half a second before exp",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785837600,
-              "exp": 1785841200
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "nHccX8KvSyvStBGiIEwqvb3ALDIWDTxNBkKzcGBEaTnVkVIUck0r58vTQhz9PJZnUN-j7t5iiXZ4WeFOVBehAg"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T10:59:59.5Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "xOiRmJ9qO6zgUaPt81_Z13tcvNXwI9J0jJhUJJhPqKppQA9DGUa6zE1RiXns41gXuhe89hvu66CVyms9erykAQ"
+          "value": "M36SC8rGqRkMdF1tVPT_Wh-FL_nXJP9sF6rYH1ZVxx0r7HPNxJjkbTGI1PkUInXKom8tFil1AOX-v5c96qHtAA"
         }
       },
       "expected": "accepted"
@@ -843,227 +635,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T11:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-04T11:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "WK75r7Ow2PwY7obM9yBVETmtuRzTAN2aN3xjkJAA53ymNYeFCI-Nqj5B8wbVicFixl_WeqJFpN6C76v848msDg"
-        }
-      },
-      "expected": "WIST1-E02"
-    },
-    {
-      "name": "fraction after exp",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785837600,
-              "exp": 1785841200
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "nHccX8KvSyvStBGiIEwqvb3ALDIWDTxNBkKzcGBEaTnVkVIUck0r58vTQhz9PJZnUN-j7t5iiXZ4WeFOVBehAg"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T11:00:00.000000000000000000001Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "vXRpzvcT11qOiC-q-74Usx_7Rn41330nwZjnxuSYTAURT-YkpPmPFcxFWN8yL4U3LK3etPbtaA_5PfAZi7DmBQ"
-        }
-      },
-      "expected": "WIST1-E02"
-    },
-    {
-      "name": "offset spelling inside window",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785837600,
-              "exp": 1785841200
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "nHccX8KvSyvStBGiIEwqvb3ALDIWDTxNBkKzcGBEaTnVkVIUck0r58vTQhz9PJZnUN-j7t5iiXZ4WeFOVBehAg"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T07:30:00-03:00",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "3MARhE5gcvFnzcDUISpc7iyxU6nD522-XNygU4FQ5W3MlpcevDGTEab8-hEkOaW1t3gp0RlxVfMgSwYxmU8LCA"
-        }
-      },
-      "expected": "accepted"
-    },
-    {
-      "name": "offset spelling at exp",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785837600,
-              "exp": 1785841200
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "nHccX8KvSyvStBGiIEwqvb3ALDIWDTxNBkKzcGBEaTnVkVIUck0r58vTQhz9PJZnUN-j7t5iiXZ4WeFOVBehAg"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T12:00:00+01:00",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "aV1fc8mjgQTojRTK_F2i9zjuQb1LXpa7wr9lHkBRHFliQZR3QWVaqjAAEV12tyjBucYA_eWUTZVKgROF4_mWCg"
+          "value": "ztpsxfkn0cL3SnzMnNwTuC2HN0Gp-VeUkcwiBAF5FLRladvqAt1n1ZZlsKIG2AWzM8cg5hhJBbif-y9BNjBmAA"
         }
       },
       "expected": "WIST1-E02"
@@ -1107,29 +691,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T12:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-04T12:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "5hmQzablz5VeuIp8A4KfC_JabT4m6PqLmEUlYO0mB7ZYzz3-d59Nwc_ugSlxwC81nCQtmhSCLr0nTj1NtL7KDA"
+          "value": "-elrKLwTqog2Nss5pRdovsl3OMe_uF88lxycUdm3kPmXotFgikiqtEUx2ZA2dmlCvYTnkyYMiG2fVnSQ1o_4BQ"
         }
       },
       "expected": "WIST1-E02"
@@ -1180,29 +754,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T10:30:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-04T10:30:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "vCuZnDNMj8z26wtGHVSk7cMOVeH5-mndE0Qcmv5WlE_3A12W1Uv9EmxBfmO3CDUpJ_I0wj4dE_nieR82s9BXDw"
+          "value": "rR5jo6wXjx_UGWzWMK-2agg9n8QmoSTPGzqybcDz8F7VX--xY6iV9IGxmW7Ez3RvaiPwZMFC21PyLvhI7wLqCg"
         }
       },
       "expected": "accepted"
@@ -1253,102 +817,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T11:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-04T11:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "WK75r7Ow2PwY7obM9yBVETmtuRzTAN2aN3xjkJAA53ymNYeFCI-Nqj5B8wbVicFixl_WeqJFpN6C76v848msDg"
-        }
-      },
-      "expected": "WIST1-E02"
-    },
-    {
-      "name": "overlap incoming key before its nbf",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785751200,
-              "exp": 1785841200
-            },
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
-              "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
-              "nbf": 1785839400
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "U_vc0mUblGhXHL9jXBwwUk1YktAjX_KdDy_FTelOQIvkiwZDTi7zyLa_SugmnKUfRvrOfw9ZxDHBqOaP9KJkCw"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T10:29:59.999Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
-        },
-        "sig": {
-          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
-          "alg": "Ed25519",
-          "value": "8Jxy1PLnA3luuxeTGnP_EKOg26ZwSHRi95GsIeEgCYXjKd8pnTEB4hQ74343A2Kwd_wVRjAd9a2fpZp2JKfNAA"
+          "value": "ztpsxfkn0cL3SnzMnNwTuC2HN0Gp-VeUkcwiBAF5FLRladvqAt1n1ZZlsKIG2AWzM8cg5hhJBbif-y9BNjBmAA"
         }
       },
       "expected": "WIST1-E02"
@@ -1399,29 +880,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T10:30:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-04T10:30:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
-          "value": "yvsmI2CgKZhPpwZGVgNbLfgNI1NNGj2vcJ_caVavwwHs7BNN-6ktNASVfgpBuWE3CJOMnlWCJC2VLJ4wN7H6AQ"
+          "value": "FVqPIR-YFwt-fYkCp4Mldo8_-F4Ysbwlk46MmLsmsStDMvdrl3axRZGeT56AJd-UJwfD48DbIAzBCgaQ2thDDg"
         }
       },
       "expected": "accepted"
@@ -1472,29 +943,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2030-01-01T00:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2030-01-01T00:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
-          "value": "ocDQddjKYL-o3mQabiInG2tDmxRuuN2uyFklNKT1mRQcOUChccdmN-pnGXNUbm8NvMlnr_JWunn9TgYNb6AaAg"
+          "value": "adyDiruHo_cB-ZoJ0AL6kkEpyXwXpQxjQJyr1jcwThJovH_tzW4013HgkKnI2NKkC8lh9fbdEwgpNBay9nKmDQ"
         }
       },
       "expected": "accepted"
@@ -1545,29 +1006,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T10:30:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-04T10:30:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
-          "value": "vCuZnDNMj8z26wtGHVSk7cMOVeH5-mndE0Qcmv5WlE_3A12W1Uv9EmxBfmO3CDUpJ_I0wj4dE_nieR82s9BXDw"
+          "value": "rR5jo6wXjx_UGWzWMK-2agg9n8QmoSTPGzqybcDz8F7VX--xY6iV9IGxmW7Ez3RvaiPwZMFC21PyLvhI7wLqCg"
         }
       },
       "expected": "WIST1-E01"
@@ -1610,97 +1061,22 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "1970-01-01T00:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "1970-01-01T00:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "kltYYad4ljJGgh7Tb76-vHjz1Mo1R6wY0iQc-tUwerDOUZeWPiQL9w_i7_DpBxXncDE2Duql53vghbG9dwWnCg"
+          "value": "z1dr1pNT00BRhCBzZMBixMUSv3wbDiPHqqpZS4UU4xtafNAjJBINj6sl7FrsGcF5iUt-0LAnFHssaekCIs6hBw"
         }
       },
       "expected": "accepted"
-    },
-    {
-      "name": "instant before the Unix time origin precedes every nbf",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 0
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "vkLton_HIt9lv7vJx_Bd28aXuYNu1CSLmzC-egkI543bKjmUY3I2W3KuE1Aq-8Vn5blaFqbJ_Q3TERRnsBlhBw"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "1969-12-31T23:59:59.999Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "Z7y7l05HZPmxZh4qMd98c93fiBMqEX3QxKhgtOlpGKYI2RFwbWa_IJaBoo5B1Mm1LlzuLMzvWGnm79m-Xa26DQ"
-        }
-      },
-      "expected": "WIST1-E02"
     },
     {
       "name": "nbf at the last NumericDate",
@@ -1740,29 +1116,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "9999-12-31T23:59:59Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "9999-12-31T23:59:59Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "jbLcs5SNEbDExA-SZj_0_Kzy_7ChP-NkSHQap8r_NkkWDXnE2HZnPncgJhDRko5y01CYmywswEEq4ChY9_KHBQ"
+          "value": "3ico3MfBacwteNgtOjIOPOXoXGT2Zj54rvdwO6wDm-kkViqCBEQJ1J5ttEKxG-E30n1JvPveUfxBcRoKPOn2AQ"
         }
       },
       "expected": "accepted"
@@ -1806,29 +1172,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/key-directory",
-          "change_type": "new",
-          "observed_at": "2026-08-04T10:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-04T10:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
           "alg": "Ed25519",
-          "value": "TL9pmhHAbUF96bOgZ_oDS2bc7DBQ0uAOqqJhOYb0GS9KJwkb2KMkWKyCFxJMdel2diZSx6XsYf2LlNOynFD7CQ"
+          "value": "CmLz-N2d0r2Hr4wgTgMch-9-YadmvXZtGJah5irdLLSkM8cbdrquGOfV-W6PwSdBZKOmAz1mVpTvT3ubhDfNCQ"
         }
       },
       "expected": "WIST1-E02"
@@ -4341,35 +3697,25 @@
       "expected": "idempotent"
     }
   ],
-  "delta_probes": [
+  "catalog_probes": [
     {
       "name": "pending key supplies no authority",
       "history": "activated",
       "prefix_height": 3,
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/activation",
-          "change_type": "new",
-          "observed_at": "2026-08-04T03:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-04T03:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
-          "value": "64HZoKF2BrDCpLeB5PQApd7UOP2aH47SLFoBZnhIYJWMIT2aNp1ZGTP0gru9harfUEOjyTBPEw4xkj1d26M9AQ"
+          "value": "v-3XV3FrxXEEmeeNF9IPOCG_rt1ob_4dHBODgRC7793APcL9XoipLf-_E6Y96caEjRMcWmM6wrK1WpZ9-AwqCg"
         }
       },
       "expected": "WIST1-E02"
@@ -4379,29 +3725,19 @@
       "history": "activated",
       "prefix_height": 3,
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/activation",
-          "change_type": "new",
-          "observed_at": "2026-08-04T03:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-04T03:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "4wPNuv65zBx_R-_M0JQG7itcUtzRJicXB-gAdf8P6bhcLy4nifzArs8c05VZZEImAYdVXuz1xd9Rv74oq8-NCQ"
+          "value": "uTOp4R63tYu998hTN_Z3ORUvDnA-MlZrj3ULb_xnJGsThLXxS83aWEVavpTqvPsm_YZTjsBdOHnPDueSdmVJBw"
         }
       },
       "expected": "accepted"
@@ -4411,29 +3747,19 @@
       "history": "activated",
       "prefix_height": 26,
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/activation",
-          "change_type": "new",
-          "observed_at": "2026-08-05T02:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-05T02:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
-          "value": "eySTCScI16kHnnC2dDYBaY4twmoh2CP5yg220lBH_u29DTRMYYY2zyogKfBCrqwlSXP__xTeawGgS0CdbtNWDg"
+          "value": "r13dcb9ym7Cd8CGbpTihUu3VPMf_Pm10UWkupZ5Njx3I-F3YEvJUfzXVRVVEn3jFiDDLlsC9HEL0QF7poyLNDw"
         }
       },
       "expected": "accepted"
@@ -4443,29 +3769,19 @@
       "history": "activated",
       "prefix_height": 26,
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/activation",
-          "change_type": "new",
-          "observed_at": "2026-08-05T02:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-05T02:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "8N8KTG_5CMTn3TP1fkiK624C5tAAqzlSjPD7aLvOPuRbtUygAAtQ--SZQQNUZQnfy4L5XitPwrgNzk7UPfy5Cg"
+          "value": "Xz4WVx99nqKaVd7ILUB7Cgw6H4CEyycgvOgD5x1WPAcqUiXOp8oajkPFJW-8ora5iF7djbwebCAsFkzUDiS6Ag"
         }
       },
       "expected": "WIST1-E02"
@@ -4475,29 +3791,19 @@
       "history": "reversed by a signing key",
       "prefix_height": 27,
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/activation",
-          "change_type": "new",
-          "observed_at": "2026-08-05T03:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-05T03:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
-          "value": "lmnkgrNg4zj2WO-ShURmS4h7CDH9rOsg8G70ylcKgU56LbmjuC4HWQEyzHaB45y_dAbN-nNzUSULqYJ2fFmSDg"
+          "value": "EJIelh0Tn9hWg9N-S8ukH4a3mRSgowL-c6GFb_ZaFqAzYB9jfm0kZR0KVPZKW5VrC8AQ_PzDA3kG2EXJBE1VBw"
         }
       },
       "expected": "WIST1-E02"
@@ -4507,29 +3813,19 @@
       "history": "reversed by a signing key",
       "prefix_height": 27,
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/activation",
-          "change_type": "new",
-          "observed_at": "2026-08-05T03:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-05T03:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "CeLrkyGkeenRkLe61_LaYOVVjwmyvztjuD3qoIKrNA6_UjYk26N1eDDqYFy1I6qOIZwjKsb5Gz79JP6fh0uPBA"
+          "value": "lclwy4gxXvnBb-TLO0CjhKHsjTHdV7neQyGsHzCnDGbc9Wt0m49WarXRNfDl6_W41EiK-o0M0iYgAVX-EhdZBQ"
         }
       },
       "expected": "accepted"
@@ -4539,29 +3835,19 @@
       "history": "pending follower",
       "prefix_height": 4,
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/activation",
-          "change_type": "new",
-          "observed_at": "2026-08-04T04:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-04T04:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "HlHgCcjrhbeyw80VMef51yPwhyRqjiwLdwSLRqo7hSI",
           "alg": "Ed25519",
-          "value": "P6KRp45vkHRDCXqURrj_kRrKie9GVN9WIIEUVrf4pLtjI-2BeeQDNfj4DqiNEkoo_yEtGw1pbEgsvJv8l_7aCQ"
+          "value": "gHpVTH3-gdkkzG1durLlJsgVr7UM8HGCssmXdDWbr7z6wflHZnDNe4kCQ01WC8JaJ9U69Pn1pKgjGsCKHIx3BQ"
         }
       },
       "expected": "WIST1-E02"
@@ -4571,29 +3857,19 @@
       "history": "pending follower",
       "prefix_height": 27,
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/activation",
-          "change_type": "new",
-          "observed_at": "2026-08-05T03:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-05T03:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "HlHgCcjrhbeyw80VMef51yPwhyRqjiwLdwSLRqo7hSI",
           "alg": "Ed25519",
-          "value": "CZH72hEj71QTFpyHUNUORVDUOF38khbTjNBsEJ-D0jU_WAVy44uZaiVbuT9uTWwne07RZ1EiGiJAD-nkEJ7OBQ"
+          "value": "A1QGLOYlRRmL6WTfP_F5ySq2llRaUlpQreiBkvJsFe2l52ugkXkUm1cRbd3fBXJaeHvV_D_oXqhGw2Q_G65tCg"
         }
       },
       "expected": "accepted"
@@ -4603,29 +3879,19 @@
       "history": "activation delay zero",
       "prefix_height": 2,
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/activation",
-          "change_type": "new",
-          "observed_at": "2026-08-04T02:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+          "collection": "default",
+          "generated_at": "2026-08-04T02:00:00Z",
+          "size": 0,
+          "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
         },
         "sig": {
           "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
-          "value": "Ym2SsExpxWuiqqCXrEdLU4AWZbTGRz8QNtyhiGhfJKRsaU_PUMJcCa5o7xepwHjoHEoet2rYcCgyFBA2r5PYBA"
+          "value": "45lmF7iZN0b-aSCK_DTeYT_qkNamIylh8VFwBK7yt12Xfd6WGHjuG3p0MdnhJqn8wLNk9veWx00uOhV0wTG7CA"
         }
       },
       "expected": "accepted"

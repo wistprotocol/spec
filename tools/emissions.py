@@ -1,4 +1,5 @@
 import json
+import math
 import re
 import urllib.parse
 
@@ -47,6 +48,8 @@ class _NotALine(Exception):
 
 class _Number:
     def __init__(self, lexeme):
+        if not math.isfinite(float(lexeme)):
+            raise _NotALine
         self.lexeme = lexeme
 
 

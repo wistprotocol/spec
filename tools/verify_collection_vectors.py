@@ -21,6 +21,14 @@ SAFE_INTEGER = 2 ** 53 - 1
 NUMERIC_DATE_MAX = 253402300799
 ENTRY_OCTETS_MAX = 65535
 DEFAULT_PARAMETERS = {"collections_max": 16, "scope_entries_max": 32, "url_cap_bytes": 2048}
+URI_PARTS = re.compile(r"(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?", re.DOTALL)
+SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*")
+PORT_SUFFIX = re.compile(r":[0-9]*\Z")
+UNRESERVED = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+REG_NAME = UNRESERVED + "!$&'()*+,;=" + "%"
+PCHAR = REG_NAME + ":@"
+URI_CHARACTERS = PCHAR + "/?#[]"
+HEX_DIGITS = "0123456789ABCDEFabcdef"
 UNAMENDED = {"recovery_window_days": 7, "declaration_activation_epochs": 24}
 
 
@@ -251,6 +259,30 @@ def _is_integer(value, low, high):
 _HOST = re.compile(r"[a-z0-9-]{1,63}(?:\.[a-z0-9-]{1,63})*")
 
 
+def uri_form(candidate):
+    scheme, authority, path, query, fragment = URI_PARTS.fullmatch(candidate).groups()
+    if scheme is not None and not SCHEME.fullmatch(scheme):
+        return False
+    if authority is not None:
+        if "@" in authority:
+            return False
+        host = PORT_SUFFIX.sub("", authority)
+        literal = host.startswith("[") and host.endswith("]")
+        if not all(ord(c) > 0x7F or c in (URI_CHARACTERS if literal else REG_NAME) for c in host):
+            return False
+    if any(c not in PCHAR + "/" for c in path):
+        return False
+    for part in (path, query, fragment):
+        escapes = [part[i + 1:i + 3] for i, c in enumerate(part or "") if c == "%"]
+        if any(len(digits) != 2 or any(d not in HEX_DIGITS for d in digits) for digits in escapes):
+            return False
+    return all(part is None or all(c in PCHAR + "/?" for c in part) for part in (query, fragment))
+
+
+def normalized(candidate, base):
+    return normalize_url(candidate, base) if uri_form(candidate) else None
+
+
 def canonical_host(value):
     if not isinstance(value, str) or not 1 <= len(value) <= 253 or not _HOST.fullmatch(value):
         return False
@@ -310,7 +342,7 @@ def _check_collections(value, parameters):
             if entry["match"] not in ("prefix", "exact"):
                 _e14("Scope entry match")
             url = entry["url"]
-            if not isinstance(url, str) or normalize_url(url, url) != url:
+            if not isinstance(url, str) or normalized(url, url) != url:
                 _e14("Scope entry url is not its own Normalized URL")
             if parameters is not None and len(jcs(url)) > parameters["url_cap_bytes"]:
                 _e14("Scope entry url above url_cap_bytes")
@@ -488,7 +520,7 @@ def require_accepted(envelope, parameters):
 
 
 def scope_verdict(publisher, collection, url):
-    if not isinstance(url, str) or normalize_url(url, url) != url:
+    if not isinstance(url, str) or normalized(url, url) != url:
         return "WIST1-E03"
     if "collections" not in publisher:
         if collection != "default" or url_host(url) not in authority(publisher):
@@ -506,13 +538,13 @@ def scope_verdict(publisher, collection, url):
 
 
 def covers(publisher, collection, url):
-    normalized = normalize_url(url, url) if isinstance(url, str) else None
-    if normalized is None:
+    normalized_url = normalized(url, url) if isinstance(url, str) else None
+    if normalized_url is None:
         return False
     if "collections" not in publisher:
-        return collection == "default" and url_host(normalized) in authority(publisher)
+        return collection == "default" and url_host(normalized_url) in authority(publisher)
     own = collection_named(publisher, collection)
-    return own is not None and any(entry_covers(entry, normalized) for entry in own["scope"])
+    return own is not None and any(entry_covers(entry, normalized_url) for entry in own["scope"])
 
 
 def judge_probe(declaration, probe):
@@ -706,7 +738,7 @@ def apply_epoch(state, epoch, parameters, live):
         narrows = outcome.get("narrows", False)
         transitions.append({"kind": outcome["kind"], "declaration": outcome["declaration"], "narrows": narrows,
                             "removed": narrow(live, _pub(state, outcome["declaration"])) if narrows else []})
-    activate_due(state, height, live, transitions)
+        activate_due(state, height, live, transitions)
     sealed, rejected = [], []
     for record in epoch["records"]:
         members_read(record, {"url", "collection"})

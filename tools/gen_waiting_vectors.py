@@ -2402,6 +2402,32 @@ def pull_vectors():
 
     histories.append(run(h, pending))
 
+    h = History("a fresh identity under declaration_activation_epochs 0: pending until the Epoch that seals it",
+                "P, a fresh identity signed by the fresh key, is discovered at pull 1. Its activation height is the "
+                "height of the Epoch that seals it, so until then it is pending and the pull reads G alone: J1, "
+                "signed by the fresh key alone, is WIST1-E02. Height 1 seals P, which becomes current when it "
+                "applies; at pull 2 the pull reads P, and J1 is accepted.",
+                declaration_activation_epochs=0)
+    h.declare("G", "owner", G)
+    h.declare("P", "fresh", successor(G, keys=[key("fresh")]))
+    h.epoch("G")
+    h.cat("J1", [page(J + "j")], h.at(4 * MINUTE), "fresh")
+    h.pull(5 * MINUTE, "P", {"journal": "J1"})
+    h.epoch("P")
+    h.pull(5 * MINUTE, "P", {"journal": "J1"})
+    h.epoch()
+
+    def activation_at_sealing(v):
+        assert v.expected[1]["declaration"]["outcome"] == "fresh_identity_pending"
+        assert v.expected[1]["declaration"]["sources"] == ["G"]
+        assert v.outcome(1, "journal") == ("refused", ["WIST1-E02"])
+        assert v.expected[3]["declaration"]["outcome"] == "idempotent"
+        assert v.expected[3]["declaration"]["sources"] == ["P"]
+        assert v.outcome(3, "journal")[0] == "accepted"
+        assert v.sealed(4) == ["J1", J + "j"]
+
+    histories.append(run(h, activation_at_sealing))
+
     docs = collection("docs", [prefix(DOCS)])
     h = History("an open recovery window: two sources, each read alone",
                 "R, sealed at height 1, names journal and docs and replaces the owner key by owner2; G names journal "

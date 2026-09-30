@@ -751,6 +751,13 @@ def catalog_field_vectors():
     read_case("catalog.json of 16 385 octets that is not valid JCS input: a failed fetch",
               compact[:-1] + " " * (read_bound + 1 - len(compact) + 1), "failed")
     read_case("catalog.json that is not the JCS serialization of its Envelope", text, "accepted")
+    repeated = text[:-1] + ', "sig": ' + json.dumps(sign("owner", "catalog", base)["sig"]) + "}"
+    read_case("catalog.json repeating the member name sig with the same value", repeated, "WIST1-E05")
+    assert text.count('"collection": "journal"') == 1
+    read_case("catalog.json whose collection is a lone surrogate escape",
+              text.replace('"collection": "journal"', '"collection": "\\ud800"'), "WIST1-E05")
+    read_case("catalog.json whose size is 1e999, a number beyond the finite range",
+              text.replace('"size": 2,', '"size": 1e999,'), "WIST1-E05")
 
     id_cases = []
     empty, _ = catalog_inner([])
@@ -761,8 +768,9 @@ def catalog_field_vectors():
     return {"note": (
         "ADR-0052 Catalog fields. Each case judges `catalog` (an Envelope) or `catalog_json` (its octets as UTF-8 "
         "text) under the Declaration named by `declaration`, with the validation clock `clock` and `parameters` "
-        "(clock_skew_seconds, catalog_items_max). WIST1-E05: octets that are not valid JCS input (here, outside "
-        "JSON's grammar). A number's value, not its spelling, decides whether size is an integer: the cases "
+        "(clock_skew_seconds, catalog_items_max). WIST1-E05: octets that are not valid JCS input: outside "
+        "JSON's grammar in `cases`, and in read_cases a repeated member name, a lone surrogate escape and a number "
+        "beyond the finite range of IEEE-754 doubles. A number's value, not its spelling, decides whether size is an integer: the cases "
         "spelling size 2.0 and 2e0 are accepted and give `catalog_id`, the Catalog ID of their inner object "
         "(JCS serializes the number 2 as 2), equal to that of the twin spelled 2. WIST1-E14: an Envelope other than exactly {catalog, sig}; sig other than exactly "
         "key_id (a string of at most 64 characters), alg Ed25519 and value (canonical base64url of 64 octets); an "
@@ -944,6 +952,24 @@ def count_of(node):
     if "items" in node:
         return len(node["items"])
     return sum(e["count"] for e in node["children"])
+
+
+def nested_arrays(levels):
+    value = []
+    for _ in range(levels - 1):
+        value = [value]
+    return value
+
+
+def nesting_of(octets):
+    stack, deepest = [(json.loads(octets), 1)], 0
+    while stack:
+        node, level = stack.pop()
+        children = node.values() if isinstance(node, dict) else node if isinstance(node, list) else None
+        if children is not None:
+            deepest = max(deepest, level)
+            stack.extend((child, level + 1) for child in children)
+    return deepest
 
 
 def tree_catalog(node, listed, **fields):
@@ -1218,6 +1244,13 @@ def catalog_tree_vectors():
     case("inner file at level tree_depth_max under a tree_depth_max amended above its value", catalog, files, deep,
          {"tree_depth_max": depth_max + 1})
 
+    for depth, expected_ok in ((items.NESTING_MAX, True), (items.NESTING_MAX + 1, False)):
+        nested_item = dict(root_list[0], extra=nested_arrays(depth - 3))
+        catalog, files = tree_catalog(bucket([nested_item]), [nested_item])
+        assert max(nesting_of(octets) for octets in files.values()) == depth
+        case(f"bucket nested to {depth} levels by an Item's unknown member", catalog, files,
+             [nested_item] if expected_ok else None)
+
     catalog, files = tree_catalog(bucket(root_list), root_list, size=len(root_list) + 1)
     case("size one above the number of Items listed", catalog, files, None)
     catalog, files = tree_catalog(bucket(root_list), root_list, root=items.root_string(root_list[:2]))
@@ -1229,8 +1262,9 @@ def catalog_tree_vectors():
         "SHA-256 naming each served file to the file's octets as UTF-8 text; a name absent from the map is an "
         "unavailable file. `expected` is {\"list\": [Item IDs in walk order]} or {\"refused\": \"WIST2-E07\"}. "
         "The walk starts at the file named by tree, prefix \"\", level 1, counted by size. A file is refused when "
-        "unavailable, above tree_file_cap_bytes octets, of another SHA-256 than its name, not the JCS "
-        "serialization of the one-member object it parses to, or of a member other than items or children. A "
+        "unavailable, above tree_file_cap_bytes octets, of another SHA-256 than its name, not valid JCS input "
+        "(WIST-1 section 4, which bounds arrays and objects to 64 levels of nesting, the file's object being level "
+        "1), not the JCS serialization of the one-member object it parses to, or of a member other than items or children. A "
         "bucket's items is an array of objects with a string url, keys (SHA-256(JCS([\"page\", url]))) strictly "
         "ascending, each key's lowercase hex beginning with the bucket's prefix, as many as the count naming it. "
         "An inner file is not at level tree_depth_max; its children is an array of 1 to 16 objects of exactly "
@@ -1327,6 +1361,14 @@ def catalog_item_vectors():
     sized, sized_files = catalog_inner([i for i, _ in sized_listing])
     case("journal Catalog listing Items at and above the Item bound and above url_cap_bytes", "collections",
          sign("journal", "catalog", sized), sized_files, "accepted", {i["url"]: o for i, o in sized_listing})
+    nested_listing = [
+        (page("https://example.com/journal/a", "2026-09-30T10:00:00Z")[0], "accepted"),
+        (dict(page("https://example.com/journal/nested", "2026-09-30T10:00:00Z")[0],
+              extra=nested_arrays(items.NESTING_MAX - 3)), "WIST1-E14")]
+    nested, nested_files = catalog_inner([i for i, _ in nested_listing])
+    assert max(nesting_of(octets) for octets in nested_files.values()) == items.NESTING_MAX
+    case("journal Catalog whose bucket an Item's unknown member nests to 64 levels", "collections",
+         sign("journal", "catalog", nested), nested_files, "accepted", {i["url"]: o for i, o in nested_listing})
     docs, docs_files = catalog_inner(journal_items, "docs")
     case("Catalog naming a Collection the Declaration lacks", "collections", sign("owner", "catalog", docs),
          docs_files, "WIST1-E03")

@@ -1,6 +1,6 @@
 # ADR-0027: Delta diagnostic selection
 
-**Status:** draft · **Date:** 2026-09-11
+**Status:** draft, subject replaced by [ADR-0052](0052-items-and-catalogs.md) (2026-09-30: Item and Catalog diagnostics) · **Date:** 2026-09-11
 
 ## Context
 
