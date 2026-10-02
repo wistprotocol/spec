@@ -274,7 +274,7 @@ Items of the list proceed.
 **Removal.** A URL the Publisher no longer publishes stays listed as an
 Item of kind `removed` under the key of the page (§4.1), whose
 `observed_at` is the `generated_at` of the first Catalog that lists it. The
-Publisher MUST keep it listed for `removal_retention_days` (WIST-4 §5),
+Publisher MUST keep it listed for `removal_retention_days` (WIST-3 §7),
 180 days, and MUST NOT take it out earlier, whatever Logs have sealed it:
 a Publisher does not know every Log that pulls its files. An Item of kind
 `removed` is sealed and proved as any Item is. How a Publisher derives the
@@ -1486,7 +1486,7 @@ the next Catalog it signs under its keys (WIST-3 §3.3).
 
 **Narrowing.** A Declaration that becomes current by a transition of the
 table below removes, at the height the table gives, the Publisher's records
-(WIST-3 §7) that do not stay under it. Narrowing reads the Publisher's live
+(WIST-3 §7) that do not stay under it. Narrowing reads the Publisher's
 records and the Declaration that takes effect, and no earlier Declaration.
 Under a Declaration that carries `collections`, a record stays when the
 Declaration names the record's Collection and that Collection's Scope

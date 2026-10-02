@@ -200,8 +200,8 @@ No vector carries §11's rule on which representations are HTML.
 **Withdrawal acts.** WIST-4 §5.1 and `vectors/wist4/withdrawal.json` fix
 the `payload_withdrawal` contract. The reference checks each act against
 the schema and Log key, resolves `delta_id` against the supplied sealed
-Deltas, keeps the earliest accepted withdrawal's height and validates the
-resulting WIST-3 §7 `withdrawal` tuples. Signed Checkpoint histories, live
+Items, keeps the earliest accepted withdrawal's height and validates the
+resulting WIST-3 §7 `withdrawal` and `record` tuples. Signed Checkpoint histories, live
 withdrawal sealing, Payload destruction and Snapshot exclusion require
 integration validation.
 
@@ -594,14 +594,36 @@ eligibility, actual E13 processing, inclusion turns, Payload availability,
 quotas or Snapshot restoration.
 
 WIST-3 §7 and draft [ADR-0039](decisions/0039-scoped-host-materialization.md)
-select one record per URL: the self-declared host's own, else the nearest
-ancestor Publisher's, else the least non-ancestor domain in octet order.
+select one record per URL among those whose Item no withdrawal names: from
+the sealing of the host's first Declaration Entry the host's own, which
+nothing ends, else the nearest ancestor Publisher's, else the least
+non-ancestor domain in octet order. Every record stays a record and a
+Snapshot's `record` tuples carry the unmaterialized ones with their Items.
 `vectors/wist3/materialization-preference.json` fixes the outcomes from a
-host, its declaration state and the Publishers holding live records; the
-reference recomputes each case and shows the shortest-ancestor,
-descending-order and raw-suffix readings differ. Which records are live at
-a height, and the exclusion's return when a preferred record leaves,
-require Log-replaying validation.
+host, whether the host's first Declaration Entry is sealed, and the
+Publishers holding records, each with whether a withdrawal names its
+Item; the reference recomputes each case and shows the shortest-ancestor,
+descending-order, raw-suffix and withdrawal-blind readings differ.
+`vectors/wist3/record-materialization.json` carries the records, removal
+states and materialized records of one Log after each Epoch, and a
+record's return when a preferred record leaves after a Snapshot resume.
+
+## WIST-3 sealing, waiting and records
+
+WIST-3 §3.3 judges each `publisher_catalog` Entry by C1 to C4 and each
+`publisher_item` Entry by I1 to I7 at its Epoch, and §7 holds the latest
+Catalogs, floors, records and removal states they leave, the base and the
+combination of several Logs. `vectors/wist3/catalog-sealing.json`,
+`vectors/wist3/catalog-waiting.json` and `vectors/multilog/catalog-order.json`
+carry them over signed histories (`tools/VERIFICATION.md`).
+
+Not carried by any vector: an Epoch rejected with `WIST3-E03` for an
+unknown Entry type, for Entries out of canonical order or for a Label ID
+a lower Entry carries (the per-Labeler cap and the per-domain capacity
+are carried); an Epoch that meets two whole-Epoch rejections, for which
+§3.3 lets a validator report either code; and a Label and a dispute taking
+places at one pull after its Catalogs and URLs, in the order the pull
+accepts them.
 
 ## Validation still required
 
@@ -626,6 +648,7 @@ arithmetic checks do not establish live-service behavior.
 | WIST-2 §7 and WIST-4 §5 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day anchor and live quota and ingest-budget application per Registrable Domain under the snapshot in force |
 | WIST-2 §§6, 8 scheduling and redirects | Hints change pull timing without creating a duty; redirect termination and authority restrictions under live pulls |
 | WIST-3 §§5–6 publication | Every Entry below the Checkpoint's tree size durably stored and retrievable at its tile path before that Checkpoint is published; Payload replication before the Epoch; the partial tiles and entry bundle the head's tree size requires served while that head stands, and every full tile, entry bundle and archived Checkpoint retained from genesis |
+| WIST-3 §§3.2–3.3, 6.1, 7 sealing and records | Live sealing that judges every candidate Catalog and Item at its Epoch, seals none that fails and no Item in the Epoch that seals its Payload's withdrawal; the last accepted Catalog, places, eligibility, each deferral and the hold reported at the status endpoint; the capacity order with Labels and disputes; the Payload check at an Item's turn; the Payload duties of §6.1 over time, a superseded Payload included; a replaying Consumer and one resumed from a Snapshot reaching the same latest Catalogs, records, removal states and materialized records, an unmaterialized record restored after the resume included; several Logs combined per Publisher and URL |
 | WIST-3 §§6–7 Snapshot directories and sharding | Each Snapshot served under its own immutable `/snapshots/<snapshot_date>/<epoch_number>/` directory, a later Epoch of the same date under a new one, the index newest date first and higher Epoch first within a date, and an entry disagreeing with its manifest answered by re-fetching the index (`WIST3-E04`); where sharded, shard *i*'s tier files under `shard-<i>/` with a matching `shard`, per-shard digests recomputed by grouping the loaded records with §7's domain rule, and Label, labeler and dispute rows filed by Labeler and disputant. `vectors/wist3/snapshot-index.json` supplies the index cases and `vectors/wist3/snapshot-records.json`'s `sharded` member the shard assignment, digests, paths and rows. Not supplied: a partial Consumer holding a subset of shards, and a directory rewritten in place, observable only over time against a live Aggregator |
 | WIST-3 §§3.1, 3.3, 6 transport parsing | Independent decoding of tiles and entry bundles, including the big-endian uint16 length prefix, a partial tile or bundle and the fallback to the full one; recomputation against a verified Checkpoint's root rather than trust in the source; refusal to buffer past the 8 192-octet tile bound, the 16 777 472-octet entry-bundle bound, the 65 535-octet Entry bound and the derived transport bound, with equality permitted; leap-second rejection in all Log-comparable timestamp fields and Snapshot tuples; the full four-digit Gregorian year range, including late December 9999 independently of library timestamp limits. `vectors/wist3/tile-bounds.json` fixes the bounds and the malformed forms §6 excludes — an empty tile, a length that is not a multiple of 32, a hash or Entry count other than the path's, a partial width outside 1 through 255, a length prefix or leaf data cut short, an octet after the last Entry, and an Epoch's Entries short of or reaching past its leaf range — over synthetic leaf data no Checkpoint states a root over, leaving the recomputation against a root, the partial-to-full fallback and the reading limit to be exercised on served files |
 | WIST-3 §§3.4, 5 Checkpoint notes | Independent signed-note parsing: exactly five lines, the origin equal to the Anchor's `log_id`, the extension lines rejected on any octet of deviation, a root hash line that decodes to exactly 32 octets and re-encodes to itself, every signature line ending in a newline under a non-empty key name free of `+` and of every character with the Unicode White_Space property, at most 16 signature lines, unknown signature lines ignored and a line naming a known key required to verify; the note key ID derived per §3.4 and an `aggregator_key_add` colliding with an admitted key's note key ID rejected in replay. `vectors/wist3/aggregator-keys.json` supplies the multi-key side of the rule — the note key ID of every key valid at the height, a rotation Checkpoint carrying two verifying lines, a line from a key removed at that Epoch or admitted after it, and both collision forms — leaving unvalidated the Witness-side configuration of a rotated verifier key and the serving of Checkpoints across a rotation |

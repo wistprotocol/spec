@@ -17,6 +17,8 @@ import catalogs
 import ed25519_curve
 import items
 import link_extraction
+import materialization
+import sealing
 import tree_files
 from merkle import audit_path, consistency_proof, leaf_hash, node_hash
 from merkle import merkle_root as merkle_tree_root
@@ -138,9 +140,6 @@ delta = {
     "meta": {"lang": "en", "topics": ["software"], "license": "CC-BY-4.0"},
 }
 
-delta_canonical = rfc8785.dumps(delta)
-delta_id = "sha256:" + sha256_hex(delta_canonical)
-delta_envelope = sign_envelope("delta", delta, KID1)
 
 example_item = {
     "publisher": "example.com",
@@ -173,6 +172,7 @@ write_json(EXAMPLES / "item.json", example_item)
 (EXAMPLES / "tree-file.json").write_bytes(example_tree_files[example_tree[len("sha256:"):]])
 write_json(EXAMPLES / "catalog.json", example_catalog_envelope)
 write_json(EXAMPLES / "payload.json", payload)
+write_json(EXAMPLES / "publisher-item.json", items.publisher_item_body(example_item, example_catalog, [example_item]))
 print("wist1 item id:", example_item_id, "catalog id:", example_catalog_id)
 print("wist1 payload salt:", payload["salt"], "commitment:", commitment,
       "bytes:", len(content_canonical))
@@ -2218,40 +2218,49 @@ print("wist3 log anchor example written")
 WIST3 = ROOT / "vectors" / "wist3"
 WIST3.mkdir(parents=True, exist_ok=True)
 
-def attest_delta(n: int, prev_id: str) -> dict:
-    inner = {
-        "wist_version": "1.0.0",
-        "publisher": "example.com",
-        "url": f"https://example.com/blog/post-{n}",
-        "change_type": "attest",
-        "observed_at": "2026-08-02T12:00:00Z",
-        "prev": prev_id,
-        "meta": {"lang": "en"},
-    }
-    return sign_envelope("delta", inner, KID1)
+EXAMPLE_LOG_PARAMETERS = {
+    "clock_skew_seconds": 600, "catalog_items_max": 16777216, "catalog_refresh_seconds": 604800,
+    "payload_window_days": 180, "domain_epoch_entries_max": 10000, "url_cap_bytes": 2048,
+    "extract_cap_bytes": 32768, "links_cap_bytes": 4096, "link_url_cap_bytes": 2048, "summary_cap_bytes": 2048,
+    "collections_max": 16, "scope_entries_max": 32, "recovery_window_days": 7, "declaration_activation_epochs": 24}
+EXAMPLE_LOG_PAYLOADS = {}
 
-# prev IDs for the attest deltas: synthetic prior deltas ("new" for each URL)
-def synthetic_prior_id(n: int) -> str:
-    inner = {
-        "wist_version": "1.0.0",
-        "publisher": "example.com",
-        "url": f"https://example.com/blog/post-{n}",
-        "change_type": "new",
-        "observed_at": "2026-08-01T12:00:00Z",
-        "meta": {"lang": "en"},
-    }
-    return "sha256:" + sha256_hex(rfc8785.dumps(inner))
+def example_log_page(n: int) -> dict:
+    url = f"https://example.com/blog/post-{n}"
+    publication = {"url": url, "lang": "en", "modified": "2026-08-02T11:00:00Z",
+                   "content": {"extract": f"Post {n} of the example Log.", "links": {"total": 0, "urls": []},
+                               "summary": {"title": f"Post {n}"}}}
+    made, made_payload = items.new_page_item(
+        "example.com", publication, b64u(hashlib.sha256(b"wist-test-salt|" + url.encode()).digest()[:16]))
+    EXAMPLE_LOG_PAYLOADS[items.item_id(made)] = made_payload
+    return made
 
-entries = [{"type": "publisher_delta", "body": delta_envelope}]
-for n in (2, 3, 4):
-    entries.append({"type": "publisher_delta",
-                    "body": attest_delta(n, synthetic_prior_id(n))})
+def example_log_epoch(listed: list, generated_at: str, sealed: list, extra: list) -> list:
+    tree, _ = tree_files.write_tree(items.in_list_order(listed))
+    inner = {"wist_version": "1.0.0", "publisher": "example.com", "collection": "default",
+             "generated_at": generated_at, "size": len(listed), "root": items.root_string(listed), "tree": tree}
+    out = extra + [{"type": "publisher_catalog", "body": sign_envelope("catalog", inner, KID1)}]
+    out += [{"type": "publisher_item", "body": items.publisher_item_body(i, inner, listed)} for i in sealed]
+    return sealing.canonical_order(out)
 
-# WIST-3 §3.3: Entry order is canonical — grouped by type (all four here are
-# publisher_delta), ascending leaf-hash order within the group. None of the
-# attest chains reference each other inside the Epoch, so leaf-hash order
-# and chain order impose no conflicting demand on this vector.
-entries.sort(key=lambda e: leaf_hash(rfc8785.dumps(e)))
+def example_log_payloads(*epoch_entries) -> dict:
+    ids = sorted(items.item_id(e["body"]["item"]) for es in epoch_entries for e in es
+                 if e["type"] == "publisher_item")
+    return {i: EXAMPLE_LOG_PAYLOADS[i] for i in ids}
+
+posts = {n: example_log_page(n) for n in (2, 3, 4, 5)}
+entries = example_log_epoch(
+    [posts[2], posts[3]], "2026-08-02T12:30:00Z", [posts[2], posts[3]],
+    [{"type": "publisher_declaration", "body": sign_envelope("publisher", publisher, KID1)}])
+entries2 = example_log_epoch(
+    [posts[n] for n in (2, 3, 4, 5)], "2026-08-02T14:30:00Z", [posts[4], posts[5]], [])
+_example_replay, _ = sealing.replay([
+    {"height": h, "sealed_at": s, "parameters": EXAMPLE_LOG_PARAMETERS, "entries": e}
+    for h, s, e in ((0, "2026-08-02T13:00:00Z", entries), (1, "2026-08-02T14:00:00Z", []),
+                    (2, "2026-08-02T15:00:00Z", entries2))])
+assert all(r["status"] == "accepted" and all(d is None or d["disposition"] == "valid" for d in r["entries"])
+           for r in _example_replay), "an Entry of the example Log is not valid under WIST-3 §3.3"
+assert len(entries) == 4 and len(entries2) == 3
 
 leaves = [leaf_hash(rfc8785.dumps(e)) for e in entries]
 n01 = node_hash(leaves[0], leaves[1])
@@ -2276,7 +2285,10 @@ assert consistency_0_4 == []
 write_json(WIST3 / "epoch.json", {
     "note": "WIST-3 Appendix A. The Log's static surface (§6) for its tree at size 4: "
             "the Checkpoint, the level-0 partial tile, the entry bundle, and the empty "
-            "Consistency Proof from the empty tree (size 0) to size 4.",
+            "Consistency Proof from the empty tree (size 0) to size 4. Epoch 0 seals the "
+            "example Declaration, a Catalog of its default Collection and two of its Items, "
+            "each valid under WIST-3 §3.3. `payloads` maps the Item ID of each sealed Item "
+            "to the Payload its commitment is computed over; no figure of the tree reads them.",
     "log_id": LOG_ID,
     "checkpoint": checkpoint_text,
     "entries": entries,
@@ -2288,6 +2300,7 @@ write_json(WIST3 / "epoch.json", {
     "entry_bundle_000_p_4": entry_bundle.hex(),
     "entry_bundle_000_p_4_path": tile_path("entries", 0, 4),
     "consistency_proof_0_to_4": [h.hex() for h in consistency_0_4],
+    "payloads": example_log_payloads(entries),
 })
 write_json(WIST3 / "inclusion-proof.json", inclusion_proof)
 
@@ -2317,9 +2330,6 @@ write_json(WIST3 / "empty-epoch.json", {
 # One cumulative tree over the Appendix A Log: Epoch 0 (leaves 0-3, this
 # file's `epoch`/`leaves`/`root_bytes`), Epoch 1 (empty, `epoch_1_checkpoint`),
 # Epoch 2 (leaves 4-6, three more Entries, below). Hourly `sealed_at`.
-entries2 = [{"type": "publisher_delta", "body": attest_delta(n, synthetic_prior_id(n))}
-           for n in (5, 6, 7)]
-entries2.sort(key=lambda e: leaf_hash(rfc8785.dumps(e)))
 epoch2, leaves2 = seal(LOG_ID, priv, leaves, entries2, 2, "2026-08-02T15:00:00Z")
 checkpoint2 = epoch2["checkpoint"]
 consistency_4_7 = consistency_proof(4, 7, leaves2)
@@ -2507,15 +2517,20 @@ rollback_cases = [
      "offered_checkpoint": ROLLBACK_EQUIVOCATING, "expected": "WIST3-E02"},
 ]
 
-_equiv_a_entries = [{"type": "publisher_delta", "body": attest_delta(n, synthetic_prior_id(n))}
-                    for n in (105, 106, 107, 108)]
+def fork_entry(n: int) -> dict:
+    forked = example_log_page(n)
+    tree, _ = tree_files.write_tree([forked])
+    inner = {"wist_version": "1.0.0", "publisher": "example.com", "collection": "default",
+             "generated_at": "2026-08-02T12:30:00Z", "size": 1, "root": items.root_string([forked]), "tree": tree}
+    return {"type": "publisher_item", "body": items.publisher_item_body(forked, inner, [forked])}
+
+_equiv_a_entries = [fork_entry(n) for n in (105, 106, 107, 108)]
 _equiv_a_entries.sort(key=lambda e: leaf_hash(rfc8785.dumps(e)))
 _equiv_a_leaves = [leaf_hash(rfc8785.dumps(e)) for e in _equiv_a_entries]
 _equiv_a_checkpoint = checkpoint_note(LOG_ID, priv, 4, merkle_tree_root(_equiv_a_leaves), 7,
                                       "2026-08-02T16:00:00Z")
 _equiv_b_checkpoint = checkpoint_note(LOG_ID, priv, 4, root_bytes, 0, "2026-08-02T13:30:00Z")
-_equiv_c_entries = [{"type": "publisher_delta", "body": attest_delta(n, synthetic_prior_id(n))}
-                    for n in (205, 206, 207, 208, 209, 210, 211)]
+_equiv_c_entries = [fork_entry(n) for n in (205, 206, 207, 208, 209, 210, 211)]
 _equiv_c_entries.sort(key=lambda e: leaf_hash(rfc8785.dumps(e)))
 _equiv_c_leaves = [leaf_hash(rfc8785.dumps(e)) for e in _equiv_c_entries]
 _equiv_c_checkpoint = checkpoint_note(LOG_ID, priv, 7, merkle_tree_root(_equiv_c_leaves), 8,
@@ -2584,8 +2599,7 @@ assert nbf_at("2026-08-02T15:30:00Z") % EPOCH_CADENCE_SECONDS
 # A tree size below the head's, once under a root that is not the head
 # tree's prefix root at that size — §5's third Equivocation form — and once
 # under the prefix root itself, where no Consistency Proof is missing.
-_seq_below_entries = [{"type": "publisher_delta", "body": attest_delta(n, synthetic_prior_id(n))}
-                      for n in (305, 306, 307, 308, 309)]
+_seq_below_entries = [fork_entry(n) for n in (305, 306, 307, 308, 309)]
 _seq_below_entries.sort(key=lambda e: leaf_hash(rfc8785.dumps(e)))
 _seq_below_root = merkle_tree_root([leaf_hash(rfc8785.dumps(e)) for e in _seq_below_entries])
 _seq_prefix_root = merkle_tree_root(leaves2[:5])
@@ -2699,7 +2713,9 @@ write_json(WIST3 / "checkpoints.json", {
             "§4 size-0 root comparison, and the "
             "§8 steps 4-5 Snapshot cold-start match, over one cumulative tree "
             "of 7 leaves (Epoch 0 of vectors/wist3/epoch.json, the empty "
-            "Epoch 1 of empty-epoch.json, and Epoch 2 below). Each case list "
+            "Epoch 1 of empty-epoch.json, and Epoch 2 below, which seals a later "
+            "Catalog of the same Collection and two more of its Items; `payloads` "
+            "carries the Payloads of the sealed Items). Each case list "
             "judges its own candidates: note_form_cases, sequence_cases, "
             "cold_start_cases, size_zero_cases and "
             "equivocation_cases deliberately carry Checkpoints that "
@@ -2724,6 +2740,7 @@ write_json(WIST3 / "checkpoints.json", {
     "quorum_cases": quorum_cases,
     "cold_start_cases": cold_start_cases,
     "size_zero_cases": size_zero_cases,
+    "payloads": example_log_payloads(entries, entries2),
 })
 print("wist3 checkpoint vectors written")
 
@@ -3212,45 +3229,37 @@ write_json(WIST3 / "aggregator-keys.json", aggregator_key_vectors())
 print("wist3 aggregator key vectors written")
 
 # ---------------------------------------- WIST-3 §7: snapshot content digest
-# The record tuple carries Log-derived identifiers only — no page content — so
-# the digest stays computable after a Payload is withdrawn, while `delta_id`
-# still pins the salted commitment that binds the content itself.
-#
-# Two records, so that the ordering rule is exercised. The second domain's Delta is not an Entry of the example Epoch:
-# this vector demonstrates §7's record encoding, not a materialization of
-# Epoch 0.
 REDUCED_URL = "https://reduced.example.org/notice"
 REDUCED_CONTENT = {
     "extract": "A second domain's notice.",
     "links": {"total": 0, "urls": []},
     "summary": {"title": "Notice", "abstract": "A second domain's record."},
 }
-reduced_canonical = rfc8785.dumps(REDUCED_CONTENT)
-reduced_salt = hashlib.sha256(
-    b"wist-test-salt|" + REDUCED_URL.encode()).digest()[:16]
-reduced_delta = {
-    "wist_version": "1.0.0",
-    "publisher": "reduced.example.org",
-    "url": REDUCED_URL,
-    "change_type": "new",
-    "observed_at": "2026-08-02T11:30:00Z",
-    "payload": {"commitment": "hmac-sha256:" + hmac.new(
-                    reduced_salt, reduced_canonical, hashlib.sha256).hexdigest(),
-                "alg": "HMAC-SHA256", "bytes": len(reduced_canonical)},
-    "meta": {"lang": "en"},
-}
-reduced_delta_id = "sha256:" + sha256_hex(rfc8785.dumps(reduced_delta))
+reduced_item, reduced_payload = items.new_page_item(
+    "reduced.example.org",
+    {"url": REDUCED_URL, "lang": "en", "modified": "2026-08-02T11:30:00Z", "content": REDUCED_CONTENT},
+    b64u(hashlib.sha256(b"wist-test-salt|" + REDUCED_URL.encode()).digest()[:16]))
+reduced_declaration = sign_envelope_with(priv3, "publisher", {
+    "wist_version": "1.0.0", "seq": 0, "domain": "reduced.example.org",
+    "keys": [jwk(pub3_raw, "2026-08-02T00:00:00Z")]}, KID3)
+reduced_tree, _ = tree_files.write_tree([reduced_item])
+reduced_catalog = {"wist_version": "1.0.0", "publisher": "reduced.example.org", "collection": "default",
+                   "generated_at": "2026-08-02T11:45:00Z", "size": 1,
+                   "root": items.root_string([reduced_item]), "tree": reduced_tree}
+reduced_catalog_envelope = sign_envelope_with(priv3, "catalog", reduced_catalog, KID3)
+assert catalogs.catalog_disposition(reduced_catalog_envelope, reduced_declaration["publisher"],
+                                    reduced_catalog["generated_at"]) == "accepted"
 
-RECORD_FIELDS = ["url", "publisher", "delta_id", "observed_at"]
-
-snapshot_records = [
-    {"url": DELTA_URL, "publisher": "example.com", "delta_id": delta_id,
-     "observed_at": delta["observed_at"]},
-    {"url": REDUCED_URL, "publisher": "reduced.example.org",
-     "delta_id": reduced_delta_id,
-     "observed_at": reduced_delta["observed_at"]},
-]
-assert all(sorted(r) == sorted(RECORD_FIELDS) for r in snapshot_records), \
+RECORD_FIELDS = ["url", "publisher", "item_id", "observed_at", "attested_at"]
+example_collection_tuple = ["collection", "example.com", "default", example_catalog_envelope, 0]
+example_record_tuple = ["record", "example.com", DELTA_URL, example_item, "default", example_catalog_id,
+                        example_catalog["generated_at"]]
+reduced_collection_tuple = ["collection", "reduced.example.org", "default", reduced_catalog_envelope, 0]
+reduced_record_tuple = ["record", "reduced.example.org", REDUCED_URL, reduced_item, "default",
+                        catalogs.catalog_id(reduced_catalog), reduced_catalog["generated_at"]]
+snapshot_records = [materialization.content_tuple(t[1], t[2], t[3], t[6])
+                    for t in (example_record_tuple, reduced_record_tuple)]
+assert all(list(r) == RECORD_FIELDS for r in snapshot_records), \
     "a record carries a field §7's tuple does not name"
 
 
@@ -3307,42 +3316,41 @@ sharded_records = {
 }
 assert sorted(sharded_records["digests"]) != [snapshot_digest] * SHARD_COUNT
 
-# tier1/links.parquet materialization (WIST-3 §7): one row per declared link of
-# every live record, (source_url, target_url, position). source_url is the
-# record's Normalized URL; target_url and position come from that record's
-# Payload content.links.urls, in declared order. This is a function of
-# Payload content, not of the Log, so — unlike the record tuple above — a
-# link row leaves distribution together with its Payload on a withdrawal
-# (WIST-3 §6.2) rather than surviving in content_digest. The reduced.example.org
-# record contributes no rows: its Payload declares no links.
 snapshot_links = [
     {"source_url": DELTA_URL, "target_url": u, "position": i}
     for i, u in enumerate(CONTENT["links"]["urls"])
 ]
 
 write_json(WIST3 / "snapshot-records.json", {
-    "note": ("The live record set WIST-3 §7's content_digest is computed over. "
-             "Each record carries Log-derived identifiers only: no page "
-             "content reaches the digest, so it remains computable after a "
-             "Payload is withdrawn (WIST-3 §6.2), while delta_id still names "
-             "the Delta whose salted commitment binds the content. The "
-             "reduced.example.org Delta is not an Entry of the example "
-             "Epoch; this vector publishes the record encoding, not a "
-             "materialization of Epoch 0. `links` is the tier1/links.parquet "
-             "materialization: one (source_url, target_url, position) row "
-             "per declared link of every live record, source_url the "
-             "record's Normalized URL and target_url/position drawn in "
-             "order from that record's Payload content.links.urls. Unlike "
-             "the record tuple above, a link row derives from Payload "
-             "content, not from the Log, and therefore leaves distribution "
-             "with the Payload on a withdrawal (WIST-3 §6.2) rather than "
-             "surviving in content_digest; the reduced.example.org record "
-             "contributes no rows because its Payload declares no links."),
+    "note": ("The materialized record set WIST-3 §7's content_digest is computed over, "
+             "as content tuples (url, publisher, item_id, observed_at, attested_at): "
+             "Log-derived values only, so the digest remains computable after a Payload "
+             "is withdrawn (WIST-3 §6.2), while item_id still names the Item whose salted "
+             "commitment binds the content. Neither Item is an Entry of the example Epoch; "
+             "this vector publishes the content tuple, not a materialization of Epoch 0. "
+             "`tuples` gives the collection and record tuples (WIST-3 §7) each content "
+             "tuple is derived from: item_id is the ID of the record's Item, observed_at "
+             "its observed_at and attested_at the generated_at of the Catalog it was proved "
+             "against, which is the collection tuple's Catalog. example.com's tuples are "
+             "those of examples/snapshot-state.json and its Declaration is "
+             "examples/publisher.json; `declarations` carries the second domain's, under "
+             "which its Catalog verifies, and `payloads` maps each Item ID to its Payload. "
+             "`links` is the tier1/links.parquet materialization: one (source_url, "
+             "target_url, position) row per declared link of every materialized record, "
+             "source_url the record's Normalized URL and target_url/position drawn in "
+             "order from that record's Payload content.links.urls. A link row derives "
+             "from Payload content, not from the Log, and therefore leaves distribution "
+             "with the Payload on a withdrawal (WIST-3 §6.2) rather than surviving in "
+             "content_digest; the reduced.example.org record contributes no rows because "
+             "its Payload declares no links."),
     "snapshot_date": "2026-08-02",
-    "tree_size": 0,
+    "tree_size": len(leaves),
     "record_fields": RECORD_FIELDS,
     "records": snapshot_records,
     "content_digest": snapshot_digest,
+    "tuples": [example_collection_tuple, example_record_tuple, reduced_collection_tuple, reduced_record_tuple],
+    "declarations": {"reduced.example.org": reduced_declaration},
+    "payloads": {items.item_id(example_item): payload, items.item_id(reduced_item): reduced_payload},
     "links": snapshot_links,
     "sharded": dict(
         note=("WIST-3 §7 sharding over the same records: `count` shards, "
@@ -3360,158 +3368,55 @@ write_json(WIST3 / "snapshot-records.json", {
         **sharded_records),
 })
 
-# ------------------------------- WIST-3 §7: applying Deltas along their chains
-# A replayer applies a sealed Delta only when its prev is the chain tip the
-# state carries for (publisher, url); a fork of a sealed chain and a prev no
-# lower Entry sealed are ignored alike, and an ignored Delta never becomes a
-# tip (WIST-1 §3.5). Abstract ids: the rule reads prev links, not content.
-CHAIN_PUB, CHAIN_URL = "example.com", "https://example.com/a"
-
-
-def chain_delta(id_, prev, change_type="update", publisher=CHAIN_PUB, url=CHAIN_URL,
-                eligible=True):
-    delta = {"id": id_, "publisher": publisher, "url": url, "prev": prev,
-             "change_type": change_type}
-    if not eligible:
-        delta["eligible"] = False
-    return delta
-
-
-def chain_replay(deltas):
-    tips, ignored = {}, []
-    for i, d in enumerate(deltas):
-        key = (d["publisher"], d["url"])
-        if not d.get("eligible", True) or d["prev"] != tips.get(key):
-            ignored.append(i)
-            continue
-        tips[key] = d["id"]
-    return ignored, [{"publisher": p, "url": u, "delta": t}
-                     for (p, u), t in sorted(tips.items())]
-
-
-chain_scenarios = [
-    ("linear-chain",
-     [chain_delta("d1", None, "new"), chain_delta("d2", "d1"), chain_delta("d3", "d2", "attest")]),
-    ("fork-ignored",
-     [chain_delta("d1", None, "new"), chain_delta("d2", "d1"), chain_delta("d3", "d1")]),
-    ("unsealed-prev-ignored",
-     [chain_delta("d1", None, "new"), chain_delta("d2", "d0")]),
-    ("successor-of-an-ignored-delta-ignored",
-     [chain_delta("d1", None, "new"), chain_delta("d2", "d0"), chain_delta("d3", "d2")]),
-    ("chain-continues-through-delete",
-     [chain_delta("d1", None, "new"), chain_delta("d2", "d1", "delete"),
-      chain_delta("d3", "d2", "new")]),
-    ("second-first-delta-ignored",
-     [chain_delta("d1", None, "new"), chain_delta("d2", None, "new")]),
-    ("publishers-chain-separately",
-     [chain_delta("d1", None, "new"),
-      chain_delta("e1", None, "new", publisher="www.example.com"),
-      chain_delta("e2", "e1", publisher="www.example.com")]),
-    ("ineligible-delta-ignored-with-its-successor",
-     [chain_delta("d1", None, "new"), chain_delta("d2", "d1", eligible=False),
-      chain_delta("d3", "d2")]),
-    ("ineligible-first-delta-leaves-no-tip",
-     [chain_delta("d1", None, "new", eligible=False), chain_delta("d2", "d1"),
-      chain_delta("d3", None, "new")]),
-]
-chain_cases = []
-for label, deltas in chain_scenarios:
-    ignored, tips = chain_replay(deltas)
-    chain_cases.append({"label": label, "deltas": deltas,
-                        "ignored_indices": ignored, "tips": tips})
-assert [c["ignored_indices"] for c in chain_cases] == \
-    [[], [2], [1], [1, 2], [], [1], [], [1, 2], [0, 1]], "chain replay drifted"
-write_json(WIST3 / "chain-materialization.json", spaced_labels({
-    "note": ("WIST-3 §§3.3/7, WIST-1 §3.5: per case the sealed Deltas of one Log in "
-             "Log order, the indices a replayer ignores, and the chain tip per "
-             "(publisher, url) afterwards. A Delta marked eligible false fails a "
-             "WIST-1 §7 check at its Epoch and is ignored like a fork; the Epoch "
-             "stays accepted."),
-    "cases": chain_cases,
-}))
-
-
 # ------------------------------- WIST-3 §7: one URL, one Publisher
-def materialization_preference(host, self_declared, candidates):
-    """The Publisher whose record a URL materializes: the self-declared host's
-    own, else the nearest ancestor's, else the least non-ancestor domain."""
-    if self_declared:
-        return host if host in candidates else None
-    ancestors = [c for c in candidates if host.endswith("." + c)]
-    if ancestors:
-        return max(ancestors, key=len)
-    return min(candidates) if candidates else None
-
-
 preference_cases = []
-for label, host, self_declared, candidates in (
-    ("self declaration prevails", "a.example.com", True, ["example.com", "a.example.com"]),
-    ("self declaration excludes parents without an own record", "a.example.com", True, ["example.com"]),
-    ("nearest ancestor", "a.b.example.com", False, ["example.com", "b.example.com"]),
-    ("ancestor over non ancestor", "a.example.com", False, ["zeta.example", "example.com"]),
-    ("non ancestors in octet order", "a.example.com", False, ["zeta.example", "alpha.example"]),
-    ("single scoped publisher", "a.example.com", False, ["other.example"]),
-    ("label boundary is not a suffix match", "a.notexample.com", False, ["example.com", "beta.example"]),
+for label, host, self_declared, held in (
+    ("self declaration prevails", "a.example.com", True, [("example.com", False), ("a.example.com", False)]),
+    ("self declaration excludes parents without an own record", "a.example.com", True, [("example.com", False)]),
+    ("nearest ancestor", "a.b.example.com", False, [("example.com", False), ("b.example.com", False)]),
+    ("ancestor over non ancestor", "a.example.com", False, [("zeta.example", False), ("example.com", False)]),
+    ("non ancestors in octet order", "a.example.com", False, [("zeta.example", False), ("alpha.example", False)]),
+    ("single scoped publisher", "a.example.com", False, [("other.example", False)]),
+    ("label boundary is not a suffix match", "a.notexample.com", False,
+     [("example.com", False), ("beta.example", False)]),
+    ("a withdrawn nearest ancestor", "a.b.example.com", False, [("example.com", False), ("b.example.com", True)]),
+    ("a withdrawn ancestor beside a non ancestor", "a.example.com", False,
+     [("example.com", True), ("zeta.example", False)]),
+    ("a self declared host whose own record is withdrawn", "a.example.com", True,
+     [("example.com", False), ("a.example.com", True)]),
 ):
+    candidates = [p for p, withdrawn in held if not withdrawn]
     preference_cases.append({"label": label, "host": host, "self_declared": self_declared,
-                             "candidates": candidates,
-                             "materialized": materialization_preference(host, self_declared, candidates)})
+                             "records": [{"publisher": p, "withdrawn": w} for p, w in held],
+                             "materialized": materialization.preferred(host, self_declared, candidates)})
 assert [c["materialized"] for c in preference_cases] == \
-    ["a.example.com", None, "b.example.com", "example.com", "alpha.example", "other.example", "beta.example"], \
-    "materialization preference drifted"
+    ["a.example.com", None, "b.example.com", "example.com", "alpha.example", "other.example", "beta.example",
+     "example.com", "zeta.example", None], "materialization preference drifted"
 write_json(WIST3 / "materialization-preference.json", spaced_labels({
-    "note": ("WIST-3 §7, one URL, one Publisher: candidates are the Publishers holding a live record for "
-             "one URL of host at a height; self_declared says whether the host's own seq-0 Declaration "
-             "Entry is sealed at or below that height. materialized names the Publisher whose record the "
-             "Snapshot carries, null when every candidate is excluded. Which records are live is a Log "
-             "question these cases do not decide."),
+    "note": ("WIST-3 §7, one URL, one Publisher: `records` lists the Publishers holding a record of one URL of "
+             "host at a height, each with whether a withdrawal sealed at or below that height names the record's "
+             "Item; self_declared says whether the first publisher_declaration Entry whose domain is the host is "
+             "sealed at or below that height. Only records no such withdrawal names are candidates. materialized "
+             "names the Publisher whose record the Snapshot carries, null when the rule selects none. Which "
+             "records a Log holds is carried by vectors/wist3/record-materialization.json."),
     "cases": preference_cases,
 }))
-print("wist3 chain-materialization vector: %d cases" % len(chain_cases))
 
 # ------------------------------------------- WIST-3 §7: the state artifact
-# The protocol state at tree_size, one tuple per live item, kinds and
-# fields per WIST-3 §7's table. Aligned with snapshot-records above: the same
-# two records (chain tips = their only Deltas) and the genesis Aggregator key.
-# No `parameter`, `withdrawal` or `label` tuples: nothing is amended,
-# withdrawn or labeled at height 0, and Registry defaults are not restated.
-# A deleted URL keeps its chain tip (WIST-3 §7): the `delete` is the tip the
-# URL's next Delta names as prev, so the state carries a `record` tuple for it
-# although no content tuple exists — the tuple's keys are a superset of the
-# content tuples' keys.
 DELETED_URL = "https://example.com/blog/retired"
-retired_new = {
-    "wist_version": "1.0.0",
-    "publisher": "example.com",
-    "url": DELETED_URL,
-    "change_type": "new",
-    "observed_at": "2026-08-01T09:00:00Z",
-    "payload": {"commitment": "hmac-sha256:" + hmac.new(
-                    hashlib.sha256(b"wist-test-salt|" + DELETED_URL.encode()).digest()[:16],
-                    rfc8785.dumps({"extract": "Retired.", "links": {"total": 0, "urls": []}}),
-                    hashlib.sha256).hexdigest(),
-                "alg": "HMAC-SHA256",
-                "bytes": len(rfc8785.dumps({"extract": "Retired.", "links": {"total": 0, "urls": []}}))},
-    "meta": {"lang": "en"},
-}
-retired_new_id = "sha256:" + sha256_hex(rfc8785.dumps(retired_new))
-retired_delete = {
-    "wist_version": "1.0.0",
-    "publisher": "example.com",
-    "url": DELETED_URL,
-    "change_type": "delete",
-    "observed_at": "2026-08-02T10:00:00Z",
-    "prev": retired_new_id,
-}
-retired_delete_id = "sha256:" + sha256_hex(rfc8785.dumps(retired_delete))
-assert all(r["url"] != DELETED_URL for r in snapshot_records), \
-    "a deleted URL has no content tuple"
+retired_item = items.removed_item("example.com", DELETED_URL, "2026-01-15T00:00:00Z")
+retired_tree, _ = tree_files.write_tree([retired_item])
+retired_catalog = {"wist_version": "1.0.0", "publisher": "example.com", "collection": "default",
+                   "generated_at": "2026-01-15T00:00:00Z", "size": 1,
+                   "root": items.root_string([retired_item]), "tree": retired_tree}
+assert all(r["url"] != DELETED_URL for r in snapshot_records), "a removed URL has no content tuple"
 
 state_entries = [
     ["aggregator_key", "test-agg-k1", b64u(pub_raw), 0, None, None, None],
-    ["record", "example.com", DELTA_URL, delta_id],
-    ["record", "example.com", DELETED_URL, retired_delete_id],
-    ["record", "reduced.example.org", REDUCED_URL, reduced_delta_id],
+    example_collection_tuple,
+    example_record_tuple,
+    ["removal", "example.com", DELETED_URL, items.item_id(retired_item), catalogs.catalog_id(retired_catalog),
+     retired_catalog["generated_at"]],
 ]
 
 
@@ -3520,7 +3425,7 @@ def state_digest_of(entries) -> str:
     return "sha256:" + sha256_hex(b"".join(sorted(rfc8785.dumps(e) for e in entries)))
 
 
-state_inner = {"wist_version": "1.0.0", "tree_size": 0, "entries": state_entries}
+state_inner = {"wist_version": "1.0.0", "tree_size": len(leaves), "entries": state_entries}
 state_envelope = sign_envelope("state", state_inner, "test-agg-k1")
 write_json(EXAMPLES / "snapshot-state.json", state_envelope)
 state_bytes = rfc8785.dumps(state_envelope)
@@ -4601,11 +4506,16 @@ def label_table_vectors():
         cap_case("labels at the labeler cap", [e("label", "a.example"), e("label", "a.example")]),
         cap_case("labels over the labeler cap", [e("label", "a.example"), e("label", "a.example"), e("label", "a.example")]),
         cap_case("a dispute counts with the labels", [e("label", "a.example"), e("label", "a.example"), e("dispute", "a.example")]),
-        cap_case("Deltas do not count toward the labeler cap",
-                 [e("publisher_delta", "a.example"), e("label", "a.example"), e("label", "a.example")]),
-        cap_case("labels and Deltas over the domain cap",
-                 [e("publisher_delta", "a.example"), e("publisher_delta", "a.example"), e("label", "a.example"),
+        cap_case("publications do not count toward the labeler cap",
+                 [e("publisher_item", "a.example"), e("label", "a.example"), e("label", "a.example")]),
+        cap_case("a Catalog does not count toward the labeler cap",
+                 [e("publisher_catalog", "a.example"), e("label", "a.example"), e("label", "a.example")]),
+        cap_case("labels, a Catalog and an Item over the domain cap",
+                 [e("publisher_catalog", "a.example"), e("publisher_item", "a.example"), e("label", "a.example"),
                   e("label", "a.example")]),
+        cap_case("a Catalog and Items at the domain cap",
+                 [e("publisher_catalog", "a.example"), e("publisher_item", "a.example"),
+                  e("publisher_item", "a.example")]),
         cap_case("two Labelers at the cap each", [e("label", "a.example"), e("label", "a.example"),
                                                    e("label", "b.example"), e("label", "b.example")]),
     ]
@@ -4653,7 +4563,8 @@ def label_table_vectors():
         "note": ("WIST-3 section 7 tier1/labelers.parquet rows from sealed label Entries (statistics_cases: every "
                  "sealed Label counts, retractions included, subjects distinct, first-seen the lowest height); "
                  "WIST-3 section 3.2 and WIST-4 section 5 per-Labeler cap over label and dispute Entries "
-                 "beside the per-domain cap with no suffix-list snapshot in force, so every host is its own "
+                 "beside the per-domain capacity over publisher_catalog, publisher_item, label and dispute "
+                 "Entries, with no suffix-list snapshot in force, so every host is its own "
                  "unit (cap_cases); WIST-4 section 6's recommended default profile: a wist:mismatch or "
                  "wist:unavailable Label counts at a height only when it was current, unretracted and "
                  "unexpired at that height and the one before (persistence_cases; expires_at_height is the "
@@ -5028,14 +4939,29 @@ print("wist4 parameter-combinations vector written")
 
 # ------------------------------------- WIST-4 §5.1: payload_withdrawal acts
 def withdrawal_vectors():
-    d1 = "sha256:" + hashlib.sha256(b"withdrawal fixture Delta one").hexdigest()
-    d2 = "sha256:" + hashlib.sha256(b"withdrawal fixture Delta two").hexdigest()
-    d3 = "sha256:" + hashlib.sha256(b"withdrawal fixture Delta three").hexdigest()
-    d0 = "sha256:" + hashlib.sha256(b"withdrawal fixture Delta below the Snapshot").hexdigest()
-    sealed = [{"delta_id": d1, "publisher": "site.sample.net", "url": "https://site.sample.net/one", "height": 1},
-              {"delta_id": d2, "publisher": "other.sample.org", "url": "https://other.sample.org/two", "height": 4},
-              {"delta_id": d3, "publisher": "third.sample.org", "url": "https://third.sample.org/three",
-               "height": 5}]
+    payloads = {}
+
+    def sealed_item(publisher_domain, url, height, generated_at):
+        made, made_payload = items.new_page_item(
+            publisher_domain,
+            {"url": url, "lang": "en", "modified": "2026-08-01T12:00:00Z",
+             "content": {"extract": f"Text of {url}.", "links": {"total": 0, "urls": []},
+                         "summary": {"title": "Withdrawal fixture"}}},
+            b64u(hashlib.sha256(b"wist-test-salt|withdrawal|" + url.encode()).digest()[:16]))
+        payloads[items.item_id(made)] = made_payload
+        tree, _ = tree_files.write_tree([made])
+        inner = {"wist_version": "1.0.0", "publisher": publisher_domain, "collection": "default",
+                 "generated_at": generated_at, "size": 1, "root": items.root_string([made]), "tree": tree}
+        return {"item_id": items.item_id(made), "item": made, "publisher": publisher_domain, "url": url,
+                "height": height, "collection": "default", "catalog": catalogs.catalog_id(inner),
+                "generated_at": generated_at}
+
+    s1 = sealed_item("site.sample.net", "https://site.sample.net/one", 1, "2026-08-02T00:00:00Z")
+    s2 = sealed_item("other.sample.org", "https://other.sample.org/two", 4, "2026-08-02T03:00:00Z")
+    s3 = sealed_item("third.sample.org", "https://third.sample.org/three", 5, "2026-08-02T04:00:00Z")
+    s0 = sealed_item("old.sample.net", "https://old.sample.net/zero", 0, "2026-08-01T23:00:00Z")
+    d1, d2, d3, d0 = s1["item_id"], s2["item_id"], s3["item_id"], s0["item_id"]
+    sealed = [s1, s2, s3]
 
     def act(label, code, *, height=3, delta_id=d1, subject="site.sample.net", signer=priv,
             key_id="test-agg-k1", version="1.0.0", extra=None, details=None, withdrawn_height=None):
@@ -5055,13 +4981,13 @@ def withdrawal_vectors():
         act("signed by a key the Log does not hold", "WIST4-E11", signer=priv2, key_id="test-log-r1"),
         act("unsupported major", "WIST4-E11", version="2.0.0"),
         act("unknown member", "WIST4-E11", extra={"note": "x"}),
-        act("delta id not a Delta ID", "WIST4-E04",
+        act("delta id not an Item ID", "WIST4-E04",
             details={"delta_id": "sha256:xyz", "legal_basis": "b", "jurisdiction": "BR"}),
         act("missing legal basis", "WIST4-E04", details={"delta_id": d1, "jurisdiction": "BR"}),
         act("subject not a host", "WIST4-E04", subject="not a host!"),
         act("subject is another Publisher", "WIST4-E04", subject="other.sample.org"),
-        act("Delta sealed above the act", "WIST4-E04", delta_id=d2, subject="other.sample.org", height=2),
-        act("Delta sealed in the act's Epoch", None, delta_id=d2, subject="other.sample.org", height=4,
+        act("Item sealed above the act", "WIST4-E04", delta_id=d2, subject="other.sample.org", height=2),
+        act("Item sealed in the act's Epoch", None, delta_id=d2, subject="other.sample.org", height=4,
             withdrawn_height=4),
         act("repeated withdrawal keeps the first height", None, height=6,
             details={"delta_id": d1, "legal_basis": "second order", "jurisdiction": "BR"},
@@ -5069,36 +4995,40 @@ def withdrawal_vectors():
     ]
 
     state_tuples = [["withdrawal", d1, "site.sample.net", 3], ["withdrawal", d2, "other.sample.org", 4]]
-    record_tuples = [["record", d["publisher"], d["url"], d["delta_id"]] for d in sealed]
+    record_tuples = [["record", d["publisher"], d["url"], d["item"], d["collection"], d["catalog"],
+                      d["generated_at"]] for d in sealed]
     resume = {
         "tree_size": 3,
         "adopted": [["withdrawal", d1, "site.sample.net", 3]],
-        "walked_deltas": [d for d in sealed if d["height"] > 3],
+        "walked_items": [d for d in sealed if d["height"] > 3],
         "act_cases": [
             act("repeats an adopted withdrawal", None, height=5, withdrawn_height=3),
-            act("names a Delta sealed below the Snapshot", None, height=5, delta_id=d0,
+            act("names an Item sealed below the Snapshot", None, height=5, delta_id=d0,
                 subject="old.sample.net", withdrawn_height=5),
-            act("names a walked Delta of another Publisher", "WIST4-E04", height=5, delta_id=d2),
-            act("names a walked Delta sealed above the act", "WIST4-E04", height=4, delta_id=d3,
+            act("names a walked Item of another Publisher", "WIST4-E04", height=5, delta_id=d2),
+            act("names a walked Item sealed above the act", "WIST4-E04", height=4, delta_id=d3,
                 subject="third.sample.org"),
-            act("withdraws a walked Delta", None, height=6, delta_id=d3, subject="third.sample.org",
+            act("withdraws a walked Item", None, height=6, delta_id=d3, subject="third.sample.org",
                 withdrawn_height=6),
         ],
         "state_tuples": [["withdrawal", d0, "old.sample.net", 5], ["withdrawal", d1, "site.sample.net", 3],
                          ["withdrawal", d3, "third.sample.org", 6]],
     }
     return spaced_labels({
-        "note": ("WIST-4 §5.1: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and "
-                 "must name a Delta sealed at or below its Epoch whose signed publisher is the subject "
-                 "(WIST4-E04 otherwise); the earliest accepted withdrawal's Epoch governs and a later withdrawal "
-                 "of the same Delta changes nothing. Acts replay in order; state_tuples are the WIST-3 §7 "
-                 "withdrawal tuples the replay leaves, record_tuples the chain tips every sealed Delta moves, "
-                 "withdrawn or not, and materialized the sealed Deltas whose content materializes. resume "
-                 "replays acts at a Consumer that adopted the tuples at tree_size and walked only the Deltas "
-                 "above it: an act naming a Delta it did not walk is accepted as consistent."),
-        "log_key": {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)}, "sealed_deltas": sealed,
+        "note": ("WIST-4 §5.1 and WIST-3 §6.2: a payload_withdrawal is authenticated under the Log key "
+                 "(WIST4-E11 otherwise) and names in details.delta_id the Item ID of an Item of kind page sealed "
+                 "at or below its Epoch whose Publisher is the subject (WIST4-E04 otherwise); the earliest "
+                 "accepted withdrawal's Epoch governs and a later withdrawal of the same Item changes nothing. "
+                 "sealed_items gives each sealed Item with the record it makes: its Collection and the Catalog ID "
+                 "and generated_at of the Catalog it was proved against. Acts replay in order; state_tuples are "
+                 "the WIST-3 §7 withdrawal tuples the replay leaves, record_tuples the record each sealed Item "
+                 "makes, withdrawn or not (WIST-3 §6.2: a withdrawal removes no record), and materialized the "
+                 "Item IDs of the sealed Items whose content materializes. resume replays acts at a Consumer "
+                 "that adopted the tuples at tree_size and walked only the Items above it: an act naming an Item "
+                 "it did not walk is accepted as consistent. `payloads` maps each Item ID to its Payload."),
+        "log_key": {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)}, "sealed_items": sealed,
         "act_cases": acts, "state_tuples": state_tuples, "record_tuples": record_tuples,
-        "materialized": [d3], "resume": resume})
+        "materialized": [d3], "resume": resume, "payloads": payloads})
 
 
 write_json(WIST4 / "withdrawal.json", withdrawal_vectors())
@@ -5374,9 +5304,9 @@ write_json(WIST4 / "registrable-domain.json", registrable_domain_vectors())
 # JCS serialization at 65 535 octets. All three are WIST3-E03; equality
 # with a bound is permitted.
 def padded_entry(target_bytes: int) -> dict:
-    pad = target_bytes - len(rfc8785.dumps({"type": "publisher_delta", "body": {"pad": ""}}))
+    pad = target_bytes - len(rfc8785.dumps({"type": "publisher_item", "body": {"pad": ""}}))
     assert pad >= 0
-    entry = {"type": "publisher_delta", "body": {"pad": "x" * pad}}
+    entry = {"type": "publisher_item", "body": {"pad": "x" * pad}}
     assert len(rfc8785.dumps(entry)) == target_bytes
     return entry
 
@@ -5398,7 +5328,7 @@ entry_over_bound = padded_entry(ENTRY_JCS_BOUND_BYTES + 1)
 def form_entry(index: int) -> bytes:
     """One synthetic Entry's leaf data for the form cases below: all of one
     length, so a bundle's octet count is its Entry count times a constant."""
-    return rfc8785.dumps({"type": "publisher_delta", "body": {"pad": "%04d" % index}})
+    return rfc8785.dumps({"type": "publisher_item", "body": {"pad": "%04d" % index}})
 
 def form_bundle(count: int, start: int = 0) -> bytes:
     return entry_bundle_bytes([form_entry(i) for i in range(start, start + count)])
@@ -5554,6 +5484,9 @@ for entry, path in (
     (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, timestamp_probe, None, None, "sha256:" + "0" * 64, 1], [5]),
     (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, "2026-08-02T12:00:00Z", timestamp_probe, None, "sha256:" + "0" * 64, 1], [6]),
     (["dispute", "sha256:" + "0" * 64, "example.com", None, timestamp_probe, 1], [4]),
+    (["record", "example.com", DELTA_URL, example_item, "default", example_catalog_id, timestamp_probe], [6]),
+    (["removal", "example.com", DELETED_URL, items.item_id(retired_item), catalogs.catalog_id(retired_catalog),
+      timestamp_probe], [5]),
 ):
     document = json.loads((EXAMPLES / "snapshot-state.json").read_text())
     document["state"]["entries"] = [entry]

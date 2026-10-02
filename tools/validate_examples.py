@@ -357,237 +357,9 @@ INNER_KEY = {
     "payload.json": None,  # unsigned: its integrity comes from the Item's
                            # commitment, not from a signature (WIST-3 §6.1)
     "item.json": None,  # unsigned: the Catalog's root commits to it (WIST-1 §4)
+    "publisher-item.json": None,  # unsigned: the Entry body a Checkpoint commits to (WIST-3 §3.3)
     "tree-file.json": None,  # unsigned JCS octets, named by their SHA-256 (WIST-1 §4)
 }
-
-# The Delta Envelope form that the multi-Log and WIST-2 fixtures still carry.
-DELTA_ENVELOPE_SCHEMA = json.loads(r'''{
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "object",
-    "required": [
-        "delta",
-        "sig"
-    ],
-    "additionalProperties": false,
-    "properties": {
-        "delta": {
-            "type": "object",
-            "required": [
-                "wist_version",
-                "publisher",
-                "url",
-                "change_type",
-                "observed_at",
-                "meta"
-            ],
-            "additionalProperties": false,
-            "properties": {
-                "wist_version": {
-                    "type": "string",
-                    "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$(?![\\s\\S])"
-                },
-                "publisher": {
-                    "type": "string",
-                    "format": "wist-canonical-host",
-                    "minLength": 1,
-                    "maxLength": 253,
-                    "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])"
-                },
-                "url": {
-                    "type": "string",
-                    "format": "uri",
-                    "pattern": "^https://[^#]*$",
-                    "maxLength": 2048
-                },
-                "change_type": {
-                    "enum": [
-                        "new",
-                        "update",
-                        "delete",
-                        "attest"
-                    ]
-                },
-                "observed_at": {
-                    "type": "string",
-                    "format": "wist-publisher-timestamp",
-                    "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]+)?([Zz]|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$(?![\\s\\S])"
-                },
-                "prev": {
-                    "type": "string",
-                    "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"
-                },
-                "payload": {
-                    "type": "object",
-                    "required": [
-                        "commitment",
-                        "alg",
-                        "bytes"
-                    ],
-                    "additionalProperties": false,
-                    "properties": {
-                        "commitment": {
-                            "type": "string",
-                            "pattern": "^hmac-sha256:[0-9a-f]{64}$(?![\\s\\S])"
-                        },
-                        "alg": {
-                            "const": "HMAC-SHA256"
-                        },
-                        "bytes": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 38944
-                        }
-                    }
-                },
-                "meta": {
-                    "type": "object",
-                    "required": [
-                        "lang"
-                    ],
-                    "additionalProperties": false,
-                    "properties": {
-                        "lang": {
-                            "type": "string",
-                            "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{1,8})*$(?![\\s\\S])"
-                        },
-                        "topics": {
-                            "type": "array",
-                            "items": {
-                                "type": "string",
-                                "maxLength": 64
-                            },
-                            "maxItems": 10
-                        },
-                        "license": {
-                            "type": "string",
-                            "maxLength": 64
-                        }
-                    }
-                }
-            }
-        },
-        "sig": {
-            "type": "object",
-            "required": [
-                "key_id",
-                "alg",
-                "value"
-            ],
-            "additionalProperties": false,
-            "properties": {
-                "key_id": {
-                    "type": "string",
-                    "maxLength": 64
-                },
-                "alg": {
-                    "const": "Ed25519"
-                },
-                "value": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9_-]{85}[AQgw]$(?![\\s\\S])"
-                }
-            }
-        }
-    },
-    "allOf": [
-        {
-            "if": {
-                "required": [
-                    "delta"
-                ],
-                "properties": {
-                    "delta": {
-                        "required": [
-                            "change_type"
-                        ],
-                        "properties": {
-                            "change_type": {
-                                "enum": [
-                                    "new",
-                                    "update"
-                                ]
-                            }
-                        }
-                    }
-                }
-            },
-            "then": {
-                "properties": {
-                    "delta": {
-                        "required": [
-                            "payload"
-                        ]
-                    }
-                }
-            }
-        },
-        {
-            "if": {
-                "required": [
-                    "delta"
-                ],
-                "properties": {
-                    "delta": {
-                        "required": [
-                            "change_type"
-                        ],
-                        "properties": {
-                            "change_type": {
-                                "enum": [
-                                    "attest",
-                                    "delete"
-                                ]
-                            }
-                        }
-                    }
-                }
-            },
-            "then": {
-                "properties": {
-                    "delta": {
-                        "not": {
-                            "required": [
-                                "payload"
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        {
-            "if": {
-                "required": [
-                    "delta"
-                ],
-                "properties": {
-                    "delta": {
-                        "required": [
-                            "change_type"
-                        ],
-                        "properties": {
-                            "change_type": {
-                                "enum": [
-                                    "update",
-                                    "delete",
-                                    "attest"
-                                ]
-                            }
-                        }
-                    }
-                }
-            },
-            "then": {
-                "properties": {
-                    "delta": {
-                        "required": [
-                            "prev"
-                        ]
-                    }
-                }
-            }
-        }
-    ]
-}''')
 
 def load_test_pubkey():
     return b64u_decode(json.loads((ROOT / "vectors" / "wist1" / "keypair.json").read_text())["public_key"])
@@ -1018,7 +790,8 @@ def _state_tuple_encoding():
         assert all("type" in m or "const" in m or "oneOf" in m or "enum" in m
                    for m in v["prefixItems"]), f"untyped member in {v['prefixItems'][0]}"
     expected = {"aggregator_key", "declaration", "pending_declaration", "parameter",
-                "recovery_window", "suffix_list", "withdrawal", "label", "dispute", "record"}
+                "recovery_window", "suffix_list", "withdrawal", "label", "dispute", "record",
+                "collection", "removal"}
     assert kinds == expected, f"kinds mismatch: {kinds ^ expected}"
     state = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())["state"]
     digest = "sha256:" + hashlib.sha256(
@@ -1041,14 +814,24 @@ def _state_tuple_encoding_twin():
     schema = json.loads((ROOT / "schemas" / "snapshot-state.schema.json").read_text())
     validator = Draft202012Validator(schema)
     good = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
-    bad = copy.deepcopy(good)
-    bad["state"]["entries"][1].append("extra-member")
-    try:
-        validator.validate(bad)
-    except ValidationError:
-        pass
-    else:
-        raise AssertionError("over-arity record tuple validated")
+    validator.validate(good)
+    kinds = [t[0] for t in good["state"]["entries"]]
+    record = kinds.index("record")
+    for label, mutate in (
+            ("over-arity record tuple", lambda e: e[record].append("extra-member")),
+            ("record tuple carrying an Item ID in place of the Item",
+             lambda e: e.__setitem__(record, e[record][:3] + ["sha256:" + "0" * 64])),
+            ("record tuple without the Catalog's generated_at", lambda e: e[record].pop()),
+            ("collection tuple without its sealing height", lambda e: e[kinds.index("collection")].pop()),
+            ("removal tuple carrying the removed Item in place of its ID",
+             lambda e: e[kinds.index("removal")].__setitem__(3, {"removed": True}))):
+        bad = copy.deepcopy(good)
+        mutate(bad["state"]["entries"])
+        try:
+            validator.validate(bad)
+        except ValidationError:
+            continue
+        raise AssertionError(f"{label} validated")
     bad2 = copy.deepcopy(good)
     bad2["state"]["entries"][0][3] = "0"
     try:
@@ -1415,6 +1198,12 @@ SALTED_COMMITMENT_VALUES = {
     ("vectors/wist2/change-lists.json", "commitment"): "payload:commitment",
     ("vectors/wist2/change-list-serving.json", "commitment"): "payload:commitment",
     ("vectors/wist2/change-chains.json", "commitment"): "payload:commitment",
+    ("examples/snapshot-state.json", "commitment"): "payload:commitment",
+    ("examples/publisher-item.json", "commitment"): "payload:commitment",
+    ("vectors/wist3/snapshot-records.json", "commitment"): "payload:commitment",
+    ("vectors/wist3/record-materialization.json", "commitment"): "payload:commitment",
+    ("vectors/wist3/timestamps.json", "commitment"): "payload:commitment",
+    ("vectors/wist4/withdrawal.json", "commitment"): "payload:commitment",
 }
 
 CATALOG_COMMITMENT_FILES = ("vectors/wist1/item-fields.json", "vectors/wist1/item-roots.json",
@@ -1422,7 +1211,9 @@ CATALOG_COMMITMENT_FILES = ("vectors/wist1/item-fields.json", "vectors/wist1/ite
                             "vectors/multilog/catalog-order.json", "vectors/wist3/catalog-waiting.json",
                             "vectors/wist1/catalog-recovery.json", "vectors/wist2/collection-pull.json",
                             "vectors/wist2/change-lists.json", "vectors/wist2/change-list-serving.json",
-                            "vectors/wist2/change-chains.json")
+                            "vectors/wist2/change-chains.json", "vectors/wist3/epoch.json",
+                            "vectors/wist3/checkpoints.json", "vectors/wist3/snapshot-records.json",
+                            "vectors/wist3/record-materialization.json", "vectors/wist4/withdrawal.json")
 
 def _carried_payload_commitments(node):
     found = set()
@@ -1588,16 +1379,10 @@ def _commit(salt_b64: str, content: dict) -> str:
         b64u_decode(salt_b64), rfc8785.dumps(content), hashlib.sha256).hexdigest()
 
 def _multilog_commitment():
-    """The multi-Log dedup vector carries its own Delta and Payload, so its
-    commitment is a second one this check must recompute rather than compare
-    against the example's — a vector whose Payload did not reproduce its own
-    Delta would otherwise be caught only as an inequality with an unrelated
-    Delta's value."""
     v = json.loads((ROOT / "vectors" / "multilog" / "dedup.json").read_text())
-    payload, delta = v["payload"], v["delta"]["delta"]
-    got = _commit(payload["salt"], payload["content"])
-    assert got == delta["payload"]["commitment"], \
-        "the multi-Log vector's Payload does not reproduce its Delta's commitment"
+    got = _commit(v["payload"]["salt"], v["payload"]["content"])
+    assert got == v["item"]["payload"]["commitment"], \
+        "the multi-Log vector's Payload does not reproduce its Item's commitment"
     return got
 
 def _payload_commitment():
@@ -1755,6 +1540,7 @@ if (wist3 / "epoch.json").exists():
             level = nxt
         root = level[0] if level else hashlib.sha256(b"").digest()
         assert "sha256:" + root.hex() == epoch["root"], "merkle root mismatch"
+        assert epoch["leaf_hashes"] == [h.hex() for h in leaves], "leaf_hashes are not the Entries' leaf hashes"
         cp = verify_checkpoint(epoch["checkpoint"], epoch["log_id"],
                                {epoch["log_id"]: load_test_pubkey()})
         assert cp["root"] == root, "checkpoint root does not match the recomputed tree"
@@ -1792,12 +1578,53 @@ def _shard_of(domain, count):
     return int.from_bytes(hashlib.sha256(domain.encode()).digest()[:8], "big") % count
 
 
-RECORD_FIELDS = ["url", "publisher", "delta_id", "observed_at"]
+RECORD_FIELDS = ["url", "publisher", "item_id", "observed_at", "attested_at"]
 
 def _content_digest(records):
     """WIST-3 §7: SHA-256 over the ascending-octet-order concatenation of JCS."""
     return "sha256:" + hashlib.sha256(
         b"".join(sorted(rfc8785.dumps(r) for r in records))).hexdigest()
+
+def _content_tuples_from_state(v):
+    example_state = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+    state = example_state["state"]["entries"]
+    declarations = {"example.com": json.loads((ROOT / "examples" / "publisher.json").read_text())}
+    declarations.update(v["declarations"])
+    collections_held = {(t[1], t[2]): t for t in v["tuples"] if t[0] == "collection"}
+    validator = Draft202012Validator(json.loads((ROOT / "schemas" / "snapshot-state.schema.json").read_text()))
+    validator.validate(dict(example_state, state=dict(example_state["state"], entries=v["tuples"])))
+    manifest = json.loads((ROOT / "examples" / "snapshot-manifest.json").read_text())["manifest"]
+    for t in v["tuples"]:
+        if t[1] == "example.com":
+            assert t in state, "example.com's tuples are not those of examples/snapshot-state.json"
+        if t[0] == "collection":
+            assert t[4] <= manifest["epoch_number"], "a latest Catalog sealed above the Snapshot's Epoch"
+    out = []
+    for t in v["tuples"]:
+        if t[0] != "record":
+            continue
+        _, publisher, url, item, collection, catalog_id, attested_at = t
+        held = collections_held[(publisher, collection)][3]
+        catalog = held["catalog"]
+        assert "sha256:" + hashlib.sha256(rfc8785.dumps(catalog)).hexdigest() == catalog_id, \
+            "the record's Catalog ID is not the collection tuple's Catalog"
+        assert catalog["generated_at"] == attested_at and catalog["publisher"] == publisher
+        keys = {e["kid"]: e for e in declarations[publisher]["publisher"]["keys"]}
+        Ed25519PublicKey.from_public_bytes(b64u_decode(keys[held["sig"]["key_id"]]["x"])).verify(
+            b64u_decode(held["sig"]["value"]), rfc8785.dumps(catalog))
+        item_octets = rfc8785.dumps(item)
+        key = hashlib.sha256(rfc8785.dumps(["page", item["url"]])).digest()
+        leaf = hashlib.sha256(b"\x00" + key + hashlib.sha256(item_octets).digest()).digest()
+        assert catalog["size"] == 1 and catalog["root"] == "sha256:" + leaf.hex(), \
+            "the record's Item is not the one Item of its Catalog"
+        item_id = "sha256:" + hashlib.sha256(item_octets).hexdigest()
+        payload = v["payloads"][item_id]
+        assert _commit(payload["salt"], payload["content"]) == item["payload"]["commitment"]
+        assert len(rfc8785.dumps(payload["content"])) == item["payload"]["bytes"]
+        assert item["url"] == url and item["publisher"] == publisher
+        out.append({"url": url, "publisher": publisher, "item_id": item_id,
+                    "observed_at": item["observed_at"], "attested_at": attested_at})
+    return out
 
 def _snapshot_content_digest():
     """WIST-3 §7's semantic-equivalence digest, recomputed from its own records.
@@ -1816,6 +1643,8 @@ def _snapshot_content_digest():
     for r in records:
         assert sorted(r) == sorted(RECORD_FIELDS), \
             f"a record carries {sorted(r)}, not §7's tuple"
+    assert records == _content_tuples_from_state(v), \
+        "the content tuples are not those §7 derives from the record and collection tuples"
     digest = _content_digest(records)
     assert digest == v["content_digest"], "the vector's content_digest is not its own records'"
 
@@ -1856,24 +1685,19 @@ def _snapshot_content_digest():
     # salt (§6.2); a digest that needed either could never be recomputed after
     # one, so this asserts the preimage against the actual Payload text rather
     # than against the field names alone.
-    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
-    forbidden = [payload["content"]["extract"],
-                 payload["content"]["summary"]["title"],
-                 payload["content"]["summary"]["abstract"],
-                 payload["salt"]]
+    forbidden = [text for payload in v["payloads"].values()
+                 for text in (payload["content"]["extract"], payload["content"]["summary"]["title"],
+                              payload["content"]["summary"]["abstract"], payload["salt"])]
     preimage = b"".join(sorted(rfc8785.dumps(r) for r in records)).decode()
     for text in forbidden:
         assert text not in preimage, \
             f"content reached the content_digest preimage: {text[:32]!r}"
 
-    # Every field of the tuple must move the digest, or a rebuild could diverge
-    # on it undetected. `observed_at` is what an `attest` moves, exactly the
-    # case a record-identity-only digest would miss.
-    import copy
     for field, other in (("url", "https://example.com/blog/post-9"),
                          ("publisher", "other.example.com"),
-                         ("delta_id", "sha256:" + "0" * 64),
-                         ("observed_at", "2026-08-02T12:00:01Z")):
+                         ("item_id", "sha256:" + "0" * 64),
+                         ("observed_at", "2026-08-02T12:00:01Z"),
+                         ("attested_at", "2026-08-02T12:00:01Z")):
         mutated = copy.deepcopy(records)
         assert mutated[0][field] != other, f"{field}: the mutation changes nothing"
         mutated[0][field] = other
@@ -2012,71 +1836,6 @@ def _snapshot_links_twin():
 
 check("negative:snapshot-links", _snapshot_links_twin)
 
-def _chain_vector():
-    return json.loads((ROOT / "vectors" / "wist3" / "chain-materialization.json").read_text())
-
-def _chain_replay(deltas):
-    """WIST-1 §3.5 / WIST-3 §7, recomputed independently of the generator:
-    a Delta is applied only when its prev is the chain tip the state
-    carries for (publisher, url) — absent for a chain's first Delta —
-    and is otherwise ignored, whether it forks a sealed chain or names a
-    prev nothing sealed; an ignored Delta never becomes a tip."""
-    tips, ignored = {}, []
-    for i, d in enumerate(deltas):
-        key = (d["publisher"], d["url"])
-        if d.get("eligible", True) is False or d["prev"] != tips.get(key):
-            ignored.append(i)
-            continue
-        tips[key] = d["id"]
-    return ignored, [{"publisher": p, "url": u, "delta": t} for (p, u), t in sorted(tips.items())]
-
-def _dc3_chain_materialization():
-    """WIST-3 §7: which sealed Deltas a replayer applies, and the chain tips."""
-    v = _chain_vector()
-    labels = set()
-    for case in v["cases"]:
-        labels.add(case["label"])
-        ignored, tips = _chain_replay(case["deltas"])
-        assert ignored == case["ignored_indices"], \
-            f"{case['label']}: recomputed ignored {ignored}, vector says {case['ignored_indices']}"
-        assert tips == sorted(case["tips"], key=lambda t: (t["publisher"], t["url"])), \
-            f"{case['label']}: recomputed tips {tips}, vector says {case['tips']}"
-        for i in ignored:
-            assert case["deltas"][i]["id"] not in {t["delta"] for t in tips}, \
-                f"{case['label']}: an ignored Delta became a tip"
-    for needed in ("linear chain", "fork ignored", "unsealed prev ignored",
-                   "successor of an ignored delta ignored", "chain continues through delete",
-                   "second first delta ignored", "publishers chain separately",
-                   "ineligible delta ignored with its successor",
-                   "ineligible first delta leaves no tip"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    ineligible = [c for c in v["cases"] if any(d.get("eligible") is False for d in c["deltas"])]
-    assert ineligible and all(
-        i in c["ignored_indices"] for c in ineligible
-        for i, d in enumerate(c["deltas"]) if d.get("eligible") is False)
-    prose3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
-    assert "is not the chain tip the state carries" in prose3, \
-        "WIST-3 §7 does not state the tip rule"
-    assert "The same disposition covers every other WIST-1 §7 Delta check" in prose3, \
-        "WIST-3 §3.3 does not state the ineligible-Delta disposition"
-check("vectors:wist3-chain-materialization", _dc3_chain_materialization)
-
-def _dc3_chain_materialization_twin():
-    """The check above must notice an unsealed prev treated as a tip."""
-    v = _chain_vector()
-    case = next(c for c in v["cases"] if c["label"] == "unsealed prev ignored")
-    deltas = json.loads(json.dumps(case["deltas"]))
-    orphan = deltas[case["ignored_indices"][0]]
-    orphan["prev"] = deltas[0]["id"]
-    ignored, tips = _chain_replay(deltas)
-    assert ignored == [] and tips[0]["delta"] == orphan["id"], \
-        "recomputation is blind to the prev a Delta names"
-    case = next(c for c in v["cases"] if c["label"] == "fork ignored")
-    deltas = json.loads(json.dumps(case["deltas"]))
-    del deltas[1]
-    assert _chain_replay(deltas)[0] == [], "recomputation is blind to which Delta sealed first"
-check("negative:wist3-chain-materialization", _dc3_chain_materialization_twin)
-
 def _materialization_preference(host, self_declared, candidates, *, farthest=False, descending=False,
                                 raw_suffix=False):
     if self_declared:
@@ -2090,24 +1849,330 @@ def _materialization_preference(host, self_declared, candidates, *, farthest=Fal
         return None
     return max(candidates) if descending else min(candidates)
 
+def _record_vector():
+    return json.loads((ROOT / "vectors" / "wist3" / "record-materialization.json").read_text())
+
+def _url_host(url):
+    return re.match(r"https://([^/:?#]+)", url).group(1)
+
+def _item_id(item):
+    return "sha256:" + hashlib.sha256(rfc8785.dumps(item)).hexdigest()
+
+def _record_empty():
+    return {"records": {}, "removals": {}, "withdrawn": {}, "declared": set()}
+
+def _record_apply(state, epoch, **variant):
+    for e in epoch["events"]:
+        kind = e["event"]
+        if kind == "declaration":
+            state["declared"].add(e["domain"])
+        elif kind == "narrowing":
+            for url in e["urls"]:
+                held = state["records"].pop((e["publisher"], url))
+                if variant.get("narrowing_leaves_removal"):
+                    state["removals"][(e["publisher"], url)] = {
+                        "item": held["item_id"], "catalog": held["catalog"], "generated_at": held["generated_at"]}
+        elif kind == "withdrawal":
+            state["withdrawn"].setdefault(e["item"], epoch["height"])
+            if variant.get("withdrawal_removes"):
+                for slot in [k for k, r in state["records"].items() if r["item_id"] == e["item"]]:
+                    del state["records"][slot]
+        elif kind == "base":
+            for slot in [k for k, r in state["records"].items()
+                         if k[0] == e["publisher"] and r["collection"] == e["collection"]]:
+                del state["records"][slot]
+            if variant.get("base_clears_removals"):
+                for slot in [k for k in state["removals"] if k[0] == e["publisher"]]:
+                    del state["removals"][slot]
+        elif kind == "record":
+            item = e["item"]
+            assert item["publisher"] == e["publisher"], "a record of another Publisher's Item"
+            slot = (e["publisher"], item["url"])
+            state["records"][slot] = {"item": item, "item_id": _item_id(item), "collection": e["collection"],
+                                      "catalog": e["catalog"], "generated_at": e["generated_at"]}
+            if not variant.get("removal_survives_record"):
+                state["removals"].pop(slot, None)
+        else:
+            assert kind == "removal", kind
+            slot = (e["publisher"], e["url"])
+            assert slot in state["records"], "an Item of kind removed with no record (I7)"
+            del state["records"][slot]
+            state["removals"][slot] = {"item": e["item"], "catalog": e["catalog"], "generated_at": e["generated_at"]}
+
+def _record_outcome(state, height, **variant):
+    by_url = {}
+    for (publisher, url), held in state["records"].items():
+        if variant.get("ignore_withdrawals") or held["item_id"] not in state["withdrawn"]:
+            by_url.setdefault(url, {})[publisher] = held
+    materialized = []
+    for url, held in by_url.items():
+        host = _url_host(url)
+        declared = host in state["declared"] and not variant.get("ignore_self_declaration")
+        chosen = _materialization_preference(host, declared, list(held))
+        if chosen is not None:
+            r = held[chosen]
+            materialized.append({"url": url, "publisher": chosen, "item_id": r["item_id"],
+                                 "observed_at": r["item"]["observed_at"], "attested_at": r["generated_at"]})
+    order = lambda row: (row["publisher"].encode(), row["url"].encode())
+    records = [{"publisher": p, "url": u, "item": r["item_id"], "collection": r["collection"],
+                "catalog": r["catalog"], "generated_at": r["generated_at"]} for (p, u), r in state["records"].items()]
+    removals = [{"publisher": p, "url": u, **r} for (p, u), r in state["removals"].items()]
+    materialized.sort(key=lambda row: (row["url"].encode(), row["publisher"].encode()))
+    return {"height": height, "records": sorted(records, key=order), "removals": sorted(removals, key=order),
+            "materialized": materialized, "content_digest": _content_digest(materialized)}
+
+def _record_resumed(tuples, **variant):
+    state = _record_empty()
+    for t in tuples:
+        if t[0] == "declaration":
+            assert t[2]["publisher"]["domain"] == t[1]
+            state["declared"].add(t[1])
+        elif t[0] == "collection":
+            assert (t[3]["catalog"]["publisher"], t[3]["catalog"]["collection"]) == (t[1], t[2])
+        elif t[0] == "record":
+            assert t[3]["publisher"] == t[1] and t[3]["url"] == t[2] and "payload" in t[3]
+            state["records"][(t[1], t[2])] = {"item": t[3], "item_id": _item_id(t[3]), "collection": t[4],
+                                              "catalog": t[5], "generated_at": t[6]}
+        elif t[0] == "removal":
+            state["removals"][(t[1], t[2])] = {"item": t[3], "catalog": t[4], "generated_at": t[5]}
+        elif t[0] == "withdrawal" and not variant.get("resume_without_withdrawals"):
+            state["withdrawn"][t[1]] = t[3]
+    if variant.get("resume_from_content_tuples"):
+        kept = {(r["publisher"], r["url"]) for r in _record_outcome(state, 0)["materialized"]}
+        state["records"] = {k: r for k, r in state["records"].items() if k in kept}
+    return state
+
+def _record_case_outcomes(case, **variant):
+    state, outcomes = _record_empty(), []
+    for epoch in case["epochs"]:
+        _record_apply(state, epoch, **variant)
+        outcomes.append(_record_outcome(state, epoch["height"], **variant))
+    resumed = None
+    if "snapshot" in case:
+        height = case["snapshot"]["height"]
+        live = _record_resumed(case["snapshot"]["tuples"], **variant)
+        resumed = [_record_outcome(live, height, **variant)]
+        for epoch in case["epochs"][height + 1:]:
+            _record_apply(live, epoch, **variant)
+            resumed.append(_record_outcome(live, epoch["height"], **variant))
+    return outcomes, resumed
+
+def _record_snapshot_tuples(case):
+    height = case["snapshot"]["height"]
+    state = _record_empty()
+    publishers = {}
+    for epoch in case["epochs"][:height + 1]:
+        _record_apply(state, epoch)
+        for e in epoch["events"]:
+            if e["event"] == "record":
+                publishers[_item_id(e["item"])] = e["publisher"]
+    tuples = case["snapshot"]["tuples"]
+    validator = Draft202012Validator(json.loads((ROOT / "schemas" / "snapshot-state.schema.json").read_text()))
+    example = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+    validator.validate(dict(example, state=dict(example["state"], entries=tuples)))
+    records = sorted(rfc8785.dumps(["record", p, u, r["item"], r["collection"], r["catalog"], r["generated_at"]])
+                     for (p, u), r in state["records"].items())
+    assert records == sorted(rfc8785.dumps(t) for t in tuples if t[0] == "record"), \
+        "the Snapshot's record tuples are not every record the Log holds"
+    removals = sorted(rfc8785.dumps(["removal", p, u, r["item"], r["catalog"], r["generated_at"]])
+                      for (p, u), r in state["removals"].items())
+    assert removals == sorted(rfc8785.dumps(t) for t in tuples if t[0] == "removal")
+    withdrawals = sorted(rfc8785.dumps(["withdrawal", i, publishers[i], h]) for i, h in state["withdrawn"].items())
+    assert withdrawals == sorted(rfc8785.dumps(t) for t in tuples if t[0] == "withdrawal")
+    assert {t[1] for t in tuples if t[0] == "declaration"} == state["declared"]
+    return state
+
+def _dc3_record_materialization():
+    v = _record_vector()
+    seen = collections.Counter()
+    for case in v["cases"]:
+        outcomes, resumed = _record_case_outcomes(case)
+        assert outcomes == case["expected"], f"{case['name']}: recomputed state differs from the vector's"
+        for epoch in case["epochs"]:
+            kinds = [e["event"] for e in epoch["events"]]
+            seen.update(set(kinds))
+            same_epoch = {e["item"] for e in epoch["events"] if e["event"] == "withdrawal"} & \
+                {_item_id(e["item"]) for e in epoch["events"] if e["event"] == "record"}
+            seen["withdrawal in the Item's own Epoch"] += bool(same_epoch)
+        if "snapshot" in case:
+            height = case["snapshot"]["height"]
+            at_snapshot = _record_snapshot_tuples(case)
+            assert resumed == case["expected"][height:], f"{case['name']}: the resumed Consumer diverges"
+            shown = {(r["publisher"], r["url"]) for r in case["expected"][height]["materialized"]}
+            later = {(r["publisher"], r["url"]) for e in case["expected"][height + 1:] for r in e["materialized"]}
+            seen["an unmaterialized record materialized after the resume"] += bool(
+                (set(at_snapshot["records"]) - shown) & later)
+    for needed in ("record", "removal", "narrowing", "base", "withdrawal", "declaration",
+                   "withdrawal in the Item's own Epoch", "an unmaterialized record materialized after the resume"):
+        assert seen[needed], f"no case carries {needed}"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    for marker in ("a record that narrowing or a base removed leaves no removal state",
+                   "A removal state stays through narrowing and through a base, and ends when a valid Item of kind `page` becomes the URL's record",
+                   "A withdrawal (§6.2) removes no record",
+                   "a record the one-URL rule does not materialize and one whose Item a withdrawal names included",
+                   "Of the records of one URL whose Item no withdrawal sealed at or below the height names, one is **materialized**"):
+        assert marker in prose, f"WIST-3 §7 no longer states: {marker}"
+check("vectors:wist3-record-materialization", _dc3_record_materialization)
+
+def _dc3_record_materialization_twin():
+    v = _record_vector()
+    for variant in ("narrowing_leaves_removal", "withdrawal_removes", "base_clears_removals",
+                    "removal_survives_record", "ignore_withdrawals", "ignore_self_declaration",
+                    "resume_without_withdrawals", "resume_from_content_tuples"):
+        moved = False
+        for case in v["cases"]:
+            try:
+                outcomes, resumed = _record_case_outcomes(case, **{variant: True})
+            except (AssertionError, KeyError):
+                moved = True
+                continue
+            height = case.get("snapshot", {}).get("height")
+            moved |= outcomes != case["expected"] or (
+                resumed is not None and resumed != case["expected"][height:])
+        assert moved, f"the {variant} reading reproduces every expected value"
+check("negative:wist3-record-materialization", _dc3_record_materialization_twin)
+
+
+def _sealing_duties(history, window_from_removal=False):
+    ends, info, withdrawn, out, previous, held_before = {}, {}, set(), [], [], set()
+    for epoch, expected in zip(history["epochs"], history["expected"]):
+        if expected["status"] != "accepted":
+            out.append(previous)
+            continue
+        now = log_seconds(epoch["sealed_at"])
+        window = epoch["parameters"]["payload_window_days"] * 86400
+        verdicts = {d["name"]: d["disposition"] for d in expected["entries"]}
+        records = {_item_id(r["item"]) for r in expected["state"]["records"]}
+        for named in epoch["entries"]:
+            entry = named["entry"]
+            if verdicts.get(named["name"]) != "valid":
+                continue
+            if entry["type"] == "registry_update":
+                withdrawn.add(entry["body"]["update"]["details"]["delta_id"])
+            elif entry["type"] == "publisher_item" and "payload" in entry["body"]["item"]:
+                item = entry["body"]["item"]
+                ends.setdefault(_item_id(item), []).append(now + window)
+                info[_item_id(item)] = (item["publisher"], item["url"])
+        if window_from_removal:
+            for identifier in held_before - records:
+                ends[identifier].append(now + window)
+        held_before = records
+        duties = []
+        for identifier, sealed_ends in ends.items():
+            if identifier in withdrawn:
+                continue
+            until = None if identifier in records else max(sealed_ends)
+            if until is None or until > now:
+                duties.append({"publisher": info[identifier][0], "url": info[identifier][1], "item": identifier,
+                               "until": None if until is None else time.strftime("%Y-%m-%dT%H:%M:%SZ",
+                                                                                 time.gmtime(until))})
+        duties.sort(key=lambda d: (d["publisher"].encode(), d["url"].encode(), d["item"].encode()))
+        out.append(duties)
+        previous = duties
+    return out
+
+def _dc3_sealing_duties():
+    v = json.loads((ROOT / "vectors" / "wist3" / "catalog-sealing.json").read_text())
+    carried = 0
+    for history in v["histories"]:
+        for expected in history["expected"]:
+            for record in expected.get("state", {}).get("records", []):
+                assert isinstance(record["item"], dict) and record["item"]["url"] == record["url"] \
+                    and record["item"]["publisher"] == record["publisher"], \
+                    f"{history['name']}: a record does not carry its Item (WIST-3 §7)"
+        if "payload_duties" not in history["expected"][0]:
+            continue
+        carried += 1
+        assert _sealing_duties(history) == [e["payload_duties"] for e in history["expected"]], \
+            f"{history['name']}: the Payload duties are not those WIST-3 §6.1 gives"
+    assert carried >= 4
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert ("its Item's Payload keeps only the availability window of each Epoch that sealed the Item: a "
+            "superseded Payload gets no further window at the Aggregator") in prose
+check("vectors:wist3-sealing-duties", _dc3_sealing_duties)
+
+def _dc3_sealing_duties_twin():
+    v = json.loads((ROOT / "vectors" / "wist3" / "catalog-sealing.json").read_text())
+    moved = [h["name"] for h in v["histories"] if "payload_duties" in h["expected"][0]
+             and _sealing_duties(h, window_from_removal=True) != [e["payload_duties"] for e in h["expected"]]]
+    assert "a superseded Payload keeps only the window of the Epoch that sealed its Item" in moved, \
+        "a further window from the Epoch that replaced the record reproduces the superseded case"
+check("negative:wist3-sealing-duties", _dc3_sealing_duties_twin)
+
+
+def _example_log_epochs():
+    v = json.loads((ROOT / "vectors" / "wist3" / "checkpoints.json").read_text())
+    assert v["epochs"][0]["entries"] == json.loads((ROOT / "vectors" / "wist3" / "epoch.json").read_text())["entries"]
+    order = ("publisher_declaration", "registry_update", "publisher_catalog", "publisher_item", "label", "dispute")
+    declaration, latest, records, verdicts = None, {}, {}, []
+    for epoch in v["epochs"]:
+        sealed_at = parse_checkpoint(epoch["checkpoint"])["sealed_at"]
+        entries = epoch["entries"]
+        ranks = [(order.index(e["type"]), leaf_hash(rfc8785.dumps(e))) for e in entries]
+        assert ranks == sorted(ranks), "the example Epoch is out of canonical Entry order"
+        for entry in entries:
+            if entry["type"] == "publisher_declaration":
+                assert _declaration_binding_result(None, entry["body"]) == "initial"
+                declaration = entry["body"]["publisher"]
+        for entry in entries:
+            if entry["type"] != "publisher_catalog":
+                continue
+            envelope, catalog = entry["body"], entry["body"]["catalog"]
+            signer = next(k for k in declaration["keys"] if k["kid"] == envelope["sig"]["key_id"])
+            Ed25519PublicKey.from_public_bytes(b64u_decode(signer["x"])).verify(
+                b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(catalog))
+            instant = log_seconds(catalog["generated_at"])
+            assert signer["nbf"] <= instant and ("exp" not in signer or instant < signer["exp"])
+            assert catalog["publisher"] == declaration["domain"] and catalog["collection"] == "default"
+            assert instant <= log_seconds(sealed_at) + 600, "C1: generated_at beyond the clock allowance"
+            held = latest.get((catalog["publisher"], catalog["collection"]))
+            assert held is None or instant > log_seconds(held["generated_at"]), "C3"
+            latest[(catalog["publisher"], catalog["collection"])] = catalog
+            verdicts.append("valid")
+        for entry in entries:
+            if entry["type"] != "publisher_item":
+                continue
+            body, item = entry["body"], entry["body"]["item"]
+            catalog = next(c for c in latest.values()
+                           if "sha256:" + hashlib.sha256(rfc8785.dumps(c)).hexdigest() == body["catalog"])
+            assert body["collection"] == catalog["collection"] and item["publisher"] == catalog["publisher"]
+            assert _url_host(item["url"]) in {declaration["domain"], *declaration.get("subdomain_scope", [])}
+            assert publisher_instant(item["observed_at"]) <= publisher_instant(catalog["generated_at"])
+            _item_proved(item, body["proof"], catalog)
+            slot = (catalog["publisher"], item["url"])
+            assert records.get(slot) != _item_id(item), "I7: the Item is its URL's record"
+            records[slot] = _item_id(item)
+            verdicts.append("valid")
+    return verdicts, records
+
+def _dc3_example_log():
+    verdicts, records = _example_log_epochs()
+    assert len(verdicts) == 6 and len(records) == 4
+    w3 = (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text()
+    assert "Epoch 0 of the example Log contains four Entries" in w3
+
+def _preference_candidates(case, ignore_withdrawals=False):
+    return [r["publisher"] for r in case["records"] if ignore_withdrawals or not r["withdrawn"]]
+
 def _dc3_materialization_preference():
-    """WIST-3 §7: one record per URL — the self-declared host's own, else the
-    nearest ancestor Publisher's, else the least non-ancestor domain."""
     v = json.loads((ROOT / "vectors" / "wist3" / "materialization-preference.json").read_text())
     labels = set()
     for case in v["cases"]:
         labels.add(case["label"])
-        assert _materialization_preference(case["host"], case["self_declared"], case["candidates"]) == \
+        candidates = _preference_candidates(case)
+        assert _materialization_preference(case["host"], case["self_declared"], candidates) == \
             case["materialized"], case["label"]
-        assert case["materialized"] is None or case["materialized"] in case["candidates"], case["label"]
+        assert case["materialized"] is None or case["materialized"] in candidates, case["label"]
     for needed in ("self declaration prevails", "self declaration excludes parents without an own record",
                    "nearest ancestor", "ancestor over non ancestor", "non ancestors in octet order",
-                   "label boundary is not a suffix match"):
+                   "label boundary is not a suffix match", "a withdrawn nearest ancestor",
+                   "a self declared host whose own record is withdrawn"):
         assert needed in labels, f"vector lacks the {needed} case"
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
     assert "The record materialized is then the **nearest ancestor**'s" in prose
     assert "among such Publishers the least domain in ascending octet order does" in prose
     assert "return when the preferred record leaves" in prose
+    assert "From the height at which the first `publisher_declaration` Entry whose `domain` is the host is sealed" in prose
 check("vectors:wist3-materialization-preference", _dc3_materialization_preference)
 
 def _dc3_materialization_preference_twin():
@@ -2116,9 +2181,15 @@ def _dc3_materialization_preference_twin():
     for label, flag in (("nearest ancestor", "farthest"), ("non ancestors in octet order", "descending"),
                         ("label boundary is not a suffix match", "raw_suffix")):
         case = by_label[label]
-        assert _materialization_preference(case["host"], case["self_declared"], case["candidates"],
+        assert _materialization_preference(case["host"], case["self_declared"], _preference_candidates(case),
                                            **{flag: True}) != case["materialized"], \
             f"the {flag} reading must differ on {label}"
+    for label in ("a withdrawn nearest ancestor", "a withdrawn ancestor beside a non ancestor",
+                  "a self declared host whose own record is withdrawn"):
+        case = by_label[label]
+        assert _materialization_preference(case["host"], case["self_declared"],
+                                           _preference_candidates(case, ignore_withdrawals=True)) != \
+            case["materialized"], f"a reading that ignores withdrawals must differ on {label}"
 check("negative:wist3-materialization-preference", _dc3_materialization_preference_twin)
 
 def _merkle_empty():
@@ -2610,7 +2681,7 @@ NON_CONTENT_DIGESTS = {
         "SHA-256 of an Epoch header",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/content_digest"):
-        "a digest over the record tuples of WIST-3 §7 — url, publisher, delta_id, observed_at — every one of which the Log already carries in the clear; no page content is in its preimage",
+        "a digest over the content tuples of WIST-3 §7 — url, publisher, item_id, observed_at, attested_at — every one of which the Log already carries in the clear; no page content is in its preimage",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/state/properties/sha256"):
         "the whole state file, a Log-derived artifact (WIST-3 §7); transport integrity, same as any files[] sha256",
@@ -2619,39 +2690,48 @@ NON_CONTENT_DIGESTS = {
         "the content_digest construction over state tuples, every field of which is Log-derived (WIST-3 §7); no page content is in its preimage",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/shards/properties/digests"):
-        "an array of per-shard record-tuple digests (WIST-3 §7); the items entry below is the pattern-bearing one, this is the array shell",
+        "an array of per-shard content-tuple digests (WIST-3 §7); the items entry below is the pattern-bearing one, this is the array shell",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/shards/properties/digests/items"):
-        "the same WIST-3 §7 record-tuple digest, computed per shard; no page content is in its preimage",
+        "the same WIST-3 §7 content-tuple digest, computed per shard; no page content is in its preimage",
     ("snapshot-index.schema.json",
      "properties/index/properties/snapshots/items/properties/content_digest"):
-        "the same WIST-3 §7 record-tuple digest the manifest declares, restated by the index",
+        "the same WIST-3 §7 content-tuple digest the manifest declares, restated by the index",
     ("payload.schema.json", "properties/salt"):
         "the salt itself: drawn from a CSPRNG, never derived from the content it keys (WIST-1 §3.6)",
     ("label.schema.json", "properties/label/properties/labeler"): "the signed Canonical Host of the Labeler, not a content digest",
     ("label.schema.json", "properties/label/properties/subject"): "a Normalized URL or Canonical Host the Label is about (WIST-2 §3.3), which the Log carries in the clear; no page content",
     ("label.schema.json", "properties/label/properties/name"): "a Label Registry name, `<prefix>:<term>` (WIST-4 §6), not a content digest",
-    ("label.schema.json", "properties/label/properties/delta"): "a Delta ID the Label binds to (WIST-2 §3.3): SHA-256 over a Delta that carries only a salted commitment",
+    ("label.schema.json", "properties/label/properties/delta"): "an Item ID the Label binds to (WIST-2 §3.3): SHA-256 over an Item that carries only a salted commitment",
     ("dispute.schema.json", "properties/dispute/properties/disputant"): "the signed Canonical Host of the disputant, not a content digest",
     ("dispute.schema.json", "properties/dispute/properties/label"): "the disputed Label's ID (WIST-2 §3.3): SHA-256 over a Label, which carries a subject, a name and an integer, no page content",
     ("dispute.schema.json", "properties/dispute/properties/log"): "a Log's `log_id`, a Canonical Host, not a content digest",
     ("label-definition.schema.json", "properties/definition/properties/labeler"): "the signed Canonical Host of the Labeler, not a content digest",
     ("label-definition.schema.json", "properties/definition/properties/name"): "a Label Registry name, `<prefix>:<term>` (WIST-4 §6), not a content digest",
-    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[7]/oneOf[0]"): "the Delta ID a Label binds to (WIST-2 §3.3): SHA-256 over a Delta that carries only a salted commitment",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[7]/oneOf[0]"): "the Item ID a Label binds to (WIST-2 §3.3): SHA-256 over an Item that carries only a salted commitment",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[8]"): "the current Label's ID (WIST-2 §3.3): SHA-256 over a Label, which carries a subject, a name and an integer, no page content",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[9]/prefixItems[1]"): "the disputed Label's ID (WIST-2 §3.3): SHA-256 over a Label, no page content",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[9]/prefixItems[2]"): "a Canonical Host identifying the disputant, not a content digest",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[3]"): "a Label Registry name, `<prefix>:<term>` (WIST-4 §6), not a content digest",
     ("registry-update.schema.json", "allOf[3]/then/properties/update/properties/subject"): "a Canonical Host identifying a Publisher, not a content digest",
-    ("registry-update.schema.json", "allOf[3]/then/properties/update/properties/details/properties/delta_id"): "a Delta ID: SHA-256 over a Delta that itself carries only a salted commitment (WIST-1 §3.6)",
+    ("registry-update.schema.json", "allOf[3]/then/properties/update/properties/details/properties/delta_id"): "the Item ID a withdrawal names (WIST-3 §6.2): SHA-256 over an Item that carries only a salted commitment (WIST-1 §3.6)",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[1]/prefixItems[1]"): "a Canonical Host identifying a Publisher, not a content digest",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[4]/prefixItems[1]"): "a Canonical Host identifying a Publisher, not a content digest",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[2]/prefixItems[1]"): "a Canonical Host identifying a Publisher whose fresh identity is pending, not a content digest",
-    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[1]"): "a withdrawn Delta's ID: SHA-256 over a Delta that carries only a salted commitment (WIST-3 §6.2)",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[1]"): "a withdrawn Item's ID: SHA-256 over an Item that carries only a salted commitment (WIST-3 §6.2)",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[2]"): "a Canonical Host identifying a Publisher, not a content digest",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[1]"): "a Canonical Host identifying a Labeler, not a content digest",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[7]/prefixItems[1]"): "a Canonical Host identifying a Publisher, not a content digest",
-    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[7]/prefixItems[3]"): "a chain-tip Delta ID: SHA-256 over a Delta that carries only a salted commitment (WIST-3 §7)",
+    ("publisher-item.schema.json", "properties/collection"): "a Collection name chosen by the Publisher (WIST-1 §3.5), not a content digest",
+    ("publisher-item.schema.json", "properties/catalog"): "a Catalog ID (WIST-3 §3.3): SHA-256 over a Catalog that carries no page content",
+    ("publisher-item.schema.json", "properties/proof/properties/path/items"): "sibling hashes of an Item list's Merkle tree (WIST-1 §4.3), over leaves that carry only a URL hash and an Item hash",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[7]/prefixItems[4]"): "a Collection name chosen by the Publisher (WIST-1 §3.5), not a content digest",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[7]/prefixItems[5]"): "the Catalog ID a record's Item was proved against (WIST-3 §7): SHA-256 over a Catalog that carries no page content",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[10]/prefixItems[1]"): "a Canonical Host identifying a Publisher, not a content digest",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[10]/prefixItems[2]"): "a Collection name chosen by the Publisher (WIST-1 §3.5), not a content digest",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[11]/prefixItems[1]"): "a Canonical Host identifying a Publisher, not a content digest",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[11]/prefixItems[3]"): "the Item ID of an Item of kind removed (WIST-3 §7): SHA-256 over an Item that carries a URL and an instant, no page content",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[11]/prefixItems[4]"): "the Catalog ID the Item of kind removed was proved against (WIST-3 §7): SHA-256 over a Catalog that carries no page content",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[8]/prefixItems[1]"): "a Public Suffix List snapshot identifier: SHA-256 over a list of domain-name rules, no page content (WIST-4 §3.1)",
     ("registry-update.schema.json", "allOf[4]/then/properties/update/properties/subject"): "a Public Suffix List snapshot identifier: SHA-256 over a list of domain-name rules, no page content (WIST-4 §3.1)",
     ("registry-update.schema.json", "allOf[4]/then/properties/update/properties/details/properties/sha256"): "a Public Suffix List snapshot identifier: SHA-256 over a list of domain-name rules, no page content (WIST-4 §3.1)",
@@ -2675,28 +2755,27 @@ NON_CONTENT_VALUES = {
     ("examples/snapshot-manifest.json", "sha256"): "a whole tier file, not any one record (WIST-3 §7)",
     ("examples/snapshot-manifest.json", "root_hash"): "SHA-256 of an Epoch header",
     ("examples/snapshot-manifest.json", "content_digest"):
-        "WIST-3 §7's record-tuple digest: url, publisher, delta_id, observed_at — no content in the preimage",
+        "WIST-3 §7's content-tuple digest: url, publisher, item_id, observed_at, attested_at — no content in the preimage",
     ("examples/snapshot-manifest.json", "value"): "an Ed25519 signature",
     ("examples/snapshot-manifest.json", "state_digest"):
         "WIST-3 §7's digest construction over state tuples — every field Log-derived, no content in the preimage",
     ("examples/snapshot-state.json", "entries"):
-        "state tuples (WIST-3 §7): key IDs, Delta IDs, heights, an Ed25519 public key — Log-derived identifiers, no page content",
+        "state tuples (WIST-3 §7): key IDs, Catalog IDs, Item IDs, heights, an Ed25519 public key — Log-derived identifiers, no page content",
     ("examples/snapshot-state.json", "value"): "an Ed25519 signature",
     ("examples/snapshot-index.json", "content_digest"):
-        "the manifest's record-tuple digest, restated by the index (WIST-3 §6, §7)",
+        "the manifest's content-tuple digest, restated by the index (WIST-3 §6, §7)",
     ("examples/snapshot-index.json", "value"): "an Ed25519 signature",
-    ("vectors/wist3/snapshot-records.json", "delta_id"): "a Delta ID",
     ("vectors/wist3/snapshot-records.json", "digests"):
-        "WIST-3 §7's record-tuple digest per shard, recomputed by `snapshot-sharding` from the records this file publishes",
+        "WIST-3 §7's content-tuple digest per shard, recomputed by `snapshot-sharding` from the records this file publishes",
     ("vectors/wist3/snapshot-index.json", "content_digest"):
-        "the example manifest's record-tuple digest, restated by each index entry (WIST-3 §6, §7)",
+        "the example manifest's content-tuple digest, restated by each index entry (WIST-3 §6, §7)",
     ("vectors/wist3/snapshot-index.json", "sha256"): "a whole tier or state file, not any one record (WIST-3 §7)",
     ("vectors/wist3/snapshot-index.json", "root_hash"): "SHA-256 of an Epoch header",
     ("vectors/wist3/snapshot-index.json", "state_digest"):
         "WIST-3 §7's digest construction over state tuples — every field Log-derived, no content in the preimage",
     ("vectors/wist3/snapshot-index.json", "value"): "an Ed25519 signature",
     ("vectors/wist3/snapshot-records.json", "content_digest"):
-        "WIST-3 §7's record-tuple digest, recomputed by `snapshot:content-digest` from the records this file publishes",
+        "WIST-3 §7's content-tuple digest, recomputed by `snapshot:content-digest` from the records this file publishes",
     ("examples/status.json", "id"): "a Catalog ID or an Item ID (WIST-2 §7.1): SHA-256 over a Catalog or an Item that carries only a salted commitment",
     ("examples/status.json", "accepted"): "a Catalog ID (WIST-2 §7.1): SHA-256 over a Catalog that carries no page content",
     ("examples/status.json", "change_list"): "a Catalog ID naming a change list (WIST-2 §5.3): SHA-256 over a Catalog that carries no page content",
@@ -2758,9 +2837,7 @@ NON_CONTENT_VALUES = {
         "WIST-3 §7's digest over the state tuples, as above",
     ("vectors/wist3/snapshot-keys.json", "alternate_state_digest"):
         "WIST-3 §7's digest over the state tuples, as above",
-    ("vectors/wist3/epoch.json", "prev"): "a Delta ID",
     ("vectors/wist3/epoch.json", "value"): "an Ed25519 signature",
-    ("vectors/wist3/checkpoints.json", "prev"): "a Delta ID",
     ("vectors/wist3/checkpoints.json", "value"): "an Ed25519 signature",
     ("vectors/wist3/timestamps.json", "value"): "an Ed25519 signature",
     ("vectors/wist3/timestamps.json", "deltas"): "Label IDs in the Label Feed example fixture",
@@ -2769,7 +2846,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist3/empty-epoch.json", "epoch_0_root"): "root over Entries, which carry commitments only",
     ("vectors/wist3/inclusion-proof.json", "path"): "Merkle sibling hashes over Entries",
     ("vectors/multilog/dedup.json", "root"): "root over Entries, which carry commitments only",
-    ("vectors/multilog/dedup.json", "delta_id"): "a Delta ID",
     ("vectors/multilog/dedup.json", "public_key"): "an Ed25519 public key (the Log genesis key)",
     ("vectors/multilog/dedup.json", "value"): "an Ed25519 signature",
     ("vectors/multilog/dedup.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
@@ -2804,7 +2880,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/feed-next.json", "seen"): "supplied Label or Dispute IDs already seen",
     ("vectors/wist2/feed-next.json", "x"): "the fixture Declaration public key",
     ("vectors/wist2/feed-next.json", "value"): "valid or deliberately invalid signatures",
-    ("vectors/wist4/withdrawal.json", "delta_id"): "fixture Delta IDs; retrieval is not asserted",
     ("vectors/wist4/withdrawal.json", "public_key"): "the fixture Log public key",
     ("vectors/wist4/registrable-domain.json", "sha256"): "SHA-256 over a Public Suffix List snapshot's octets: a list of domain-name rules, no page content (WIST-4 §3.1)",
     ("vectors/wist4/registrable-domain.json", "public_key"): "the fixture Log public key",
@@ -2870,10 +2945,10 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/labels.json", "value"): "an Ed25519 signature over a Label",
     ("vectors/wist2/labels.json", "current"): "the current Label's ID after replay (WIST-2 §3.3)",
     ("vectors/wist2/labels.json", "state_tuple"): "the current Label's ID inside a WIST-3 §7 label tuple",
-    ("vectors/wist4/withdrawal.json", "state_tuples"): "fixture Delta IDs inside WIST-3 §7 withdrawal tuples",
-    ("vectors/wist4/withdrawal.json", "record_tuples"): "fixture Delta IDs inside WIST-3 §7 record tuples",
-    ("vectors/wist4/withdrawal.json", "materialized"): "fixture Delta IDs whose content materializes",
-    ("vectors/wist4/withdrawal.json", "adopted"): "fixture Delta IDs inside adopted withdrawal tuples",
+    ("vectors/wist4/withdrawal.json", "state_tuples"): "fixture Item IDs inside WIST-3 §7 withdrawal tuples",
+    ("vectors/wist4/withdrawal.json", "record_tuples"): "fixture Catalog IDs inside WIST-3 §7 record tuples",
+    ("vectors/wist4/withdrawal.json", "materialized"): "fixture Item IDs whose content materializes",
+    ("vectors/wist4/withdrawal.json", "adopted"): "fixture Item IDs inside adopted withdrawal tuples",
     ("vectors/wist4/registrable-domain.json", "entries"): "Public Suffix List snapshot identifiers inside WIST-3 §7 suffix_list tuples",
     ("vectors/wist3/timestamps.json", "entries"): "a placeholder Label ID inside a WIST-3 §7 label or dispute tuple whose timestamp position is probed",
     ("examples/dispute.json", "label"): "the disputed Label's ID: SHA-256 over a Label, no page content (WIST-2 §3.3)",
@@ -3143,6 +3218,36 @@ for _rel, _names in PULL_FIXTURE_CATALOG_NAMES.items():
     NON_CONTENT_VALUES.update({
         (_rel, name): "a Catalog ID (ADR-0052) under the fixture's name for its Catalog, no page content"
         for name in _names})
+_CATALOG_VALUE_MEANINGS = {
+    "x": "an Ed25519 public key",
+    "kid": "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
+    "key_id": "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
+    "value": "an Ed25519 signature",
+    "seed_hex": "a test-only Ed25519 seed, no page content",
+    "root": "an Item list root (WIST-1 §4): a Merkle Tree Hash over leaves that carry only a URL hash and an Item hash",
+    "tree": "a tree file name (WIST-1 §4): SHA-256 over a file of Items that carry only a salted commitment",
+    "catalog": "a Catalog ID (WIST-1 §3.5): SHA-256 over a Catalog that carries a root, a tree hash and no page content",
+    "catalog_id": "a Catalog ID (WIST-1 §3.5): SHA-256 over a Catalog that carries a root, a tree hash and no page content",
+    "item": "an Item ID (WIST-1 §4.1): SHA-256 over an Item that carries only a salted commitment",
+    "item_id": "an Item ID (WIST-1 §4.1): SHA-256 over an Item that carries only a salted commitment",
+    "path": "Inclusion Proof sibling hashes over Item leaves (WIST-1 §4.3), no page content",
+    "salt": "Payload salts: from a CSPRNG, never derived from what they key",
+    "content_digest": "WIST-3 §7's digest over content tuples, every field Log-derived, no content in the preimage",
+    "tuples": "WIST-3 §7 state tuples: Item IDs, Catalog IDs and heights inside them, Log-derived, no page content",
+}
+for _rel, _keys in (
+        ("examples/snapshot-state.json", ("key_id", "root", "tree")),
+        ("examples/publisher-item.json", ("catalog",)),
+        ("vectors/multilog/dedup.json", ("catalog", "catalog_id", "item", "item_id", "tree")),
+        ("vectors/wist3/checkpoints.json", ("catalog", "kid", "root", "salt", "tree", "x")),
+        ("vectors/wist3/epoch.json", ("catalog", "kid", "path", "salt", "tree", "x")),
+        ("vectors/wist3/record-materialization.json",
+         ("catalog", "content_digest", "item", "item_id", "key_id", "kid", "root", "salt", "seed_hex", "tree",
+          "tuples", "value", "x")),
+        ("vectors/wist3/snapshot-records.json", ("item_id", "key_id", "kid", "root", "salt", "tree", "tuples",
+                                                 "value", "x")),
+        ("vectors/wist4/withdrawal.json", ("catalog", "item_id", "salt"))):
+    NON_CONTENT_VALUES.update({(_rel, key): _CATALOG_VALUE_MEANINGS[key] for key in _keys})
 for _rel in ("vectors/wist3/catalog-waiting.json", "vectors/wist2/collection-pull.json"):
     NON_CONTENT_VALUES[(_rel, "outcome")] = "a Declaration outcome name, no page content"
 for _rel in ("vectors/wist3/catalog-sealing.json", "vectors/wist2/collection-pull.json"):
@@ -3462,6 +3567,67 @@ def _tree_file_bucket_members():
         change(broken["items"][0])
         assert not validator.is_valid(broken), name
 check("schema:wist2-tree-file-bucket-members", _tree_file_bucket_members)
+
+
+def _publisher_item_validator():
+    return Draft202012Validator(json.loads((ROOT / "schemas/publisher-item.schema.json").read_text()),
+                                registry=SCHEMA_REGISTRY, format_checker=FormatChecker(formats=[]))
+
+def _sealed_publisher_item_bodies():
+    bodies, refused = [], []
+    example = json.loads((ROOT / "examples/publisher-item.json").read_text())
+    assert example["item"] == json.loads((ROOT / "examples/item.json").read_text())
+    assert example["catalog"] == (ROOT / "vectors/wist1/id.txt").read_text().strip()
+    assert example["proof"] == {"index": 0, "tree_size": 1, "path": []}
+    bodies.append(example)
+    for rel in ("vectors/wist3/epoch.json", "vectors/wist3/checkpoints.json", "vectors/multilog/dedup.json"):
+        doc = json.loads((ROOT / rel).read_text())
+        epochs = [doc] if "entries" in doc else doc.get("epochs") or [ep for log in doc["logs"] for ep in log["epochs"]]
+        bodies += [e["body"] for ep in epochs for e in ep["entries"] if e["type"] == "publisher_item"]
+    sealing_doc = json.loads((ROOT / "vectors/wist3/catalog-sealing.json").read_text())
+    for history in sealing_doc["histories"]:
+        verdicts = {d["name"]: d for ex in history["expected"] for d in ex.get("entries", [])}
+        for epoch in history["epochs"]:
+            for named in epoch["entries"]:
+                if named["entry"]["type"] != "publisher_item":
+                    continue
+                verdict = verdicts.get(named["name"], {})
+                (refused if "I1" in verdict.get("failed", []) else bodies).append(named["entry"]["body"])
+    return bodies, refused
+
+def _publisher_item_bodies():
+    validator = _publisher_item_validator()
+    bodies, refused = _sealed_publisher_item_bodies()
+    assert len(bodies) >= 10, "too few sealed publisher_item bodies to judge the schema by"
+    for body in bodies:
+        validator.validate(body)
+    for body in refused:
+        assert not validator.is_valid(body), "a body WIST-3 §3.3 refuses under I1 passes the schema"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert ("`publisher_item` — an object with exactly the members `item`, an Item (WIST-1 §3.3); `collection`, the "
+            "name of its Collection in the form of WIST-1 §5.1; `catalog`, the Catalog ID of the Catalog it is proved "
+            "against; and `proof`, its Inclusion Proof against that Catalog (WIST-1 §4.3)") in prose
+    assert "schemas/publisher-item.schema.json" in prose
+check("schema:wist3-publisher-item", _publisher_item_bodies)
+
+
+def _publisher_item_bodies_twin():
+    validator = _publisher_item_validator()
+    good = json.loads((ROOT / "vectors/wist3/epoch.json").read_text())
+    good = next(e["body"] for e in good["entries"] if e["type"] == "publisher_item")
+    validator.validate(good)
+    for label, mutate in (
+            ("a missing proof", lambda b: b.pop("proof")),
+            ("an extra member", lambda b: b.update(delta_id=b["catalog"])),
+            ("a catalog that is not a Catalog ID", lambda b: b.update(catalog=b["catalog"][7:])),
+            ("a Collection name with an uppercase letter", lambda b: b.update(collection="Default")),
+            ("a negative index", lambda b: b["proof"].update(index=-1)),
+            ("a path element of 63 digits", lambda b: b["proof"].update(path=["0" * 63])),
+            ("an Item without its meta", lambda b: b["item"].pop("meta"))):
+        bad = copy.deepcopy(good)
+        mutate(bad)
+        assert not validator.is_valid(bad), f"{label} passed schemas/publisher-item.schema.json"
+check("negative:wist3-publisher-item", _publisher_item_bodies_twin)
 
 def _wist3_empty_epoch():
     """WIST-3 §3.2, §4: the empty tree before Epoch 0, and Epoch 1 of the
@@ -5160,23 +5326,6 @@ def _recovery_heads_vectors():
 
 check("vectors:wist1-recovery-heads", _recovery_heads_vectors)
 
-def _delta_key_check(declaration_inner, envelope):
-    """WIST-1 §5.1 key check of a Delta against one Declaration's signing set."""
-    observed = publisher_instant(envelope["delta"]["observed_at"])
-    named = [k for k in declaration_inner["keys"] if k["kid"] == envelope["sig"]["key_id"]]
-    eligible = [k for k in named if k["nbf"] <= observed and ("exp" not in k or observed < k["exp"])]
-    if not eligible:
-        return "WIST1-E02"
-    for key in eligible:
-        try:
-            Ed25519PublicKey.from_public_bytes(b64u_decode(key["x"])).verify(
-                b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(envelope["delta"]))
-            return "accepted"
-        except Exception:
-            continue
-    return "WIST1-E01"
-
-
 def _catalog_key_check(declaration_inner, envelope):
     """WIST-1 §5.1 key check of a Catalog of the default Collection against one
     Declaration's signing set, the window read at generated_at."""
@@ -5343,47 +5492,114 @@ def _key_directory_vectors():
 check("vectors:wist1-key-directory", _key_directory_vectors)
 
 
-def _multilog_declaration_and_delta_signatures():
-    """The multi-Log dedup vector's Publisher Declaration and every sealed
-    Delta Envelope — the top-level copies and every copy a Log seals in its
-    Epochs — validate against their schemas and verify under the Key Set
-    the Declaration itself declares (WIST-1 §5.1)."""
+def _item_proved(item, proof, catalog):
+    key = hashlib.sha256(rfc8785.dumps(["page", item["url"]])).digest()
+    leaf = hashlib.sha256(b"\x00" + key + hashlib.sha256(rfc8785.dumps(item)).digest()).digest()
+    index, size, path = proof["index"], proof["tree_size"], [bytes.fromhex(h) for h in proof["path"]]
+    assert size == catalog["size"] and 0 <= index < size, "proof shape"
+    h, fn, sn = leaf, index, size - 1
+    while sn > 0:
+        if fn % 2 == 1:
+            h = node_hash(path.pop(0), h)
+        elif fn < sn:
+            h = node_hash(h, path.pop(0))
+        fn, sn = fn // 2, sn // 2
+    assert not path and "sha256:" + h.hex() == catalog["root"], "the Inclusion Proof does not reach the root"
+
+def _multilog_dedup(v, schemas=None):
     formats = FormatChecker(formats=[])
-    publisher_validator = Draft202012Validator(
-        json.loads((ROOT / "schemas/publisher.schema.json").read_text()), format_checker=formats)
-    delta_validator = Draft202012Validator(
-        DELTA_ENVELOPE_SCHEMA, format_checker=formats)
-    v = json.loads((ROOT / "vectors" / "multilog" / "dedup.json").read_text())
-
-    def verify_declaration(envelope):
-        publisher_validator.validate(envelope)
-        inner = envelope["publisher"]
-        assert _key_entry_error(inner) is None, "declaration key entries fail §5.1 checks"
-        assert _declaration_binding_result(None, envelope) == "initial", \
-            "declaration is not an accepted first (seq 0) self-signed Declaration"
-        return inner
-
-    def verify_delta(envelope, declaration_inner):
-        delta_validator.validate(envelope)
-        assert _delta_key_check(declaration_inner, envelope) == "accepted", \
-            "Delta does not verify under the declared Key Set"
-
-    declaration_inner = verify_declaration(v["publisher_declaration"])
-    verify_delta(v["delta"], declaration_inner)
-
-    seen_declarations = seen_deltas = 0
+    validators = {name: Draft202012Validator(json.loads((ROOT / f"schemas/{name}.schema.json").read_text()),
+                                             registry=SCHEMA_REGISTRY, format_checker=formats)
+                  for name in ("publisher", "catalog", "publisher-item")}
+    declaration = v["publisher_declaration"]
+    validators["publisher"].validate(declaration)
+    inner = declaration["publisher"]
+    assert _key_entry_error(inner) is None, "declaration key entries fail §5.1 checks"
+    assert _declaration_binding_result(None, declaration) == "initial", \
+        "declaration is not an accepted first (seq 0) self-signed Declaration"
+    keys = {e["kid"]: e for e in inner["keys"]}
+    order = ("publisher_declaration", "registry_update", "publisher_catalog", "publisher_item", "label", "dispute")
+    catalog_envelopes, item_entries, states = {}, {}, {}
     for log in v["logs"]:
+        anchor = log["anchor"]
+        genesis = b64u_decode(anchor["anchor"]["genesis_key"]["public_key"])
+        Ed25519PublicKey.from_public_bytes(genesis).verify(b64u_decode(anchor["sig"]["value"]),
+                                                          rfc8785.dumps(anchor["anchor"]))
+        leaves, record = [], None
         for epoch in log["epochs"]:
-            for entry in epoch["entries"]:
+            entries = epoch["entries"]
+            ranks = [(order.index(e["type"]), leaf_hash(rfc8785.dumps(e))) for e in entries]
+            assert ranks == sorted(ranks), f"{log['log_id']}: Entries out of canonical order"
+            leaves += [leaf_hash(rfc8785.dumps(e)) for e in entries]
+            cp = verify_checkpoint(epoch["checkpoint"], log["log_id"], {log["log_id"]: genesis})
+            assert cp["tree_size"] == len(leaves) and cp["root"] == merkle_root(leaves), \
+                f"{log['log_id']}: a Checkpoint does not state the tree of its Entries"
+            held = {}
+            for entry in entries:
                 if entry["type"] == "publisher_declaration":
-                    assert verify_declaration(entry["body"]) == declaration_inner
-                    seen_declarations += 1
-                elif entry["type"] == "publisher_delta":
-                    verify_delta(entry["body"], declaration_inner)
-                    seen_deltas += 1
-    assert seen_declarations == len(v["logs"]), "expected one sealed Declaration per Log"
-    assert seen_deltas == len(v["logs"]), "expected one sealed Delta per Log"
-check("vectors:multilog-declaration-signatures", _multilog_declaration_and_delta_signatures)
+                    assert entry["body"] == declaration
+                elif entry["type"] == "publisher_catalog":
+                    envelope = entry["body"]
+                    validators["catalog"].validate(envelope)
+                    signer = keys[envelope["sig"]["key_id"]]
+                    Ed25519PublicKey.from_public_bytes(b64u_decode(signer["x"])).verify(
+                        b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(envelope["catalog"]))
+                    assert envelope["catalog"]["publisher"] == inner["domain"]
+                    catalog_id = "sha256:" + hashlib.sha256(rfc8785.dumps(envelope["catalog"])).hexdigest()
+                    held[catalog_id] = envelope["catalog"]
+                    catalog_envelopes[log["log_id"]] = (catalog_id, envelope)
+                elif entry["type"] == "publisher_item":
+                    body = entry["body"]
+                    validators["publisher-item"].validate(body)
+                    catalog = held[body["catalog"]]
+                    assert body["collection"] == catalog["collection"]
+                    assert body["item"]["publisher"] == catalog["publisher"]
+                    _item_proved(body["item"], body["proof"], catalog)
+                    item_entries[log["log_id"]] = entry
+                    record = {"state": "record", "item": _item_id(body["item"]), "collection": body["collection"],
+                              "catalog": body["catalog"], "generated_at": catalog["generated_at"]}
+        assert log["tree_size"] == len(leaves) and log["root"] == "sha256:" + merkle_root(leaves).hex()
+        states[log["log_id"]] = record
+    ids = {catalog_id for catalog_id, _ in catalog_envelopes.values()}
+    assert ids == {v["catalog_id"]}, "the Logs do not seal one Catalog ID"
+    assert len({rfc8785.dumps(e) for _, e in catalog_envelopes.values()}) == len(v["logs"]), \
+        "the Catalog's Envelope does not carry another signature in each Log"
+    assert len({rfc8785.dumps(e) for e in item_entries.values()}) == 1, "the publisher_item Entry differs"
+    assert _item_id(v["item"]) == v["item_id"] and all(
+        e["body"]["item"] == v["item"] for e in item_entries.values())
+    heights = [next(i for i, ep in enumerate(log["epochs"]) if any(e["type"] == "publisher_item"
+                                                                    for e in ep["entries"])) for log in v["logs"]]
+    assert len(set(heights)) == len(heights), "the Logs seal the Item at one height"
+    assert states == v["expected"]["log_states"], "a Log's state for the URL is not its record"
+    latest = max(states.values(), key=lambda st: (log_seconds(st["generated_at"]), st["catalog"].encode(),
+                                                  st["item"].encode()))
+    holders = sorted(name for name, st in states.items() if st == latest)
+    assert v["expected"]["combined"] == {"state": latest, "logs": holders}, "the combined state differs"
+    assert holders == sorted(states), "a Consumer of both Logs does not take one state held by both"
+
+def _multilog_declaration_and_item_signatures():
+    _multilog_dedup(json.loads((ROOT / "vectors" / "multilog" / "dedup.json").read_text()))
+check("vectors:multilog-dedup", _multilog_declaration_and_item_signatures)
+
+
+def _multilog_dedup_twin():
+    v = json.loads((ROOT / "vectors" / "multilog" / "dedup.json").read_text())
+    for label, mutate in (
+            ("a proof sibling flipped", lambda w: w["logs"][1]["epochs"][-1]["entries"][-1]["body"]["proof"].update(
+                path=["0" * 64])),
+            ("a publisher_item body with an extra member",
+             lambda w: w["logs"][0]["epochs"][-1]["entries"][-1]["body"].update(note="x")),
+            ("one Log's state for another Catalog",
+             lambda w: w["expected"]["log_states"]["log-b"].update(catalog="sha256:" + "1" * 64))):
+        w = copy.deepcopy(v)
+        mutate(w)
+        try:
+            _multilog_dedup(w)
+        except (AssertionError, ValidationError, KeyError, ValueError, IndexError):
+            continue
+        raise AssertionError(f"{label} passed the multi-Log check")
+check("negative:multilog-dedup", _multilog_dedup_twin)
+check("vectors:wist3-example-log", _dc3_example_log)
 
 
 def _multilog_declaration_signature_twin():
@@ -5812,7 +6028,7 @@ TIMESTAMP_FIELDS = {
         "values under `removal_retention_days`"
        for path in ("$defs/observed_at", "oneOf[0]/properties/observed_at", "oneOf[1]/properties/observed_at")},
     ("label.schema.json", "properties/label/properties/asserted_at"):
-        "Publisher-supplied and read exactly as a Delta's `observed_at` (WIST-2 §3.3): compared "
+        "Publisher-supplied and read exactly as an Item's `observed_at` (WIST-2 §3.3): compared "
         "to the same Labeler's other Labels of the subject and name, and to the validator's own "
         "clock under WIST-1 §3.4, never to an Epoch",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[5]"):
@@ -6299,7 +6515,7 @@ def _log_timestamp_vectors():
         if case["schema"] == "snapshot-state.schema.json":
             identity += (case["document"]["state"]["entries"][0][0],)
         exercised.add(identity)
-    assert len(exercised) == 7, "both remaining schema fields and five Snapshot timestamp positions required"
+    assert len(exercised) == 9, "both remaining schema fields and seven Snapshot timestamp positions required"
 
     cp = vector["checkpoint_field_case"]
     idx = cp["sealed_at_line_index"]
@@ -6329,7 +6545,7 @@ def _log_timestamp_vectors():
         elif isinstance(node, list):
             for child in node:
                 yield from patterns(child)
-    assert len(list(patterns(snapshot))) == 2, "Snapshot timestamp inventory changed"
+    assert len(list(patterns(snapshot))) == 4, "Snapshot timestamp inventory changed"
 
 check("vectors:wist3-timestamps", _log_timestamp_vectors)
 
@@ -7046,13 +7262,16 @@ def _registry_update_eligibility(raw, validator):
     return None, doc
 
 def _dc4_withdrawal():
-    """WIST-4 §5.1: payload_withdrawal acts under the Log key naming a sealed
-    Delta of the subject; the earliest accepted withdrawal's Epoch governs
-    and the state carries one withdrawal tuple per withdrawn Delta."""
+    """WIST-4 §5.1 and WIST-3 §6.2: payload_withdrawal acts under the Log key
+    naming a sealed Item of the subject; the earliest accepted withdrawal's
+    Epoch governs and the state carries one withdrawal tuple per withdrawn Item."""
     v = _withdrawal_vector()
     validator = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
     log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(v["log_key"]["public_key"]))
-    sealed = {d["delta_id"]: d for d in v["sealed_deltas"]}
+    for d in v["sealed_items"] + v["resume"]["walked_items"]:
+        assert _item_id(d["item"]) == d["item_id"] and d["item"]["publisher"] == d["publisher"] \
+            and d["item"]["url"] == d["url"] and "payload" in d["item"], "a sealed Item is not the one it names"
+    sealed = {d["item_id"]: d for d in v["sealed_items"]}
     withdrawn = {}
     seen = set()
     for case in v["act_cases"]:
@@ -7085,19 +7304,17 @@ def _dc4_withdrawal():
     envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
     envelope["state"]["entries"] = v["state_tuples"]
     state.validate(envelope)
-    # WIST-3 §3.3 and §6.2: every sealed Delta moves its chain tip, the one
-    # withdrawn in its own Epoch included; only an unwithdrawn one materializes.
-    records = sorted(["record", d["publisher"], d["url"], d["delta_id"]] for d in v["sealed_deltas"])
-    assert records == sorted(v["record_tuples"]), "a withdrawn Delta moved no chain tip"
-    materialized = sorted(d["delta_id"] for d in v["sealed_deltas"] if d["delta_id"] not in withdrawn)
+    records = sorted(rfc8785.dumps(["record", d["publisher"], d["url"], d["item"], d["collection"], d["catalog"],
+                                    d["generated_at"]]) for d in v["sealed_items"])
+    assert records == sorted(rfc8785.dumps(t) for t in v["record_tuples"]), "a withdrawn Item made no record"
+    materialized = sorted(d["item_id"] for d in v["sealed_items"] if d["item_id"] not in withdrawn)
     assert materialized == sorted(v["materialized"]) and materialized, "withdrawn content materialized"
-    assert any(withdrawn[d["delta_id"]][0] == d["height"] for d in v["sealed_deltas"] if d["delta_id"] in withdrawn), \
-        "no Delta withdrawn in its own Epoch"
+    assert any(withdrawn[d["item_id"]][0] == d["height"] for d in v["sealed_items"] if d["item_id"] in withdrawn), \
+        "no Item withdrawn in its own Epoch"
     envelope["state"]["entries"] = v["state_tuples"] + v["record_tuples"]
     state.validate(envelope)
-    # WIST-3 §7: a resuming Consumer checks the contract only for a Delta it walked.
     resume = v["resume"]
-    walked = {d["delta_id"]: d for d in resume["walked_deltas"]}
+    walked = {d["item_id"]: d for d in resume["walked_items"]}
     assert all(d["height"] > resume["tree_size"] for d in walked.values())
     resumed = {t[1]: (t[3], t[2]) for t in resume["adopted"]}
     assert all(h <= resume["tree_size"] for h, _ in resumed.values())
@@ -7116,7 +7333,7 @@ def _dc4_withdrawal():
             unverified += fact is None and delta_id not in resumed
             resumed.setdefault(delta_id, (case["height"], update["subject"]))
             assert resumed[delta_id][0] == case["withdrawn_height"], case["label"]
-    assert unverified, "no act names a Delta below the Snapshot"
+    assert unverified, "no act names an Item below the Snapshot"
     assert sorted(["withdrawal", d, p, h] for d, (h, p) in resumed.items()) == sorted(resume["state_tuples"])
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
     assert "`delta_id` MUST name a Delta sealed at or below the act's Epoch whose signed `publisher` is `subject`" in prose
@@ -7125,7 +7342,9 @@ def _dc4_withdrawal():
     assert "the Delta's content never materializes, its chain tip moves as any Delta's does" in prose
     assert "checks the contract only for an act naming a Delta sealed above `tree_size`" in prose
     prose3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
-    assert "takes effect on that Delta as the Delta applies below" in prose3
+    assert ("A withdrawal takes effect at the height of the Epoch that seals it, for an Item sealed in that same "
+            "Epoch included: the Item becomes its URL's record (§3.3) and its content is never materialized") in prose3
+    assert "What withdrawal does not touch is the record." in prose3
     assert "a resuming Consumer accepts a later act naming one of them as consistent" in prose3
 check("vectors:wist4-withdrawal", _dc4_withdrawal)
 
@@ -8889,7 +9108,7 @@ def _dispute_vectors():
     assert "an Aggregator MUST NOT reject a dispute for naming another Log" in prose
     assert "A dispute is never applied by the Aggregator or a Snapshot builder" in prose
     w3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
-    assert "`publisher_delta`, `label`, `dispute`, and within each group" in w3
+    assert "`publisher_catalog`, `publisher_item`, `label`, `dispute`, and within each group" in w3
 check("vectors:wist2-disputes", _dispute_vectors)
 
 def _dispute_vectors_twin():
@@ -9000,6 +9219,9 @@ def _label_table_vectors():
         seen.add(case["expected"])
     assert seen == {None, "WIST3-E03"}
     assert any(e["type"] == "dispute" for c in v["cap_cases"] for e in c["entries"])
+    types = {e["type"] for c in v["cap_cases"] for e in c["entries"]}
+    assert types == {"publisher_catalog", "publisher_item", "label", "dispute"}, \
+        f"the capacity cases carry Entry types other than WIST-3 §3.2 counts: {types}"
     for case in v["persistence_cases"]:
         def live(h):
             # WIST-2 §3.3: the greatest asserted_at, and among equal instants
@@ -9019,6 +9241,7 @@ def _label_table_vectors():
     w3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
     assert "`(labeler, label_count, retraction_count, distinct_subjects, first_seen_height)`" in w3
     assert "an Epoch MUST NOT carry more than `labeler_epoch_entries_max`" in w3
+    assert "`publisher_catalog`, `publisher_item` and `label` Entries, counted together" in w3
     w4 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
     assert "only once it has persisted across two consecutive Epochs" in w4
     assert "Ignore a Labeler with no sealed Entry of any type within a configured number of Epochs, 720 by default" in w4

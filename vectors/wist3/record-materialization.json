@@ -1,0 +1,1380 @@
+{
+  "note": "WIST-3 section 7: the records, removal states and materialized records of one Log. Each case gives per Epoch its height, sealed_at and `events`, the record events its valid Entries make, in the order the Entries apply (WIST-3 section 3.3): `declaration`, a sealed publisher_declaration Entry of `domain`; `narrowing`, the records of `publisher` at `urls` that narrowing removes (WIST-1 section 5.2); `withdrawal`, a payload_withdrawal that meets its details contract, naming the Item ID `item`; `base`, a valid Catalog of `publisher` and `collection` that is a base, which removes every record of that Publisher whose Collection is `collection`; `record`, an Item of kind page that becomes the record of `publisher` and its url, with its Collection and the Catalog ID and generated_at of the Catalog it was proved against, in place of any record and ending any removal state; and `removal`, an Item of kind removed, with its Item ID and the same Catalog members, which removes the record of `publisher` and `url` and leaves that removal state. A record that narrowing or a base removes leaves no removal state, a removal state stays through narrowing and a base, and a withdrawal removes no record. `expected` gives after each Epoch the records (the Item ID, Collection, Catalog ID and generated_at), the removal states, the materialized records as their content tuples, and the content_digest over them. A record is materialized when no withdrawal sealed at or below the height names its Item and the one-URL rule selects its Publisher among the records of its URL that no such withdrawal names: the host's own Publisher once a publisher_declaration Entry of the host is sealed, else the nearest ancestor of the host, else the least domain in octet order. `snapshot` gives the state tuples of a Snapshot taken at `height` (declaration, collection, record, removal and withdrawal; no Aggregator key, parameter, suffix list, Label or dispute is live): a Consumer resumed from them, holding a host as self-declared where a declaration tuple names it, and applying the events of the later Epochs, reaches every later `expected`. The events are those of a replay of signed Entries under the rules of vectors/wist3/catalog-sealing.json, every Entry valid; Epochs carry no Checkpoint and no Merkle tree. Keys derive from the stated test-only seeds. `payloads` maps the Item ID of every Item of kind page the file carries to the Payload its `payload` commits to ({wist_version, salt, content}, WIST-1 section 3.6); they are carried so the commitments can be recomputed, and the replay reads none of them.",
+  "keys": {
+    "owner": {
+      "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+      "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+      "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY"
+    },
+    "owner2": {
+      "seed_hex": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2",
+      "x": "tygv5HL5dkHBcJeCGlN4dKqqUyZFrTTb1ZhzMaTnP40",
+      "kid": "Ln1ZbO6k5sjrxINUgSYY9rFcgW-UhpUDRGXvamF7ZTU"
+    },
+    "recovery": {
+      "seed_hex": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+      "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+      "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo"
+    },
+    "fresh": {
+      "seed_hex": "c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5",
+      "x": "LbeXY24yPtV26bDgPifLkhcaiWtj6RhvDUpDucfTgtE",
+      "kid": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4"
+    },
+    "journal": {
+      "seed_hex": "c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6",
+      "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+      "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8"
+    },
+    "journal2": {
+      "seed_hex": "c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7",
+      "x": "1a8l4gStA9CibiNplkBPG-UaYJSLzAJs0ISoNpC3VtM",
+      "kid": "EYMxTgrYrenHv_YiK5f_nkWCgD-z0F3v91Ny_qq2NhY"
+    },
+    "store": {
+      "seed_hex": "c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
+      "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+      "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8"
+    },
+    "store2": {
+      "seed_hex": "c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9",
+      "x": "ujthHiiCwbaqSyrj7HjqBzbjrZkjg1NFAXFQekufFbU",
+      "kid": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA"
+    },
+    "docs": {
+      "seed_hex": "cacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacaca",
+      "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+      "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g"
+    },
+    "log": {
+      "seed_hex": "cbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcb",
+      "x": "woZVSseVmy3xqXdouMFGp20fxSjDShTmSHhKTrwn7O8",
+      "kid": "U5Zulc1vyOjLpjzeudKLyw5Aq2WO1eBRx7h7u-Nfe1g"
+    }
+  },
+  "cases": [
+    {
+      "name": "records of one Publisher through a removal, withdrawals, narrowing and a base",
+      "why": "example.com's default Collection. At height 1 a, b, c and x become records. At height 2 a withdrawal of b's Item is sealed and the removed c removes c's record, leaving a removal state: b stays a record and is not materialized. At height 3 d is sealed together with a withdrawal of its own Item: d becomes the record and is never materialized. At height 4 a Declaration narrows the Collection to blog/: x's record leaves with no removal state and c's removal state stays. At height 5 a Catalog more than removal_retention_days after the floor is a base: the records of a, b and d leave before the Items apply, a is sealed again against it and is the record again, and c's removal state stays.",
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "events": [
+            {
+              "event": "declaration",
+              "domain": "example.com"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "events": [
+            {
+              "event": "record",
+              "publisher": "example.com",
+              "item": {
+                "publisher": "example.com",
+                "url": "https://example.com/old/c",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:c3642709d2082ef5f00debcf5e37b744fa4d1b83923820b9c9ee9d156a456bc9",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 98
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "event": "record",
+              "publisher": "example.com",
+              "item": {
+                "publisher": "example.com",
+                "url": "https://example.com/old/x",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:ae3593229306a01ceeafb8c0b713a5946e8b6acefec21869bf4d15f2b4fc5721",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 98
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "event": "record",
+              "publisher": "example.com",
+              "item": {
+                "publisher": "example.com",
+                "url": "https://example.com/blog/a",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:f18009695f8bfc086c799cd1afcb986f1185d225df89485d778f76cd617ea9b6",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 98
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "event": "record",
+              "publisher": "example.com",
+              "item": {
+                "publisher": "example.com",
+                "url": "https://example.com/blog/b",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:0a58e232d374de3f9b29979ab8efa406658817f1a76cf5770140c53f09cbf233",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 98
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "events": [
+            {
+              "event": "withdrawal",
+              "item": "sha256:bafe7edeb5fef8bf8dbe9946701042e4b5b3dc7563ec557a01c73efbee0cd415"
+            },
+            {
+              "event": "removal",
+              "publisher": "example.com",
+              "url": "https://example.com/old/c",
+              "item": "sha256:25e1af2fc9c66e55449cf1dd12e5877605138d2fabf8d1c8bd542dd3786b5245",
+              "catalog": "sha256:193c915c0fa28a3346efcd95813445116cb003c1a069c0c74403728e0c2f1e5c",
+              "generated_at": "2026-10-01T01:59:00Z"
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "events": [
+            {
+              "event": "withdrawal",
+              "item": "sha256:e75c31d4d5f521f0ed2220a272111931f633666919c0862557908d104e3a9d44"
+            },
+            {
+              "event": "record",
+              "publisher": "example.com",
+              "item": {
+                "publisher": "example.com",
+                "url": "https://example.com/blog/d",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:02cbe85ddeece58140b91ca86d05b936afb634f72a0712a09ff910d5ece9645c",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 98
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:5710486f94afd0e270e33c14e601b010430a1ee8da78af6382053defb0dcd724",
+              "generated_at": "2026-10-01T02:59:00Z"
+            }
+          ]
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-01T04:00:00Z",
+          "events": [
+            {
+              "event": "declaration",
+              "domain": "example.com"
+            },
+            {
+              "event": "narrowing",
+              "publisher": "example.com",
+              "urls": [
+                "https://example.com/old/x"
+              ]
+            }
+          ]
+        },
+        {
+          "height": 5,
+          "sealed_at": "2027-03-30T03:00:01Z",
+          "events": [
+            {
+              "event": "base",
+              "publisher": "example.com",
+              "collection": "default",
+              "catalog": "sha256:9f7d2c06ec15bd93b12b372987b68cd39d15c6d12492d211f51c1c187698cae3"
+            },
+            {
+              "event": "record",
+              "publisher": "example.com",
+              "item": {
+                "publisher": "example.com",
+                "url": "https://example.com/blog/a",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:f18009695f8bfc086c799cd1afcb986f1185d225df89485d778f76cd617ea9b6",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 98
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:9f7d2c06ec15bd93b12b372987b68cd39d15c6d12492d211f51c1c187698cae3",
+              "generated_at": "2027-03-30T02:59:01Z"
+            }
+          ]
+        }
+      ],
+      "expected": [
+        {
+          "height": 0,
+          "records": [],
+          "removals": [],
+          "materialized": [],
+          "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "height": 1,
+          "records": [
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/a",
+              "item": "sha256:d7adfadee4a057b4fd591ac67368a5d825431447b40d3bf3a5e2d82d4780a69c",
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/b",
+              "item": "sha256:bafe7edeb5fef8bf8dbe9946701042e4b5b3dc7563ec557a01c73efbee0cd415",
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/old/c",
+              "item": "sha256:13d5bbb1882e0077f5875719202ad600e52ecf996e5409eb1113d6e61e34d5d6",
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/old/x",
+              "item": "sha256:81bede4a1e82aefb0343c8221fc507de6831bfd06efd252c28e42e7a72631d07",
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "removals": [],
+          "materialized": [
+            {
+              "url": "https://example.com/blog/a",
+              "publisher": "example.com",
+              "item_id": "sha256:d7adfadee4a057b4fd591ac67368a5d825431447b40d3bf3a5e2d82d4780a69c",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "url": "https://example.com/blog/b",
+              "publisher": "example.com",
+              "item_id": "sha256:bafe7edeb5fef8bf8dbe9946701042e4b5b3dc7563ec557a01c73efbee0cd415",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "url": "https://example.com/old/c",
+              "publisher": "example.com",
+              "item_id": "sha256:13d5bbb1882e0077f5875719202ad600e52ecf996e5409eb1113d6e61e34d5d6",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "url": "https://example.com/old/x",
+              "publisher": "example.com",
+              "item_id": "sha256:81bede4a1e82aefb0343c8221fc507de6831bfd06efd252c28e42e7a72631d07",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "content_digest": "sha256:a5ed4c089683f66f07fbc0b486e2769abff9c501cf2d220d00a0601d0edbfe0e"
+        },
+        {
+          "height": 2,
+          "records": [
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/a",
+              "item": "sha256:d7adfadee4a057b4fd591ac67368a5d825431447b40d3bf3a5e2d82d4780a69c",
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/b",
+              "item": "sha256:bafe7edeb5fef8bf8dbe9946701042e4b5b3dc7563ec557a01c73efbee0cd415",
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/old/x",
+              "item": "sha256:81bede4a1e82aefb0343c8221fc507de6831bfd06efd252c28e42e7a72631d07",
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "removals": [
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/old/c",
+              "item": "sha256:25e1af2fc9c66e55449cf1dd12e5877605138d2fabf8d1c8bd542dd3786b5245",
+              "catalog": "sha256:193c915c0fa28a3346efcd95813445116cb003c1a069c0c74403728e0c2f1e5c",
+              "generated_at": "2026-10-01T01:59:00Z"
+            }
+          ],
+          "materialized": [
+            {
+              "url": "https://example.com/blog/a",
+              "publisher": "example.com",
+              "item_id": "sha256:d7adfadee4a057b4fd591ac67368a5d825431447b40d3bf3a5e2d82d4780a69c",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "url": "https://example.com/old/x",
+              "publisher": "example.com",
+              "item_id": "sha256:81bede4a1e82aefb0343c8221fc507de6831bfd06efd252c28e42e7a72631d07",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "content_digest": "sha256:6ed83b3771bdce5f521d729e40f5a92a0e9985a1e9c261f0c8c5099ecaa3b781"
+        },
+        {
+          "height": 3,
+          "records": [
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/a",
+              "item": "sha256:d7adfadee4a057b4fd591ac67368a5d825431447b40d3bf3a5e2d82d4780a69c",
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/b",
+              "item": "sha256:bafe7edeb5fef8bf8dbe9946701042e4b5b3dc7563ec557a01c73efbee0cd415",
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/d",
+              "item": "sha256:e75c31d4d5f521f0ed2220a272111931f633666919c0862557908d104e3a9d44",
+              "collection": "default",
+              "catalog": "sha256:5710486f94afd0e270e33c14e601b010430a1ee8da78af6382053defb0dcd724",
+              "generated_at": "2026-10-01T02:59:00Z"
+            },
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/old/x",
+              "item": "sha256:81bede4a1e82aefb0343c8221fc507de6831bfd06efd252c28e42e7a72631d07",
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "removals": [
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/old/c",
+              "item": "sha256:25e1af2fc9c66e55449cf1dd12e5877605138d2fabf8d1c8bd542dd3786b5245",
+              "catalog": "sha256:193c915c0fa28a3346efcd95813445116cb003c1a069c0c74403728e0c2f1e5c",
+              "generated_at": "2026-10-01T01:59:00Z"
+            }
+          ],
+          "materialized": [
+            {
+              "url": "https://example.com/blog/a",
+              "publisher": "example.com",
+              "item_id": "sha256:d7adfadee4a057b4fd591ac67368a5d825431447b40d3bf3a5e2d82d4780a69c",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "url": "https://example.com/old/x",
+              "publisher": "example.com",
+              "item_id": "sha256:81bede4a1e82aefb0343c8221fc507de6831bfd06efd252c28e42e7a72631d07",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "content_digest": "sha256:6ed83b3771bdce5f521d729e40f5a92a0e9985a1e9c261f0c8c5099ecaa3b781"
+        },
+        {
+          "height": 4,
+          "records": [
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/a",
+              "item": "sha256:d7adfadee4a057b4fd591ac67368a5d825431447b40d3bf3a5e2d82d4780a69c",
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/b",
+              "item": "sha256:bafe7edeb5fef8bf8dbe9946701042e4b5b3dc7563ec557a01c73efbee0cd415",
+              "collection": "default",
+              "catalog": "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/d",
+              "item": "sha256:e75c31d4d5f521f0ed2220a272111931f633666919c0862557908d104e3a9d44",
+              "collection": "default",
+              "catalog": "sha256:5710486f94afd0e270e33c14e601b010430a1ee8da78af6382053defb0dcd724",
+              "generated_at": "2026-10-01T02:59:00Z"
+            }
+          ],
+          "removals": [
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/old/c",
+              "item": "sha256:25e1af2fc9c66e55449cf1dd12e5877605138d2fabf8d1c8bd542dd3786b5245",
+              "catalog": "sha256:193c915c0fa28a3346efcd95813445116cb003c1a069c0c74403728e0c2f1e5c",
+              "generated_at": "2026-10-01T01:59:00Z"
+            }
+          ],
+          "materialized": [
+            {
+              "url": "https://example.com/blog/a",
+              "publisher": "example.com",
+              "item_id": "sha256:d7adfadee4a057b4fd591ac67368a5d825431447b40d3bf3a5e2d82d4780a69c",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "content_digest": "sha256:6d64316e16a77dff35f04b5279d59b51e3dc2da16ec633ee74be4fbad9483608"
+        },
+        {
+          "height": 5,
+          "records": [
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/a",
+              "item": "sha256:d7adfadee4a057b4fd591ac67368a5d825431447b40d3bf3a5e2d82d4780a69c",
+              "collection": "default",
+              "catalog": "sha256:9f7d2c06ec15bd93b12b372987b68cd39d15c6d12492d211f51c1c187698cae3",
+              "generated_at": "2027-03-30T02:59:01Z"
+            }
+          ],
+          "removals": [
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/old/c",
+              "item": "sha256:25e1af2fc9c66e55449cf1dd12e5877605138d2fabf8d1c8bd542dd3786b5245",
+              "catalog": "sha256:193c915c0fa28a3346efcd95813445116cb003c1a069c0c74403728e0c2f1e5c",
+              "generated_at": "2026-10-01T01:59:00Z"
+            }
+          ],
+          "materialized": [
+            {
+              "url": "https://example.com/blog/a",
+              "publisher": "example.com",
+              "item_id": "sha256:d7adfadee4a057b4fd591ac67368a5d825431447b40d3bf3a5e2d82d4780a69c",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2027-03-30T02:59:01Z"
+            }
+          ],
+          "content_digest": "sha256:1065e9849b24ad73053a3b679c9dfebe7390b3e1f445935dc9554d025019da96"
+        }
+      ],
+      "snapshot": {
+        "height": 3,
+        "tuples": [
+          [
+            "collection",
+            "example.com",
+            "default",
+            {
+              "catalog": {
+                "wist_version": "1.0.0",
+                "publisher": "example.com",
+                "collection": "default",
+                "generated_at": "2026-10-01T02:59:00Z",
+                "size": 5,
+                "root": "sha256:6a114796328655b25fbfd7b3fbadb4f5d5b35b92fcbc75da350cc723e6ff3ab4",
+                "tree": "sha256:fb54436f2db07bdb75973ee06f878d337b0928443af0db57cf23c0151344920f"
+              },
+              "sig": {
+                "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "alg": "Ed25519",
+                "value": "5XiuLKV7EWTWL89pBU4d-krTlk2NcST5RO4h8ll8VBxP7hkbhtxZz7W0-uAq8VSZkrdGY6SZmaN0BoSs_vOBBQ"
+              }
+            },
+            3
+          ],
+          [
+            "declaration",
+            "example.com",
+            {
+              "publisher": {
+                "wist_version": "1.0.0",
+                "seq": 0,
+                "domain": "example.com",
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                    "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "nbf": 1788220800
+                  }
+                ],
+                "recovery_keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                    "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              "sig": {
+                "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "alg": "Ed25519",
+                "value": "OIenpReGuhf8VgEyNXZWQZBvvPHZcORRbaac3qLfgXrfv9cYzG0yBr5yMVLoAsYOh-lEHhdP64iNEglSN4dpAw"
+              }
+            },
+            0,
+            0
+          ],
+          [
+            "record",
+            "example.com",
+            "https://example.com/blog/a",
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/a",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:f18009695f8bfc086c799cd1afcb986f1185d225df89485d778f76cd617ea9b6",
+                "alg": "HMAC-SHA256",
+                "bytes": 98
+              },
+              "meta": {
+                "lang": "en"
+              }
+            },
+            "default",
+            "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+            "2026-10-01T00:59:00Z"
+          ],
+          [
+            "record",
+            "example.com",
+            "https://example.com/blog/b",
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/b",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:0a58e232d374de3f9b29979ab8efa406658817f1a76cf5770140c53f09cbf233",
+                "alg": "HMAC-SHA256",
+                "bytes": 98
+              },
+              "meta": {
+                "lang": "en"
+              }
+            },
+            "default",
+            "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+            "2026-10-01T00:59:00Z"
+          ],
+          [
+            "record",
+            "example.com",
+            "https://example.com/blog/d",
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/blog/d",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:02cbe85ddeece58140b91ca86d05b936afb634f72a0712a09ff910d5ece9645c",
+                "alg": "HMAC-SHA256",
+                "bytes": 98
+              },
+              "meta": {
+                "lang": "en"
+              }
+            },
+            "default",
+            "sha256:5710486f94afd0e270e33c14e601b010430a1ee8da78af6382053defb0dcd724",
+            "2026-10-01T02:59:00Z"
+          ],
+          [
+            "record",
+            "example.com",
+            "https://example.com/old/x",
+            {
+              "publisher": "example.com",
+              "url": "https://example.com/old/x",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:ae3593229306a01ceeafb8c0b713a5946e8b6acefec21869bf4d15f2b4fc5721",
+                "alg": "HMAC-SHA256",
+                "bytes": 98
+              },
+              "meta": {
+                "lang": "en"
+              }
+            },
+            "default",
+            "sha256:c802c3263b8252747c07ad736a79ce7e454f0cff4f53ed40114adb4d6bba61ce",
+            "2026-10-01T00:59:00Z"
+          ],
+          [
+            "removal",
+            "example.com",
+            "https://example.com/old/c",
+            "sha256:25e1af2fc9c66e55449cf1dd12e5877605138d2fabf8d1c8bd542dd3786b5245",
+            "sha256:193c915c0fa28a3346efcd95813445116cb003c1a069c0c74403728e0c2f1e5c",
+            "2026-10-01T01:59:00Z"
+          ],
+          [
+            "withdrawal",
+            "sha256:bafe7edeb5fef8bf8dbe9946701042e4b5b3dc7563ec557a01c73efbee0cd415",
+            "example.com",
+            2
+          ],
+          [
+            "withdrawal",
+            "sha256:e75c31d4d5f521f0ed2220a272111931f633666919c0862557908d104e3a9d44",
+            "example.com",
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "name": "one URL held by three Publishers",
+      "why": "https://news.example.com/u. example.com and zeta.example both name news.example.com in subdomain_scope. At height 1 each seals an Item of u: example.com, an ancestor of the host, is materialized and zeta.example, no ancestor, is not. At height 2 a withdrawal of example.com's Item is sealed: its record stays and no withdrawal-free record of an ancestor remains, so zeta.example's is materialized. At height 3 example.com's changed Item replaces its record and is materialized again. A Snapshot is taken at height 3. At height 4 example.com's removed Item removes its record: zeta.example's, unmaterialized at the Snapshot, is materialized. At height 5 news.example.com's first Declaration is sealed: from then only the host's own Publisher's record is materialized, and it holds none. At height 6 news.example.com seals an Item of u, which is materialized, and example.com seals another, which ends its removal state and is not materialized.",
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "events": [
+            {
+              "event": "declaration",
+              "domain": "example.com"
+            },
+            {
+              "event": "declaration",
+              "domain": "zeta.example"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "events": [
+            {
+              "event": "record",
+              "publisher": "example.com",
+              "item": {
+                "publisher": "example.com",
+                "url": "https://news.example.com/u",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:7bf99ff2254cf33783486819b21f41a7005f3eac3f495de160d1272c827eede6",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 114
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:c3c9374d340b323b8aa3b6308f138e8a4d10743af90521ffb61de67a4be9cfca",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "event": "record",
+              "publisher": "zeta.example",
+              "item": {
+                "publisher": "zeta.example",
+                "url": "https://news.example.com/u",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:46d772538dca0fe9506ac0bd5edca9255f6b41fc2048169943287e95cbf5e828",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 116
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:25f2b82be78054364537433b04f801dc47187363c08c925c0acffc3bd26111ef",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "events": [
+            {
+              "event": "withdrawal",
+              "item": "sha256:e3df85ad1b191613b1bfbd99adf665438b8bf55c38388636e2e52855c7dbdc33"
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "events": [
+            {
+              "event": "record",
+              "publisher": "example.com",
+              "item": {
+                "publisher": "example.com",
+                "url": "https://news.example.com/u",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:4c307db5eb466537e5c347bfb3b8d0568edaa855433b7f054aa8c76b015577e6",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 132
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:42618b5e90730d05e2776ba41b34848b0466127a855f0d376a41fbc5e8487984",
+              "generated_at": "2026-10-01T02:59:00Z"
+            }
+          ]
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-01T04:00:00Z",
+          "events": [
+            {
+              "event": "removal",
+              "publisher": "example.com",
+              "url": "https://news.example.com/u",
+              "item": "sha256:c209d6c1dae5ecc886ce9d66d9b73bb9e6f6eb96be89232cc1722f1bd82de1ad",
+              "catalog": "sha256:15358ae38355a3086b3a2eb56cb2e6ccf52a80d64bb90ad734502a36bfccc838",
+              "generated_at": "2026-10-01T03:59:00Z"
+            }
+          ]
+        },
+        {
+          "height": 5,
+          "sealed_at": "2026-10-01T05:00:00Z",
+          "events": [
+            {
+              "event": "declaration",
+              "domain": "news.example.com"
+            }
+          ]
+        },
+        {
+          "height": 6,
+          "sealed_at": "2026-10-01T06:00:00Z",
+          "events": [
+            {
+              "event": "record",
+              "publisher": "news.example.com",
+              "item": {
+                "publisher": "news.example.com",
+                "url": "https://news.example.com/u",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:74166d6a6044c316410045ac2ee40dcab7ef4801bd576524a280ff6677006daa",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 124
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:aa3818db98e9c5e098352e32426a46c236605b1214c2f8be06414cbb4b522049",
+              "generated_at": "2026-10-01T05:59:00Z"
+            },
+            {
+              "event": "record",
+              "publisher": "example.com",
+              "item": {
+                "publisher": "example.com",
+                "url": "https://news.example.com/u",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:a0f13fc6237d8a0f8b0b44aac7cd5652faa5010fd1d260ab246bb01bfe9facfd",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 128
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:bbd717aeb3957836916c969a4752f453c3c32b476294730cfa075af0acfe6c1c",
+              "generated_at": "2026-10-01T05:59:00Z"
+            }
+          ]
+        }
+      ],
+      "expected": [
+        {
+          "height": 0,
+          "records": [],
+          "removals": [],
+          "materialized": [],
+          "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "height": 1,
+          "records": [
+            {
+              "publisher": "example.com",
+              "url": "https://news.example.com/u",
+              "item": "sha256:e3df85ad1b191613b1bfbd99adf665438b8bf55c38388636e2e52855c7dbdc33",
+              "collection": "default",
+              "catalog": "sha256:c3c9374d340b323b8aa3b6308f138e8a4d10743af90521ffb61de67a4be9cfca",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "zeta.example",
+              "url": "https://news.example.com/u",
+              "item": "sha256:b7a1e3107725cd73b7b1518924d8fdcd45652ce3711f6639f42e3a5282105277",
+              "collection": "default",
+              "catalog": "sha256:25f2b82be78054364537433b04f801dc47187363c08c925c0acffc3bd26111ef",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "removals": [],
+          "materialized": [
+            {
+              "url": "https://news.example.com/u",
+              "publisher": "example.com",
+              "item_id": "sha256:e3df85ad1b191613b1bfbd99adf665438b8bf55c38388636e2e52855c7dbdc33",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "content_digest": "sha256:6a561258d99fd079f8216d398048cd563519c0243053e9306c651b26b2a33701"
+        },
+        {
+          "height": 2,
+          "records": [
+            {
+              "publisher": "example.com",
+              "url": "https://news.example.com/u",
+              "item": "sha256:e3df85ad1b191613b1bfbd99adf665438b8bf55c38388636e2e52855c7dbdc33",
+              "collection": "default",
+              "catalog": "sha256:c3c9374d340b323b8aa3b6308f138e8a4d10743af90521ffb61de67a4be9cfca",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "zeta.example",
+              "url": "https://news.example.com/u",
+              "item": "sha256:b7a1e3107725cd73b7b1518924d8fdcd45652ce3711f6639f42e3a5282105277",
+              "collection": "default",
+              "catalog": "sha256:25f2b82be78054364537433b04f801dc47187363c08c925c0acffc3bd26111ef",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "removals": [],
+          "materialized": [
+            {
+              "url": "https://news.example.com/u",
+              "publisher": "zeta.example",
+              "item_id": "sha256:b7a1e3107725cd73b7b1518924d8fdcd45652ce3711f6639f42e3a5282105277",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "content_digest": "sha256:4719d25c245f17d12745df0d389692f9065c4c1f8bed9cf172cd5fa1ca7ffab6"
+        },
+        {
+          "height": 3,
+          "records": [
+            {
+              "publisher": "example.com",
+              "url": "https://news.example.com/u",
+              "item": "sha256:a54aa0f820d18b50249b0d1e1ce7f0bdcb6e6e2c77b6d82c18edd9a3caf96d56",
+              "collection": "default",
+              "catalog": "sha256:42618b5e90730d05e2776ba41b34848b0466127a855f0d376a41fbc5e8487984",
+              "generated_at": "2026-10-01T02:59:00Z"
+            },
+            {
+              "publisher": "zeta.example",
+              "url": "https://news.example.com/u",
+              "item": "sha256:b7a1e3107725cd73b7b1518924d8fdcd45652ce3711f6639f42e3a5282105277",
+              "collection": "default",
+              "catalog": "sha256:25f2b82be78054364537433b04f801dc47187363c08c925c0acffc3bd26111ef",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "removals": [],
+          "materialized": [
+            {
+              "url": "https://news.example.com/u",
+              "publisher": "example.com",
+              "item_id": "sha256:a54aa0f820d18b50249b0d1e1ce7f0bdcb6e6e2c77b6d82c18edd9a3caf96d56",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T02:59:00Z"
+            }
+          ],
+          "content_digest": "sha256:5fe8d281615badd84490c82d8c388e1a9c7370c6e94f824b9743e15b46904929"
+        },
+        {
+          "height": 4,
+          "records": [
+            {
+              "publisher": "zeta.example",
+              "url": "https://news.example.com/u",
+              "item": "sha256:b7a1e3107725cd73b7b1518924d8fdcd45652ce3711f6639f42e3a5282105277",
+              "collection": "default",
+              "catalog": "sha256:25f2b82be78054364537433b04f801dc47187363c08c925c0acffc3bd26111ef",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "removals": [
+            {
+              "publisher": "example.com",
+              "url": "https://news.example.com/u",
+              "item": "sha256:c209d6c1dae5ecc886ce9d66d9b73bb9e6f6eb96be89232cc1722f1bd82de1ad",
+              "catalog": "sha256:15358ae38355a3086b3a2eb56cb2e6ccf52a80d64bb90ad734502a36bfccc838",
+              "generated_at": "2026-10-01T03:59:00Z"
+            }
+          ],
+          "materialized": [
+            {
+              "url": "https://news.example.com/u",
+              "publisher": "zeta.example",
+              "item_id": "sha256:b7a1e3107725cd73b7b1518924d8fdcd45652ce3711f6639f42e3a5282105277",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "content_digest": "sha256:4719d25c245f17d12745df0d389692f9065c4c1f8bed9cf172cd5fa1ca7ffab6"
+        },
+        {
+          "height": 5,
+          "records": [
+            {
+              "publisher": "zeta.example",
+              "url": "https://news.example.com/u",
+              "item": "sha256:b7a1e3107725cd73b7b1518924d8fdcd45652ce3711f6639f42e3a5282105277",
+              "collection": "default",
+              "catalog": "sha256:25f2b82be78054364537433b04f801dc47187363c08c925c0acffc3bd26111ef",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "removals": [
+            {
+              "publisher": "example.com",
+              "url": "https://news.example.com/u",
+              "item": "sha256:c209d6c1dae5ecc886ce9d66d9b73bb9e6f6eb96be89232cc1722f1bd82de1ad",
+              "catalog": "sha256:15358ae38355a3086b3a2eb56cb2e6ccf52a80d64bb90ad734502a36bfccc838",
+              "generated_at": "2026-10-01T03:59:00Z"
+            }
+          ],
+          "materialized": [],
+          "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "height": 6,
+          "records": [
+            {
+              "publisher": "example.com",
+              "url": "https://news.example.com/u",
+              "item": "sha256:4580df898aa169df06a83a4d4f72068a05a411373908ba9f438591f10618490a",
+              "collection": "default",
+              "catalog": "sha256:bbd717aeb3957836916c969a4752f453c3c32b476294730cfa075af0acfe6c1c",
+              "generated_at": "2026-10-01T05:59:00Z"
+            },
+            {
+              "publisher": "news.example.com",
+              "url": "https://news.example.com/u",
+              "item": "sha256:8f5c42675e3730e5262e79ffdb9a20f7c4370654bb7487c7e500f3c61b8bcd7c",
+              "collection": "default",
+              "catalog": "sha256:aa3818db98e9c5e098352e32426a46c236605b1214c2f8be06414cbb4b522049",
+              "generated_at": "2026-10-01T05:59:00Z"
+            },
+            {
+              "publisher": "zeta.example",
+              "url": "https://news.example.com/u",
+              "item": "sha256:b7a1e3107725cd73b7b1518924d8fdcd45652ce3711f6639f42e3a5282105277",
+              "collection": "default",
+              "catalog": "sha256:25f2b82be78054364537433b04f801dc47187363c08c925c0acffc3bd26111ef",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "removals": [],
+          "materialized": [
+            {
+              "url": "https://news.example.com/u",
+              "publisher": "news.example.com",
+              "item_id": "sha256:8f5c42675e3730e5262e79ffdb9a20f7c4370654bb7487c7e500f3c61b8bcd7c",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T05:59:00Z"
+            }
+          ],
+          "content_digest": "sha256:3e31d58681a713c9e9dfc5947341a60f444b3b0dea770b11b60b3373e03604ca"
+        }
+      ],
+      "snapshot": {
+        "height": 3,
+        "tuples": [
+          [
+            "collection",
+            "example.com",
+            "default",
+            {
+              "catalog": {
+                "wist_version": "1.0.0",
+                "publisher": "example.com",
+                "collection": "default",
+                "generated_at": "2026-10-01T02:59:00Z",
+                "size": 1,
+                "root": "sha256:ce175030946ccee34f4c773d5571757460332811c02354306dce662ce3874bf0",
+                "tree": "sha256:77b9a933872138fcbe5958dc9d320604a8eeb6ef06c63e3be85761f093d79a10"
+              },
+              "sig": {
+                "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "alg": "Ed25519",
+                "value": "8hZYZ_Mfc8WSu57X-VONwIaWdsW7ATT50vMAoASkNM7gVP8rebLSIqRPUzcMBBTZOoFu8r2WeeCU9rPrwMvLAg"
+              }
+            },
+            3
+          ],
+          [
+            "collection",
+            "zeta.example",
+            "default",
+            {
+              "catalog": {
+                "wist_version": "1.0.0",
+                "publisher": "zeta.example",
+                "collection": "default",
+                "generated_at": "2026-10-01T00:59:00Z",
+                "size": 1,
+                "root": "sha256:eb86e38f1a0a5418cb87643662286f0d26d4455491927371e475451cc6682925",
+                "tree": "sha256:0e8740cd105c7b4860f5d595ce064553f7f6cf27267a819cfd819d9e125254af"
+              },
+              "sig": {
+                "key_id": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA",
+                "alg": "Ed25519",
+                "value": "K7SBmBSnUQMLTJLWWsl0ytFJJP9NkVOYM27E_fNg2_1Nv8LTNeqMLUHQ72I29ulYbfxj_siwe3YRwcSxXiwEAw"
+              }
+            },
+            1
+          ],
+          [
+            "declaration",
+            "example.com",
+            {
+              "publisher": {
+                "wist_version": "1.0.0",
+                "seq": 0,
+                "domain": "example.com",
+                "subdomain_scope": [
+                  "news.example.com"
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                    "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "nbf": 1788220800
+                  }
+                ],
+                "recovery_keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                    "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              "sig": {
+                "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "alg": "Ed25519",
+                "value": "OEp5kTxEfNuNBsPiKa_iPhFV-MqEpqppWxdRsRNO8I6hml25Yex2YJy3HsUlQNusPJX956pqG2VoGIAflZ1DAw"
+              }
+            },
+            0,
+            0
+          ],
+          [
+            "declaration",
+            "zeta.example",
+            {
+              "publisher": {
+                "wist_version": "1.0.0",
+                "seq": 0,
+                "domain": "zeta.example",
+                "subdomain_scope": [
+                  "news.example.com"
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "ujthHiiCwbaqSyrj7HjqBzbjrZkjg1NFAXFQekufFbU",
+                    "kid": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              "sig": {
+                "key_id": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA",
+                "alg": "Ed25519",
+                "value": "SMFQDQzYvlB55w1nvuTy-QVOE3BZHFmFjAUdfaGtNZ3AMZlJzv6k5ST63Fql1StQglagTk4D7E-HjKHScjMqCg"
+              }
+            },
+            0,
+            0
+          ],
+          [
+            "record",
+            "example.com",
+            "https://news.example.com/u",
+            {
+              "publisher": "example.com",
+              "url": "https://news.example.com/u",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:4c307db5eb466537e5c347bfb3b8d0568edaa855433b7f054aa8c76b015577e6",
+                "alg": "HMAC-SHA256",
+                "bytes": 132
+              },
+              "meta": {
+                "lang": "en"
+              }
+            },
+            "default",
+            "sha256:42618b5e90730d05e2776ba41b34848b0466127a855f0d376a41fbc5e8487984",
+            "2026-10-01T02:59:00Z"
+          ],
+          [
+            "record",
+            "zeta.example",
+            "https://news.example.com/u",
+            {
+              "publisher": "zeta.example",
+              "url": "https://news.example.com/u",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:46d772538dca0fe9506ac0bd5edca9255f6b41fc2048169943287e95cbf5e828",
+                "alg": "HMAC-SHA256",
+                "bytes": 116
+              },
+              "meta": {
+                "lang": "en"
+              }
+            },
+            "default",
+            "sha256:25f2b82be78054364537433b04f801dc47187363c08c925c0acffc3bd26111ef",
+            "2026-10-01T00:59:00Z"
+          ],
+          [
+            "withdrawal",
+            "sha256:e3df85ad1b191613b1bfbd99adf665438b8bf55c38388636e2e52855c7dbdc33",
+            "example.com",
+            2
+          ]
+        ]
+      }
+    }
+  ],
+  "payloads": {
+    "sha256:13d5bbb1882e0077f5875719202ad600e52ecf996e5409eb1113d6e61e34d5d6": {
+      "wist_version": "1.0.0",
+      "salt": "zQ3-soaeGOCO6xdNILUcWw",
+      "content": {
+        "extract": "Text of record c.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title record c"
+        }
+      }
+    },
+    "sha256:4580df898aa169df06a83a4d4f72068a05a411373908ba9f438591f10618490a": {
+      "wist_version": "1.0.0",
+      "salt": "bmfhyR6Fwec14oN6WDylSw",
+      "content": {
+        "extract": "Text of u by example.com, again.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title u by example.com, again"
+        }
+      }
+    },
+    "sha256:81bede4a1e82aefb0343c8221fc507de6831bfd06efd252c28e42e7a72631d07": {
+      "wist_version": "1.0.0",
+      "salt": "Pm0wAy7hhB9mZH4ILQ_Klw",
+      "content": {
+        "extract": "Text of record x.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title record x"
+        }
+      }
+    },
+    "sha256:8f5c42675e3730e5262e79ffdb9a20f7c4370654bb7487c7e500f3c61b8bcd7c": {
+      "wist_version": "1.0.0",
+      "salt": "9Tl7raxVraDaJILjqWBKRg",
+      "content": {
+        "extract": "Text of u by news.example.com.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title u by news.example.com"
+        }
+      }
+    },
+    "sha256:a54aa0f820d18b50249b0d1e1ce7f0bdcb6e6e2c77b6d82c18edd9a3caf96d56": {
+      "wist_version": "1.0.0",
+      "salt": "nQlpmj1AhKKUdvH0Ulo_Xw",
+      "content": {
+        "extract": "Text of u by example.com, changed.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title u by example.com, changed"
+        }
+      }
+    },
+    "sha256:b7a1e3107725cd73b7b1518924d8fdcd45652ce3711f6639f42e3a5282105277": {
+      "wist_version": "1.0.0",
+      "salt": "hyobVUBI6vJeyfZMVKbGUg",
+      "content": {
+        "extract": "Text of u by zeta.example.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title u by zeta.example"
+        }
+      }
+    },
+    "sha256:bafe7edeb5fef8bf8dbe9946701042e4b5b3dc7563ec557a01c73efbee0cd415": {
+      "wist_version": "1.0.0",
+      "salt": "kyftXLspJJdWtMEFoHFBww",
+      "content": {
+        "extract": "Text of record b.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title record b"
+        }
+      }
+    },
+    "sha256:d7adfadee4a057b4fd591ac67368a5d825431447b40d3bf3a5e2d82d4780a69c": {
+      "wist_version": "1.0.0",
+      "salt": "LgDU-hB5GhXk19zbv7b47Q",
+      "content": {
+        "extract": "Text of record a.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title record a"
+        }
+      }
+    },
+    "sha256:e3df85ad1b191613b1bfbd99adf665438b8bf55c38388636e2e52855c7dbdc33": {
+      "wist_version": "1.0.0",
+      "salt": "VDTGKt-ni3s4aywX1J_BwA",
+      "content": {
+        "extract": "Text of u by example.com.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title u by example.com"
+        }
+      }
+    },
+    "sha256:e75c31d4d5f521f0ed2220a272111931f633666919c0862557908d104e3a9d44": {
+      "wist_version": "1.0.0",
+      "salt": "YjF6D94Hy9mF7_fmygq-Iw",
+      "content": {
+        "extract": "Text of record d.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title record d"
+        }
+      }
+    }
+  }
+}

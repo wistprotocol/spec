@@ -1,13 +1,19 @@
 {
-  "note": "WIST-3 \u00a77, one URL, one Publisher: candidates are the Publishers holding a live record for one URL of host at a height; self_declared says whether the host's own seq-0 Declaration Entry is sealed at or below that height. materialized names the Publisher whose record the Snapshot carries, null when every candidate is excluded. Which records are live is a Log question these cases do not decide.",
+  "note": "WIST-3 \u00a77, one URL, one Publisher: `records` lists the Publishers holding a record of one URL of host at a height, each with whether a withdrawal sealed at or below that height names the record's Item; self_declared says whether the first publisher_declaration Entry whose domain is the host is sealed at or below that height. Only records no such withdrawal names are candidates. materialized names the Publisher whose record the Snapshot carries, null when the rule selects none. Which records a Log holds is carried by vectors/wist3/record-materialization.json.",
   "cases": [
     {
       "label": "self declaration prevails",
       "host": "a.example.com",
       "self_declared": true,
-      "candidates": [
-        "example.com",
-        "a.example.com"
+      "records": [
+        {
+          "publisher": "example.com",
+          "withdrawn": false
+        },
+        {
+          "publisher": "a.example.com",
+          "withdrawn": false
+        }
       ],
       "materialized": "a.example.com"
     },
@@ -15,8 +21,11 @@
       "label": "self declaration excludes parents without an own record",
       "host": "a.example.com",
       "self_declared": true,
-      "candidates": [
-        "example.com"
+      "records": [
+        {
+          "publisher": "example.com",
+          "withdrawn": false
+        }
       ],
       "materialized": null
     },
@@ -24,9 +33,15 @@
       "label": "nearest ancestor",
       "host": "a.b.example.com",
       "self_declared": false,
-      "candidates": [
-        "example.com",
-        "b.example.com"
+      "records": [
+        {
+          "publisher": "example.com",
+          "withdrawn": false
+        },
+        {
+          "publisher": "b.example.com",
+          "withdrawn": false
+        }
       ],
       "materialized": "b.example.com"
     },
@@ -34,9 +49,15 @@
       "label": "ancestor over non ancestor",
       "host": "a.example.com",
       "self_declared": false,
-      "candidates": [
-        "zeta.example",
-        "example.com"
+      "records": [
+        {
+          "publisher": "zeta.example",
+          "withdrawn": false
+        },
+        {
+          "publisher": "example.com",
+          "withdrawn": false
+        }
       ],
       "materialized": "example.com"
     },
@@ -44,9 +65,15 @@
       "label": "non ancestors in octet order",
       "host": "a.example.com",
       "self_declared": false,
-      "candidates": [
-        "zeta.example",
-        "alpha.example"
+      "records": [
+        {
+          "publisher": "zeta.example",
+          "withdrawn": false
+        },
+        {
+          "publisher": "alpha.example",
+          "withdrawn": false
+        }
       ],
       "materialized": "alpha.example"
     },
@@ -54,8 +81,11 @@
       "label": "single scoped publisher",
       "host": "a.example.com",
       "self_declared": false,
-      "candidates": [
-        "other.example"
+      "records": [
+        {
+          "publisher": "other.example",
+          "withdrawn": false
+        }
       ],
       "materialized": "other.example"
     },
@@ -63,11 +93,65 @@
       "label": "label boundary is not a suffix match",
       "host": "a.notexample.com",
       "self_declared": false,
-      "candidates": [
-        "example.com",
-        "beta.example"
+      "records": [
+        {
+          "publisher": "example.com",
+          "withdrawn": false
+        },
+        {
+          "publisher": "beta.example",
+          "withdrawn": false
+        }
       ],
       "materialized": "beta.example"
+    },
+    {
+      "label": "a withdrawn nearest ancestor",
+      "host": "a.b.example.com",
+      "self_declared": false,
+      "records": [
+        {
+          "publisher": "example.com",
+          "withdrawn": false
+        },
+        {
+          "publisher": "b.example.com",
+          "withdrawn": true
+        }
+      ],
+      "materialized": "example.com"
+    },
+    {
+      "label": "a withdrawn ancestor beside a non ancestor",
+      "host": "a.example.com",
+      "self_declared": false,
+      "records": [
+        {
+          "publisher": "example.com",
+          "withdrawn": true
+        },
+        {
+          "publisher": "zeta.example",
+          "withdrawn": false
+        }
+      ],
+      "materialized": "zeta.example"
+    },
+    {
+      "label": "a self declared host whose own record is withdrawn",
+      "host": "a.example.com",
+      "self_declared": true,
+      "records": [
+        {
+          "publisher": "example.com",
+          "withdrawn": false
+        },
+        {
+          "publisher": "a.example.com",
+          "withdrawn": true
+        }
+      ],
+      "materialized": null
     }
   ]
 }

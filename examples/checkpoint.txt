@@ -1,7 +1,7 @@
 log.example.org
 4
-QFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=
+P5cwNNJjNrxit7TCA61T/zHZGe8/UPRedZIsobyJXYs=
 epoch_number 0
 sealed_at 2026-08-02T13:00:00Z
 
-— log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=
+— log.example.org sdtYE21A0JPa2I+qCqMkqGic1Ca32a3vs19RIo9G5WockqSXt5gcznA3qeI6yb2lpSbl2PFmPYS7kn2uMB9K0olQTgA=

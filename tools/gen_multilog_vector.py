@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
-"""Generate the multi-log dedup vector (WIST-3 §8, "Following more than one
-Log"): one Publisher Declaration and one Delta, sealed independently by two
-Logs with distinct genesis keys, at different heights.
-
-Never uses wall-clock or randomness: fixed seeds, fixed timestamps.
-Re-running always produces byte-identical output.
-"""
 import base64, calendar, hashlib, hmac, json, pathlib, time
 
 import rfc8785
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from merkle import leaf_hash, merkle_root as merkle_tree_root, node_hash
+import catalogs
+import combined_view
+import items
+import sealing
+import tree_files
+from merkle import leaf_hash, merkle_root as merkle_tree_root
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT / "vectors" / "multilog"
@@ -104,21 +102,21 @@ def write_json(path: pathlib.Path, obj: dict) -> None:
     path.write_text(json.dumps(obj, indent=2) + "\n")
 
 
-# One Publisher, self-signed, shared verbatim by both Logs — WIST-3 §8's
-# claim is that a Delta ID does not depend on which Log carries it, so the
-# same signed Declaration and Delta envelopes are sealed twice, unmodified.
 PUB_SEED = bytes([0x11] * 32)
+SECOND_SEED = bytes(range(32))
 pub_priv, pub_pub = keypair(PUB_SEED)
+second_priv, second_pub = keypair(SECOND_SEED)
 
 DOMAIN = "example.com"
-DELTA_URL = "https://example.com/shared-post"
+ITEM_URL = "https://example.com/shared-post"
 
 PUB_KID = kid_of(pub_pub)
+SECOND_KID = kid_of(second_pub)
 
 declaration = {
     "wist_version": "1.0.0",
     "domain": DOMAIN,
-    "keys": [jwk(pub_pub, "2026-08-02T00:00:00Z")],
+    "keys": [jwk(pub_pub, "2026-08-02T00:00:00Z"), jwk(second_pub, "2026-08-02T00:00:00Z")],
     "seq": 0,
 }
 declaration_envelope = sign_envelope(pub_priv, "publisher", declaration, PUB_KID)
@@ -128,34 +126,28 @@ CONTENT = {
     "links": {"total": 0, "urls": []},
     "summary": {"title": "Shared Post"},
 }
-content_canonical = rfc8785.dumps(CONTENT)
-salt = hashlib.sha256(b"wist-test-salt|multilog|" + DELTA_URL.encode()).digest()[:16]
-commitment = "hmac-sha256:" + hmac.new(salt, content_canonical, hashlib.sha256).hexdigest()
-payload = {"wist_version": "1.0.0", "salt": b64u(salt), "content": CONTENT}
-
-delta = {
-    "wist_version": "1.0.0",
-    "publisher": DOMAIN,
-    "url": DELTA_URL,
-    "change_type": "new",
-    "observed_at": "2026-08-02T12:00:00Z",
-    "payload": {"commitment": commitment, "alg": "HMAC-SHA256", "bytes": len(content_canonical)},
-    "meta": {"lang": "en"},
-}
-delta_canonical = rfc8785.dumps(delta)
-delta_id = "sha256:" + sha256_hex(delta_canonical)
-delta_envelope = sign_envelope(pub_priv, "delta", delta, PUB_KID)
+salt = hashlib.sha256(b"wist-test-salt|multilog|" + ITEM_URL.encode()).digest()[:16]
+item, payload = items.new_page_item(
+    DOMAIN, {"url": ITEM_URL, "lang": "en", "modified": "2026-08-02T12:00:00Z", "content": CONTENT}, b64u(salt))
+item_id = items.item_id(item)
+tree, _ = tree_files.write_tree([item])
+catalog = {"wist_version": "1.0.0", "publisher": DOMAIN, "collection": "default",
+           "generated_at": "2026-08-02T12:30:00Z", "size": 1, "root": items.root_string([item]), "tree": tree}
+catalog_id = catalogs.catalog_id(catalog)
+catalog_envelopes = {"log-a": sign_envelope(pub_priv, "catalog", catalog, PUB_KID),
+                     "log-b": sign_envelope(second_priv, "catalog", catalog, SECOND_KID)}
+assert catalog_envelopes["log-a"]["sig"] != catalog_envelopes["log-b"]["sig"]
 
 wrapped_declaration = {"type": "publisher_declaration", "body": declaration_envelope}
-wrapped_delta = {"type": "publisher_delta", "body": delta_envelope}
+wrapped_item = {"type": "publisher_item", "body": items.publisher_item_body(item, catalog, [item])}
+PARAMETERS = {
+    "clock_skew_seconds": 600, "catalog_items_max": 16777216, "catalog_refresh_seconds": 604800,
+    "payload_window_days": 180, "domain_epoch_entries_max": 10000, "url_cap_bytes": 2048,
+    "extract_cap_bytes": 32768, "links_cap_bytes": 4096, "link_url_cap_bytes": 2048, "summary_cap_bytes": 2048,
+    "collections_max": 16, "scope_entries_max": 32, "recovery_window_days": 7, "declaration_activation_epochs": 24}
 
 
-def build_log(log_id: str, seed: bytes, key_id: str, heartbeat_before_delta: bool) -> dict:
-    """log-a seals Declaration (Epoch 0) then the Delta (Epoch 1). log-b
-    inserts an empty heartbeat Epoch between the two, sealing the same
-    Delta one Epoch later — different heights, same Delta ID, per WIST-3
-    §8: identity does not depend on height or Log.
-    """
+def build_log(log_id: str, seed: bytes, key_id: str, heartbeat_before_publications: bool) -> dict:
     priv, pub = keypair(seed)
     anchor = {
         "wist_version": "1.0.0",
@@ -164,23 +156,19 @@ def build_log(log_id: str, seed: bytes, key_id: str, heartbeat_before_delta: boo
         "created_at": "2026-08-02T00:00:00Z",
     }
     anchor_envelope = sign_envelope(priv, "anchor", anchor, key_id)
+    publications = sealing.canonical_order(
+        [{"type": "publisher_catalog", "body": catalog_envelopes[log_id]}, wrapped_item])
+    plan = [[wrapped_declaration]] + ([[]] if heartbeat_before_publications else []) + [publications]
 
-    leaves = []
-    epoch0, leaves = seal(log_id, priv, pub, leaves, [wrapped_declaration], 0,
-                          "2026-08-02T13:00:00Z")
-    epochs = [epoch0]
-    next_number, next_hour = 1, 14
-
-    if heartbeat_before_delta:
-        heartbeat, leaves = seal(log_id, priv, pub, leaves, [], next_number,
-                                 f"2026-08-02T{next_hour:02d}:00:00Z")
-        epochs.append(heartbeat)
-        next_number, next_hour = next_number + 1, next_hour + 1
-
-    delta_sealed_at = f"2026-08-02T{next_hour:02d}:00:00Z"
-    delta_epoch, leaves = seal(log_id, priv, pub, leaves, [wrapped_delta], next_number,
-                               delta_sealed_at)
-    epochs.append(delta_epoch)
+    leaves, epochs, replayed = [], [], []
+    for number, entries in enumerate(plan):
+        sealed_at = f"2026-08-02T{13 + number:02d}:00:00Z"
+        epoch, leaves = seal(log_id, priv, pub, leaves, entries, number, sealed_at)
+        epochs.append(epoch)
+        replayed.append({"height": number, "sealed_at": sealed_at, "parameters": PARAMETERS, "entries": entries})
+    results, state = sealing.replay(replayed)
+    assert all(r["status"] == "accepted" and all(d is None or d["disposition"] == "valid" for d in r["entries"])
+               for r in results), log_id
 
     return {
         "log_id": log_id,
@@ -190,27 +178,25 @@ def build_log(log_id: str, seed: bytes, key_id: str, heartbeat_before_delta: boo
         "checkpoint": epochs[-1]["checkpoint"],
         "tree_size": len(leaves),
         "root": root_token(leaves),
-    }
+    }, state.url_state(DOMAIN, ITEM_URL)
 
 
-log_a = build_log("log-a", bytes([0xAA] * 32), "log-a-genesis", heartbeat_before_delta=False)
-log_b = build_log("log-b", bytes([0xBB] * 32), "log-b-genesis", heartbeat_before_delta=True)
-
-assert len(log_a["epochs"]) != len(log_b["epochs"]), \
-    "the two Logs must seal the Delta at different heights"
-assert json.loads(rfc8785.dumps(log_a["epochs"][-1]["entries"][0])) == \
-       json.loads(rfc8785.dumps(log_b["epochs"][-1]["entries"][0])), \
-    "the sealed Delta entry must be byte-identical across Logs"
+log_a, state_a = build_log("log-a", bytes([0xAA] * 32), "log-a-genesis", heartbeat_before_publications=False)
+log_b, state_b = build_log("log-b", bytes([0xBB] * 32), "log-b-genesis", heartbeat_before_publications=True)
+assert len(log_a["epochs"]) != len(log_b["epochs"])
+combined = combined_view.combined_state({"log-a": state_a, "log-b": state_b})
+assert combined["logs"] == ["log-a", "log-b"] and combined["state"]["item"] == item_id
 
 vector = {
     "description": (
-        "One Delta sealed independently by two Logs (WIST-3 §8, \"Following "
-        "more than one Log\"): identity is stable, a Consumer holding both "
-        "deduplicates by Delta ID, and derived state stays per Log. log-a "
-        "seals the Publisher's Declaration in Epoch 0 and the Delta in "
-        "Epoch 1; log-b seals the same Declaration in Epoch 0, an empty "
-        "heartbeat Epoch 1, and the same Delta in Epoch 2 — different "
-        "heights, same Delta ID."
+        "One Catalog and one Item sealed independently by two Logs (WIST-3 §7, Several Logs, and §8, "
+        "Following more than one Log). log-a seals the Publisher's Declaration in Epoch 0 and, in Epoch 1, "
+        "the Catalog and the publisher_item Entry of its one Item; log-b seals the same Declaration in Epoch 0, "
+        "an empty Epoch 1, and the same Catalog and Item in Epoch 2. The Catalog's inner object, and with it "
+        "its Catalog ID, is the same in both Logs, while its Envelope carries a signature under another key of "
+        "the Declaration in each; the publisher_item Entry is byte-identical. A Consumer holding both Logs "
+        "deduplicates Catalogs and Items by ID, and the record each Log holds for the Publisher and URL, "
+        "proved against one Catalog and carrying one Item, combines into one state held by both Logs."
     ),
     "note": (
         "Each Log entry's genesis_seed_hex is test-harness material, not "
@@ -222,19 +208,15 @@ vector = {
         "never use in production."
     ),
     "publisher_declaration": declaration_envelope,
-    "delta": delta_envelope,
+    "catalog_id": catalog_id,
+    "item": item,
+    "item_id": item_id,
     "payload": payload,
-    "delta_id": delta_id,
     "logs": [log_a, log_b],
     "expected": {
-        "merged_records": [
-            {"url": DELTA_URL, "publisher": DOMAIN, "delta_id": delta_id,
-             "sources": ["log-a", "log-b"]}
-        ]
+        "log_states": {"log-a": state_a, "log-b": state_b},
+        "combined": combined,
     },
 }
 
 write_json(OUT / "dedup.json", vector)
-print("multilog delta id:", delta_id)
-print("log-a head:", len(log_a["epochs"]) - 1, log_a["root"])
-print("log-b head:", len(log_b["epochs"]) - 1, log_b["root"])

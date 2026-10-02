@@ -4,6 +4,7 @@ import json
 import pathlib
 import re
 import sys
+import urllib.parse
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from verify_collection_vectors import (
@@ -47,6 +48,7 @@ FILE_MEMBERS = {
     "catalog-sealing": {"keys", "histories", "parameter_cases", "payloads"},
     "multilog-catalog-order": {"keys", "order_cases", "combined_cases", "payloads"},
     "served-files": {"cases"},
+    "record-materialization": {"keys", "cases", "payloads"},
 }
 HISTORY_MEMBERS = {"name", "epochs", "expected"}
 PARAMETER_CASE_MEMBERS = {"name", "parameters", "expected"}
@@ -55,6 +57,18 @@ COMBINED_CASE_MEMBERS = {"name", "publisher", "url", "logs", "expected"}
 LOG_MEMBERS = {"name", "epochs", "results"}
 SERVED_CASE_MEMBERS = {"name", "served", "clock", "stop", "expected"}
 SERVED_CATALOG_MEMBERS = {"catalog", "served_at", "files"}
+MATERIALIZATION_CASE_MEMBERS = {"name", "epochs", "expected", "snapshot"}
+EVENT_EPOCH_MEMBERS = {"height", "sealed_at", "events"}
+EVENT_MEMBERS = {
+    "declaration": {"event", "domain"},
+    "narrowing": {"event", "publisher", "urls"},
+    "withdrawal": {"event", "item"},
+    "base": {"event", "publisher", "collection", "catalog"},
+    "record": {"event", "publisher", "item", "collection", "catalog", "generated_at"},
+    "removal": {"event", "publisher", "url", "item", "catalog", "generated_at"},
+}
+EVENT_RANK = {"declaration": 0, "narrowing": 0, "withdrawal": 1, "base": 2, "record": 3, "removal": 3}
+TUPLE_ARITY = {"declaration": 5, "collection": 5, "record": 7, "removal": 6, "withdrawal": 4}
 
 
 class EpochRejected(Exception):
@@ -111,7 +125,7 @@ def check_map(parameters):
 
 def new_log(log_key=None):
     return {"domains": {}, "latest": {}, "records": {}, "removals": {}, "withdrawn": {}, "sealed_items": {},
-            "duties": {}, "log_key": log_key, "window_end": None}
+            "duties": {}, "log_key": log_key}
 
 
 def in_force(log, domain):
@@ -128,16 +142,14 @@ def window_open(log, domain):
 
 def stop_record(log, key):
     record = log["records"].pop(key)
-    duty = log["duties"].setdefault(record["item"], {"key": key, "record": True, "until": None})
-    duty["record"] = False
-    if log["window_end"] is not None:
-        duty["until"] = log["window_end"] if duty["until"] is None else max(duty["until"], log["window_end"])
+    log["duties"][record["item"]]["record"] = False
 
 
-def start_record(log, key, record):
+def start_record(log, key, record, window_end):
     log["records"][key] = record
-    duty = log["duties"].setdefault(record["item"], {"key": key, "record": True, "until": None})
+    duty = log["duties"].setdefault(record["item"], {"key": key, "record": True, "until": window_end})
     duty["record"] = True
+    duty["until"] = max(duty["until"], window_end)
 
 
 def remove_records(log, publisher, urls, cause, removed):
@@ -276,7 +288,7 @@ def named_catalog(log, body):
     return None
 
 
-def judge_item_entry(log, body, height, parameters, removed):
+def judge_item_entry(log, body, height, sealed_at, parameters, removed):
     if not body_form(body):
         return ["I1"], {"WIST1-E14"}
     failed, codes = [], set()
@@ -343,7 +355,8 @@ def judge_item_entry(log, body, height, parameters, removed):
         log["removals"][key] = {"item": identifier, "catalog": named["id"], "generated_at": inner["generated_at"]}
     else:
         start_record(log, key, {"item": identifier, "collection": inner["collection"], "catalog": named["id"],
-                                "generated_at": inner["generated_at"]})
+                                "generated_at": inner["generated_at"], "body": item},
+                     sealed_at + parameters["payload_window_days"] * DAY_SECONDS)
         log["removals"].pop(key, None)
     return failed, codes
 
@@ -430,7 +443,7 @@ def duties(log, sealed_at):
             continue
         if duty["record"]:
             until = None
-        elif duty["until"] is not None and sealed_at < duty["until"]:
+        elif sealed_at < duty["until"]:
             until = log_timestamp(duty["until"])
         else:
             continue
@@ -444,7 +457,6 @@ def apply_epoch(log, epoch):
     entries = epoch["entries"]
     check_order(entries)
     before = copy.deepcopy(log)
-    log["window_end"] = sealed_at + parameters["payload_window_days"] * DAY_SECONDS
     removed, verdicts = [], {}
     try:
         epoch_rejections(entries, parameters)
@@ -456,7 +468,7 @@ def apply_epoch(log, epoch):
         return {"height": height, "status": "rejected", "code": rejection.code}
     judges = {
         "publisher_catalog": lambda b: judge_catalog_entry(log, b, height, sealed_at, parameters, removed),
-        "publisher_item": lambda b: judge_item_entry(log, b, height, parameters, removed),
+        "publisher_item": lambda b: judge_item_entry(log, b, height, sealed_at, parameters, removed),
         "registry_update": lambda b: judge_withdrawal(log, b, height),
     }
     for kind in ("publisher_catalog", "publisher_item", "registry_update"):
@@ -487,8 +499,13 @@ def snapshot(log):
                  "floor": latest["envelope"]["catalog"]["generated_at"], "sealing_height": latest["height"],
                  "base": latest["base"]}
                 for (publisher, collection), latest in sorted(log["latest"].items(), key=by_key)]
-    records = [{"publisher": p, "url": u, **record} for (p, u), record in sorted(log["records"].items(), key=by_key)]
+    records = [{"publisher": p, "url": u, **record_fields(record), "item": record["body"]}
+               for (p, u), record in sorted(log["records"].items(), key=by_key)]
     return {"declarations": declarations, "catalogs": catalogs, "records": records, "removals": removals_of(log)}
+
+
+def record_fields(record):
+    return {name: value for name, value in record.items() if name != "body"}
 
 
 def removals_of(log):
@@ -577,7 +594,7 @@ def family_sealing(data, report):
 def log_state(log, publisher, url):
     record = log["records"].get((publisher, url))
     if record is not None:
-        return {"state": "record", **record}
+        return {"state": "record", **record_fields(record)}
     removal = log["removals"].get((publisher, url))
     if removal is not None:
         return {"state": "removed", **removal}
@@ -689,10 +706,211 @@ def family_served(data, report):
         report.run(case["name"], lambda c=case: report.equal(c["name"], c["expected"], due_files(c)))
 
 
+def new_holdings():
+    return {"records": {}, "removals": {}, "withdrawn": {}, "declared": set(), "sealed": {}}
+
+
+def event_form(event):
+    if not isinstance(event, dict) or event.get("event") not in EVENT_MEMBERS:
+        raise VerifierError(f"not a record event: {event!r}")
+    members_read(event, EVENT_MEMBERS[event["event"]], f"{event['event']} event")
+    for member in ("catalog",) + (("item",) if event["event"] in ("withdrawal", "removal") else ()):
+        if member in event and not (isinstance(event[member], str) and HASH.fullmatch(event[member])):
+            raise VerifierError(f"{event['event']} event: {member} is not a sha256 ID")
+    if "generated_at" in event and log_instant(event["generated_at"]) is None:
+        raise VerifierError(f"{event['event']} event: generated_at is not a Log timestamp")
+    if event["event"] == "record" and (not item_form(event["item"]) or "removed" in event["item"]):
+        raise VerifierError("record event whose item is not an Item of kind page")
+
+
+def apply_event(state, event, height, walked):
+    kind = event["event"]
+    records = state["records"]
+    if kind == "declaration":
+        state["declared"].add(event["domain"])
+    elif kind == "narrowing":
+        for url in event["urls"]:
+            if (event["publisher"], url) not in records:
+                raise VerifierError(f"narrowing removes no record at {url}")
+            del records[(event["publisher"], url)]
+    elif kind == "withdrawal":
+        state["withdrawn"].setdefault(event["item"], {"height": height, "walked": walked})
+    elif kind == "base":
+        for key in [key for key, record in records.items()
+                    if key[0] == event["publisher"] and record["collection"] == event["collection"]]:
+            del records[key]
+    elif kind == "record":
+        item = event["item"]
+        key, identifier = (event["publisher"], item["url"]), item_id(item)
+        held = records.get(key)
+        if (held is not None and item_id(held["item"]) == identifier) or any(
+                identifier == named and entry["height"] < height for named, entry in state["withdrawn"].items()):
+            raise VerifierError(f"record event at {item['url']} fails I7")
+        records[key] = {"item": item, "collection": event["collection"], "catalog": event["catalog"],
+                        "generated_at": event["generated_at"]}
+        state["removals"].pop(key, None)
+        state["sealed"].setdefault(identifier, event["publisher"])
+    else:
+        key = (event["publisher"], event["url"])
+        if key not in records:
+            raise VerifierError(f"removal event at {event['url']} without a record")
+        del records[key]
+        state["removals"][key] = {"item": event["item"], "catalog": event["catalog"],
+                                  "generated_at": event["generated_at"]}
+
+
+def apply_event_epoch(state, epoch, walked):
+    members_read(epoch, EVENT_EPOCH_MEMBERS, f"Epoch {epoch.get('height')}")
+    ranks = []
+    for event in epoch["events"]:
+        event_form(event)
+        ranks.append(EVENT_RANK[event["event"]])
+    if ranks != sorted(ranks):
+        raise VerifierError(f"Epoch {epoch['height']}: events out of application order (WIST-3 section 3.3)")
+    for event in epoch["events"]:
+        apply_event(state, event, epoch["height"], walked)
+    for identifier, entry in state["withdrawn"].items():
+        if entry["walked"] and entry["height"] == epoch["height"] and identifier not in state["sealed"]:
+            raise VerifierError(f"withdrawal of {identifier} breaks its details contract")
+
+
+def url_host(url):
+    return urllib.parse.urlsplit(url).hostname
+
+
+def chosen_publisher(host, publishers, declared):
+    if host in declared:
+        return host if host in publishers else None
+    ancestors = [p for p in publishers if host.endswith("." + p)]
+    if ancestors:
+        return max(ancestors, key=len)
+    return min(publishers, key=octets)
+
+
+def materialized(state):
+    by_url = {}
+    for (publisher, url), record in state["records"].items():
+        if item_id(record["item"]) not in state["withdrawn"]:
+            by_url.setdefault(url, {})[publisher] = record
+    tuples = []
+    for url, held in by_url.items():
+        publisher = chosen_publisher(url_host(url), held, state["declared"])
+        if publisher is not None:
+            record = held[publisher]
+            tuples.append({"url": url, "publisher": publisher, "item_id": item_id(record["item"]),
+                           "observed_at": record["item"]["observed_at"], "attested_at": record["generated_at"]})
+    return tuples
+
+
+def holdings_view(state, height):
+    by_key = lambda kv: (octets(kv[0][0]), octets(kv[0][1]))
+    records = [{"publisher": p, "url": u, "item": item_id(r["item"]), "collection": r["collection"],
+                "catalog": r["catalog"], "generated_at": r["generated_at"]}
+               for (p, u), r in sorted(state["records"].items(), key=by_key)]
+    removals = [{"publisher": p, "url": u, **r} for (p, u), r in sorted(state["removals"].items(), key=by_key)]
+    content = materialized(state)
+    digest = "sha256:" + hashlib.sha256(b"".join(sorted(jcs(t) for t in content))).hexdigest()
+    content.sort(key=lambda t: (octets(t["publisher"]), octets(t["url"])))
+    return {"height": height, "records": records, "removals": removals, "materialized": content,
+            "content_digest": digest}
+
+
+def replayed_tuples(state):
+    tuples = [["record", p, u, r["item"], r["collection"], r["catalog"], r["generated_at"]]
+              for (p, u), r in state["records"].items()]
+    tuples += [["removal", p, u, r["item"], r["catalog"], r["generated_at"]] for (p, u), r in state["removals"].items()]
+    for identifier, entry in state["withdrawn"].items():
+        if identifier not in state["sealed"]:
+            raise VerifierError(f"no Publisher sealed the withdrawn Item {identifier}")
+        tuples.append(["withdrawal", identifier, state["sealed"][identifier], entry["height"]])
+    return sorted(tuples, key=jcs)
+
+
+def resumed_holdings(snapshot):
+    members_read(snapshot, {"height", "tuples"}, "snapshot")
+    state = new_holdings()
+    declarations = {}
+    for entry in snapshot["tuples"]:
+        if not isinstance(entry, list) or not entry or TUPLE_ARITY.get(entry[0]) != len(entry):
+            raise VerifierError(f"a state tuple of another kind or arity: {json.dumps(entry)[:80]}")
+        kind = entry[0]
+        if kind == "declaration":
+            domain, envelope = entry[1], entry[2]
+            if envelope["publisher"]["domain"] != domain:
+                raise VerifierError(f"declaration tuple of {domain} carries another domain's Declaration")
+            declarations[domain] = envelope["publisher"]
+            state["declared"].add(domain)
+        elif kind == "record":
+            _, publisher, url, item, collection, catalog, generated_at = entry
+            if not item_form(item) or "removed" in item or item["url"] != url:
+                raise VerifierError(f"record tuple at {url} carries no page Item of its URL")
+            state["records"][(publisher, url)] = {"item": item, "collection": collection, "catalog": catalog,
+                                                  "generated_at": generated_at}
+        elif kind == "removal":
+            _, publisher, url, identifier, catalog, generated_at = entry
+            state["removals"][(publisher, url)] = {"item": identifier, "catalog": catalog,
+                                                   "generated_at": generated_at}
+        elif kind == "withdrawal":
+            _, identifier, publisher, height = entry
+            state["withdrawn"][identifier] = {"height": height, "walked": False}
+            state["sealed"][identifier] = publisher
+    for entry in snapshot["tuples"]:
+        if entry[0] == "collection":
+            _, publisher, name, envelope, height = entry
+            inner = envelope["catalog"]
+            if (inner["publisher"], inner["collection"]) != (publisher, name) or height > snapshot["height"]:
+                raise VerifierError(f"collection tuple of {publisher} {name} names another Catalog")
+            if publisher not in declarations or binding_code(declarations[publisher], inner, envelope["sig"]):
+                raise VerifierError(f"collection tuple of {publisher} {name} fails the binding check")
+    return state
+
+
+def materialization_case(case, report):
+    members_read(case, MATERIALIZATION_CASE_MEMBERS, f"case {case.get('name')!r}", {"why"})
+    epochs, expected, snapshot = case["epochs"], case["expected"], case["snapshot"]
+    if [e.get("height") for e in epochs] != list(range(len(epochs))):
+        raise VerifierError("Epoch heights are not 0, 1, 2, ...")
+    if any(log_seconds(a["sealed_at"]) >= log_seconds(b["sealed_at"]) for a, b in zip(epochs, epochs[1:])):
+        raise VerifierError("sealed_at does not increase")
+    state, produced, at_snapshot = new_holdings(), [], None
+    for epoch in epochs:
+        apply_event_epoch(state, epoch, True)
+        produced.append(holdings_view(state, epoch["height"]))
+        if epoch["height"] == snapshot["height"]:
+            at_snapshot = replayed_tuples(state), set(state["declared"])
+    compare_epochs(report, case["name"], expected, produced)
+    if at_snapshot is None or snapshot["height"] == epochs[-1]["height"]:
+        raise VerifierError("the snapshot height is no Epoch below the last")
+    resumed = resumed_holdings(snapshot)
+    carried = sorted((t for t in snapshot["tuples"] if t[0] in ("record", "removal", "withdrawal")), key=jcs)
+    report.equal(f"{case['name']} snapshot record, removal and withdrawal tuples", at_snapshot[0], carried)
+    report.equal(f"{case['name']} snapshot declaration tuples", sorted(at_snapshot[1], key=octets),
+                 sorted(resumed["declared"], key=octets))
+    later = [epoch for epoch in epochs if epoch["height"] > snapshot["height"]]
+    after = []
+    for epoch in later:
+        apply_event_epoch(resumed, epoch, False)
+        after.append(holdings_view(resumed, epoch["height"]))
+    compare_epochs(report, f"{case['name']} resumed at {snapshot['height']}",
+                   [want for want in expected if want["height"] > snapshot["height"]], after)
+    return [event["item"] for epoch in epochs for event in epoch["events"] if event["event"] == "record"]
+
+
+def family_materialization(data, report):
+    items = {}
+    for case in data["cases"]:
+        def one(c=case):
+            for item in materialization_case(c, report):
+                items[item_id(item)] = item
+        report.run(case["name"], one)
+    check_payloads(report, data["payloads"], items)
+
+
 FAMILIES = [
     ("catalog-sealing", "wist3/catalog-sealing.json", family_sealing),
     ("multilog-catalog-order", "multilog/catalog-order.json", family_multilog),
     ("served-files", "wist2/served-files.json", family_served),
+    ("record-materialization", "wist3/record-materialization.json", family_materialization),
 ]
 
 

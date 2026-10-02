@@ -1,28 +1,182 @@
 {
-  "note": "The live record set WIST-3 \u00a77's content_digest is computed over. Each record carries Log-derived identifiers only: no page content reaches the digest, so it remains computable after a Payload is withdrawn (WIST-3 \u00a76.2), while delta_id still names the Delta whose salted commitment binds the content. The reduced.example.org Delta is not an Entry of the example Epoch; this vector publishes the record encoding, not a materialization of Epoch 0. `links` is the tier1/links.parquet materialization: one (source_url, target_url, position) row per declared link of every live record, source_url the record's Normalized URL and target_url/position drawn in order from that record's Payload content.links.urls. Unlike the record tuple above, a link row derives from Payload content, not from the Log, and therefore leaves distribution with the Payload on a withdrawal (WIST-3 \u00a76.2) rather than surviving in content_digest; the reduced.example.org record contributes no rows because its Payload declares no links.",
+  "note": "The materialized record set WIST-3 \u00a77's content_digest is computed over, as content tuples (url, publisher, item_id, observed_at, attested_at): Log-derived values only, so the digest remains computable after a Payload is withdrawn (WIST-3 \u00a76.2), while item_id still names the Item whose salted commitment binds the content. Neither Item is an Entry of the example Epoch; this vector publishes the content tuple, not a materialization of Epoch 0. `tuples` gives the collection and record tuples (WIST-3 \u00a77) each content tuple is derived from: item_id is the ID of the record's Item, observed_at its observed_at and attested_at the generated_at of the Catalog it was proved against, which is the collection tuple's Catalog. example.com's tuples are those of examples/snapshot-state.json and its Declaration is examples/publisher.json; `declarations` carries the second domain's, under which its Catalog verifies, and `payloads` maps each Item ID to its Payload. `links` is the tier1/links.parquet materialization: one (source_url, target_url, position) row per declared link of every materialized record, source_url the record's Normalized URL and target_url/position drawn in order from that record's Payload content.links.urls. A link row derives from Payload content, not from the Log, and therefore leaves distribution with the Payload on a withdrawal (WIST-3 \u00a76.2) rather than surviving in content_digest; the reduced.example.org record contributes no rows because its Payload declares no links.",
   "snapshot_date": "2026-08-02",
-  "tree_size": 0,
+  "tree_size": 4,
   "record_fields": [
     "url",
     "publisher",
-    "delta_id",
-    "observed_at"
+    "item_id",
+    "observed_at",
+    "attested_at"
   ],
   "records": [
     {
       "url": "https://example.com/blog/post-1",
       "publisher": "example.com",
-      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
-      "observed_at": "2026-08-02T12:00:00Z"
+      "item_id": "sha256:d807cca1e53ef2260d01a6405d2519d2967b437058320bc1b42113b894c8a006",
+      "observed_at": "2026-08-02T12:00:00Z",
+      "attested_at": "2026-08-02T12:00:00Z"
     },
     {
       "url": "https://reduced.example.org/notice",
       "publisher": "reduced.example.org",
-      "delta_id": "sha256:4ad46050dbb223470bce4a6919fb3a003e273d3c9c9318dcb12e6e25e56fb35b",
-      "observed_at": "2026-08-02T11:30:00Z"
+      "item_id": "sha256:a90e1485d50f9c91febcd148a960e090742557de1dc5aae67325cfd5be4fa671",
+      "observed_at": "2026-08-02T11:30:00Z",
+      "attested_at": "2026-08-02T11:45:00Z"
     }
   ],
-  "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
+  "content_digest": "sha256:9122a0c00f22d6f708b0f7231b0ebe3fce945adb46961caac531b659b403e043",
+  "tuples": [
+    [
+      "collection",
+      "example.com",
+      "default",
+      {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "default",
+          "generated_at": "2026-08-02T12:00:00Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "izPZd8unAqUfo6TuZ4neLq2VvvXdLniA4ev854L2T6mU7Ejqoo0ikG73ErKVOg6kTOkjWsBx3kgcnxaS98fHDA"
+        }
+      },
+      0
+    ],
+    [
+      "record",
+      "example.com",
+      "https://example.com/blog/post-1",
+      {
+        "publisher": "example.com",
+        "url": "https://example.com/blog/post-1",
+        "observed_at": "2026-08-02T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+          "alg": "HMAC-SHA256",
+          "bytes": 263
+        },
+        "meta": {
+          "lang": "en",
+          "topics": [
+            "software"
+          ],
+          "license": "CC-BY-4.0"
+        }
+      },
+      "default",
+      "sha256:aa5c561390ba098ab186583627f9e04022aef500db67f0e04383dd705e1178b7",
+      "2026-08-02T12:00:00Z"
+    ],
+    [
+      "collection",
+      "reduced.example.org",
+      "default",
+      {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "reduced.example.org",
+          "collection": "default",
+          "generated_at": "2026-08-02T11:45:00Z",
+          "size": 1,
+          "root": "sha256:399151f487dee4b40a4cab78ba0d810c2949cb53c0e685d38011de1f90f4f28c",
+          "tree": "sha256:4bc92cb6769ac590df805cc681d5d707bce3d680194054de5ccbee311927b6da"
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "cqf7ioHrgYqqbB4yZGu8Yp27eXdxIQQBQi_DMVZ9oogSJ-6tNAvIbiGAdg-cjSYH2pq0UsvCPrnweLO8c3VdDw"
+        }
+      },
+      0
+    ],
+    [
+      "record",
+      "reduced.example.org",
+      "https://reduced.example.org/notice",
+      {
+        "publisher": "reduced.example.org",
+        "url": "https://reduced.example.org/notice",
+        "observed_at": "2026-08-02T11:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:3f1dcf7f86f8dd0df85c2c05fab999486f590f0b7a798c26dfc73e71d04fb6f1",
+          "alg": "HMAC-SHA256",
+          "bytes": 137
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "default",
+      "sha256:7bf96adf6f3b3ac54701fba1059b95a1c2d9a47100318c6f5a57eb0ebdeea676",
+      "2026-08-02T11:45:00Z"
+    ]
+  ],
+  "declarations": {
+    "reduced.example.org": {
+      "publisher": {
+        "wist_version": "1.0.0",
+        "seq": 0,
+        "domain": "reduced.example.org",
+        "keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+            "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+            "nbf": 1785628800
+          }
+        ]
+      },
+      "sig": {
+        "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+        "alg": "Ed25519",
+        "value": "Xjc7jhR1s8RO_Xln0oO5F46c7rVXnyWlQGyD8sF2AKGlvyMkSvjD2r5bP_kAt3MMeFOa4OPgTO9YE-UKAVMCCg"
+      }
+    }
+  },
+  "payloads": {
+    "sha256:d807cca1e53ef2260d01a6405d2519d2967b437058320bc1b42113b894c8a006": {
+      "wist_version": "1.0.0",
+      "salt": "caQADX8cVHuEd7RZhUUZNA",
+      "content": {
+        "extract": "WIST is an open, verifiable, push-based web index protocol.",
+        "links": {
+          "total": 3,
+          "urls": [
+            "https://example.org/reference",
+            "https://spec.example.net/wist-1",
+            "https://example.org/~user"
+          ]
+        },
+        "summary": {
+          "title": "Post 1",
+          "abstract": "An introduction to WIST."
+        }
+      }
+    },
+    "sha256:a90e1485d50f9c91febcd148a960e090742557de1dc5aae67325cfd5be4fa671": {
+      "wist_version": "1.0.0",
+      "salt": "Q0Qi1FxRggsuAwa1do7Itw",
+      "content": {
+        "extract": "A second domain's notice.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Notice",
+          "abstract": "A second domain's record."
+        }
+      }
+    }
+  },
   "links": [
     {
       "source_url": "https://example.com/blog/post-1",
@@ -49,8 +203,8 @@
       "reduced.example.org": 0
     },
     "digests": [
-      "sha256:4d8e0706c775f84ab1e4cdd08584cc89423519dca7cce02de47dcf1cf91bd8aa",
-      "sha256:bb475ba1215b42a4c3369166b6c449dd4628c3582c3ee8a9dc523835f703e2eb",
+      "sha256:b9663e9c94e98890a9a0bf1556cc0fa77ad713f3d63859980b16b02c7493cd12",
+      "sha256:8603e45a4ef88f1745c2dae73b9833c7f2fd3a04d3321080376df9c0353037f9",
       "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     ],
     "files": [

@@ -14,6 +14,7 @@ import catalogs
 import collection_rules as rules
 import combined_view
 import items
+import materialization
 import sealing
 import served_files
 import tree_files
@@ -729,7 +730,7 @@ def sealing_vectors():
         assert [(r["url"], r["cause"]) for r in results[3]["records_removed"]] == [
             (J + "old/v", "narrowing"), (J + "old/w", "narrowing"), (J + "old/x", "narrowing")]
         assert {d["url"]: d["until"] for d in results[3]["payload_duties"]} == {
-            J + "old/v": stamp(T0 + 3 * HOUR + 180 * DAY), J + "old/w": stamp(T0 + 3 * HOUR + 180 * DAY),
+            J + "old/v": stamp(T0 + HOUR + 180 * DAY), J + "old/w": stamp(T0 + HOUR + 180 * DAY),
             J + "new/y": None, J + "new/u": None}
         assert all(d["until"] is None for d in results[4]["payload_duties"])
         assert items.item_id(pz) not in [d["item"] for d in results[5]["payload_duties"]]
@@ -786,48 +787,82 @@ def sealing_vectors():
     first_stop = T0 + 2 * HOUR
     second_stop = T0 + 4 * HOUR
 
+    first_window = stamp(T0 + HOUR + 180 * DAY)
+
     def union_check(results):
         def until(height):
             return {d["url"]: d["until"] for d in results[height]["payload_duties"]}.get(J + "old/k", "none")
 
-        assert until(2) == stamp(first_stop + 180 * DAY) and until(3) is None
-        assert until(4) == stamp(first_stop + 180 * DAY) and until(5) == stamp(first_stop + 180 * DAY)
+        assert until(2) == first_window and until(3) is None
+        assert until(4) == first_window and until(5) == first_window
+        assert T0 + 3 * HOUR + 30 * DAY < second_stop + 31 * DAY
 
     histories.append(history(
-        "the serving duty of an Item that stopped being the record twice",
-        "k is a record from height 1. D1 removes it by narrowing at height 2, under payload_window_days 180; D2 "
-        "widens the journal and k is sealed again at height 3; D3 narrows again at height 4, under "
-        "payload_window_days 30. The first window ends 180 days after height 2 and the second 30 days after "
-        "height 4, earlier. At height 5, 31 days after height 4, k's duty still holds, since it holds while the "
-        "window of either Epoch does.",
+        "the serving duty of an Item sealed twice",
+        "k is sealed at height 1 under payload_window_days 180 and is the record from there. D1 removes it by "
+        "narrowing at height 2; D2 widens the journal and k is sealed again at height 3, under payload_window_days "
+        "30; D3 narrows again at height 4. Each Epoch that sealed k gives its Payload one availability window, read "
+        "from that Epoch's map: 180 days from height 1 and 30 days from height 3, the first ending later. At height "
+        "5, 31 days after height 4, the window of height 3 has ended and k's duty still holds, since it holds while "
+        "the window of either sealing Epoch does.",
         [{"entries": [("G", decl("owner", G))]},
          {"entries": [("J1", cat("journal", kl)), ("k@J1", item(kl, J + "old/k")), ("y@J1", item(kl, J + "new/y"))]},
          {"entries": [("D1", decl("owner", only_new))], "sealed_at": first_stop},
-         {"entries": [("D2", decl("owner", all_again)), ("k@J1 again", item(kl, J + "old/k"))]},
+         {"entries": [("D2", decl("owner", all_again)), ("k@J1 again", item(kl, J + "old/k"))],
+          "parameters": {"payload_window_days": 30}},
          {"entries": [("D3", decl("owner", narrowed_again))], "sealed_at": second_stop,
           "parameters": {"payload_window_days": 30}},
          {"entries": [], "sealed_at": second_stop + 31 * DAY, "parameters": {"payload_window_days": 30}}],
         {"J1": "valid", "k@J1": "valid", "y@J1": "valid", "k@J1 again": "valid"}, check=union_check, duties=True))
+
+    ps = page(J + "s")
+    ps2 = page(J + "s", "s changed")
+    short = {"payload_window_days": 30}
+    s1 = Cat([ps], at(1))
+    s2 = Cat([ps2], at(2))
+    short_end = T0 + HOUR + 30 * DAY
+
+    def superseded_check(results):
+        def duty(height):
+            return {d["item"]: d["until"] for d in results[height]["payload_duties"]}
+
+        assert duty(2) == {items.item_id(ps): stamp(short_end), items.item_id(ps2): None}
+        assert duty(3) == duty(2)
+        assert duty(4) == {items.item_id(ps2): None}
+
+    histories.append(history(
+        "a superseded Payload keeps only the window of the Epoch that sealed its Item",
+        "s is sealed at height 1 under payload_window_days 30. At height 2, under payload_window_days 180, s changed "
+        "replaces it as the record. s's Payload keeps the window of height 1 alone, 30 days from height 1's "
+        "sealed_at, and the Epoch that replaced the record gives it none: it is due at height 3, one second before "
+        "that window ends, and not at height 4, sealed when it ends.",
+        [{"entries": [("G", decl("owner", G))], "parameters": short},
+         {"entries": [("J1", cat("journal", s1)), ("s@J1", item(s1, J + "s"))], "parameters": short},
+         {"entries": [("J2", cat("journal", s2)), ("s changed@J2", item(s2, J + "s"))]},
+         {"entries": [], "sealed_at": short_end - 1},
+         {"entries": [], "sealed_at": short_end}],
+        {"J1": "valid", "s@J1": "valid", "J2": "valid", "s changed@J2": "valid"},
+        check=superseded_check, duties=True))
 
     pb3 = page(J + "b", "b three")
     duty_base = Cat([pa, pb3], tb + retention + 1)
     base_at = tb + retention + 1 + 60
 
     def duty_check(results):
-        assert [(d["url"], d["until"]) for d in results[2]["payload_duties"]] == [
-            (J + "a", stamp(base_at + retention)), (J + "b", stamp(base_at + retention))]
+        assert [(d["url"], d["until"]) for d in results[1]["payload_duties"]] == [(J + "a", None), (J + "b", None)]
+        assert results[2]["payload_duties"] == []
         assert sorted((d["item"], d["until"]) for d in results[3]["payload_duties"]) == sorted(
-            [(items.item_id(pa), None), (items.item_id(pb), stamp(base_at + retention)), (items.item_id(pb3), None)])
+            [(items.item_id(pa), None), (items.item_id(pb3), None)])
         assert sorted((d["item"], d["until"]) for d in results[4]["payload_duties"]) == sorted(
             [(items.item_id(pa), None), (items.item_id(pb3), None)])
 
     histories.append(history(
         "the serving duty of a Payload through a base and a sealing again",
         "payload_window_days is 180 in every Epoch. a and b are records from height 1 and their Payloads are served "
-        "while they are. J2, a base at height 2, removes both records: each duty runs until 180 days after height "
-        "2's sealed_at. At height 3 a, unchanged, is sealed again and is the record again, and b three replaces b. "
-        "At height 4, sealed exactly 180 days after height 2, b's duty has ended while a's holds, since the window "
-        "begun when a stopped being the record ends no duty while a is the record again.",
+        "while they are. J2, a base at height 2 more than 180 days after height 1, removes both records: the "
+        "windows of height 1, the one Epoch that sealed a and b, have ended, and the base gives no window, so "
+        "neither Payload is due. At height 3 a, unchanged, is sealed again and is the record again, and b three "
+        "replaces b, whose Payload stays not due. At height 4 a and b three are still the records.",
         [{"entries": [("G", decl("owner", G))]},
          {"entries": [("J1", cat("journal", b1)), ("a@J1", item(b1, J + "a")), ("b@J1", item(b1, J + "b"))]},
          {"entries": [("J2", cat("journal", duty_base))], "sealed_at": base_at},
@@ -903,18 +938,18 @@ def sealing_vectors():
         "the choice), `records_removed` in the order removed with the cause (`narrowing`, `base`, "
         "`removed_item`), and `state` after the Epoch: per Publisher the current Declaration, pending head and "
         "open window end; per Publisher and Collection name the latest Catalog's ID, the floor, its sealing "
-        "height and whether it applied as a base; per Publisher and URL the record (Item ID, Collection, Catalog "
-        "ID and generated_at of the Catalog proved against) and the removal states a valid removed Item left "
+        "height and whether it applied as a base; per Publisher and URL the record (the Item, its Collection, and "
+        "the Catalog ID and generated_at of the Catalog proved against) and the removal states a valid removed Item left "
         "(that Item's ID, Catalog ID and generated_at), which a record removed by narrowing or a base does not "
         "leave; lists in ascending octet order of publisher, then collection or url. Histories that carry "
         "`payload_duties` give after each Epoch every Payload the Aggregator must serve (WIST-3 section 6.1): per "
         "Item of kind page, with its publisher and url, `until` null while the Item is its URL's record, and "
-        "otherwise the latest instant one availability window (payload_window_days of 86 400 seconds, read from "
-        "the map of the Epoch at which the Item stopped being the record, whether an Item, narrowing or a base "
-        "removed it) after the sealed_at of any Epoch at which it stopped being the record, since the duty holds "
-        "while the window of any of those Epochs does; a duty is listed while the Epoch's sealed_at is earlier than `until`, it "
-        "is null again while the Item is the record again, and a withdrawal ends it for good; ordered by "
-        "publisher, url, then Item ID. Every ignored Entry or rejected Epoch fails "
+        "otherwise the latest end of an availability window (payload_window_days of 86 400 seconds, read from the "
+        "map of the Epoch that sealed the Item, counted from that Epoch's sealed_at) among the Epochs that sealed "
+        "it; the Epoch at which an Item, narrowing or a base replaced or removed the record gives no window, and a "
+        "duty is listed while the Epoch's sealed_at is earlier than `until`; it is null again while the Item is the "
+        "record again, and a withdrawal ends it for good; ordered by publisher, url, then Item ID. Every ignored "
+        "Entry or rejected Epoch fails "
         "one rule beside a twin that passes it, except where a rule cannot fail alone: a Catalog sealed again "
         "fails C3 and C4, and an Item of a Collection the Declaration no longer names fails I4 and I5. The "
         "per-domain capacity counts publisher_catalog and publisher_item Entries, valid or ignored, per Canonical "
@@ -963,7 +998,8 @@ def order_vectors():
     def snapshot_state(state, url):
         record = next((r for r in state["records"] if r["publisher"] == "example.com" and r["url"] == url), None)
         if record is not None:
-            return {"state": "record", **{k: record[k] for k in ("item", "collection", "catalog", "generated_at")}}
+            return {"state": "record", "item": items.item_id(record["item"]),
+                    **{k: record[k] for k in ("collection", "catalog", "generated_at")}}
         removal = next((r for r in state["removals"] if r["publisher"] == "example.com" and r["url"] == url), None)
         if removal is not None:
             return {"state": "removed", **{k: removal[k] for k in ("item", "catalog", "generated_at")}}
@@ -1203,7 +1239,270 @@ def served_vectors():
         "cases": cases}
 
 
+def record_key(entry):
+    return (entry["publisher"].encode(), entry["url"].encode())
+
+
+def apply_record_events(state, events, height):
+    for event in events:
+        kind = event["event"]
+        if kind == "declaration":
+            state["declared"].add(event["domain"])
+        elif kind == "narrowing":
+            for url in event["urls"]:
+                del state["records"][(event["publisher"], url)]
+        elif kind == "withdrawal":
+            state["withdrawn"].setdefault(event["item"], height)
+        elif kind == "base":
+            for slot in [s for s, r in state["records"].items()
+                         if s[0] == event["publisher"] and r["collection"] == event["collection"]]:
+                del state["records"][slot]
+        elif kind == "record":
+            slot = (event["publisher"], event["item"]["url"])
+            state["records"][slot] = {"item": event["item"], "collection": event["collection"],
+                                      "catalog": event["catalog"], "generated_at": event["generated_at"]}
+            state["removals"].pop(slot, None)
+        else:
+            slot = (event["publisher"], event["url"])
+            del state["records"][slot]
+            state["removals"][slot] = {"item": event["item"], "catalog": event["catalog"],
+                                       "generated_at": event["generated_at"]}
+
+
+def record_summary(state):
+    records = [{"publisher": p, "url": u, "item": items.item_id(r["item"]), "collection": r["collection"],
+                "catalog": r["catalog"], "generated_at": r["generated_at"]}
+               for (p, u), r in state["records"].items()]
+    removals = [{"publisher": p, "url": u, **r} for (p, u), r in state["removals"].items()]
+    tuples = materialization.materialized(state["records"], state["declared"], state["withdrawn"])
+    return {"records": sorted(records, key=record_key), "removals": sorted(removals, key=record_key),
+            "materialized": tuples, "content_digest": materialization.content_digest(tuples)}
+
+
+def record_materialization_vectors():
+    cases = []
+
+    def case(name, why, spec, snapshot_after, check):
+        epochs = build_epochs(spec)
+        results, _ = sealing.replay([{"height": e["height"], "sealed_at": e["sealed_at"],
+                                      "parameters": e["parameters"],
+                                      "entries": [n["entry"] for n in e["entries"]]} for e in epochs])
+        declarations, catalog_envelopes = {}, {}
+        state = {"records": {}, "removals": {}, "withdrawn": {}, "declared": set()}
+        out_epochs, expected, snapshot = [], [], None
+        for epoch, result in zip(epochs, results):
+            assert result["status"] == "accepted", (name, result)
+            assert all(d is None or d["disposition"] == "valid" for d in result["entries"]), (name, result)
+            height, after = epoch["height"], result["state"]
+            events = []
+            entries = [n["entry"] for n in epoch["entries"]]
+            for entry in entries:
+                if entry["type"] == "publisher_declaration":
+                    inner = entry["body"]["publisher"]
+                    declarations.setdefault(rules.declaration_hash(inner), (entry["body"], height))
+                    events.append({"event": "declaration", "domain": inner["domain"]})
+            narrowed = {}
+            for removed_record in result["records_removed"]:
+                if removed_record["cause"] == "narrowing":
+                    narrowed.setdefault(removed_record["publisher"], []).append(removed_record["url"])
+            events += [{"event": "narrowing", "publisher": p, "urls": urls} for p, urls in narrowed.items()]
+            for entry in entries:
+                if entry["type"] == "registry_update":
+                    events.append({"event": "withdrawal", "item": entry["body"]["update"]["details"]["delta_id"]})
+            for entry in entries:
+                if entry["type"] == "publisher_catalog":
+                    catalog = entry["body"]["catalog"]
+                    catalog_envelopes[catalogs.catalog_id(catalog)] = entry["body"]
+                    held = next(c for c in after["catalogs"] if c["publisher"] == catalog["publisher"]
+                                and c["collection"] == catalog["collection"])
+                    if held["base"] and held["sealing_height"] == height:
+                        events.append({"event": "base", "publisher": catalog["publisher"],
+                                       "collection": catalog["collection"], "catalog": held["catalog"]})
+            for entry in entries:
+                if entry["type"] != "publisher_item":
+                    continue
+                item_, body = entry["body"]["item"], entry["body"]
+                publisher = item_["publisher"]
+                if items.kind(item_) == "page":
+                    record = next(r for r in after["records"] if r["publisher"] == publisher
+                                  and r["url"] == item_["url"])
+                    events.append({"event": "record", "publisher": publisher, "item": item_,
+                                   "collection": body["collection"], "catalog": body["catalog"],
+                                   "generated_at": record["generated_at"]})
+                else:
+                    removal = next(r for r in after["removals"] if r["publisher"] == publisher
+                                   and r["url"] == item_["url"])
+                    events.append({"event": "removal", "publisher": publisher, "url": item_["url"],
+                                   "item": items.item_id(item_), "catalog": body["catalog"],
+                                   "generated_at": removal["generated_at"]})
+            apply_record_events(state, events, height)
+            summary = record_summary(state)
+            assert summary["records"] == [{**r, "item": items.item_id(r["item"])} for r in after["records"]], name
+            assert summary["removals"] == after["removals"], name
+            out_epochs.append({"height": height, "sealed_at": epoch["sealed_at"], "events": events})
+            expected.append({"height": height, **summary})
+            if height == snapshot_after:
+                tuples = []
+                for d in after["declarations"]:
+                    envelope, sealed = declarations[d["current"]]
+                    tuples.append(["declaration", d["publisher"], envelope, sealed, envelope["publisher"]["seq"]])
+                for c in after["catalogs"]:
+                    tuples.append(["collection", c["publisher"], c["collection"], catalog_envelopes[c["catalog"]],
+                                   c["sealing_height"]])
+                for r in after["records"]:
+                    tuples.append(["record", r["publisher"], r["url"], r["item"], r["collection"], r["catalog"],
+                                   r["generated_at"]])
+                for r in after["removals"]:
+                    tuples.append(["removal", r["publisher"], r["url"], r["item"], r["catalog"], r["generated_at"]])
+                for item_id, withdrawn_at in state["withdrawn"].items():
+                    publisher = next(e["publisher"] for ep in out_epochs for e in ep["events"]
+                                     if e["event"] == "record" and items.item_id(e["item"]) == item_id)
+                    tuples.append(["withdrawal", item_id, publisher, withdrawn_at])
+                snapshot = {"height": height, "tuples": sorted(tuples, key=rfc8785.dumps)}
+        out = {"name": name, "why": why, "epochs": out_epochs, "expected": expected}
+        if snapshot is not None:
+            resumed = {"records": {}, "removals": {}, "withdrawn": {}, "declared": set()}
+            for t in snapshot["tuples"]:
+                if t[0] == "declaration":
+                    resumed["declared"].add(t[1])
+                elif t[0] == "record":
+                    resumed["records"][(t[1], t[2])] = {"item": t[3], "collection": t[4], "catalog": t[5],
+                                                        "generated_at": t[6]}
+                elif t[0] == "removal":
+                    resumed["removals"][(t[1], t[2])] = {"item": t[3], "catalog": t[4], "generated_at": t[5]}
+                elif t[0] == "withdrawal":
+                    resumed["withdrawn"][t[1]] = t[3]
+            assert {"height": snapshot["height"], **record_summary(resumed)} == expected[snapshot["height"]], name
+            for epoch, wanted in zip(out_epochs[snapshot["height"] + 1:], expected[snapshot["height"] + 1:]):
+                apply_record_events(resumed, epoch["events"], epoch["height"])
+                assert {"height": epoch["height"], **record_summary(resumed)} == wanted, name
+            out["snapshot"] = snapshot
+        check(out)
+        cases.append(out)
+
+    def materialized_at(out, height):
+        return [(t["publisher"], t["url"]) for t in out["expected"][height]["materialized"]]
+
+    blog, old = "https://example.com/blog/", "https://example.com/old/"
+    e1 = {"wist_version": "1.0.0", "seq": 0, "domain": "example.com", "keys": [key("owner")],
+          "recovery_keys": [key("recovery")]}
+    qa, qb, qd = page(blog + "a", "record a"), page(blog + "b", "record b"), page(blog + "d", "record d")
+    qc, qx, rc = page(old + "c", "record c"), page(old + "x", "record x"), removed(old + "c")
+    m1 = Cat([qa, qb, qc, qx], at(1), "default")
+    m2 = Cat([qa, qb, rc, qx], at(2), "default")
+    m3 = Cat([qa, qb, rc, qx, qd], at(3), "default")
+    narrowed = successor(e1, collections=[collection("default", [prefix(blog)])])
+    base_at = seconds(m3.inner["generated_at"]) + items.REMOVAL_RETENTION_DAYS * DAY + 1
+    m5 = Cat([qa], base_at, "default")
+
+    def one_publisher_check(out):
+        assert materialized_at(out, 2) == [("example.com", blog + "a"), ("example.com", old + "x")]
+        assert [r["url"] for r in out["expected"][3]["records"]] == [blog + "a", blog + "b", blog + "d", old + "x"]
+        assert materialized_at(out, 3) == [("example.com", blog + "a"), ("example.com", old + "x")]
+        assert [r["url"] for r in out["expected"][4]["removals"]] == [old + "c"]
+        assert [r["url"] for r in out["expected"][5]["records"]] == [blog + "a"]
+        assert [r["url"] for r in out["expected"][5]["removals"]] == [old + "c"]
+
+    case("records of one Publisher through a removal, withdrawals, narrowing and a base",
+         "example.com's default Collection. At height 1 a, b, c and x become records. At height 2 a withdrawal of "
+         "b's Item is sealed and the removed c removes c's record, leaving a removal state: b stays a record and "
+         "is not materialized. At height 3 d is sealed together with a withdrawal of its own Item: d becomes the "
+         "record and is never materialized. At height 4 a Declaration narrows the Collection to blog/: x's record "
+         "leaves with no removal state and c's removal state stays. At height 5 a Catalog more than "
+         "removal_retention_days after the floor is a base: the records of a, b and d leave before the Items "
+         "apply, a is sealed again against it and is the record again, and c's removal state stays.",
+         [{"entries": [("E", decl("owner", e1))]},
+          {"entries": [("M1", cat("owner", m1)), ("a@M1", item(m1, blog + "a")), ("b@M1", item(m1, blog + "b")),
+                       ("c@M1", item(m1, old + "c")), ("x@M1", item(m1, old + "x"))]},
+          {"entries": [("withdrawal of b", withdrawal(qb, at(2, 0))), ("M2", cat("owner", m2)),
+                       ("c removed@M2", item(m2, old + "c"))]},
+          {"entries": [("withdrawal of d", withdrawal(qd, at(3, 0))), ("M3", cat("owner", m3)),
+                       ("d@M3", item(m3, blog + "d"))]},
+          {"entries": [("E narrowed", decl("owner", narrowed))]},
+          {"entries": [("M5", cat("owner", m5)), ("a@M5", item(m5, blog + "a"))], "sealed_at": base_at + 60}],
+         3, one_publisher_check)
+
+    news = "https://news.example.com/u"
+    p2 = {"wist_version": "1.0.0", "seq": 0, "domain": "example.com", "subdomain_scope": ["news.example.com"],
+          "keys": [key("owner")], "recovery_keys": [key("recovery")]}
+    z2 = {"wist_version": "1.0.0", "seq": 0, "domain": "zeta.example", "subdomain_scope": ["news.example.com"],
+          "keys": [key("store2")]}
+    n2 = {"wist_version": "1.0.0", "seq": 0, "domain": "news.example.com", "keys": [key("docs")]}
+    up1 = page(news, "u by example.com")
+    up2 = page(news, "u by example.com, changed")
+    up3 = page(news, "u by example.com, again")
+    uz = page(news, "u by zeta.example", publisher="zeta.example")
+    un = page(news, "u by news.example.com", publisher="news.example.com")
+    urm = removed(news)
+    k1 = Cat([up1], at(1), "default")
+    kz = Cat([uz], at(1), "default", "zeta.example")
+    k3 = Cat([up2], at(3), "default")
+    k4 = Cat([urm], at(4), "default")
+    kn = Cat([un], at(6), "default", "news.example.com")
+    k6 = Cat([up3], at(6), "default")
+
+    def one_url_check(out):
+        assert [materialized_at(out, h) for h in range(1, 7)] == [
+            [("example.com", news)], [("zeta.example", news)], [("example.com", news)], [("zeta.example", news)],
+            [], [("news.example.com", news)]]
+        held = {(t[1], t[2]) for t in out["snapshot"]["tuples"] if t[0] == "record"}
+        assert ("zeta.example", news) in held and materialized_at(out, 3) == [("example.com", news)]
+        assert [r["publisher"] for r in out["expected"][6]["records"]] == ["example.com", "news.example.com",
+                                                                          "zeta.example"]
+        assert out["expected"][5]["removals"] and not out["expected"][6]["removals"]
+
+    case("one URL held by three Publishers",
+         "https://news.example.com/u. example.com and zeta.example both name news.example.com in subdomain_scope. "
+         "At height 1 each seals an Item of u: example.com, an ancestor of the host, is materialized and "
+         "zeta.example, no ancestor, is not. At height 2 a withdrawal of example.com's Item is sealed: its record "
+         "stays and no withdrawal-free record of an ancestor remains, so zeta.example's is materialized. At height "
+         "3 example.com's changed Item replaces its record and is materialized again. A Snapshot is taken at "
+         "height 3. At height 4 example.com's removed Item removes its record: zeta.example's, unmaterialized at "
+         "the Snapshot, is materialized. At height 5 news.example.com's first Declaration is sealed: from then "
+         "only the host's own Publisher's record is materialized, and it holds none. At height 6 news.example.com "
+         "seals an Item of u, which is materialized, and example.com seals another, which ends its removal state "
+         "and is not materialized.",
+         [{"entries": [("P", decl("owner", p2)), ("Z", decl("store2", z2))]},
+          {"entries": [("K1", cat("owner", k1)), ("KZ", cat("store2", kz)), ("u@K1", item(k1, news)),
+                       ("u@KZ", item(kz, news))]},
+          {"entries": [("withdrawal of u@K1", withdrawal(up1, at(2, 0)))]},
+          {"entries": [("K3", cat("owner", k3)), ("u@K3", item(k3, news))]},
+          {"entries": [("K4", cat("owner", k4)), ("u removed@K4", item(k4, news))]},
+          {"entries": [("N", decl("docs", n2))]},
+          {"entries": [("KN", cat("docs", kn)), ("K6", cat("owner", k6)), ("u@KN", item(kn, news)),
+                       ("u@K6", item(k6, news))]}],
+         3, one_url_check)
+
+    return {"note": (
+        "WIST-3 section 7: the records, removal states and materialized records of one Log. Each case gives per "
+        "Epoch its height, sealed_at and `events`, the record events its valid Entries make, in the order the "
+        "Entries apply (WIST-3 section 3.3): `declaration`, a sealed publisher_declaration Entry of `domain`; "
+        "`narrowing`, the records of `publisher` at `urls` that narrowing removes (WIST-1 section 5.2); "
+        "`withdrawal`, a payload_withdrawal that meets its details contract, naming the Item ID `item`; `base`, "
+        "a valid Catalog of `publisher` and `collection` that is a base, which removes every record of that "
+        "Publisher whose Collection is `collection`; `record`, an Item of kind page that becomes the record of "
+        "`publisher` and its url, with its Collection and the Catalog ID and generated_at of the Catalog it was "
+        "proved against, in place of any record and ending any removal state; and `removal`, an Item of kind "
+        "removed, with its Item ID and the same Catalog members, which removes the record of `publisher` and "
+        "`url` and leaves that removal state. A record that narrowing or a base removes leaves no removal state, "
+        "a removal state stays through narrowing and a base, and a withdrawal removes no record. `expected` "
+        "gives after each Epoch the records (the Item ID, Collection, Catalog ID and generated_at), the removal "
+        "states, the materialized records as their content tuples, and the content_digest over them. A record "
+        "is materialized when no withdrawal sealed at or below the height names its Item and the one-URL rule "
+        "selects its Publisher among the records of its URL that no such withdrawal names: the host's own "
+        "Publisher once a publisher_declaration Entry of the host is sealed, else the nearest ancestor of the "
+        "host, else the least domain in octet order. `snapshot` gives the state tuples of a Snapshot taken at "
+        "`height` (declaration, collection, record, removal and withdrawal; no Aggregator key, parameter, "
+        "suffix list, Label or dispute is live): a Consumer resumed from them, holding a host as self-declared "
+        "where a declaration tuple names it, and applying the events of the later Epochs, reaches every later "
+        "`expected`. The events are those of a replay of signed Entries under the rules of "
+        "vectors/wist3/catalog-sealing.json, every Entry valid; Epochs carry no Checkpoint and no Merkle tree. "
+        "Keys derive from the stated test-only seeds."),
+        "keys": KEYS_MEMBER, "cases": cases}
+
+
 write_json(WIST3 / "catalog-sealing.json", with_payloads(sealing_vectors()))
+write_json(WIST3 / "record-materialization.json", with_payloads(record_materialization_vectors()))
 write_json(MULTILOG / "catalog-order.json", with_payloads(order_vectors()))
 write_json(WIST2 / "served-files.json", served_vectors())
 print("sealing vectors written")

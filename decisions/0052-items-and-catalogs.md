@@ -454,8 +454,14 @@ every record with the Collection, Catalog ID and `generated_at` it
 carries, and every removal state with its Item ID, Catalog ID and
 `generated_at`, so a Consumer resumed from it derives the floor and
 holds the combined view (Several Logs) that a replaying one holds.
-Their encoding as state tuples is left to the revision of WIST-3 §7
-(Taking effect).
+WIST-3 §7 encodes them as `collection`, `record` and `removal` tuples. A
+`record` tuple carries the Item itself and not its Item ID alone, and one
+exists for every record, those the one-URL rule does not materialize and
+those whose Payload a withdrawal names included: a resumed Consumer then
+verifies the Payload of a record that becomes materialized when the
+record preferred over it leaves, as a replaying one does. The floor is
+derived from the `collection` tuple's Envelope and has no member of its
+own.
 
 #### Judgment
 
@@ -495,7 +501,7 @@ once the Catalogs of Epoch N have applied.
 | I7 | An Item of kind `page` is not the Item of its URL's record, and no `payload_withdrawal` sealed in an Epoch below N names its Item ID; an Item of kind `removed` has a record for its URL. The record is that of the Publisher and the URL, whatever Collection it carries |
 
 A `payload_withdrawal` names an Item ID in `details.delta_id`, the
-member in which WIST-3 §6.2 and WIST-4 §5.1 have it name a Delta ID.
+member of WIST-3 §6.2 and WIST-4 §5.1, whose name is kept.
 I7 reads that member of each withdrawal that meets its `details`
 contract (WIST-4 §5.1), and nothing else of the withdrawal. For an
 Item ID the contract is that a valid `publisher_item` Entry sealed the
@@ -515,8 +521,8 @@ A valid Item of kind `page` becomes the record of its URL. A valid Item
 of kind `removed` removes the record. An Item may be sealed in a Log
 more than once: after narrowing or a base removed its URL's record,
 the Item that record carried passes I7 again, unless a withdrawal
-names it, and is sealed again against the latest Catalog. The rule of
-WIST-3 §3.2 that a Delta is sealed once does not apply to Items.
+names it, and is sealed again against the latest Catalog. No rule
+seals an Item once.
 
 An Entry that is not valid is ignored: it changes no state, the floor
 included, and the Epoch stays accepted. An Entry that names an ignored
@@ -614,6 +620,9 @@ Epoch at which none of them applies:
 - for an Item, a latest Catalog of its Collection that fails I4 at the
   Epoch, while no Catalog of that Collection waits that nothing
   defers.
+
+Where the recovery window applies it alone defers and is reported
+(Recovery).
 
 A Declaration that reduces authority orders the sealing and defers
 nothing (ADR-0051, Reaching the Log). A Catalog or an Item that the
@@ -750,16 +759,15 @@ which says that the Publisher stated the Collection then and says
 nothing of any one record.
 
 The Aggregator serves the Payload of a record's Item (WIST-3 §6.1)
-while that Item is the record and, once an Item, narrowing or a base
-replaces or removes the record at an Epoch, at every instant earlier
-than that Epoch's `sealed_at` plus `payload_window_days` (WIST-4 §5)
-of 86 400 seconds each, read from that Epoch's parameter map. A
-withdrawal (WIST-3 §6.2) ends the duty, and an Item whose withdrawal
-is sealed in the Epoch that seals the Item, which only replay meets
-(Files), has none. A window begun when an Item stopped being the
-record ends no duty while that Item is the record again, and for an
-Item that stopped being the record more than once the duty holds while
-the window of any of those Epochs does.
+while that Item is the record, a record the one-URL rule of WIST-3 §7
+does not materialize included. Once an Item, narrowing or a base
+replaces or removes the record, the Payload keeps only the availability
+window that every Epoch which sealed the Item gives it (WIST-3 §6.1),
+counted from that Epoch's `sealed_at`: a superseded Payload gets no
+further window. A withdrawal (WIST-3 §6.2) ends both duties, and an Item
+whose withdrawal is sealed in the Epoch that seals the Item, which only
+replay meets (Files), has none. The end of a duty permits deletion and
+does not require it.
 
 A party that holds every Item of a Collection MAY recompute the root
 and compare it with the Catalog's. The comparison changes no sealed
@@ -922,6 +930,18 @@ defines Deltas and Feeds.
   record sealed again after narrowing or a base would commit to content
   every party has destroyed (WIST-3 §6.2), so no party could serve or
   verify it.
+- **A further availability window for a Payload its record no longer
+  carries.** The window after supersession kept sealed audit records
+  verifiable against the Payload they referenced; ADR-0041 removed those
+  records, and the ordinary window of each sealing Epoch already makes a
+  Payload's absence evidence while a Consumer replaying that Epoch needs
+  it.
+- **A `record` tuple carrying the Item ID alone.** Smaller. A resumed
+  Consumer could not verify the Payload of a record the one-URL rule did
+  not materialize at the Snapshot and materializes later, so it would show
+  nothing where a replaying one shows the record.
+- **A Snapshot carrying the instant of the latest complete Catalog.**
+  Needs completeness as protocol state, left out above.
 
 ## Consequences
 
@@ -997,8 +1017,9 @@ defines Deltas and Feeds.
 - Erasure stays as WIST-3 §6.2 has it: a `payload_withdrawal` under the
   Aggregator's signature, naming an Item ID.
 - ADR-0003, ADR-0007, ADR-0015, ADR-0026, ADR-0029, ADR-0030, ADR-0031,
-  ADR-0036, ADR-0041 and ADR-0044 are updated in place, and the subject
-  of ADR-0027 is replaced.
+  ADR-0036, ADR-0041 and ADR-0044 are updated in place, the subject
+  of ADR-0027 is replaced, and ADR-0032, ADR-0033 and ADR-0038 state
+  their rules for the Label Feed.
 
 ## Open points
 
@@ -1086,7 +1107,11 @@ under another key, queued and not an idempotent re-serve; a Catalog of
 another Catalog ID at the instant of the queued Catalog of its name
 and key, `WIST2-E05`; the removal states a Snapshot carries, combined
 with another Log's record; the end of the serving duty of each Payload
-through a base and a sealing again.
+through a base and a sealing again, a superseded Payload keeping only
+the window of each Epoch that sealed its Item; a Snapshot's `record` tuples, one
+of them for a record the one-URL rule does not materialize, from which a
+resumed Consumer materializes that record when the preferred one
+leaves.
 
 The vectors of Items, Removal, From publications to Items, Catalogs,
 Files and Proofs are `vectors/wist1/item-fields.json`,
@@ -1102,6 +1127,7 @@ of ADR-0051's Verification as Items of a signed Catalog.
 The vectors of Sealing's State and Judgment, Several Logs, the base
 and the interval of a replaced file are
 `vectors/wist3/catalog-sealing.json`,
+`vectors/wist3/record-materialization.json`,
 `vectors/multilog/catalog-order.json` and
 `vectors/wist2/served-files.json`, generated by
 `tools/gen_sealing_vectors.py` from the reference in

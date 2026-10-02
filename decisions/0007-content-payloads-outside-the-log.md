@@ -51,8 +51,6 @@ Signed objects commit to content; they do not carry it.
 - Operators and mirrors MUST serve payloads for a minimum availability
   window (a Parameter Registry value), so that a payload disappearing
   quietly is distinguishable from one withdrawn for cause.
-- A withdrawn payload discharges an Auditor's coverage duty for the
-  affected Delta rather than counting against it.
 
 The salt is what makes the commitment unlinkable after withdrawal: once
 bytes and salt are gone, a party holding a copy of the original text cannot

@@ -29,12 +29,15 @@ valid. The schema's version, timestamp and identifier patterns are exact
 whole-string patterns.
 
 A `payload_withdrawal` is authenticated under the Log key (WIST4-E11
-otherwise); its `delta_id` must name a Delta sealed at or below the act's
-Epoch whose signed `publisher` is the `subject`, or the act fails its
-`details` contract (WIST4-E04). Repeated withdrawals of one Delta are
-accepted, the earliest Epoch governing. Rejecting a withdrawal of an
-unsealed or foreign Delta keeps the act's `subject` truthful and gives every
-replayer one withdrawal height per Delta.
+otherwise). Its `delta_id` names the Item ID of the Item of kind `page`
+whose Payload it withdraws (WIST-3 §6.2); it must name an Item that a
+valid `publisher_item` Entry sealed at or below the act's Epoch against a
+Catalog whose `publisher` is the `subject`
+([ADR-0052](0052-items-and-catalogs.md)), or the act fails its `details`
+contract (WIST4-E04). Repeated withdrawals of one Item are accepted, the
+earliest Epoch governing. Rejecting a withdrawal of an unsealed or
+foreign Item keeps the act's `subject` truthful and gives every replayer
+one withdrawal height per Item.
 
 Every Registry Update is identified by its ID: an occurrence of an ID already
 accepted at a lower Epoch, or earlier in the same Epoch, is idempotent, so a

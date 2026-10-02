@@ -1,7 +1,7 @@
 {
   "state": {
     "wist_version": "1.0.0",
-    "tree_size": 0,
+    "tree_size": 4,
     "entries": [
       [
         "aggregator_key",
@@ -13,28 +13,65 @@
         null
       ],
       [
+        "collection",
+        "example.com",
+        "default",
+        {
+          "catalog": {
+            "wist_version": "1.0.0",
+            "publisher": "example.com",
+            "collection": "default",
+            "generated_at": "2026-08-02T12:00:00Z",
+            "size": 1,
+            "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+            "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
+          },
+          "sig": {
+            "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+            "alg": "Ed25519",
+            "value": "izPZd8unAqUfo6TuZ4neLq2VvvXdLniA4ev854L2T6mU7Ejqoo0ikG73ErKVOg6kTOkjWsBx3kgcnxaS98fHDA"
+          }
+        },
+        0
+      ],
+      [
         "record",
         "example.com",
         "https://example.com/blog/post-1",
-        "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/blog/post-1",
+          "observed_at": "2026-08-02T12:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": [
+              "software"
+            ],
+            "license": "CC-BY-4.0"
+          }
+        },
+        "default",
+        "sha256:aa5c561390ba098ab186583627f9e04022aef500db67f0e04383dd705e1178b7",
+        "2026-08-02T12:00:00Z"
       ],
       [
-        "record",
+        "removal",
         "example.com",
         "https://example.com/blog/retired",
-        "sha256:f80c209610e6f837ef64bca7c7cb49a7919105809f43dd2f6076a7fcdb3991d4"
-      ],
-      [
-        "record",
-        "reduced.example.org",
-        "https://reduced.example.org/notice",
-        "sha256:4ad46050dbb223470bce4a6919fb3a003e273d3c9c9318dcb12e6e25e56fb35b"
+        "sha256:72c27563f25ec78c1b024efc0850e1cd1234b39c601ad1e434d5d4d4b949da32",
+        "sha256:9265b8113e1500e5313ec87cd8617bc2589fd080014c40fd9e7c5b0985a4d932",
+        "2026-01-15T00:00:00Z"
       ]
     ]
   },
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "V9HlQK0dMnE5q4YCjRoWIkdzEjPQFUUuRyUNxZoLwN-fAAIvCYlPvD0EuXKXdvMn7b-2TF3oxNJGaOKSM31tAA"
+    "value": "aiMfyYKV_vi3zxKuBw94iarXfm8utoQdGjXjvs6G-RNEyk3Lz2jCT8LSqMIBiLl1eAyM30T-BINug58t8k32DA"
   }
 }

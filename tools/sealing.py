@@ -190,23 +190,23 @@ class Sealing:
         withdrawn = self.withdrawals.get(items.item_id(item))
         return withdrawn is not None and withdrawn < height
 
-    def start_duty(self, item):
+    def start_duty(self, item, parameters):
         identifier = items.item_id(item)
         if identifier not in self.withdrawals:
+            end = narrowing.log_seconds(self.sealed_at) + parameters["payload_window_days"] * DAY_SECONDS
             duty = self.duties.setdefault(identifier, {"publisher": item["publisher"], "url": item["url"],
-                                                       "until": None, "record": True})
+                                                       "until": end, "record": True})
             duty["record"] = True
+            duty["until"] = max(duty["until"], end)
 
-    def end_duty(self, item, parameters):
+    def end_duty(self, item):
         duty = self.duties.get(items.item_id(item))
         if duty is not None:
-            end = narrowing.log_seconds(self.sealed_at) + parameters["payload_window_days"] * DAY_SECONDS
             duty["record"] = False
-            duty["until"] = end if duty["until"] is None else max(duty["until"], end)
 
     def remove_record(self, slot, parameters):
         record = self.records.pop(slot)
-        self.end_duty(record["item"], parameters)
+        self.end_duty(record["item"])
 
     def apply_withdrawal(self, item_id, subject, height):
         if subject not in self.sealed_items.get(item_id, set()):
@@ -275,7 +275,7 @@ class Sealing:
             self.records[slot] = {"item": item, "collection": body["collection"], "catalog": body["catalog"],
                                   "generated_at": catalog["generated_at"], "height": height}
             self.removals.pop(slot, None)
-            self.start_duty(item)
+            self.start_duty(item, parameters)
             return
         self.removals[slot] = {"item": items.item_id(item), "catalog": body["catalog"],
                                "generated_at": catalog["generated_at"]}
@@ -342,7 +342,7 @@ class Sealing:
                           "sealing_height": held["height"], "base": held["base"]}
                          for (publisher, name), held in sorted(self.latest.items(),
                                                                key=lambda kv: (kv[0][0].encode(), kv[0][1].encode()))],
-            "records": [{"publisher": publisher, "url": url, "item": items.item_id(record["item"]),
+            "records": [{"publisher": publisher, "url": url, "item": record["item"],
                          "collection": record["collection"], "catalog": record["catalog"],
                          "generated_at": record["generated_at"]}
                         for (publisher, url), record in sorted(self.records.items(),

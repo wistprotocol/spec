@@ -930,7 +930,8 @@ class Aggregator:
         reductions = [{"publisher": publisher, "declaration": digest}
                       for publisher in sorted(self.discovered)
                       for digest in self.reducing_pending(publisher, self.sealed)]
-        records = [{"publisher": r["publisher"], "url": r["url"], "collection": r["collection"], "item": r["item"],
+        records = [{"publisher": r["publisher"], "url": r["url"], "collection": r["collection"],
+                    "item": items.item_id(r["item"]),
                     "catalog": r["catalog"]} for r in self.log.state()["records"]]
         return {"collections": collections, "urls": urls, "queue": queue, "reductions_pending": reductions,
                 "records": records}

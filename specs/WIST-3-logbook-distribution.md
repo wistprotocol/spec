@@ -5,7 +5,7 @@
 ## 1. Introduction
 
 The Logbook is one append-only RFC 6962 Merkle tree whose leaves are
-accepted Deltas and Declarations (WIST-1), Labels and disputes (WIST-2
+Declarations, Catalogs and Items (WIST-1), Labels and disputes (WIST-2
 §3.3) and governance actions (WIST-4), published as C2SP checkpoints and
 tiles so that generic transparency-log clients and Witnesses read it
 with no knowledge of this suite. Consumers verify the tree and recompute
@@ -16,9 +16,10 @@ of the C2SP formats in
 [ADR-0046](../decisions/0046-single-tree-log.md).
 
 This document defines Epochs as intervals of the tree, the Entry format,
-the tree and its proofs, Checkpoints, Witnesses and anti-equivocation,
-the static distribution layout, snapshots and tiers, and the consumer
-synchronization procedure.
+how Catalogs and Items are judged, wait and are sealed, the records they
+leave, the tree and its proofs, Checkpoints, Witnesses and
+anti-equivocation, the static distribution layout, snapshots and tiers,
+and the consumer synchronization procedure.
 
 ## 2. Conventions and Terminology
 
@@ -36,9 +37,16 @@ shown here.
   Checkpoints — the leaves from the previous Checkpoint's tree size up
   to, excluding, its own — sealed together under one `sealed_at` (§3).
   An Epoch's number is its **height**.
-- **Entry**: one typed item in an Epoch (`publisher_delta`,
-  `publisher_declaration`, `label`, `dispute` or `registry_update`), and
-  one leaf of the tree.
+- **Entry**: one typed item in an Epoch (`publisher_declaration`,
+  `registry_update`, `publisher_catalog`, `publisher_item`, `label` or
+  `dispute`), and one leaf of the tree (§3.3).
+- **Publication**: a Catalog or an Item, as a pull accepts or admits it
+  (WIST-2 §5.1) and an Entry seals it (§3.3).
+- **Latest Catalog**, **floor**, **record**, **removal state** and
+  **base**: the state replay of a Log holds per Collection and per URL
+  (§7).
+- **Last accepted Catalog**, **waiting**, **place** and **eligibility
+  Epoch**: the Aggregator's sealing state (§3.3).
 - **Log Anchor**: the self-signed document that identifies a Log by its
   `log_id` and declares its `genesis_key`; it is the Log's out-of-band
   trust root, obtained through a channel the Consumer trusts rather than
@@ -65,13 +73,18 @@ shown here.
   the tree a Checkpoint states (§4).
 - **Consistency Proof**: the RFC 6962 proof that the tree one Checkpoint
   states extends the tree an earlier one states (§4).
-- **Payload**: the content a Delta commits to (WIST-1 §3.6), distributed
-  alongside the Epoch that seals that Delta and not inside it (§6.1).
+- **Payload**: the content an Item of kind `page` commits to (WIST-1
+  §3.6), distributed alongside the Epoch that seals that Item and not
+  inside it (§6.1).
 - **Withdrawal**: the logged removal of a Payload from distribution,
   under §6.2.
 
-Terms from WIST-1 (Envelope, Delta, Delta ID, Canonical Bytes, Payload,
-Publisher, Aggregator) and WIST-2 (Feed) keep their defined meanings. Every
+Terms from WIST-1 (Envelope, Item, Item ID, Catalog, Catalog ID,
+Collection, Scope, key, leaf, root, Canonical Bytes, Publisher,
+Publisher Declaration, Aggregator, Canonical Host, Normalized URL,
+idempotent re-serve) and WIST-2 (Label, Labeler, Label Feed, pull) keep
+their defined meanings; an Item's Inclusion Proof against its Catalog has the
+form of §4 (WIST-1 §4.3). Every
 signed object in this document except the Checkpoint is constructed exactly as WIST-1 §4 requires —
 inner object canonicalized with JCS, signed with Ed25519, signature
 detached — and carries `wist_version` (WIST-1 §3.1) and the WIST-1 §4 signature
@@ -79,7 +92,7 @@ block (`key_id`, `alg`, `value`). The Checkpoint is a signed note under
 the C2SP formats §5 names, signed by the same Aggregator keys (§3.4).
 
 In the vocabulary of RFC 9943 (SCITT), the Aggregator is the
-Transparency Service, a Publisher an Issuer, the URL a Delta is about
+Transparency Service, a Publisher an Issuer, the URL an Item is about
 (WIST-1 §3.2) the Subject, the admission rules (WIST-1 §7, WIST-2 §5,
 §3 of this document) the Registration Policy, and an Inclusion Proof
 against a cosigned Checkpoint the Receipt. The mapping places the suite
@@ -191,29 +204,36 @@ Checkpoint omits them.
 
 **Per-domain Epoch capacity.** An Epoch MUST NOT carry more than
 `domain_epoch_entries_max` (Parameter Registry; default 10 000)
-`publisher_delta` and `label` Entries, counted together, whose
-Publisher's or Labeler's Canonical Host has one Registrable Domain under
-the Public Suffix List snapshot in force at the Epoch (WIST-4 §3.1), and
-a Consumer replaying the Log MUST reject an Epoch that does. The unit is
-the Registrable Domain, not the hostname, because a hostname under a
-name one holds is free; before the first accepted `suffix_list_update`
-every Canonical Host is its own unit. `dispute` Entries count with the
-Deltas and Labels of the disputant's unit. **Per-Labeler cap.** Inside
-that capacity, an Epoch MUST NOT carry more than
-`labeler_epoch_entries_max` (Parameter Registry; default 1 000) `label`
-and `dispute` Entries, counted together, of one Registrable Domain, and a
-Consumer replaying the Log MUST reject an Epoch that does; the surplus
-waits its turn in acceptance order like any other. The cap never
-exceeds the per-domain capacity (WIST-4 §5), so a Labeler's Labels are
-bounded twice and its Deltas once: labeling is an opinion about other
-parties' publications, and a party that could fill an Epoch with
-opinions as freely as with publications would make every Consumer's
-subscription list the only bound on it. Where a Registrable Domain has
-more accepted Deltas and Labels eligible for an Epoch than the cap
-admits, the surplus waits its turn in acceptance order across its
-hosts, and WIST-4 §5's inclusion ceiling runs from the Epoch an Entry's
-turn arrives in — so the cap never obliges an Aggregator to breach the
-ceiling, nor the ceiling to breach the cap. This is the one bound in
+`publisher_catalog`, `publisher_item` and `label` Entries, counted
+together, whose Publisher's or Labeler's Canonical Host has one
+Registrable Domain under the Public Suffix List snapshot in force at the
+Epoch (WIST-4 §3.1), and a Consumer replaying the Log MUST reject an
+Epoch that does (`WIST3-E03`). The Publisher's Canonical Host of a
+`publisher_catalog` Entry is its `catalog.publisher` and that of a
+`publisher_item` Entry its `item.publisher`; such an Entry counts whether
+its judgment (§3.3) finds it valid or ignores it, and one whose member is
+not a Canonical Host counts toward no domain. The unit is the Registrable
+Domain, not the hostname, because a hostname under a name one holds is
+free; before the first accepted `suffix_list_update` every Canonical
+Host is its own unit. `dispute` Entries count with the publications and
+Labels of the disputant's unit. The Publishers and Collections of one
+Registrable Domain share its capacity, and no Collection has a share of
+its own. **Per-Labeler cap.** Inside that capacity, an Epoch MUST NOT
+carry more than `labeler_epoch_entries_max` (Parameter Registry; default
+1 000) `label` and `dispute` Entries, counted together, of one
+Registrable Domain, and a Consumer replaying the Log MUST reject an Epoch
+that does (`WIST3-E03`); the surplus waits its turn in the order of
+places (§3.3) like any other. The cap never exceeds the per-domain
+capacity (WIST-4 §5), so a Labeler's Labels are bounded twice and its
+publications once: labeling is an opinion about other parties'
+publications, and a party that could fill an Epoch with opinions as
+freely as with publications would make every Consumer's subscription
+list the only bound on it. Where a Registrable Domain has more Entries
+eligible for an Epoch than the capacity admits, they take it in the
+order §3.3 gives across its Publishers and Collections, and the capacity
+defers the rest with their inclusion ceiling (§3.3) — so the capacity
+never obliges an Aggregator to breach the ceiling, nor the ceiling to
+breach the capacity. This is the one bound in
 the suite on how much a domain may publish, and it is deliberately a
 bound on *rate*, not on worth or on standing: every Registrable Domain
 has the same quota and every domain the same eligibility (WIST-4 §5), judging
@@ -227,34 +247,48 @@ content nobody wants is not a protocol violation, and which records
 deserve a consumer's attention is ranking, decided at consumption
 (ADR-0006, ADR-0008), not admission.
 
-**A sealed Delta is sealed once.** A Delta ID MUST appear in at most one
-`publisher_delta` Entry in the whole Log. An Aggregator that receives a
-Delta it has already sealed treats the submission as the idempotent
-acceptance WIST-1 §4 requires and MUST NOT seal it a second time; a Consumer
-replaying the Log MUST reject an Epoch containing a `publisher_delta` Entry
-whose Delta ID a lower Entry — in the same Epoch or an earlier one —
-already carries. Together with immutability above, this is what makes "the
-Epoch that sealed this Delta" a well-defined phrase, a function only
-because the answer is unique and permanent. A Label ID (WIST-2 §3.3) is
-sealed once on the same terms, in at most one `label` Entry.
+**A Label is sealed once.** A Label ID (WIST-2 §3.3) MUST appear in at
+most one `label` Entry in the whole Log. An Aggregator that pulls a Label
+it has already sealed holds it as seen (WIST-2 §5.5) and MUST NOT seal it
+a second time; a Consumer replaying the Log MUST reject an Epoch
+containing a `label` Entry whose Label ID a lower Entry — in the same
+Epoch or an earlier one — already carries (`WIST3-E03`). Together with
+immutability above, this makes "the Epoch that sealed this Label" a
+function. An Item may be sealed more than once (§3.3).
+
+**Refresh.** A Catalog whose `root` is its latest Catalog's is valid only
+as C4 (§3.3) allows, reading `catalog_refresh_seconds` (WIST-4 §5; default
+604 800 seconds); the part of a Publisher that signs signs each
+Collection's Catalog at least as often as the suite value states,
+whatever a Log has amended (WIST-5). A `parameter_change` of
+`catalog_refresh_seconds` to a value below 1 or above 7 776 000 seconds,
+90 days, is outside its bound (`WIST4-E03`): a Publisher that signs a
+Collection at least once in 90 days then has its first unchanged Catalog
+pass C4 at most 15 552 000 seconds after the floor, which is never a base
+(§7), so a refresh of an unchanged Collection removes no record.
 
 ### 3.3. Entries
 
-Each Entry is `{"type": <t>, "body": <envelope>}`, where `type` is one of
-exactly five values and `body` is the Envelope that value names:
+Each Entry is `{"type": <t>, "body": <b>}`, where `type` is one of exactly
+six values and `body` is the object that value names:
 
-- `publisher_delta` — body is a Delta Envelope (WIST-1).
-- `publisher_declaration` — body is a Publisher Declaration Envelope
-  (WIST-1 §5.1); the Aggregator MUST seal a Declaration Entry before, or in
-  the same Epoch as, the first Delta it authorizes.
-- `label` — body is a Label Envelope (WIST-2 §3.3).
-- `dispute` — body is a Dispute Envelope (WIST-2 §3.3).
-- `registry_update` — body is a Registry Update Envelope (WIST-4 §3).
+- `publisher_declaration` — a Publisher Declaration Envelope (WIST-1 §5.1).
+- `registry_update` — a Registry Update Envelope (WIST-4 §3).
+- `publisher_catalog` — a Catalog Envelope (WIST-1 §3.5).
+- `publisher_item` — an object with exactly the members `item`, an Item
+  (WIST-1 §3.3); `collection`, the name of its Collection in the form of
+  WIST-1 §5.1; `catalog`, the Catalog ID of the Catalog it is proved
+  against; and `proof`, its Inclusion Proof against that Catalog (WIST-1
+  §4.3) (schema:
+  [`schemas/publisher-item.schema.json`](../schemas/publisher-item.schema.json)).
+- `label` — a Label Envelope (WIST-2 §3.3).
+- `dispute` — a Dispute Envelope (WIST-2 §3.3).
 
-WIST-3 defines only this envelope; the `body` format of `registry_update`
-is normative in WIST-4, of `label` and `dispute` in WIST-2, and of
-`publisher_delta` and `publisher_declaration` in WIST-1. Validators MUST reject Epochs containing
-unknown Entry types under the current major version.
+The body of `registry_update` is normative in WIST-4, of `label` and
+`dispute` in WIST-2, and of `publisher_declaration` and `publisher_catalog`
+in WIST-1; this section defines the `publisher_item` body. Validators MUST
+reject Epochs containing unknown Entry types under the current major
+version (`WIST3-E03`).
 
 **An Entry fits one leaf.** An Entry's JCS serialization — its leaf
 data (§4) — MUST NOT exceed 65 535 octets, the largest length the
@@ -264,9 +298,10 @@ Log MUST reject an Epoch that contains one (`WIST3-E03`).
 
 **Entry order is canonical.** Within an Epoch, Entries MUST appear grouped
 by type in the fixed order `publisher_declaration`, `registry_update`,
-`publisher_delta`, `label`, `dispute`, and within each group in ascending octet
-order of each Entry's Merkle leaf hash (§4). A Consumer replaying the Log
-MUST reject an Epoch ordered otherwise. The rule exists for the same
+`publisher_catalog`, `publisher_item`, `label`, `dispute`, and within each
+group in ascending octet order of each Entry's Merkle leaf hash (§4). A
+Consumer replaying the Log MUST reject an Epoch ordered otherwise
+(`WIST3-E03`). The rule exists for the same
 reason as the `sealed_at` grid (§3.1): Entry order fixes each leaf's
 index, and with it the root hash every Checkpoint from N on states, and
 a free permutation of Entries would let one set of Entries seal under
@@ -288,6 +323,7 @@ becomes pending, while an in-window fresh competitor does not),
 with equal-sequence groups handled by WIST-1 §5.2: conflicting first-install
 Envelopes invalidate the entire Epoch under `WIST1-E08`; current-Declaration
 re-serves and exact duplicates install no additional state or signature.
+Narrowing applies with them (WIST-1 §5.2).
 Every Declaration must pass its acceptance checks; on failure reject the
 whole Epoch with the applicable error, preserving the previously accepted
 prefix and all its state, including recovery windows due to settle in the
@@ -296,30 +332,223 @@ canonical Entry index order, each authenticated under the keys valid at
 the previous height; then every other act, authenticated under the keys
 valid at this Epoch, §3.4;
 `parameter_change` validation and equal-effective-time precedence read
-canonical Entry index under WIST-4 §5; a `payload_withdrawal` naming a
-Delta this Epoch seals takes effect on that Delta as the Delta applies
-below, WIST-4 §5.1), then
-`publisher_delta` Entries **in chain order**: a Delta whose `prev` names
-a Delta in the same Epoch applies after it, which is well-defined because
-chains are trees rooted outside the Epoch and cycles are impossible
-(a Delta ID includes its `prev` in its preimage), and two Deltas with no
-chain relation apply in leaf-hash order without observable difference.
+canonical Entry index under WIST-4 §5; the `details` contract of a
+`payload_withdrawal` reads the `publisher_item` Entries of its own Epoch,
+which apply after it, WIST-4 §5.1), then `publisher_catalog` Entries and
+then `publisher_item` Entries, each group in ascending Entry index, a
+base removing its Collection's records when its Catalog applies (§7).
 `label` Entries apply next, in ascending Entry index in the canonical
 stored order, which WIST-2 §3.3 reads to order two Labels of one Labeler
 sealed in one Epoch, and `dispute` Entries last, in the same order, which
 orders two disputes of one Label by one disputant; a dispute applies
 nothing to the Label it names. No conforming behavior depends on any ordering freedom this
-paragraph does not name. Because Declarations apply first, the Key Set a
-`publisher_delta` Entry verifies under is the one WIST-1 §5.2 resolves at
-its own Epoch with that Epoch's Declarations already applied: an
-Aggregator MUST NOT seal a Delta that fails it (WIST-1 §5.2), and a
-Consumer that meets one ignores the Entry as it ignores a fork — applied
-to nothing, moving no chain tip (§7). The same disposition covers every
-other WIST-1 §7 Delta check a sealed Entry can fail — field validation,
-§3.1 major support, the caps and clock allowance in force at its Epoch
-(WIST-1 §3.4, WIST-4 §5) and Normalized URL or authority — none of which
-an Aggregator may seal: the Entry is ignored, the Epoch stays accepted,
-and a later Delta naming the ignored one as `prev` is ignored with it.
+paragraph does not name. An Epoch that meets more than one whole-Epoch
+rejection of §3.2, this section or WIST-1 §5.2 is rejected; a validator
+MAY report the code of any it has established.
+
+**Declaration sealing obligation.** An Aggregator MUST seal every
+Declaration under which a pull read at or below the Epoch that seals the
+first Catalog that pull accepted or Item it admitted (WIST-2 §5.1),
+except a Declaration WIST-1 §5.2 removes from the eligible sealing set;
+the inclusion ceiling of those publications bounds its sealing (WIST-1
+§5.2, **Reaching the Log**).
+
+**Judgment.** An Entry of Epoch N is judged once, at N, and not again:
+under the Declaration in force for its Publisher once every transition
+of Epoch N has applied (WIST-1 §5.2, **Historical verification**), under
+the parameter map in force at N's `sealed_at` (WIST-4 §5), and with N's
+`sealed_at` as the clock (WIST-1 §3.4). The Publisher of a
+`publisher_catalog` Entry is `catalog.publisher`, and that of a
+`publisher_item` Entry is the `publisher` of its named Catalog (I3),
+whatever `item.publisher` spells. A Catalog of a Publisher with no
+Declaration in force has no candidate and fails C1 with `WIST1-E02`.
+Whether a recovery window of the Publisher is open at N is WIST-1 §5.2's
+(**Publications during recovery**).
+
+A `publisher_catalog` Entry is valid when all four conditions hold.
+
+| # | Condition |
+|---|---|
+| C1 | The Catalog meets none of WIST-1 §7's Catalog conditions but `WIST2-E04` and `WIST2-E05`, which apply at a pull |
+| C2 | No recovery window of the Publisher is open at N |
+| C3 | Its Publisher and Collection name have no floor (§7), or `generated_at` is later than the floor |
+| C4 | The name has no latest Catalog (§7); or `root` is not the latest Catalog's; or `generated_at` is at least `catalog_refresh_seconds` (§3.2) later than the floor; or the latest Catalog fails the binding check (WIST-1 §5.1) at N |
+
+A `publisher_item` Entry is valid when all seven conditions hold, read
+once the `publisher_catalog` Entries of Epoch N have applied.
+
+| # | Condition |
+|---|---|
+| I1 | The body has the form above, the Item's own form (WIST-1 §7's `WIST1-E14` Item conditions) and the proof's (WIST-1 §4.3) included |
+| I2 | No recovery window of the Publisher is open at N |
+| I3 | `catalog` is the Catalog ID of a latest Catalog (§7), the **named Catalog** |
+| I4 | The Declaration in force names the named Catalog's Collection, and the named Catalog passes the binding check at N |
+| I5 | `collection` is the named Catalog's `collection`, and the Item meets none of WIST-1 §7's Item conditions, judged with the named Catalog |
+| I6 | `proof` verifies against the named Catalog (WIST-1 §4.3) |
+| I7 | An Item of kind `page` is not the Item of its URL's record (§7), and no `payload_withdrawal` sealed in an Epoch below N names its Item ID; an Item of kind `removed` has a record for its URL. The record is that of the Publisher and the URL, whatever Collection it carries |
+
+C2 to C4 are read only for a Catalog that meets neither `WIST1-E05` nor a
+`WIST1-E14` condition. Where I1 fails no other condition of the Item is
+read, and I2 and I4 to I7 are read only where I3 holds, since they read
+the named Catalog. I7 reads, of each `payload_withdrawal` that meets its
+`details` contract (WIST-4 §5.1), the Item ID it names in
+`details.delta_id`, and nothing else; a withdrawal that breaks its
+contract names no Item.
+
+A valid Catalog becomes the latest Catalog of its Publisher and
+Collection name (§7). A valid Item of kind `page` becomes the record of
+its Publisher and URL in place of any record they had, and a valid Item
+of kind `removed` removes that record (§7). An
+Item may be sealed in a Log more than once: after narrowing or a base
+removed its URL's record, the Item that record carried passes I7 again,
+unless a withdrawal names it, and is sealed again against the latest
+Catalog.
+
+An Entry that is not valid is **ignored**: it changes no state, the floor
+included, and the Epoch stays accepted. An Entry that names an ignored
+Catalog, a replaced one or one never sealed fails I3.
+
+| Condition failed | Code |
+|---|---|
+| I1 | `WIST1-E14` |
+| C1, I5 | The code of the Catalog condition, of the body rule (`WIST1-E17` for a `collection` that is not the named Catalog's) or of the Item condition met |
+| I4 | `WIST1-E03` for a Collection the Declaration does not name; otherwise `WIST1-E02` or `WIST1-E01`, as the binding check distinguishes them |
+| I6 | `WIST1-E17` |
+| C2, C3, C4, I2, I3, I7 | `WIST3-E06` |
+
+`WIST1-E05` and the `WIST1-E14` conditions are checked first; among the
+others WIST-1 §7 leaves the choice of diagnostic.
+
+An Epoch is rejected whole, with `WIST3-E03`, when two of its
+`publisher_catalog` Entries carry the same strings as `catalog.publisher`
+and as `catalog.collection`, whether or not either is valid; an Entry in
+which either member is not a string is compared with none.
+
+**Waiting.** An Aggregator seals no Entry the judgment ignores, no Epoch
+that a Consumer rejects and no `payload_withdrawal` that breaks its
+`details` contract. The rules from here to the end of this section bind
+the Aggregator alone: the Log does not show an acceptance, so no Consumer
+derives them. A pull accepts Catalogs and admits Items (WIST-2 §5.1);
+from the discovery of a recovery rotation until the settlement of its
+window, WIST-1 §5.2 (**Publications during recovery**) queues and holds
+what it accepts and admits instead, and gives what survives settlement
+its place and eligibility.
+
+The **last accepted Catalog** of a Collection is the Catalog a pull
+accepted last, unless it failed C1 at its turn, and the latest Catalog
+otherwise. The order of a pull (`WIST2-E05`) and the idempotent re-serve
+(WIST-1 §7) read it. Per Collection at most one Catalog waits, and per
+Publisher and URL at most one Item.
+
+| | A Collection's Catalog | A URL's Item |
+|---|---|---|
+| Waits | The last accepted Catalog, while it is not the latest Catalog and has not failed C4 at its turn | The Item the last accepted Catalog lists for the URL, while the Item is admitted (WIST-2 §5.1) and I7 holds for it |
+| Place | Taken at the pull that accepts a Catalog while none of the Collection waits. A later accepted Catalog takes the place and the eligibility Epoch of the waiting one it replaces | Taken at the pull from which the URL waits, and kept with its eligibility Epoch while the URL waits without interruption, whichever Item waits for it |
+| Leaves | When sealed. When it fails C1 at its turn, whether or not it fails C4: it is reported with C1's code alone at the status endpoint (WIST-2 §7.1) and is no longer the last accepted Catalog. When it fails C4 alone at its turn: it is not reported and stays the last accepted Catalog | When sealed. When the URL no longer waits: an Item for which I7 no longer holds once the Epoch's transitions and Catalogs have applied leaves unreported, whatever other condition it fails. When the Item fails I5 at its turn: it is reported with the code and is a refused Item of its list |
+
+An idempotent re-serve replaces no Catalog and gives no waiting Item
+another place. Where the last accepted Catalogs of two Collections of a
+Publisher each list for one URL an admitted Item for which I7 holds, the
+Item that waits at an Epoch is that of the Collection whose Scope covers
+the URL under the Declaration in force once that Epoch's transitions
+have applied, and where no Scope covers it, that of the Catalog later in
+the Catalog order (WIST-1 §3.5); at a pull the Declaration read for this
+is the current one of the sealed history. The Item that waits for a URL
+at an Epoch is read once that Epoch's transitions and Catalogs have
+applied and takes the URL's turn in that Epoch, with the place and the
+eligibility Epoch the URL has; an Item it replaces for the URL leaves
+without a report, the URL having waited without interruption.
+
+**Places.** A URL that begins to wait at an Epoch or at a settlement, and
+not at a pull, takes its place there. A Label or a dispute takes its
+place at the pull that accepts it, after the places that pull gives
+Catalogs and URLs, and among the Labels and disputes of that pull in the
+order the pull accepts them. A place taken at an event comes after every
+place taken at an earlier one, and places taken at one Epoch, one
+settlement or one pull are ordered by the Publisher's Canonical Host in
+ascending octet order, then by the order of the Collections of the
+Declaration in force for that Publisher, a Collection that Declaration
+does not name coming after the named ones in ascending octet order of
+name, then by the order of the list. For this order the Declaration in
+force is, at an Epoch, the one in force once its transitions have
+applied; at a settlement, the one it leaves current; at a pull, the one
+the pull reads Collections from, and with two sources the one in effect
+before the recovery. For this order a settlement and the Epoch at which
+it settles are one event; the eligibility of what a settlement keeps is
+WIST-1 §5.2's.
+
+**Eligibility.** A Catalog or an Item is eligible for the Epoch that
+follows the event at which it took its place, and the inclusion ceiling
+(`max_inclusion_epochs`, WIST-4 §5) counts from the Epoch it is eligible
+for. A replacement that keeps a place moves no eligibility Epoch. Each of
+the following **deferrals**, and nothing else, defers the eligibility,
+and the ceiling with it, to the first Epoch at which none of them
+applies; each is reported at the status endpoint (WIST-2 §7.1) under the
+name it carries:
+
+1. `recovery_window`: a recovery window of the Publisher open at the
+   Epoch;
+2. `capacity`: no room in the capacity of the Registrable Domain (§3.2),
+   taken in the order below;
+3. `catalog_waiting`: for an Item, a waiting Catalog of its Collection
+   that one of the two above holds out of the Epoch;
+4. `latest_fails_i4`: for an Item, a latest Catalog of its Collection
+   that fails I4 at the Epoch, while no Catalog of that Collection waits
+   that nothing defers.
+
+Every deferral that applies to a Catalog or an Item at an Epoch is
+reported for it, in the order of this list; the capacity defers only
+what nothing else defers at that Epoch, and where `recovery_window`
+applies it is the only deferral reported (WIST-1 §5.2, **Queue**).
+
+A Declaration that reduces authority orders the sealing and defers
+nothing: its **hold** (WIST-1 §5.2, **Reaching the Log**) keeps the
+publications of its Publisher out of the Epochs below the one that seals
+it, and Labels and disputes are not held. A Catalog or an Item that the
+hold keeps out of an Epoch takes no room in the capacity there, and
+neither the hold nor the capacity moves its eligibility Epoch or its
+ceiling at that Epoch; where a recovery window of the Publisher is open
+at the Epoch, the window defers it. It is reported at the status
+endpoint as held where no deferral applies to it, and with the deferral
+where one does.
+
+**Sealing an Item.** An Item is sealed in an Epoch only when, once the
+Epoch's Catalogs have applied, the latest Catalog of its Collection has
+the `root` of the last accepted Catalog and passes I4; the Entry names
+that latest Catalog and carries the proof against it. While a Catalog of
+another `root` waits, the Items of its Collection wait with it. While the
+latest Catalog fails the binding check, they wait, with their places,
+for the Catalog the Publisher signs next. A waiting Catalog that nothing
+defers is sealed at or below the Epoch that seals an Item of its
+Collection, so the earliest ceiling among the waiting Items of its
+Collection bounds its sealing; an Item that had reached its eligibility
+Epoch keeps it and its ceiling when a Catalog of another `root` is
+accepted.
+
+Before sealing an Item of kind `page`, however it was admitted, the Item
+of its URL's record that waits under a base included (§7), the
+Aggregator checks its Payload by WIST-1 §7's Payload checks against the
+Item's `payload`, under the parameter map in force at the candidate
+Epoch's `sealed_at`, at the Item's turn in that Epoch when the capacity
+has room for it, and at no Epoch that defers it or that the hold
+keeps it out of; a Payload the Aggregator
+does not hold at the Item's turn fails the check. An Item whose Payload
+fails at its turn takes no room, is not sealed, is no longer admitted and
+is reported with `WIST2-E03`; the other Items proceed. The Payloads named
+by the withdrawals an Epoch seals are destroyed (§6.2) before its Items
+take their turn, so an Aggregator seals no Item in the Epoch that seals
+the withdrawal of its Payload; replay accepts such an Item, I7 reading
+the withdrawals of earlier Epochs alone.
+
+**Capacity order.** In an Epoch the capacity of a Registrable Domain is
+taken first by its Catalogs, then by its Items of kind `removed`, then by
+its Items of kind `page`, its Labels and its disputes together, and
+within each of the three in the order of the places; the per-Labeler cap
+(§3.2) applies inside it. A Catalog or an Item that fails its judgment at
+its turn takes no room, and the next in order takes it. C2 defers a
+waiting Catalog and fails none, and C3 fails none that a pull accepted
+or a settlement kept, since the order of the pull and the settlement
+read the floor.
 
 ### 3.4. Aggregator Keys and the Log Anchor
 
@@ -572,7 +801,7 @@ serves no proof objects: a Consumer holding the tree hashes §6 serves
 computes either proof itself, and a proof it receives from another
 party is verified the same way.
 
-Inclusion Proofs let a light client verify "this Delta is in the log"
+Inclusion Proofs let a light client verify "this Entry is in the Log"
 holding only a Checkpoint and the proof: the Checkpoint is authenticated
 by the Aggregator's signature and the Cosignatures it carries (§5), and
 the proof binds the Entry to the root it states.
@@ -805,7 +1034,7 @@ Origin, never on a Mirror: the Ingest Endpoint `POST
 https://<log_id>/ingest` (WIST-2 §4) and the status endpoint `GET
 https://<log_id>/status/<domain>` (WIST-2 §7.1).
 Payload files are immutable in the same sense — their bytes never change —
-but they are the one class of file that may cease to be served, under §6.2.
+but they may cease to be served (§6.1, §6.2).
 
 ```
 /checkpoint                             (mutable, small, signed note; the current head — §5, [tlog-tiles])
@@ -819,7 +1048,7 @@ but they are the one class of file that may cease to be served, under §6.2.
 /log/checkpoints/000000001
 ...
 /log/suffix-lists/7d33b504….dat         (immutable; a pinned Public Suffix List snapshot, WIST-4 §3.1)
-/payloads/6cac5bdd….json                (one per content-bearing Delta — §6.1)
+/payloads/6cac5bdd….json                (one per sealed Item of kind `page` — §6.1)
 /snapshots/index.json                   (mutable, signed; the discovery entry point)
 /snapshots/2026-08-02/000000000/manifest.json          (immutable, signed; declares log position — one directory per Snapshot, named by its date and Epoch)
 /snapshots/2026-08-02/000000000/state.json             (immutable, signed; the state artifact — §7)
@@ -988,7 +1217,7 @@ not hash to its name is `WIST3-E03`, and one no source holds is
 Epoch that snapshot governs until it obtains the file.
 
 **Sizing.** The Log's permanent volume is the Entries it seals —
-Declarations, governance acts, Deltas, Labels and disputes — plus the
+Declarations, governance acts, Catalogs, Items, Labels and disputes — plus the
 tiles above them, under 33 octets per leaf across every level, and one
 Checkpoint per Epoch. An idle Log accrues one
 Checkpoint per cadence and nothing else, so storage growth is a function
@@ -996,27 +1225,27 @@ of what Publishers and Labelers publish and of the cadence alone.
 
 ### 6.1. Payloads
 
-A Delta commits to its content and does not carry it (WIST-1 §3.6). The
-content travels as a **Payload** (schema:
+An Item of kind `page` commits to its content and does not carry it
+(WIST-1 §3.6). The content travels as a **Payload** (schema:
 [`schemas/payload.schema.json`](../schemas/payload.schema.json)) served at
 
 ```
-/payloads/<delta-id-hex>.json
+/payloads/<item-id-hex>.json
 ```
 
-where `<delta-id-hex>` is the Delta ID's 64-character hex digest without
-the `sha256:` prefix — the same naming a Publisher uses (WIST-2 §3.1). A
+where `<item-id-hex>` is the 64 hexadecimal digits of the Item ID that
+follow `sha256:` — the same naming a Publisher uses (WIST-2 §3.1). A
 Payload file is immutable while it is served: an Aggregator MUST serve at
-that path either the exact bytes it verified at ingest (WIST-2 §5) or
+that path either the exact bytes it verified (WIST-2 §5.1; §3.3) or
 nothing at all.
 
 A Payload carries exactly three members. `wist_version` is the version of
 this suite it conforms to (WIST-1 §3.1); WIST-1 §7 defines complete Payload
 field/version validation and diagnostic precedence. `salt` is the base64url encoding,
-unpadded, of the ≥ 16 octets that key the Delta's commitment (WIST-1 §3.6);
+unpadded, of the ≥ 16 octets that key the Item's commitment (WIST-1 §3.6);
 it is the one place the salt is published, and destroying it is what makes
 a withdrawal effective (§6.2). `content` is the object the commitment is
-computed over: a REQUIRED `extract`, the page's main text; a REQUIRED
+computed over: a REQUIRED `extract`, the main text; a REQUIRED
 `links` object carrying a REQUIRED `total` and REQUIRED `urls` (WIST-1 §3.6);
 and a REQUIRED `summary` object carrying a REQUIRED `title` and an OPTIONAL
 `abstract`. Those eight names and no others: `content` is the exact
@@ -1032,7 +1261,7 @@ are **not** covered by the tree: no leaf hash, root or Inclusion Proof
 depends on them, which is exactly why the tree is untouched when a
 Payload is withdrawn.
 
-A Consumer MUST verify each Payload against its Delta's `commitment` and
+A Consumer MUST verify each Payload against its Item's `commitment` and
 `bytes` (WIST-1 §3.6) before applying its content, and MUST NOT apply
 content that fails (`WIST1-E10`; the serving party is at fault under
 `WIST3-E03`). Verification does not depend on where the file came from, so a
@@ -1042,89 +1271,68 @@ source. That is also why §6.2 binds all three: a withdrawal reaches every
 serving path or it reaches none of them, since any one of them suffices to
 obtain the salt.
 
-A Delta whose Payload a Consumer cannot obtain remains valid, sealed, and
-part of its per-URL chain. The Consumer applies what the Delta itself
-says — the URL, the change type, the observation time — and materializes
-no content for it.
+An Item whose Payload a Consumer cannot obtain remains valid and sealed,
+and the record it makes stands (§7). The Consumer applies what the Item
+itself says — its URL, its kind, `observed_at` and `meta` — and
+materializes no content for it.
 
 **Availability window.** An Aggregator and any Mirror serving an Epoch (§6) MUST
-serve that Epoch's Payloads for at least the payload availability window
-(Parameter Registry; default 180 days), except for Payloads withdrawn
-under §6.2, and MUST NOT serve Checkpoint N before every Payload Epoch
-N's content-bearing Deltas commit to, less those withdrawn, is
+serve the Payload of every Item of kind `page` that Epoch seals for at
+least the payload availability window (`payload_window_days`, Parameter
+Registry; default 180 days), counted from that Epoch's `sealed_at` and
+read from the parameter map in force there (WIST-4 §5), except Payloads
+withdrawn under §6.2, and MUST NOT serve Checkpoint N before every such
+Payload of Epoch N, less those withdrawn, is
 retrievable at its path: Payloads replicate first, then the Entries,
 then the Checkpoint, extending the order §5 fixes between the Entries
 and their Checkpoint, so a Payload is never
 absent at a Mirror merely because replication has not reached it. A
-Payload that is absent without a withdrawal entry is a
+Payload absent inside its window with no withdrawal sealed for it is a
 `WIST3-E05` fault against that Mirror; this is what distinguishes a lawful
 withdrawal from a Mirror quietly dropping content it dislikes.
 
-After the window elapses, retention is at each Mirror's discretion, and a
-Consumer MUST NOT read absence as misbehavior. The window is therefore a
-detection window rather than an archival promise: it is set long enough
-that a Payload's absence inside it is evidence, and every duty that
-depends on content — a Consumer's materialization above all — falls well
-within it.
+After the window elapses, retention is at each Mirror's discretion, and
+at the Aggregator's for a Payload whose Item is no record (**Payloads of
+records**, below), and a Consumer MUST NOT read such an absence as
+misbehavior. The window is therefore a detection window rather than an
+archival promise: it is set long enough that a Payload's absence inside
+it is evidence, and a Consumer that starts later obtains the content of
+every record from the Aggregator.
 
-**Anchor Payloads.** One class of Payload outlives the window at the
-Aggregator. Two separate rules govern it — which Payload a chain resolves to,
-and how long that Payload must be served — and they are stated separately
-because they end at different times and for different reasons.
+**Payloads of records.** An Aggregator MUST serve the Payload of the Item
+of every record its Log holds (§7), a record the one-URL rule does not
+materialize included, for as long as that Item is the record, whatever
+the availability window. Once an Item, narrowing or a base replaces or
+removes the record, its Item's Payload keeps only the availability window
+of each Epoch that sealed the Item: a superseded Payload gets no further
+window at the Aggregator. A withdrawal (§6.2) ends both duties at once.
+The end of a duty permits the Aggregator to delete the Payload and does
+not require it; only a withdrawal obliges removal.
 
-*Resolution.* A URL's **anchor Payload as of a Delta *d*** is the Payload
-of the last content-bearing Delta at or before *d* in that URL's per-URL
-chain (WIST-1 §3.5). Where *d* is an `attest` or a `delete`, the anchor
-as of it is the content the chain still stands on or has just ended.
-The rule is relative to a named *d* rather than to the present, so a
-statement about the chain at *d* never changes meaning when a later
-`update` is sealed. Resolution never expires — the chain is in the Log —
-and it says nothing about whether the Payload can still be fetched.
-
-*Serving.* An Aggregator MUST serve a Payload P, regardless of the
-availability window, until one availability window after the sealing of
-the **first** Delta for P's URL, above P's own Delta, that is either
-
-- a content-bearing Delta, which supersedes P as the URL's anchor, or
-- a `delete`, which ends the URL.
-
-Until such a Delta is sealed the obligation has no expiry and displaces
-the ordinary window; once that window elapses the obligation ends and
-nothing requires P to be served any longer. **A deleted URL's anchor
-Payload is therefore served for one window after the `delete` and no
-longer**: withdrawal is how content is removed *before* that point, not a
-precondition for removing it at all. A withdrawal under §6.2 ends the
-obligation immediately, at any point in its life. What the post-supersession
-window serves is verification: a Consumer materializing at a height
-inside it still finds the content the chain stood on, and a superseded
-Payload stays checkable against its commitment for as long as it can be
-fetched.
-
-Resolution outliving serving is not a contradiction but the ordinary case:
-a Consumer that can name the anchor but cannot fetch it materializes no
-content for the URL (above), which is exactly how the suite records
-"there was a thing to show and it is no longer available".
-
-Holding current anchors costs the Aggregator nothing it was not already
-holding — they are exactly the content Tier 1 materializes (§7) — and it
-means a Publisher cannot make its own freshness claims unverifiable by
+Holding the Payloads of current records costs the Aggregator nothing it
+was not already holding — they are the content Tier 1 materializes (§7)
+— and it means a Publisher cannot make its own records unverifiable by
 dropping its copy: the Aggregator's copy is independent, and the
-commitment makes the two interchangeable.
+commitment makes the two interchangeable. A Consumer that can name an
+Item but cannot fetch its Payload materializes no content for it (above),
+which is how the suite records "there was a thing to show and it is no
+longer available".
 
 ### 6.2. Withdrawal
 
 A Payload is removed from distribution by a `payload_withdrawal` Registry
 Update (WIST-4 §5.1), signed by the Aggregator, whose `subject` is the
-Publisher's domain and whose `details` name the `delta_id`, the
+Publisher's domain and whose `details` name, in the member `delta_id`,
+the Item ID of the Item of kind `page` whose Payload it removes, the
 `legal_basis` under which the content is being erased, and the
-`jurisdiction` of the party demanding it. A request covering several
-Deltas is recorded as one entry per Delta, so that each withdrawal names
-exactly what it removed and can be checked on its own.
+`jurisdiction` of the party demanding it; which Item IDs it may name is
+its `details` contract (WIST-4 §5.1). A request covering several Items is
+recorded as one entry per Item, so that each withdrawal names exactly
+what it removed and can be checked on its own.
 
-A withdrawal takes effect at the height of the Epoch that seals it, for a
-Delta sealed in that same Epoch included: the Delta applies (§3.3) and
-moves its chain tip, and its content is never materialized. From that
-height:
+A withdrawal takes effect at the height of the Epoch that seals it, for an
+Item sealed in that same Epoch included: the Item becomes its URL's record
+(§3.3) and its content is never materialized. From that height:
 
 - the Aggregator, every Mirror **and the Publisher itself** MUST stop
   serving that Payload, and a Consumer MUST NOT treat its absence as a
@@ -1134,10 +1342,13 @@ height:
   downstream copies and left the source published would relocate the salt
   rather than destroy it, and every claim below about what stops being
   checkable would be false at one fetch. The Publisher's own retention
-  duty for an anchor Payload (WIST-2 §3.1) ends at that height rather than
-  competing with this one; a Publisher that still attests to the URL
-  re-anchors the chain instead, exactly as it would if it had to stop
-  serving the Payload for any other reason;
+  duty for the Payloads its Catalogs name (WIST-2 §3.1) ends at that
+  height rather than competing with this one; a Publisher that keeps
+  publishing the content lists a new Item under a fresh salt (WIST-2
+  §3.1);
+- no later Epoch of that Log seals the Item again: I7 fails for an Item
+  named by a withdrawal sealed in an earlier Epoch (§3.3), and a pull
+  admits no such Item (WIST-2 §5.1);
 - Consumers MUST exclude the withdrawn content from subsequent
   materializations and remove it from any local index already built from
   it, and the Aggregator **and every Mirror** MUST stop serving any
@@ -1148,15 +1359,16 @@ height:
 - every party holding the Payload for protocol purposes MUST destroy it,
   its salt, and anything it retained of the content it carried.
 
-What withdrawal does not touch is the record. The Delta stays sealed, its
-commitment stays in the Log, its inclusion proofs keep verifying, and
-every Label ever sealed about it remains.
+What withdrawal does not touch is the record. The Item stays sealed, the
+record it makes stands until an Item, narrowing or a base replaces or
+removes it (§7), its commitment stays in the Log, its Inclusion Proofs
+keep verifying, and every Label ever sealed about it remains.
 Withdrawal removes content from distribution; it cannot remove history,
 and it cannot recall copies already served.
 
 **After a withdrawal the Log retains no unsalted digest of the withdrawn
 content.** That is a property of the object formats, not an aspiration:
-the Delta commits to its content under the Payload salt (WIST-1 §3.6), and
+the Item commits to its content under the Payload salt (WIST-1 §3.6), and
 destroying the salt makes the commitment unlinkable. The rule is general and binds any
 object a later revision adds: **a content-derived value in this suite is
 committed under the Payload salt or it is not carried at all.** No object,
@@ -1164,7 +1376,7 @@ and no `details` of any Registry Update, may carry a bare digest of
 Payload content.
 
 What remains in the Log and is derived from the withdrawn content is the
-Delta's `payload.bytes` length and any Label a Labeler sealed about the
+Item's `payload.bytes` length and any Label a Labeler sealed about the
 URL. Neither is a digest: `bytes` corroborates a length that unboundedly
 many texts share, and a Label is a registry name and an integer. What
 stands between a party holding a copy and a confirmation is the destroy
@@ -1190,7 +1402,7 @@ other exercise of operator power.
 **A withdrawal binds one Log.** Every obligation in this section runs on
 Entries of the Log the withdrawal was sealed in: an Aggregator and its
 Mirrors. A second, independent
-Log that sealed the same Publisher's Deltas — nothing forbids one, and
+Log that sealed the same Item — nothing forbids one, and
 WIST-2's publication surface is one site serving whomever pulls — is
 unreached by it, and a Publisher who needs content erased from two Logs
 files two withdrawals. Stated once, plainly, because the alternative is
@@ -1221,9 +1433,9 @@ the instant — and "above" or "below" `tree_size` means above or
 below Epoch N. Every height a Snapshot carries, in this section's
 tuples and tables, is an Epoch number, never a tree size.
 
-- **Tier 0** — summaries of every live record: SQLite (FTS5) + Parquet.
+- **Tier 0** — summaries of every materialized record: SQLite (FTS5) + Parquet.
   Sized for any laptop; answers most agent queries alone.
-- **Tier 1** — full extracts of live records, the link graph their
+- **Tier 1** — full extracts of materialized records, the link graph their
   Payloads declare, and the Labels sealed about them, as Parquet.
 
 Both tiers are built from Payloads (§6.1), not from the Log: the Log
@@ -1253,15 +1465,15 @@ is trust in its publisher, chosen the way a client is chosen, never a
 property the protocol asserts. Packs published by the Aggregator are
 Snapshot artifacts for the purposes of §6.2's withdrawal obligations; a
 third-party pack containing a since-withdrawn record is a copy already
-served, in the position WIST-1 §6 names, with a named holder. Discovery of
+served, in the position WIST-1 §9 names, with a named holder. Discovery of
 packs is out of scope: a Consumer verifies a pack against the digest of
 a Snapshot it already holds, wherever the pack came from.
 
 **The link graph.** `tier1/links.parquet` carries one row per declared
-link of every live record: `(source_url, target_url, position)`, where
+link of every materialized record: `(source_url, target_url, position)`, where
 `source_url` is the record's Normalized URL, `target_url` a member of
 its Payload's `links.urls`, and `position` that member's zero-based
-index. The artifact is a pure function of the live records' Payloads —
+index. The artifact is a pure function of the materialized records' Payloads —
 any party holding them can rebuild and compare it row for row — and it
 carries no digest of its own: `content_digest` deliberately covers
 Log-derived tuples only, so that it remains computable after a
@@ -1279,13 +1491,14 @@ ever is.
 **The label table.** `tier1/labels.parquet` carries one row per Label
 current at `tree_size` from any Labeler the Log sealed: `(labeler,
 subject, name, value, asserted_at, expires_at, delta)`, where `value` is
-the Label's integer or `NULL` where absent, `expires_at` and `delta` the
-Label's members or `NULL`, and a retracted Label or one expired at Epoch
-`epoch_number`'s `sealed_at` has no row (WIST-2 §3.3). Like the link
-graph it is a pure function of the Log — every field is sealed in a
-`label` Entry — and transports statements, never a judgement: which
-Labelers a Consumer believes is the Consumer's subscription (WIST-4
-§6), and no Snapshot builder applies a Label to a record.
+the Label's integer or `NULL` where absent, `expires_at` and `delta` — the
+Item ID the Label binds — the Label's members or `NULL`, and a retracted
+Label or one expired at Epoch `epoch_number`'s `sealed_at` has no row
+(WIST-2 §3.3). Like the link graph it is a pure function of the Log —
+every field is sealed in a `label` Entry — and transports statements,
+never a judgement: which Labelers a Consumer believes is the Consumer's
+subscription (WIST-4 §6), and no Snapshot builder applies a Label to a
+record.
 
 **The dispute table.** `tier1/disputes.parquet` carries one row per
 current dispute at `tree_size`: `(label_id, disputant, reason,
@@ -1310,61 +1523,119 @@ at `tree_size`, and one that does not holds counts only for the
 Entries it walked and MUST NOT present them as the Labeler's whole
 history.
 
-**The materialized state.** The materialized state is a set of records
-keyed by (Publisher domain, Normalized URL). The Publisher domain is the
-Delta's signed `publisher`, authenticated under WIST-1 §3.8/§5; it is never
-derived from key ownership or the URL host. Rotation, recovery and identity
-reset do not reassign these keys or erase their chain tips. Apply chain
-validation to this domain before materialization filters; an excluded
-record does not transfer its chain to a preferred Publisher. Applying Entries in Log order:
-a `new` or `update` Delta replaces the record's content and becomes the
-record's **anchor Delta** (§6.1); an `attest` Delta updates the record's
-freshness only and leaves the anchor where it was; a `delete` removes the
-record's content and moves the chain tip like any other Delta — the key
-keeps a tip, the `delete` itself, because a chain never restarts (WIST-1
-§3.5) and the URL's next Delta names it as `prev`. A Delta whose `prev`
-is not the chain tip the state carries for
-its (Publisher domain, Normalized URL) — a fork of an already-materialized
-chain (WIST-1 §3.5), or a `prev` that no lower Entry sealed — is ignored
-and moves no tip, and so is a sealed Delta that fails a WIST-1 §7 check
-at its Epoch (§3.3); a chain's first Delta is the one that omits `prev` while
-the state carries no tip for its key.
-Deletion and withdrawal are covered by the rule below. The Log retains every Entry in every case;
-materialization shapes only the present state.
+**Catalogs and records.** Replay of a Log's sealed Entries (§3.3) holds
+the following state, each a function of those Entries alone.
+
+| State | Held per | Value |
+|---|---|---|
+| Latest Catalog | Publisher and Collection name | The valid `publisher_catalog` Entry applied last: its Envelope and its sealing height |
+| Floor | Publisher and Collection name | The `generated_at` of the latest Catalog. A name with no latest Catalog has no floor, and no rule bounds its first instant from below |
+| Record | Publisher and URL | The Item of kind `page` that a valid `publisher_item` Entry made the URL's record (§3.3), its Collection, and the Catalog ID and `generated_at` of the Catalog it was proved against |
+| Removal state | Publisher and URL | That a valid Item of kind `removed` removed the URL's record: that Item's Item ID and the Catalog ID and `generated_at` of the Catalog it was proved against |
+
+The Publisher of a record is the Publisher of the Entry that sealed its
+Item (§3.3), the signed `catalog.publisher` of the Catalog it was proved
+against, authenticated under WIST-1 §3.8 and §5; it is never derived
+from key ownership or the URL host, and rotation, recovery and identity
+reset reassign no record. Disjoint Scopes and narrowing leave no URL of a
+Publisher with a record in two Collections (WIST-1 §5.1, §5.2).
+
+The latest Catalog and the floor stay when a Declaration stops naming
+the Collection, when narrowing or a base removes the Collection's
+records, and when the Publisher's identity resets (WIST-1 §5.2). A record
+leaves when a valid Item replaces or removes it (§3.3), when narrowing
+removes it (WIST-1 §5.2) and when a base removes it (below); a record
+that narrowing or a base removed leaves no removal state. A removal state
+stays through narrowing and through a base, and ends when a valid Item
+of kind `page` becomes the URL's record. A withdrawal (§6.2) removes no
+record. The Log retains every Entry in every case; replay shapes only the
+present state.
+
+A record carries the instant of the Catalog its Item was proved against.
+A Collection carries the instant of its latest Catalog, which says that
+the Publisher stated the Collection then and says nothing of any one
+record. A party that holds every Item of a Collection MAY recompute the
+root and compare it with the latest Catalog's; the comparison changes no
+sealed value, no state tuple and no digest.
+
+**A base.** A Catalog is a **base against the floor** when its Publisher
+and Collection name have a floor and its `generated_at` is more than
+`removal_retention_days` (WIST-1 §3.3), of 86 400 seconds each, later than
+the floor: an Item of kind `removed` listed after the floor may have left
+the list since. A Catalog later than the floor by exactly that interval
+is not one. A valid Catalog that is a base against the floor at its Epoch
+is a **base**. `removal_retention_days` is 180 in every Log: no Log
+amends it and no parameter map carries it, so a pull and an Epoch read
+the same value. No act of the Aggregator marks a base; every party
+derives it from two sealed instants and that constant.
+
+When a base applies, every record of its Publisher in its Collection is
+removed, before the Items of the Epoch apply. I7 then reads no record of
+that Collection: a record of the URL that another Collection carries is
+read as outside a base, so an Item of kind `removed` passes I7 where such
+a record exists and fails it elsewhere, and an Item of kind `page` that
+no withdrawal names passes it unless it is such a record's Item. A record
+is absent from the Epoch of the base until the Epoch that seals its Item
+again. The capacity and the inclusion ceiling bound that interval and
+nothing else does: a list of n Items under a capacity of c Entries takes
+at least ⌈n / c⌉ Epochs.
+
+An Aggregator reads I7 for the Collection in the same way from the pull
+that accepts a Catalog that is a base against the floor until that
+Catalog, or one that replaces it while it waits, is sealed or leaves:
+every admitted Item for which I7 so holds waits (§3.3) and is sealed in
+its turn. A Catalog a pull queues (WIST-1 §5.2) begins no such reading;
+for a base in the queue it begins at the settlement that makes the base
+the last accepted Catalog. When the base leaves unsealed, failing C1 at
+its turn, I7 is read against the records again, and the Items that are
+their URL's record leave unreported, as an Item for which I7 no longer
+holds leaves (§3.3).
+
+**Several Logs.** A Catalog has the same inner object and the same
+Catalog ID in every Log, and its Envelope may carry another signature in
+another Log; an Item has the same octets and the same Item ID in every
+Log. For one Publisher and URL, a Consumer of several Logs takes the
+state proved against the latest Catalog in the Catalog order (WIST-1
+§3.5), among the Logs that hold a record or a removal state for the URL;
+between states proved against one Catalog it takes the state of the
+greater Item ID in octet order, a record's being its Item's. A record
+that narrowing or a base removed in a Log leaves no state in that Log.
+The order runs across the Collections of the Publisher. Neither a walk
+nor a chain of change lists gives a list with two Items under one key
+(WIST-1 §4.2, WIST-2 §5.3), so two states proved against one Catalog
+arise only where an Aggregator sealed an Item from a list it obtained
+otherwise; the rule makes the Consumers of such Logs agree.
 
 **One URL, one Publisher.** A URL's host can lawfully sit inside two
-authorities at once: its own domain's, and a parent domain whose
-`subdomain_scope` names it (WIST-1 §3.2). The record key is (Publisher
-domain, Normalized URL), so without a tiebreak the same URL could carry
-two live records, one under each Publisher, and nothing below would say
-which one a query should believe. The tiebreak is self-governance: from
-the height at which the subdomain's own `seq`-0 Declaration Entry is
-sealed, Deltas for that host's URLs materialize only under the
-subdomain's Publisher domain — the parent's records for those URLs are
-excluded from that height, exactly as a `delete` would exclude them,
-and the parent's later Deltas for those URLs are not materialized while
-the subdomain's Declaration stands. Below that height the parent's scope
-governs alone — and where the host never declares, more than one scoped
-Publisher can hold a live record for the URL, a record no `delete` or
-withdrawal above excludes. The record
-materialized is then the **nearest ancestor**'s: the Publisher whose domain
-is the longest the host descends from, the host being `<label>.D` or a
-deeper descendant of that domain `D`. A Publisher that is no ancestor of
-the host materializes the URL only while no ancestor holds a live record,
-and among such Publishers the least domain in ascending octet order does.
-The other records are excluded at that height exactly as a parent's are
-under self-declaration, and return when the preferred record leaves.
-Every input to the rule — the Declaration Entry, its
-height, the scope, the domains — is in the Log, so any two replayers agree; the
-parent's excluded Entries remain in the Log like every other superseded
-state.
+authorities at once: its own domain's, and that of a Publisher whose
+`subdomain_scope` names it (WIST-1 §3.2). Records are keyed by (Publisher
+domain, Normalized URL), so the same URL can carry a record under each
+Publisher, and a query needs one. Of the records of one URL whose Item no
+withdrawal sealed at or below the height names, one is **materialized**.
+From the height at which the first `publisher_declaration` Entry whose
+`domain` is the host is sealed, only the record of the host's own
+Publisher is materialized, and none where that Publisher holds none:
+self-declaration prevails, and no later Entry ends it. Below that height,
+and for a host that never declares, more than one Publisher can hold such
+a record. The record materialized is then the **nearest ancestor**'s: the
+Publisher whose domain is the longest the host descends from, the host
+being `<label>.D` or a deeper descendant of that domain `D`. A Publisher
+that is no ancestor of the host materializes the URL only while no
+ancestor holds such a record, and among such Publishers the least domain
+in ascending octet order does. The other records stay records (above), are
+not materialized, and return when the preferred record leaves. Every input
+to the rule — the Declaration Entry, its height, the records, the
+withdrawals, the domains — is in the Log, so any two replayers agree.
 
-**Materialization rule.** A `delete` Delta (WIST-1 §3.3) excludes that
-URL's content from all subsequent Snapshots. A `payload_withdrawal` (§6.2)
-likewise excludes that Delta's content from every Snapshot produced at or
-above its sealing height, in both tiers, including any declared link
-derived from it. The log itself retains full history in every case —
-deletion and withdrawal shape the materialized present, never the
+**Materialization rule.** The **materialized records** at `tree_size` are
+the records the rule above materializes. An Item of kind `removed`,
+narrowing and a base remove a record, and with it its content, from
+every Snapshot produced at or above the height that removes it. A
+`payload_withdrawal` (§6.2) excludes its Item's content from every
+Snapshot produced at or above its sealing height, in both tiers,
+including any declared link derived from it: a record whose Item it names
+is not materialized. The log itself retains full history in every case —
+removal and withdrawal shape the materialized present, never the
 recorded past.
 
 Both exclusions are computed from the Log, so two parties building a
@@ -1408,23 +1679,26 @@ by the manifest's `content_digest`:
 
 ```
 record(r)       = {"url": r.url, "publisher": r.publisher,
-                   "delta_id": r.delta_id, "observed_at": r.observed_at}
+                   "item_id": r.item_id, "observed_at": r.observed_at,
+                   "attested_at": r.attested_at}
 record_bytes(r) = JCS(record(r))
 content_digest  = "sha256:" + hex(SHA-256(concat(
                       sorted(record_bytes(r) for r in records))))
 ```
 
-where `records` is every live record materialized at `tree_size`;
-`r.delta_id` is the record's anchor Delta (§6.1) — the last content-bearing
-Delta in its per-URL chain at that height, and therefore the Delta whose
-Payload supplied the content the tiers carry; `r.observed_at` is the
-`observed_at` of the newest Delta in that chain, which is the freshness the
-tiers carry and is what makes an `attest` visible in the digest; and
-`sorted` is ascending octet order. Records are keyed by (Publisher domain, Normalized
-URL) and the tuple carries both, so the ordering is total and no two
-records can produce equal bytes. JCS objects are self-delimiting, so the
-concatenation is unambiguous; an empty live set digests the empty octet
-string.
+where `records` is every materialized record at `tree_size`, and
+`record(r)` is its **content tuple**; `r.item_id` is the Item ID of the
+record's Item, whose Payload supplied the content the tiers carry;
+`r.observed_at` is that Item's `observed_at`, the string the Item carries;
+`r.attested_at` is the `generated_at` of the Catalog the record's Item was
+proved against, the instant the record carries (above) and the tiers carry
+with it; and `sorted` is ascending octet order. Records are keyed by
+(Publisher domain, Normalized URL) and the tuple carries both, so the
+ordering is total and no two records can produce equal bytes. JCS objects
+are self-delimiting, so the concatenation is unambiguous; an empty record
+set digests the empty octet string. The root of a Collection is a separate
+value, which its Publisher signs in each Catalog; the digest neither
+carries nor replaces it.
 
 Two parties that materialize the same Log prefix MUST obtain the same
 `content_digest` regardless of their storage libraries; a mismatch — not a
@@ -1434,7 +1708,7 @@ artifacts the Aggregator published (§6).
 
 **Every input is in the Log, and none of it is content.** The digest is a
 function of the Log prefix from genesis through `tree_size` and of
-nothing else. Deletion and withdrawal are decided by sealed Entries, and
+nothing else. Removal and withdrawal are decided by sealed Entries, and
 the Parameter Registry values that decide them are read as of
 `tree_size`. Two consequences carry the design:
 
@@ -1447,9 +1721,9 @@ the Parameter Registry values that decide them are read as of
   above that height (above), every withdrawal a digest accounts for lies
   inside the prefix the digest is computed over: no second horizon is
   needed to say which ones those are.
-- **Agreement still pins the content.** `delta_id` is the SHA-256 of a
-  Delta's Canonical Bytes, and those carry the salted commitment to the
-  Payload (WIST-1 §3.6). Two parties whose digests agree therefore hold the
+- **Agreement still pins the content.** `item_id` is the SHA-256 of an
+  Item's JCS serialization, which carries the salted commitment to the
+  Payload (WIST-1 §3.6, §4.1). Two parties whose digests agree therefore hold the
   same commitment for every record, and §6.1 forbids materializing content
   that does not reproduce its commitment. The digest itself carries no
   content and confirms nothing a holder of a candidate text could not
@@ -1458,17 +1732,17 @@ the Parameter Registry values that decide them are read as of
   binds the text.
 
 **What the digest does not say.** It describes a record set, not a height.
-Two Epochs whose live sets are identical digest identically, which
-is correct — they are the same state. The height is carried by
-`epoch_number` and `tree_size` and bound to a single tree by
-`root_hash`, the root hash at `tree_size`, which §8 checks
-against the Checkpoint the Consumer verified. A Consumer that rebuilds to a height whose live set
-differs therefore sees a `content_digest` mismatch (`WIST3-E04`) rather than
-silent agreement; one that rebuilds to a different height whose live set is
-the same agrees, and is right to, since the manifest's `tree_size`
-already says which height was meant. A manifest from a forked Log shows
-a `root_hash` the Consumer's tree does not produce (`WIST3-E02`),
-whatever its digest says. Nor does the digest speak for a
+Two Epochs whose materialized records are identical digest identically,
+which is correct — they are the same state. The height is carried by
+`epoch_number` and `tree_size` and bound to a single tree by `root_hash`,
+the root hash at `tree_size`, which §8 checks against the Checkpoint the
+Consumer verified. A Consumer that rebuilds to a height whose record set
+differs therefore sees a `content_digest` mismatch (`WIST3-E04`) rather
+than silent agreement; one that rebuilds to a different height whose
+record set is the same agrees, and is right to, since the manifest's
+`tree_size` already says which height was meant. A manifest from a forked
+Log shows a `root_hash` the Consumer's tree does not produce
+(`WIST3-E02`), whatever its digest says. Nor does the digest speak for a
 non-conforming builder: it proves two parties materialized the same
 records, not that either verified the Payloads it indexed, which §6.1
 requires of them separately.
@@ -1519,11 +1793,12 @@ are a Labeler's, which this rule keeps whole in one shard.
 
 **Tier layout is normative.** A conforming rebuild MUST produce, per
 shard where sharded: `tier0/index.sqlite` — a SQLite database whose
-table `records` has columns `url`, `publisher`, `delta_id`,
-`observed_at`, `title`, `abstract`, `lang` (the record tuple's fields
-plus the Payload `summary`'s members, `NULL` where the Payload declares
-none), with an FTS5 index over `title` and `abstract` — and
-`tier1/extracts.parquet` (`url`, `publisher`, `delta_id`, `extract`),
+table `records` has columns `url`, `publisher`, `item_id`,
+`observed_at`, `attested_at`, `title`, `abstract`, `lang` (the content
+tuple's fields, the Payload `summary`'s members, `NULL` where the Payload
+declares none, and the Item's `meta.lang`), with an FTS5 index over
+`title` and `abstract` — and `tier1/extracts.parquet` (`url`,
+`publisher`, `item_id`, `extract`),
 `tier1/links.parquet`, `tier1/labels.parquet`, `tier1/disputes.parquet`
 and `tier1/labelers.parquet` (above). An implementation MAY add columns and
 auxiliary tables; a Consumer MUST ignore columns it does not know, and
@@ -1533,20 +1808,21 @@ equivalent Tier 0" is exercisable only if two rebuilds answer the same
 query the same way, and a first implementation's private layout would
 otherwise become a de facto standard nothing checks.
 
-**The state artifact.** The record tuples are the index's content; they
-are not its law. Key validity, the parameter schedule, withdrawals and
-Labels are all defined by replay from genesis, and a Consumer that
-starts from a Snapshot instead of genesis needs that state or it cannot
-verify the first post-rotation signature, apply a pending amendment, or
-hold the Label a Labeler retracts next. The manifest therefore declares `state`: the
-`path`, `sha256` and `bytes` of a state file, and its `state_digest`.
-The state file is a signed Envelope whose inner object is `state`
-(schema:
+**The state artifact.** The content tuples are the index's content; they
+are not its law. Key validity, the parameter schedule, withdrawals,
+Labels, the latest Catalogs and the records are all defined by replay from
+genesis, and a Consumer that starts from a Snapshot instead of genesis
+needs that state or it cannot verify the first post-rotation signature,
+apply a pending amendment, hold the Label a Labeler retracts next, or
+judge the next Catalog and Item of a Collection. The manifest therefore
+declares `state`: the `path`, `sha256` and `bytes` of a state file, and
+its `state_digest`. The state file is a signed Envelope whose inner object
+is `state` (schema:
 [`schemas/snapshot-state.schema.json`](../schemas/snapshot-state.schema.json)),
 carrying `wist_version`, the `tree_size` (= the manifest's), and
 `entries`: one tuple per item of live protocol state and per removed
-Aggregator key (below), each a JSON array whose first member is its kind. The kinds, their key fields and their
-value fields are:
+Aggregator key (below), each a JSON array whose first member is its kind.
+The kinds, their key fields and their value fields are:
 
 | Kind | Key fields | Value fields | Defined by |
 |---|---|---|---|
@@ -1556,10 +1832,12 @@ value fields are:
 | `parameter` | identifier, `effective_at` | value | WIST-4 §5 |
 | `recovery_window` | domain | owner Declaration height, window end, the recovery-chain head Envelope, its sealing height | WIST-1 §5.2 |
 | `suffix_list` | snapshot identifier | sealing height of the act that put it in force | WIST-4 §3.1 |
-| `withdrawal` | Delta ID | the Publisher's domain, sealing height | §6.2 |
+| `collection` | publisher, Collection name | the latest Catalog Envelope, its sealing height | §7 |
+| `record` | publisher, URL | the Item, its Collection name, the Catalog ID and `generated_at` of the Catalog it was proved against | §7 |
+| `removal` | publisher, URL | the Item ID, the Catalog ID and `generated_at` of the Catalog it was proved against | §7 |
+| `withdrawal` | Item ID | the Publisher's domain, sealing height | §6.2 |
 | `label` | labeler, subject, name | value or `null`, `asserted_at`, `expires_at` or `null`, `delta` or `null`, Label ID, sealing height | WIST-2 §3.3 |
 | `dispute` | Label ID, disputant | `reason` or `null`, `asserted_at`, sealing height | WIST-2 §3.3 |
-| `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
 
 An `aggregator_key` tuple exists for every key admitted at or below
 Epoch `epoch_number`: the genesis key, with added height 0, and every key an
@@ -1639,20 +1917,19 @@ for the one snapshot in force at the first Epoch above `tree_size`
 — the most recent accepted `suffix_list_update` sealed at or below it
 (WIST-4 §3.1) — and for no earlier one, so that a resuming Consumer
 accounts the next Epoch's capacity under the snapshot a replaying one
-reads; no tuple exists while no act has been accepted. A
-`record` tuple carries the chain tip — the newest Delta of the chain,
-which the content tuple does not name (its `delta_id` is the anchor) —
-because a resuming Consumer must reject a fork of the live chain
-exactly as a replaying one would (WIST-1 §3.5). One `record` tuple
-exists per (Publisher domain, Normalized URL) the state carries a tip
-for, a deleted URL included: a `delete` removes the content tuple and
-leaves the tip, which is the `delete` itself, so the `record` tuples'
-keys are a superset of the content tuples' and not the same set. A
-resuming Consumer therefore holds the tip the URL's next Delta will name
-and applies that Delta exactly as a replaying one does; a state that
-omitted the tuple would have it ignore that Delta as a fork of nothing
-while full replay applied it, and the two would never agree again on
-that URL. `state_digest` is the §7
+reads; no tuple exists while no act has been accepted. A `collection`
+tuple exists for every Publisher and Collection name with a latest
+Catalog, a name no Declaration in force names included; a resuming
+Consumer derives the floor, C3, C4, I3 and a base from it as a replaying
+one does. A `record` tuple exists for every record the Log holds at
+`tree_size`, a record the one-URL rule does not materialize and one whose
+Item a withdrawal names included, so the `record` tuples' keys are a
+superset of the content tuples' and not the same set; it carries the
+Item itself, so that a resuming Consumer judges I7, narrowing and a base,
+verifies the Payload of a record that comes to be materialized, and
+holds the state Several Logs combines, exactly as a replaying one does.
+A `removal` tuple exists for every removal state, for the same
+combination. `state_digest` is the §7
 construction verbatim — `sha256:` over the concatenation of the sorted
 JCS bytes of every tuple — and every field above is Log-derived, so the
 digest is computable after any withdrawal, for the §7 reasons. A
@@ -1661,58 +1938,65 @@ manifest's value; recomputability from public inputs, not the
 Aggregator's signature, is what makes the artifact state rather than
 testimony.
 
-A tuple's encoding is normative: it is the JSON array `[kind, key
-fields…, value fields…]` with the members in exactly the order the table
-gives, none omitted and none added. Heights and Epoch numbers are JSON
-integers; a "removed height or `null`" member is an integer or JSON
-`null`; instants (a window end, a parameter's `effective_at`) are the
-whole-second literal-`Z` RFC 3339 strings the sealing Epochs and the
-Entries they seal carry (WIST-4 §3); a Label's `asserted_at` is the
-Publisher timestamp its Entry carries (WIST-2 §3.3); domains, URLs,
-`key_id`s, names and parameter identifiers are the strings the sealed
-Entries carry; keys are raw base64url public keys; IDs and snapshot
-identifiers are `sha256:`-prefixed. Five kinds need more than that:
-`declaration`'s value members are the current Declaration Envelope as
-sealed, verbatim as one JSON object member, then its sealing height, then
-the highest accepted `seq` — WIST-1 §5.2's sequence floor, which a
-settlement that restores a lower-sequence head leaves above the current
-`seq`; `recovery_window`'s are the owner Declaration's sealing height, the
-window end, then the recovery-chain head's Declaration Envelope verbatim
-and its sealing height — the owner itself until a legitimate follower
-advances the head (WIST-1 §5.2), carried in full because a resuming
-Consumer verifies later followers against the head's Key Set and holds no
-Epoch to fetch it from; `pending_declaration`'s are the pending head's
-Declaration Envelope verbatim, its sealing height and the activation
-height frozen at the first pending Declaration (WIST-1 §5.2), carried in
-full for the same reason, and present only while a pending head exists;
-a `label` tuple exists for each (labeler,
-subject, name) whose current Label at `tree_size` is not retracted
-and not expired at Epoch `epoch_number`'s `sealed_at` (WIST-2 §3.3),
-carrying that Label's value or `null`, its `asserted_at`, its
+A tuple's encoding is normative: it is the JSON array `[kind, key fields…,
+value fields…]` with the members in exactly the order the table gives,
+none omitted and none added. Heights and Epoch numbers are JSON integers;
+a "removed height or `null`" member is an integer or JSON `null`; instants
+(a window end, a Catalog's `generated_at`, a parameter's `effective_at`)
+are the whole-second literal-`Z` RFC 3339 strings the sealing Epochs and
+the Entries they seal carry (WIST-4 §3, WIST-1 §3.5); a Label's
+`asserted_at` is the Publisher timestamp its Entry carries (WIST-2 §3.3);
+domains, URLs, `key_id`s, names and parameter identifiers are the strings
+the sealed Entries carry; keys are raw base64url public keys; IDs and
+snapshot identifiers are `sha256:`-prefixed. Several kinds need more than
+that: `collection`'s value members are the latest Catalog's Envelope
+verbatim as sealed, then its sealing height; `record`'s are the Item
+verbatim as sealed, its Collection name, the Catalog ID and that Catalog's
+`generated_at`; `removal`'s are the Item ID of the Item of kind `removed`,
+the Catalog ID and that Catalog's `generated_at`; `declaration`'s value
+members are the current Declaration Envelope as sealed, verbatim as one
+JSON object member, then its sealing height, then the highest accepted
+`seq` — WIST-1 §5.2's sequence floor, which a settlement that restores a
+lower-sequence head leaves above the current `seq`; `recovery_window`'s
+are the owner Declaration's sealing height, the window end, then the
+recovery-chain head's Declaration Envelope verbatim and its sealing height
+— the owner itself until a legitimate follower advances the head (WIST-1
+§5.2), carried in full because a resuming Consumer verifies later
+followers against the head's Key Set and holds no Epoch to fetch it from;
+`pending_declaration`'s are the pending head's Declaration Envelope
+verbatim, its sealing height and the activation height frozen at the first
+pending Declaration (WIST-1 §5.2), carried in full for the same reason,
+and present only while a pending head exists; a `label` tuple exists for
+each (labeler, subject, name) whose current Label at `tree_size` is not
+retracted and not expired at Epoch `epoch_number`'s `sealed_at` (WIST-2
+§3.3), carrying that Label's value or `null`, its `asserted_at`, its
 `expires_at` or `null`, its `delta` or `null`, its Label ID and its
 sealing height, so that a resuming Consumer orders a later Label of the
-same triple, drops the Label at its expiry, reads its binding and
-checks a later dispute naming the Label (WIST-2 §3.3) exactly as a
-replaying one does; a `dispute` tuple exists for each (Label ID, disputant) with
-a sealed dispute, carrying the current dispute's `reason` or `null`, its
-`asserted_at` and its sealing height; a `withdrawal` tuple
-exists for every withdrawn Delta, since a Consumer resuming above the
-withdrawal's Epoch never sees its Entry and must still exclude the
-content (§6.2) — and, since no tuple names the Deltas sealed at or
-below `tree_size`, a resuming Consumer accepts a later act naming
-one of them as consistent and checks WIST-4 §5.1's contract only for
-an act naming a Delta it walked. The schema pins each kind's arity and member types
+same triple, drops the Label at its expiry, reads its binding and checks a
+later dispute naming the Label (WIST-2 §3.3) exactly as a replaying one
+does; a `dispute` tuple exists for each (Label ID, disputant) with a
+sealed dispute, carrying the current dispute's `reason` or `null`, its
+`asserted_at` and its sealing height; a `withdrawal` tuple exists for
+every Item ID a withdrawal that meets its contract names, with the height
+of the earliest such withdrawal (WIST-4 §5.1), since a Consumer resuming
+above the withdrawal's Epoch never sees its Entry and must still exclude
+the content (§6.2) and judge I7 (§3.3) — and, since no tuple names every
+Item sealed at or below `tree_size`, a resuming Consumer accepts a later
+act naming one of them as consistent and checks WIST-4 §5.1's contract
+only for an act naming an Item it walked. The schema pins each kind's
+arity and member types
 ([`schemas/snapshot-state.schema.json`](../schemas/snapshot-state.schema.json));
 the table remains the normative inventory, and a state file omitting a
 kind with live instances at `tree_size`, omitting a removed key's
-`aggregator_key` tuple, or carrying a kind this table does not name,
-does not verify.
+`aggregator_key` tuple, or carrying a kind this table does not name, does
+not verify.
 
 Sharding applies to this artifact as to the tiers: when the manifest
 declares `shards`, the state file MAY be split on the same
 Publisher-domain rule, one part per shard for the domain-keyed kinds
-(`declaration`, `pending_declaration`, `recovery_window`, `record`,
-`withdrawal` by the withdrawn Delta's Publisher, `label` by its Labeler, `dispute` by its
+(`declaration`, `pending_declaration`, `recovery_window`, `collection`,
+`record` and `removal` by their Publisher, `withdrawal` by the
+withdrawn Item's Publisher, `label` by its Labeler, `dispute` by its
 disputant), with the Log-wide
 kinds (`aggregator_key`, `parameter`, `suffix_list`) carried in every
 part, since no Consumer can validate an Entry without them.
@@ -1748,18 +2032,21 @@ above, treats its coverage as partial.
    Public Suffix List snapshot in force (whose octets the Consumer
    fetches from `/log/suffix-lists/` and verifies by their identifier
    before it checks the next Epoch's per-domain capacity, WIST-4
-   §3.1), withdrawals, Labels, chain tips. Every Entry applied below
-   is validated against this state exactly as a replaying Consumer
-   validates against state it derived itself: a signature under a key
-   the state does not admit, a Delta whose `prev` is not the chain tip
-   the state carries, a Label older than the one the state holds for its
-   triple, all fail as they would on full replay. A `recovery_window` tuple makes its head an
+   §3.1), withdrawals, Labels, latest Catalogs, records and removal
+   states. Every Entry applied below is validated against this state
+   exactly as a replaying Consumer validates against state it derived
+   itself: a signature under a key the state does not admit, a
+   `publisher_item` Entry naming a Catalog that is not a latest Catalog
+   the state holds, an Item that is its URL's record, a Label older than
+   the one the state holds for its triple, all fail as they would on full
+   replay. A `recovery_window` tuple makes its head an
    eligible predecessor beside the current Declaration, and the Consumer
    settles it before applying the first Epoch at or after its end exactly
    as WIST-1 §5.2 directs: the head becomes current and the `declaration`
    tuple's sequence floor stays. A `pending_declaration` tuple makes its
    head an eligible predecessor beside the current Declaration, supplies
-   no Delta authority, and activates or is reversed at the heights
+   no candidate to a Catalog's binding check, and activates or is
+   reversed at the heights
    WIST-1 §5.2 fixes.
 5. Fetch `/log/checkpoints/<epoch_number>` (§6) and verify it as §5
    requires under the `aggregator_key` tuples just authenticated; verify that
@@ -1799,9 +2086,10 @@ above, treats its coverage as partial.
    and does not verify under that key verifies at no height, and the
    Consumer MAY reject the Snapshot as soon as it has authenticated the
    tuples.
-9. Fetch `/payloads/<delta-id-hex>.json` for every content-bearing Delta
-   in the Epochs up to it whose Payload has not been withdrawn (§6.2);
-   verify each against its Delta's commitment and `bytes` (§6.1).
+9. Fetch `/payloads/<item-id-hex>.json` for the Item of every record
+   it materializes whose content it does not hold and whose Item no
+   withdrawal names (§6.2); verify each against its Item's commitment
+   and `bytes` (§6.1).
 10. Apply Entries in order to the local index, Epoch by Epoch,
     materializing content only from Payloads that verified.
 
@@ -1832,7 +2120,7 @@ cold-starting Consumer must take on trust.
 
 Payload fetching never gates tree verification: a Consumer that cannot
 obtain some Payloads still verifies, applies, and advances over the
-Epochs, and simply materializes no content for the affected Deltas. Tree
+Epochs, and simply materializes no content for the affected Items. Tree
 integrity and content availability are separate failures, and only the
 first is ever a reason to stop.
 
@@ -1841,29 +2129,29 @@ performs cold start's steps against it, applying §7's additional rule
 for a Consumer that holds key state. A Consumer offline for a long period compares the
 Epoch distance from its position to the newest Checkpoint against the
 distance covered by the newest Snapshot, and chooses whichever costs less
-to process. Both paths converge to identical state — the record tuples by
+to process. Both paths converge to identical state — the content tuples by
 `content_digest`, the protocol state by `state_digest`, each recomputable
-from the Entries alone (§7) — so the choice is purely economic. Without
-the state artifact the sentence before this one would be false: record
-tuples alone carry no key registry, no governance state and no chain
-tips, and the two paths would converge only on content while disagreeing
-on law.
+from the Entries alone (§7) — so the choice is purely economic, except in
+a Log that sealed a `payload_withdrawal` breaking its `details` contract,
+which a resuming Consumer cannot always tell from a conforming one (§7). Without
+the state artifact the sentence before this one would be false: content
+tuples alone carry no key registry, no governance state, no latest
+Catalog and no record the one-URL rule leaves unmaterialized, and the two
+paths would converge only on content while disagreeing on law.
 
 **Following more than one Log.** Nothing in this suite binds a Publisher
 to one Log: WIST-2's publication surface is one site serving whomever
-pulls, so any number of Aggregators MAY ingest the same Feed and a
-Consumer MAY follow any number of Logs. Merging them needs no protocol.
-A Delta ID is the SHA-256 of the Delta's Canonical Bytes (WIST-1 §4),
-which carry nothing about the Log that sealed them, and `prev` chains a
-URL's Deltas on the Publisher's side rather than the Aggregator's — so
-one Delta has one identity and one predecessor in every Log that sealed
-it, and a Consumer holding two Logs deduplicates by Delta ID exactly.
-A Label likewise has one identity in every Log that sealed it (WIST-2
-§3.3) and deduplicates the same way. What does not merge is everything a
-Log derives rather than transports. Which Deltas and Labels an Aggregator
-ingested, its parameter schedule (WIST-4 §5), its quota accounting and
-the reach of a withdrawal (§6.2) are state of one Log, defined by replay
-of that Log's history. A Consumer
+pulls, so any number of Aggregators MAY pull the same Collections and
+Label Feeds and a Consumer MAY follow any number of Logs. A Catalog ID,
+an Item ID and a Label ID carry nothing about the Log that sealed them
+(WIST-1 §4, WIST-2 §3.3), so a Consumer holding two Logs deduplicates
+Catalogs, Items and Labels by ID exactly, and combines the records and
+removal states of one Publisher and URL by §7's rule for several Logs.
+What does not merge is everything else a Log derives. Which Catalogs,
+Items and Labels an Aggregator sealed, its latest Catalogs and floors,
+its parameter schedule (WIST-4 §5), its quota accounting and the reach
+of a withdrawal (§6.2) are state of one Log, defined by replay of that
+Log's history. A Consumer
 MUST NOT carry any of them into another Log: each is a function of a
 single chain, and a value mixed across chains is recomputable by nobody.
 Coverage across Logs is partial in exactly the sense §7 gives a sharded
@@ -1880,9 +2168,10 @@ Logs reconciled, and nothing here extends it to concurrent Logs.
 |---------|--------------------------------------------------------------|
 | WIST3-E01 | A Checkpoint, tile, entry bundle or Public Suffix List snapshot missing at a source (§5, §6). Fetch it from another — a Mirror, the Aggregator or, for a head Checkpoint, a trusted Witness's monitoring endpoint; integrity never depends on the source. A Consumer holding a Checkpoint whose Entries no source serves keeps this code and applies nothing above its verified head (§5). |
 | WIST3-E02 | Chain divergence: a Consistency Proof that fails between two Checkpoints of the Log, or from the empty tree to a Checkpoint stating tree size 0 with a root other than §4's — that one Checkpoint is the whole evidence — two Checkpoints that equivocate under §5, or a Snapshot manifest whose `tree_size` or `root_hash` is not what Checkpoint `epoch_number` states (§7, §8). Hard failure: preserve the Checkpoints — and, for a failed Consistency Proof, the tiles that reproduce the larger root — as an evidence bundle (§5), MUST NOT apply the data. |
-| WIST3-E03 | Invalid object: a Checkpoint that fails §5's parsing or signature rules, states a `sealed_at` not later than its predecessor's or off the grid (§3.1), or sits at an archive path not its own (§6); a tile or entry bundle over its format size, malformed (§6) or not reproducing the tree its Checkpoint states (§3.1, §6); an Epoch over the size cap (§6, WIST-4 §5) or carrying an Entry over 65 535 octets (§3.3); a suffix-list file whose octets do not hash to its name (§6); or a Payload that does not reproduce its Delta's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another source if needed, before concluding misbehavior; an Epoch the Aggregator sealed over a bound is misbehavior no source repairs. |
+| WIST3-E03 | Invalid object: a Checkpoint that fails §5's parsing or signature rules, states a `sealed_at` not later than its predecessor's or off the grid (§3.1), or sits at an archive path not its own (§6); a tile or entry bundle over its format size, malformed (§6) or not reproducing the tree its Checkpoint states (§3.1, §6); an Epoch over the size cap (§6, WIST-4 §5), carrying an Entry over 65 535 octets or of an unknown type, out of canonical Entry order, with two `publisher_catalog` Entries of one `publisher` and `collection` (§3.3), over the per-domain capacity or the per-Labeler cap, or sealing a Label ID a lower Entry carries (§3.2); a suffix-list file whose octets do not hash to its name (§6); or a Payload that does not reproduce its Item's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another source if needed, before concluding misbehavior; an Epoch the Aggregator sealed over a bound is misbehavior no source repairs. |
 | WIST3-E04 | Snapshot mismatch. Three cases, one code, different responses. An index, manifest or state file that fails its schema, a file hash or byte size that disagrees with the manifest, a state file whose `tree_size` is not the manifest's or whose `aggregator_key` tuples do not authenticate from the Anchor (§7), an index, manifest or state file whose signature does not verify under the keys valid at the adopted Checkpoint's height (§3.4, §8), or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `tree_size`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `tree_size`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
-| WIST3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (WIST-2 §3.1), and keep applying the Log. A Consumer that sees `WIST3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
+| WIST3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Item: fetch the Payload from another Mirror or from the Publisher (WIST-2 §3.1), and keep applying the Log. A Consumer that sees `WIST3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
+| WIST3-E06 | A `publisher_catalog` or `publisher_item` Entry out of place in the Log: a Catalog that fails C2, C3 or C4, or an Item that fails I2, I3 or I7 (§3.3). The Entry is ignored, changes no state and leaves its Epoch accepted; an Aggregator seals none. |
 
 A Checkpoint short of the Witness quorum has no code: §5 makes it a
 wait, not a fault — the Consumer keeps its verified head, retries and
@@ -1921,9 +2210,10 @@ is equivocation (`WIST3-E02`).
   older than one they hold.
 - **Mirror tampering.** Mirrors are trustless byte servers; any
   modification fails hash or signature verification (`WIST3-E03`). This
-  covers Payloads too: a Mirror that alters one fails the Delta's
-  commitment, which every fetcher recomputes and which was fixed by the
-  Publisher's signature before any Mirror saw it.
+  covers Payloads too: a Mirror that alters one fails the Item's
+  commitment, which every fetcher recomputes and which the Publisher's
+  signature over the Catalog that lists the Item fixed before any Mirror
+  saw it.
 - **Selective payload suppression.** Tampering being useless, a hostile
   Mirror's remaining move is to serve some Payloads and not others. §6.1
   makes that a typed, attributable fault: inside the availability window,
@@ -1936,12 +2226,13 @@ is equivocation (`WIST3-E02`).
   at every Mirror rather than one, and it is permanent and public.
   Two limits are worth stating plainly. After the window elapses, absence
   is no longer evidence, so suppression of old Payloads is indistinguishable
-  from ordinary expiry — which is tolerable because every content-dependent
-  duty in the suite falls inside the window. And an Aggregator that
+  from ordinary expiry — which is tolerable because the Aggregator serves
+  the Payload of every record whatever the window (§6.1). And an Aggregator that
   withholds a Payload from ingest onward, never publishing it at all,
-  is visible as a Delta whose content no party can verify rather than as a Mirror
-  fault; WIST-2 §5 closes the honest path by requiring the Aggregator to
-  reject such a Delta instead of sealing it.
+  is visible as an Item whose content no party can verify rather than as a Mirror
+  fault; WIST-2 §5.1 and §3.3 of this document close the honest path: an Aggregator admits
+  no Item of kind `page` whose Payload it does not hold and checks the
+  Payload again at the Item's turn.
 - **Compression bombs.** The tile and entry-bundle format sizes and the
   verified-prefix transport bound (§6) MUST be enforced while a response
   is read, before buffering bytes beyond the limit and whatever
@@ -1998,9 +2289,24 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 
 - [ ] Seals Epochs per §3 (sequential numbering, strict `sealed_at`
       monotonicity on the cadence grid, whole-second `sealed_at` ending
-      in `Z`, canonical Entry order, the per-domain Entry capacity, no
-      Entry over 65 535 octets, and a Checkpoint stating the tree's true
-      size and root)
+      in `Z`, canonical Entry order, the per-domain Entry capacity and
+      the per-Labeler cap, no Entry over 65 535 octets, at most one
+      Catalog per Publisher and Collection, no Label sealed twice, and a
+      Checkpoint stating the tree's true size and root)
+- [ ] Seals no Catalog or Item that fails C1–C4 or I1–I7 at the Epoch
+      that seals it, no Item in the Epoch that seals the withdrawal of
+      its Payload and no `payload_withdrawal` that breaks its `details`
+      contract (§3.3)
+- [ ] Keeps the last accepted Catalog, what waits, places, eligibility
+      Epochs and the inclusion ceiling of §3.3, defers only by its four
+      deferrals and reports each at the status endpoint, holds
+      publications behind a Declaration that reduces authority, gives
+      the capacity to Catalogs, then Items of kind `removed`, then Items
+      of kind `page`, Labels and disputes, and checks each Item's Payload
+      at its turn (§3.3)
+- [ ] Reads I7 for a Collection without its records from the pull that
+      accepts a base against the floor until that Catalog is sealed or
+      leaves (§7)
 - [ ] Publishes a Checkpoint per sealed Epoch at `/checkpoint` and in
       the archive, as the five-line signed note of §5 under a key valid
       at its height, carrying at most 16 signature lines, never before
@@ -2012,15 +2318,15 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Submits each Checkpoint to the Witnesses it uses and republishes
       it, at `/checkpoint` and in the archive, with the Cosignatures
       returned and its note text unchanged (§5, §6)
-- [ ] Serves every sealed Delta's Payload at `/payloads/<delta-id-hex>.json`
-      from no later than the Epoch that seals it, for at least the
-      availability window, byte-identical to what it verified at ingest
-      (§6.1)
-- [ ] Serves a URL's anchor Payload with no expiry until a superseding
-      content-bearing Delta or a `delete` is sealed for that URL, then for
-      one further availability window, then no longer (§6.1)
+- [ ] Serves the Payload of every Item of kind `page` it seals at
+      `/payloads/<item-id-hex>.json` from no later than the Epoch that
+      seals it, for at least the availability window from that Epoch's
+      `sealed_at`, byte-identical to what it verified (§6.1)
+- [ ] Serves the Payload of every record's Item, unmaterialized records
+      included, while that Item is the record, and gives a superseded
+      Payload no further window (§6.1)
 - [ ] Withdraws a Payload only by sealing a `payload_withdrawal` naming
-      the Delta, the legal basis, and the jurisdiction — and then stops
+      the Item, the legal basis, and the jurisdiction — and then stops
       serving it, together with any Snapshot artifact still containing its
       content (§6.2, §7)
 - [ ] Materializes one record per URL under §7's one-URL, one-Publisher
@@ -2028,7 +2334,7 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       Publisher's, else the least non-ancestor domain in octet order
 - [ ] Produces Snapshots whose manifests satisfy §7, including the
       materialization rule, the `content_digest`, the state artifact —
-      removed Aggregator keys included — and
+      removed Aggregator keys and unmaterialized records included — and
       its `state_digest`, per-shard digests where sharded, and an
       `epoch_number`, `tree_size` and `root_hash` that
       Checkpoint `epoch_number` states
@@ -2063,10 +2369,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       signs each key act under a key valid at the previous height and
       every other act and the Checkpoint under a key valid at the
       Epoch's own, and seals no key-act failure (§3.4)
-- [ ] Seals a `publisher_declaration` Entry for a domain before, or in
-      the same Epoch as, the first Delta it authorizes, and never seals a
-      Delta the Key Set resolved at its own Epoch no longer verifies
-      (§3.3, WIST-1 §5.2)
+- [ ] Seals every Declaration under which a pull read at or below the
+      Epoch that seals the first publication that pull accepted (§3.3,
+      WIST-1 §5.2)
 - [ ] Seals each pulled Label that verifies as a `label` Entry and each
       dispute as a `dispute` Entry, at most once per ID and within the
       per-Labeler cap, and materializes `tier1/labels.parquet`,
@@ -2137,14 +2442,19 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       Checkpoint the manifest's `epoch_number` selects, re-fetching a file
       at that path that states another `epoch_number` (`WIST3-E03`) rather
       than reading it as divergence (§8)
-- [ ] Verifies every Payload against its Delta's commitment and `bytes`
+- [ ] Verifies every Payload against its Item's commitment and `bytes`
       before materializing its content, and never lets a missing Payload
-      stop chain verification (§6.1, §8)
-- [ ] Implements all five Error Registry behaviors, including evidence
+      stop tree verification (§6.1, §8)
+- [ ] Judges every `publisher_catalog` and `publisher_item` Entry once,
+      at its Epoch, by C1–C4 and I1–I7, ignores one that fails, and
+      applies the valid ones to the latest Catalogs, records and removal
+      states, removing records at a base and by narrowing (§3.3, §7,
+      WIST-1 §5.2)
+- [ ] Implements all six Error Registry behaviors, including evidence
       preservation on divergence (§9)
 - [ ] Enforces the format sizes and the transport bound while reading
       (§6, §10)
-- [ ] Excludes deleted and withdrawn content from every materialization it
+- [ ] Excludes removed and withdrawn content from every materialization it
       produces, and removes withdrawn content from a local index it has
       already built (§6.2, §7)
 - [ ] Obtains the Anchor out-of-band and resolves signing keys by
@@ -2153,8 +2463,10 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       Epoch's own; ignores key-act failures (`WIST4-E04`) and judges a
       Checkpoint at or below its head under the keys valid at that
       Checkpoint's height (§3.4, §5)
-- [ ] Rejects Epochs off the `sealed_at` grid, out of canonical Entry
-      order, over the per-domain Entry capacity counted per
+- [ ] Rejects Epochs off the `sealed_at` grid, carrying an unknown Entry
+      type, out of canonical Entry order, with two Catalogs of one
+      Publisher and Collection, sealing a Label ID a second time, over the
+      per-domain Entry capacity counted per
       Registrable Domain under the snapshot in force, obtained and
       verified by its identifier, over the per-Labeler cap, or carrying
       an Entry over 65 535 octets (§3.1–§3.3, §6, WIST-4 §3.1)
@@ -2170,50 +2482,58 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       (§7, §8)
 - [ ] On accepting a successor Anchor, verifies the predecessor chain to
       its declared final Epoch and carries state forward (§3.4)
-- [ ] When following more than one Log, deduplicates by Delta ID, keeps
-      each Log's derived state to that Log, and treats coverage as partial
-      (§8)
+- [ ] When following more than one Log, deduplicates by Catalog ID, Item
+      ID and Label ID, takes one state per Publisher and URL by §7's rule
+      for several Logs, keeps each Log's other derived state to that Log,
+      and treats coverage as partial (§7, §8)
 
 ## Appendix A. Test Vectors
 
-Generated by `tools/gen_vectors.py`; verified by
-`tools/validate_examples.py`. Full files:
+The families below live under `vectors/wist3/`, beside
+`vectors/multilog/catalog-order.json`; `tools/VERIFICATION.md` names the
+generator and the verifier of each. Full files:
 [`vectors/wist3/epoch.json`](../vectors/wist3/epoch.json),
 [`vectors/wist3/inclusion-proof.json`](../vectors/wist3/inclusion-proof.json),
+[`vectors/wist3/empty-epoch.json`](../vectors/wist3/empty-epoch.json),
 [`vectors/wist3/aggregator-keys.json`](../vectors/wist3/aggregator-keys.json),
 [`vectors/wist3/snapshot-keys.json`](../vectors/wist3/snapshot-keys.json),
 [`vectors/wist3/checkpoints.json`](../vectors/wist3/checkpoints.json),
-[`vectors/wist3/tile-bounds.json`](../vectors/wist3/tile-bounds.json).
+[`vectors/wist3/tile-bounds.json`](../vectors/wist3/tile-bounds.json),
+[`vectors/wist3/timestamps.json`](../vectors/wist3/timestamps.json),
+[`vectors/wist3/catalog-sealing.json`](../vectors/wist3/catalog-sealing.json),
+[`vectors/wist3/catalog-waiting.json`](../vectors/wist3/catalog-waiting.json),
+[`vectors/wist3/record-materialization.json`](../vectors/wist3/record-materialization.json),
+[`vectors/wist3/materialization-preference.json`](../vectors/wist3/materialization-preference.json),
+[`vectors/wist3/snapshot-records.json`](../vectors/wist3/snapshot-records.json),
+[`vectors/wist3/snapshot-index.json`](../vectors/wist3/snapshot-index.json),
+[`vectors/wist3/label-tables.json`](../vectors/wist3/label-tables.json).
 
-Epoch 0 contains 4 `publisher_delta` Entries: the WIST-1 vector Delta and
-three `attest` Deltas for `post-2..4`, at leaf indexes 0 through 3 of a
-tree of size 4. Their positions follow §3.3's
-canonical order — one type group, ascending leaf-hash order — which puts
-the WIST-1 vector Delta at leaf 3; the other positions contain the
-`attest` Deltas. No Entry’s position is chosen.
+Epoch 0 of the example Log contains four Entries, at leaf indexes 0
+through 3 of a tree of size 4, in §3.3's canonical order. No Entry's
+position is chosen.
 
 **Leaf hashes (hex):**
 
 ```
-leaf0 = 75c6c8c2cb19db1247c531f326f1eb73f1be9c2f3275cf82792c194b3f259498
-leaf1 = 836dc0b3e22bded85b29840c757502128eaae0b1375ee99fe2c78bf794bc1d9a
-leaf2 = bea0c768bc2e63130a903adcc65f248d0da56f5ab5bf4abe628a2c2b140007ca
-leaf3 = ca3a0886a09c7664edeb1adafaf8542b60dcf12f728d62868a462cf82cf585ef
+leaf0 = 77aa29dd6e34f9be0dbd303285c46e63477c0b9ebd30f6578d5af89be7826596
+leaf1 = 9e6b6c5fe07259c59b5057294a78e29b8ad60f62a173fddb90105791d5cc33c0
+leaf2 = 18110597f7205da0830c9f065a72d2c7c4b8f7f50d4e25f12bb554c2f9804a0f
+leaf3 = e7b13d6153ba83d2b02162042f72b1d88168b8ff5d7a1d2a1de211278f09f0ea
 ```
 
 **Interior nodes:**
 
 ```
-n01 = node(leaf0, leaf1) = 6c77758a2c40c6247022f51bbc43b3bb515ea01c783abd0861b4fe8e43d5d7ff
-n23 = node(leaf2, leaf3) = a99ad975eda3a87b3956b765d2333052d0f355836e87c2d5b5976647c492200c
+n01 = node(leaf0, leaf1) = b4a43a721bbc1e33b1ff9b0302a32471862d656535ffbb80a3bbb75bd0756e6b
+n23 = node(leaf2, leaf3) = 3c88793e6789d9648816263022fa0c0d134b109f9123d0d979586e2244b987fa
 ```
 
 **Root hash of the tree at size 4**, as `root_hash` carries it
 (§3.1) and as the Checkpoint's third line carries it (§5):
 
 ```
-sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe
-QFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=
+sha256:3f973034d26336bc62b7b4c203ad53ff31d919ef3f50f45e75922ca1bc895d8b
+P5cwNNJjNrxit7TCA61T/zHZGe8/UPRedZIsobyJXYs=
 ```
 
 **Inclusion proof for leaf 0** — `index 0, tree_size 4 → siblings
@@ -2221,15 +2541,14 @@ leaf1 then n23, both right-hand` (derived, not carried in the proof):
 
 ```
 h = leaf0
-h = node(h, leaf1)   → 6c77758a...  (= n01)   # fn=0 < sn=3: sibling on the right
-h = node(h, n23)     → 405940d7...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
+h = node(h, leaf1)   → b4a43a72...  (= n01)   # fn=0 < sn=3: sibling on the right
+h = node(h, n23)     → 3f973034...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
 ```
 
-Entry 3's Payload is [`examples/payload.json`](../examples/payload.json),
-served at `/payloads/37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860.json`. It contributes to none of the
-hashes above: every figure here is computed over Entries that carry the
-commitment alone, which is why withdrawing that Payload leaves the leaf,
-the root, the Checkpoint, and this proof untouched.
+No Payload contributes to the hashes above: every figure here is
+computed over Entries, which carry commitments alone, so withdrawing a
+Payload leaves the leaves, the root, the Checkpoint and this proof
+untouched.
 
 This worked example only exercises `index` 0, which — being a uniform
 left-child at every level — cannot by itself distinguish a correct
@@ -2245,8 +2564,10 @@ Entries' JCS serializations each prefixed by its big-endian uint16
 length; and the Consistency Proof from size 0 to size 4, which is empty
 (§4). Epoch 1 is empty: Checkpoint 1 restates size 4 and the root above
 one cadence later, and the Consistency Proof from 4 to 4 is the
-equality of the two roots. The empty tree — the Log before Epoch 0 —
-has size 0 and the root §4 gives.
+equality of the two roots
+([`vectors/wist3/empty-epoch.json`](../vectors/wist3/empty-epoch.json)).
+The empty tree — the Log before Epoch 0 — has size 0 and the root §4
+gives.
 
 The corresponding Checkpoint is
 [`examples/checkpoint.txt`](../examples/checkpoint.txt): the five-line
@@ -2261,13 +2582,24 @@ uses synthetic file hashes — the SHA-256 of the literal strings
 without shipping binary artifacts. Its `epoch_number` is 0, its
 `tree_size` 4 and its `root_hash` the root above.
 
-Its `content_digest` is computed over the two records in
+Its `content_digest` is computed over the two materialized records in
 [`vectors/wist3/snapshot-records.json`](../vectors/wist3/snapshot-records.json),
-which publishes the record tuples themselves so that §7's formula is
-reproducible from the file: one record for the Delta above and one for a
-second domain, so that the ordering rule is exercised. That second
-domain's Delta is not an Entry of the example Epoch; the vector demonstrates
-the record encoding, not a materialization of Epoch 0.
+which publishes their content tuples — `url`, `publisher`, `item_id`,
+`observed_at` and `attested_at` — so that §7's formula is reproducible
+from the file: one record of `example.com`, whose Item is
+[`examples/item.json`](../examples/item.json) and whose Payload is
+[`examples/payload.json`](../examples/payload.json), and one of a second
+domain, so that the ordering rule is exercised. Neither Item is an Entry
+of the example Epoch; the vector demonstrates the content tuple, not a
+materialization of Epoch 0. Its `links` member is the link graph §7
+derives from the first record's Payload. The example state file
+([`examples/snapshot-state.json`](../examples/snapshot-state.json))
+carries, beside the genesis key's `aggregator_key` tuple, the tuples
+§7 keeps for `example.com`'s `default` Collection: its `collection`
+tuple, whose Envelope is
+[`examples/catalog.json`](../examples/catalog.json), the `record` tuple
+of its Item [`examples/item.json`](../examples/item.json), and the
+`removal` tuple of a URL it removed.
 [`examples/snapshot-index.json`](../examples/snapshot-index.json) is the
 corresponding discovery index, carrying the same `snapshot_date`,
 `tree_size` and `content_digest` the manifest declares. The vector's
@@ -2322,6 +2654,58 @@ through `size(N) - 1`). Each of those families also carries the form
 that admits recomputation, which is what a Checkpoint's root then
 decides (§4).
 
+[`vectors/wist3/catalog-sealing.json`](../vectors/wist3/catalog-sealing.json)
+replays histories of Epochs carrying signed Declarations,
+`payload_withdrawal` Registry Updates and `publisher_catalog` and
+`publisher_item` Entries under §3.3: each Catalog judged by C1 to C4 and
+each Item by I1 to I7 at its Epoch's `sealed_at` under that Epoch's
+parameter map, with its disposition and code; an Epoch rejected for two
+Catalogs of one Publisher and Collection; records removed by narrowing,
+by a base and by an Item of kind `removed`; the base at and beyond
+`removal_retention_days`; C4 under the largest `catalog_refresh_seconds`
+and an amendment above it ignored; I7 for a withdrawn Item and for a
+withdrawal that breaks its contract; an Item sealed again after
+narrowing; the latest Catalogs, records and removal states after every
+Epoch; and the Aggregator's Payload duties of §6.1, a superseded Payload
+keeping only the window of the Epochs that sealed its Item.
+[`vectors/multilog/catalog-order.json`](../vectors/multilog/catalog-order.json)
+carries §7's rule for several Logs: the Catalog order, the state each Log
+holds for one URL, the state a Consumer of all of them takes, two states
+proved against one Catalog, and the removal states a Snapshot carries.
+
+[`vectors/wist3/catalog-waiting.json`](../vectors/wist3/catalog-waiting.json)
+feeds an Aggregator pulls and Epochs and fixes §3.3's waiting: the last
+accepted Catalog, what waits and what leaves, places and their order
+across the Publishers of one Registrable Domain, eligibility with each
+deferral, the inclusion ceiling, the hold of a Declaration that reduces
+authority, the capacity order, two Collections listing one URL, and a
+base against the floor read at a pull (§7).
+
+[`vectors/wist3/record-materialization.json`](../vectors/wist3/record-materialization.json)
+gives, per case, the record events of one Log in Log order — an Item of
+kind `page` becoming a record, an Item of kind `removed`, narrowing, a
+base and a withdrawal, one of them sealed in the Epoch of the Item it
+names — and the records, removal states and materialized records after
+each Epoch; and a Snapshot taken between two Epochs, from whose `record`
+tuples a resumed Consumer reaches the materialized records a replaying
+one reaches, an unmaterialized record that returns when the preferred
+one leaves after the Snapshot included.
+[`vectors/wist3/materialization-preference.json`](../vectors/wist3/materialization-preference.json)
+fixes §7's one-URL rule from a host, whether the host's own first
+Declaration Entry is sealed, and the Publishers holding a record of one
+of its URLs, each marked as named by a withdrawal or not: self-declaration, a host
+self-declared whose own Publisher holds no record, the nearest ancestor,
+an ancestor over a non-ancestor, non-ancestors in octet order, a
+withdrawn record that the rule would otherwise prefer and a
+label-boundary case.
+
+[`vectors/wist3/label-tables.json`](../vectors/wist3/label-tables.json)
+carries §7's labeler table from sealed `label` Entries and §3.2's
+per-Labeler cap beside the per-domain capacity, `publisher_catalog` and
+`publisher_item` Entries counting toward the capacity and not toward the
+cap. [`vectors/wist3/timestamps.json`](../vectors/wist3/timestamps.json)
+carries §3.1's whole-second profile, Snapshot tuple fields included.
+
 ## References
 
 - [RFC 2119] / [RFC 8174] BCP 14 key words
@@ -2341,5 +2725,5 @@ decides (§4).
   [tlog-tiles](https://c2sp.org/tlog-tiles) — the C2SP Checkpoint,
   signature, Cosignature, Witness and tiled-log formats (§3.3, §3.4,
   §5, §6)
-- WIST-1: Delta Format & Identity · WIST-2: Site Publication ·
-  WIST-4: Governance & Parameters
+- WIST-1: Item Format & Identity · WIST-2: Site Publication ·
+  WIST-4: Governance & Parameters · WIST-5: Emissions

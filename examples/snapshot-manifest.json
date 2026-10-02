@@ -4,13 +4,13 @@
     "snapshot_date": "2026-08-02",
     "epoch_number": 0,
     "tree_size": 4,
-    "root_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
-    "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
+    "root_hash": "sha256:3f973034d26336bc62b7b4c203ad53ff31d919ef3f50f45e75922ca1bc895d8b",
+    "content_digest": "sha256:9122a0c00f22d6f708b0f7231b0ebe3fce945adb46961caac531b659b403e043",
     "state": {
       "path": "state.json",
-      "sha256": "39868adbf6a7fb8447e65a089b7acc9e4ff1d5696e07d1862451b87d05a206a2",
-      "bytes": 711,
-      "state_digest": "sha256:b77d69465a8168cda570e5757bd7f8a6be533347f0875743efe74ce9fe5b4401"
+      "sha256": "1d7a798f290a4d4f576962f39539a7f7b3ba5ba0f3506f477679ea91a59f9531",
+      "bytes": 1516,
+      "state_digest": "sha256:29c624f7b96ed3966d2baf3638c310fba7be9145f45ba17e5894c93163b4c446"
     },
     "files": [
       {
@@ -36,6 +36,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "7Xt61SuXIOZyYOU0yclyINnDlhrO6QCsof4DnqjMLT7zxI5CYbtLhtaA3AVwH_3xJIz-p28rkoVAep3d_M3GDA"
+    "value": "wG7c36Bv_3FCOtyeBdulL_rqYFn44Icq8jiP1O3rfXii8FWTKgpsUG2-rhJaDhFCB5yDgLpP6NcHomGrOhHUBg"
   }
 }

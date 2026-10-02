@@ -1,5 +1,5 @@
 {
-  "note": "WIST-3 section 7 tier1/labelers.parquet rows from sealed label Entries (statistics_cases: every sealed Label counts, retractions included, subjects distinct, first-seen the lowest height); WIST-3 section 3.2 and WIST-4 section 5 per-Labeler cap over label and dispute Entries beside the per-domain cap with no suffix-list snapshot in force, so every host is its own unit (cap_cases); WIST-4 section 6's recommended default profile: a wist:mismatch or wist:unavailable Label counts at a height only when it was current, unretracted and unexpired at that height and the one before (persistence_cases; expires_at_height is the first height whose Epoch instant reaches the expiry), and a Labeler with no sealed Entry within inactivity_epochs is ignored (inactivity_cases).",
+  "note": "WIST-3 section 7 tier1/labelers.parquet rows from sealed label Entries (statistics_cases: every sealed Label counts, retractions included, subjects distinct, first-seen the lowest height); WIST-3 section 3.2 and WIST-4 section 5 per-Labeler cap over label and dispute Entries beside the per-domain capacity over publisher_catalog, publisher_item, label and dispute Entries, with no suffix-list snapshot in force, so every host is its own unit (cap_cases); WIST-4 section 6's recommended default profile: a wist:mismatch or wist:unavailable Label counts at a height only when it was current, unretracted and unexpired at that height and the one before (persistence_cases; expires_at_height is the first height whose Epoch instant reaches the expiry), and a Labeler with no sealed Entry within inactivity_epochs is ignored (inactivity_cases).",
   "statistics_cases": [
     {
       "label": "four sealed Labels of one Labeler and one of another",
@@ -123,12 +123,12 @@
       "expected": "WIST3-E03"
     },
     {
-      "label": "Deltas do not count toward the labeler cap",
+      "label": "publications do not count toward the labeler cap",
       "labeler_epoch_entries_max": 2,
       "domain_epoch_entries_max": 3,
       "entries": [
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "a.example"
         },
         {
@@ -143,16 +143,36 @@
       "expected": null
     },
     {
-      "label": "labels and Deltas over the domain cap",
+      "label": "a Catalog does not count toward the labeler cap",
       "labeler_epoch_entries_max": 2,
       "domain_epoch_entries_max": 3,
       "entries": [
         {
-          "type": "publisher_delta",
+          "type": "publisher_catalog",
           "domain": "a.example"
         },
         {
-          "type": "publisher_delta",
+          "type": "label",
+          "domain": "a.example"
+        },
+        {
+          "type": "label",
+          "domain": "a.example"
+        }
+      ],
+      "expected": null
+    },
+    {
+      "label": "labels, a Catalog and an Item over the domain cap",
+      "labeler_epoch_entries_max": 2,
+      "domain_epoch_entries_max": 3,
+      "entries": [
+        {
+          "type": "publisher_catalog",
+          "domain": "a.example"
+        },
+        {
+          "type": "publisher_item",
           "domain": "a.example"
         },
         {
@@ -165,6 +185,26 @@
         }
       ],
       "expected": "WIST3-E03"
+    },
+    {
+      "label": "a Catalog and Items at the domain cap",
+      "labeler_epoch_entries_max": 2,
+      "domain_epoch_entries_max": 3,
+      "entries": [
+        {
+          "type": "publisher_catalog",
+          "domain": "a.example"
+        },
+        {
+          "type": "publisher_item",
+          "domain": "a.example"
+        },
+        {
+          "type": "publisher_item",
+          "domain": "a.example"
+        }
+      ],
+      "expected": null
     },
     {
       "label": "two Labelers at the cap each",
