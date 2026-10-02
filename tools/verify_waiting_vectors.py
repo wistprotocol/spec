@@ -8,8 +8,8 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from verify_collection_vectors import (
     LOG_TIME_MAX, Rejected, VerifierError, apply_group, canonical_host, check_keys_block, check_parameter_map,
-    collection_names, declaration_hash, fetch_declaration, log_seconds, narrow, new_state, pull_sources,
-    pulled_collections, reductions, repeats_head, strict_load, validate)
+    collection_names, declaration_hash, fetch_declaration, log_seconds, narrow, new_state, publisher_instant,
+    pull_sources, pulled_collections, reductions, repeats_head, strict_load, validate)
 from verify_catalog_vectors import (
     ACCEPTED, BODY_MEMBERS, HASH, NAME, REMOVAL_RETENTION_SECONDS, VERSION, Refused, Report, binding_code, catalog_id,
     catalog_inner_form, covered, integer, item_form, item_id, jcs, judge_item, judge_payload, leaf_of, merkle_root,
@@ -30,18 +30,21 @@ PROSE = {"note", "why"}
 FILE_MEMBERS = {"note", "keys", "histories"}
 KEY_MEMBERS = {"seed_hex", "x", "kid"}
 HISTORY_MEMBERS = {"name", "why", "declarations", "catalogs", "catalog_ids", "tree_files", "events", "expected"}
-HISTORY_OPTIONAL = {"suffix_list", "registry_updates"}
+HISTORY_OPTIONAL = {"suffix_list", "registry_updates", "inclusion_schedule", "labels"}
 PULL_MEMBERS = {"event", "at", "publisher", "parameters", "declaration", "collections"}
-PULL_OPTIONAL = {"limit_objects"}
+PULL_OPTIONAL = {"limit_objects", "labels"}
 SERVED_MEMBERS = {"catalog", "tree_files", "payloads"}
 SERVED_OPTIONAL = {"answer"}
 EPOCH_MEMBERS = {"event", "height", "sealed_at", "parameters", "declarations"}
-EPOCH_OPTIONAL = {"updates", "sealed_later"}
+EPOCH_OPTIONAL = {"updates", "sealed_later", "unsealed"}
 PULL_EXPECTED = {"settlement", "declaration", "collections_pulled", "catalogs", "state"}
 EPOCH_EXPECTED = {"settlement", "entries", "sealed", "left", "deferred", "records_removed", "state"}
-EPOCH_EXPECTED_OPTIONAL = {"held", "declarations_failed", "declarations_left", "updates_refused"}
-PULL_EXPECTED_OPTIONAL = {"noise", "suspended"}
+EPOCH_EXPECTED_OPTIONAL = {"held", "declarations_failed", "declarations_left", "updates_refused", "unsealed",
+                           "rejections"}
+PULL_EXPECTED_OPTIONAL = {"noise", "suspended", "labels"}
 STATE_MEMBERS = {"collections", "urls", "queue", "reductions_pending", "records"}
+STATE_OPTIONAL = {"labels"}
+LABEL_HOSTS = {"label": "labeler", "dispute": "disputant"}
 
 
 class EpochRejected(Exception):
@@ -355,7 +358,8 @@ def judge_item_entry(log, body, parameters, removed):
     if failed:
         return failed, codes
     key = (domain, item["url"])
-    log["sealed_items"].add((domain, identity))
+    if "removed" not in item:
+        log["sealed_items"].add((domain, identity))
     if "removed" in item:
         remove_records(log, domain, [item["url"]], "removed_item", removed)
         log["removals"][key] = {"catalog": named["id"], "generated_at": inner["generated_at"]}
@@ -389,7 +393,7 @@ def body_member(entry, outer, member):
 
 
 def epoch_rejections(entries, parameters, rules):
-    seen, counts = set(), {}
+    seen, counts, labeled = set(), {}, {}
     for named in entries:
         entry = named["entry"]
         if len(jcs(entry)) > ENTRY_OCTETS_MAX:
@@ -402,12 +406,21 @@ def epoch_rejections(entries, parameters, rules):
                 seen.add(pair)
         if entry["type"] in ("publisher_catalog", "publisher_item"):
             host = body_member(entry, "catalog" if entry["type"] == "publisher_catalog" else "item", "publisher")
-            if isinstance(host, str) and canonical_host(host):
-                unit = registrable_domain(host, rules)
-                counts[unit] = counts.get(unit, 0) + 1
+        elif entry["type"] in LABEL_HOSTS:
+            host = body_member(entry, entry["type"], LABEL_HOSTS[entry["type"]])
+        else:
+            continue
+        if isinstance(host, str) and canonical_host(host):
+            unit = registrable_domain(host, rules)
+            counts[unit] = counts.get(unit, 0) + 1
+            if entry["type"] in LABEL_HOSTS:
+                labeled[unit] = labeled.get(unit, 0) + 1
     for unit, count in counts.items():
         if count > parameters["domain_epoch_entries_max"]:
             raise EpochRejected(EPOCH_REJECTED, f"{count} Entries of {unit} above the per-domain capacity")
+    for unit, count in labeled.items():
+        if count > parameters["labeler_epoch_entries_max"]:
+            raise EpochRejected(EPOCH_REJECTED, f"{count} Labels and disputes of {unit} above the per-Labeler cap")
 
 
 def check_order(entries):
@@ -440,6 +453,35 @@ def place_key(publisher, place):
     return (place[0], octets(publisher), *place[1:])
 
 
+def label_identity(envelope):
+    kinds = [kind for kind in LABEL_HOSTS if kind in envelope]
+    if len(kinds) != 1 or set(envelope) != {kinds[0], "sig"}:
+        raise VerifierError("a Label or dispute Envelope of another form")
+    inner = envelope[kinds[0]]
+    return kinds[0], "sha256:" + hashlib.sha256(jcs(inner)).hexdigest(), inner[LABEL_HOSTS[kinds[0]]]
+
+
+def label_check(envelope, sealed_at, parameters):
+    # WIST-3 section 3.3: the WIST-2 section 3.3 checks that read the map and the clock, repeated at the turn.
+    kind, _, _ = label_identity(envelope)
+    inner = envelope[kind]
+    if kind == "label" and len(jcs(inner["subject"])) > parameters["url_cap_bytes"]:
+        return "WIST2-E06"
+    if publisher_instant(inner["asserted_at"]) > sealed_at + parameters["clock_skew_seconds"]:
+        return "WIST2-E06"
+    return None
+
+
+def read_schedule(schedule):
+    if schedule is None:
+        return None
+    if not schedule or schedule[0][0] != 0 or any(
+            len(row) != 2 or integer(row[1]) is None or row[1] < 1 for row in schedule) or any(
+            a[0] >= b[0] for a, b in zip(schedule, schedule[1:])):
+        raise VerifierError("an inclusion schedule of another form")
+    return [tuple(row) for row in schedule]
+
+
 class LimitReached(Exception):
     pass
 
@@ -469,6 +511,10 @@ class Replay:
         self.names = {entry["kid"]: name for name, entry in data["keys"].items()}
         self.rules = suffix_rules(history["suffix_list"]) if "suffix_list" in history else None
         self.updates = history.get("registry_updates", {})
+        self.schedule = read_schedule(history.get("inclusion_schedule"))
+        self.label_envelopes = history.get("labels", {})
+        self.labels = {}
+        self.sealed_labels = set()
         self.log = new_log()
         self.parameters = None
         self.constants = None
@@ -504,12 +550,24 @@ class Replay:
             raise VerifierError("catalog_refresh_seconds amended outside 1 to 7 776 000")
         if size_caps_read(parameters) != "read":
             raise VerifierError("a parameter map outside the bounds of the size caps")
-        constants = (parameters["max_inclusion_epochs"], parameters["record_seal_epochs"])
+        if parameters["labeler_epoch_entries_max"] > parameters["domain_epoch_entries_max"]:
+            raise VerifierError("labeler_epoch_entries_max exceeds domain_epoch_entries_max")
+        constants = (None if self.schedule else parameters["max_inclusion_epochs"], parameters["record_seal_epochs"])
         if self.constants is not None and constants != self.constants:
-            raise VerifierError("max_inclusion_epochs or record_seal_epochs changes within the history")
+            raise VerifierError("max_inclusion_epochs without an inclusion schedule, or record_seal_epochs, "
+                                "changes within the history")
         self.constants = constants
         self.parameters = parameters
         return parameters
+
+    def inclusion(self, height):
+        # WIST-4 section 5: the inclusion ceiling reads the map in force at the eligibility Epoch.
+        if self.schedule is None:
+            return self.parameters["max_inclusion_epochs"]
+        return [value for start, value in self.schedule if start <= height][-1]
+
+    def ceiling(self, eligibility):
+        return None if eligibility is None else eligibility + self.inclusion(eligibility)
 
     def advance(self, instant):
         if self.clock is not None and instant < self.clock:
@@ -562,6 +620,7 @@ class Replay:
             if collection not in others:
                 raise VerifierError(f"Collection {collection!r} has no position")
             return len(named) + others.index(collection)
+        place.count = len(named) + len(others)
         return place
 
     @staticmethod
@@ -911,13 +970,34 @@ class Replay:
             raise VerifierError(f"served Collections the pull does not read: {sorted(unread)}")
         if not queueing:
             self.refresh(self.log, domain, lambda c, i: [index, position(c), i], self.height + 1)
+        if event.get("labels"):
+            out["labels"] = self.accept_labels(index, domain, event["labels"], position.count)
         productive = declaration["discovered"] or any(
             row["outcome"] == "accepted" or any(item["outcome"] == "admitted" for item in row.get("items", []))
-            for row in out["catalogs"])
+            for row in out["catalogs"]) or any(row["outcome"] == "accepted" for row in out.get("labels", []))
         if not productive and not self.stopped:
             out["noise"] = True
         self.stopped = False
         return out
+
+    def accept_labels(self, index, domain, names, after):
+        if window_open(self.log, domain) or domain in self.queued_domains:
+            raise VerifierError("Labels of a Labeler under a recovery window are outside this fixture's scope")
+        rows = []
+        for position, name in enumerate(names):
+            kind, identifier, host = label_identity(self.label_envelopes[name])
+            # WIST-2 section 5.5: a Label Feed lists the Labels and disputes of its own domain.
+            if host != domain:
+                raise VerifierError(f"{name} is not of the pulled domain {domain}")
+            if identifier in self.labels or identifier in self.sealed_labels:
+                rows.append({"type": kind, "label": identifier, "outcome": "seen"})
+                continue
+            # WIST-3 section 3.3 Places: after the pull's Catalogs and URLs, in the order of acceptance.
+            place = [index, after, position]
+            self.labels[identifier] = {"type": kind, "publisher": host, "name": name, "place": place,
+                                       "eligibility": self.height + 1}
+            rows.append({"type": kind, "label": identifier, "outcome": "accepted", "place": place})
+        return rows
 
     def log_window(self, domain):
         state = self.log["domains"].get(domain)
@@ -1036,7 +1116,9 @@ class Replay:
         if self.height is not None and (height != self.height + 1 or sealed_at <= self.sealed_at):
             raise VerifierError("Epoch heights or sealed_at instants do not increase")
         self.advance(sealed_at)
-        ceiling = parameters["max_inclusion_epochs"]
+        if self.schedule is not None and parameters["max_inclusion_epochs"] != self.inclusion(height):
+            raise VerifierError("the Epoch's map disagrees with the inclusion schedule")
+        unsealed = self.unsealed_refs(event.get("unsealed", []))
         out = {"settlement": [], "entries": [], "sealed": [], "left": [], "deferred": [], "records_removed": []}
         held_rows = []
         for domain in sorted(self.log["domains"], key=octets):
@@ -1079,7 +1161,8 @@ class Replay:
         updates, refused = [], []
         for name in event.get("updates", []):
             target = withdrawal_target(self.updates[name])
-            # ADR-0052 Waiting: an Aggregator seals no payload_withdrawal that breaks its contract.
+            # WIST-3 section 3.3: the Payloads an Epoch's withdrawals name are destroyed before its Items take
+            # their turn, so an Aggregator seals no withdrawal of an Item not sealed below the Epoch.
             if target in self.log["sealed_items"]:
                 updates.append({"name": name, "entry": {"type": "registry_update", "body": self.updates[name]}})
             else:
@@ -1107,8 +1190,18 @@ class Replay:
         def take_room(publisher):
             room[self.unit(publisher)] = room.get(self.unit(publisher), capacity) - 1
 
+        labeler_room = {}
+
+        def labeler_has_room(publisher):
+            return labeler_room.get(self.unit(publisher), parameters["labeler_epoch_entries_max"]) > 0
+
+        def leave_unsealed(row, place, eligibility):
+            if self.ceiling(eligibility) <= height:
+                raise VerifierError(f"{row} is left unsealed past its inclusion ceiling")
+            out.setdefault("unsealed", []).append({**row, "place": place})
+
         def hold_row(row, eligibility):
-            if eligibility + ceiling <= height:
+            if self.ceiling(eligibility) <= height:
                 raise VerifierError(f"the hold keeps {row} out of the last Epoch its ceiling allows")
             held_rows.append({**row, "reasons": ["authority_reduction"]})
 
@@ -1140,7 +1233,7 @@ class Replay:
                 take_room(publisher)
                 sealed_entries.append({"type": "publisher_catalog", "body": body})
                 out["sealed"].append({**row, "eligibility": entry["waiting"]["eligibility"],
-                                      "ceiling": entry["waiting"]["eligibility"] + ceiling})
+                                      "ceiling": self.ceiling(entry["waiting"]["eligibility"])})
                 entry["waiting"] = None
             elif "C1" in conditions:
                 c1 = c1_codes(body, in_force(plan, publisher), parameters, sealed_at)
@@ -1161,7 +1254,34 @@ class Replay:
                 continue
             kind = 0 if "removed" in current["item"] else 1
             items.append((kind, place_key(publisher, entry["place"]), octets(url), publisher, url, current, entry))
+        # WIST-3 section 3.3 Capacity order: page Items, Labels and disputes together, in the order of places.
+        for identifier, entry in self.labels.items():
+            if entry["eligibility"] <= height:
+                items.append((1, place_key(entry["publisher"], entry["place"]), octets(identifier),
+                              entry["publisher"], identifier, None, entry))
+        deferred_labels, left_labels = [], []
         for _, _, _, publisher, url, current, entry in sorted(items, key=lambda r: r[:3]):
+            if current is None:
+                row = {"type": entry["type"], "publisher": publisher, "label": url}
+                # WIST-3 section 3.3 Eligibility: the deferrals of a Label or a dispute are not reported.
+                if not has_room(publisher) or not labeler_has_room(publisher):
+                    deferred_labels.append(entry)
+                    continue
+                if ("label", url) in unsealed:
+                    leave_unsealed(row, entry["place"], entry["eligibility"])
+                    continue
+                code = label_check(self.label_envelopes[entry["name"]], sealed_at, parameters)
+                if code is not None:
+                    out.setdefault("rejections", []).append({"id": url, "code": code})
+                    left_labels.append(url)
+                    continue
+                take_room(publisher)
+                unit = self.unit(publisher)
+                labeler_room[unit] = labeler_room.get(unit, parameters["labeler_epoch_entries_max"]) - 1
+                sealed_entries.append({"type": entry["type"], "body": self.label_envelopes[entry["name"]]})
+                out["sealed"].append({**row, "eligibility": entry["eligibility"],
+                                      "ceiling": self.ceiling(entry["eligibility"])})
+                continue
             collection, item = current["collection"], current["item"]
             identity = item_id(item)
             place = entry["place"]
@@ -1193,6 +1313,9 @@ class Replay:
                 out["deferred"].append({**row, "place": place, "reasons": ["capacity"]})
                 deferred_urls.append(entry)
                 continue
+            if ("publisher_item", (publisher, url)) in unsealed:
+                leave_unsealed(row, place, entry["eligibility"])
+                continue
             last = self.lists[current["catalog"]]["inner"]
             if latest is None or latest["envelope"]["catalog"]["root"] != last["root"]:
                 raise VerifierError(f"{url} has no deferral and no latest Catalog of its last accepted root")
@@ -1212,7 +1335,7 @@ class Replay:
                 take_room(publisher)
                 sealed_entries.append({"type": "publisher_item", "body": body})
                 out["sealed"].append({**row, "catalog": latest["id"], "eligibility": entry["eligibility"],
-                                      "ceiling": entry["eligibility"] + ceiling})
+                                      "ceiling": self.ceiling(entry["eligibility"])})
             elif conditions == ["I5"]:
                 out["left"].append({**row, "condition": "I5", "codes": shown_codes(codes), "reported": True})
                 self.lists[current["catalog"]]["status"][current["index"]] = "refused"
@@ -1227,8 +1350,14 @@ class Replay:
         self.seal(height, sealed_at, parameters, declared, updates, sealed_entries, plan, removed, out)
         for entry in deferred_catalogs:
             entry["waiting"]["eligibility"] = height + 1
-        for entry in deferred_urls:
+        for entry in deferred_urls + deferred_labels:
             entry["eligibility"] = height + 1
+        for row in out["sealed"]:
+            if row["type"] in LABEL_HOSTS:
+                del self.labels[row["label"]]
+                self.sealed_labels.add(row["label"])
+        for identifier in left_labels:
+            del self.labels[identifier]
         for publisher in sorted(self.publishers(self.log), key=octets):
             if publisher in self.queued_domains:
                 continue
@@ -1294,8 +1423,20 @@ class Replay:
         out["entries"] = [entry["entry"] for entry in named]
         out["records_removed"] = replayed
 
+    def unsealed_refs(self, refs):
+        keys = set()
+        for ref in refs:
+            if ref.get("type") == "label":
+                members_read(ref, {"type", "label"}, where="unsealed")
+                keys.add(("label", label_identity(self.label_envelopes[ref["label"]])[1]))
+            else:
+                members_read(ref, {"type", "publisher", "url"}, where="unsealed")
+                if ref["type"] != "publisher_item":
+                    raise VerifierError("only Items and Labels are left unsealed in this fixture")
+                keys.add(("publisher_item", (ref["publisher"], ref["url"])))
+        return keys
+
     def snapshot(self):
-        ceiling = self.parameters["max_inclusion_epochs"]
         collections = []
         for publisher, collection in sorted(set(self.tracked) | set(self.log["latest"]),
                                             key=lambda k: (octets(k[0]), octets(k[1]))):
@@ -1307,13 +1448,12 @@ class Replay:
                 if entry is None:
                     raise VerifierError(f"the waiting Catalog of {collection} has no place")
                 waiting = {"catalog": last["id"], "place": entry["place"], "eligibility": entry["eligibility"],
-                           "ceiling": entry["eligibility"] + ceiling}
+                           "ceiling": self.ceiling(entry["eligibility"])}
             collections.append({"publisher": publisher, "collection": collection,
                                 "latest": None if latest is None else latest["id"],
                                 "last_accepted": None if last is None else last["id"], "waiting": waiting})
         urls = [{"publisher": p, "url": u, "collection": e["collection"], "item": item_id(e["item"]),
-                 "place": e["place"], "eligibility": e["eligibility"],
-                 "ceiling": None if e["eligibility"] is None else e["eligibility"] + ceiling}
+                 "place": e["place"], "eligibility": e["eligibility"], "ceiling": self.ceiling(e["eligibility"])}
                 for (p, u), e in sorted(self.urls.items(), key=lambda kv: (place_key(kv[0][0], kv[1]["place"]),
                                                                           octets(kv[0][1])))]
         queue = [{"publisher": key[0], "collection": key[1], "key": self.key_name(q["envelope"]),
@@ -1326,8 +1466,16 @@ class Replay:
                     "catalog": r["catalog"]}
                    for (p, u), r in sorted(self.log["records"].items(), key=lambda kv: (octets(kv[0][0]),
                                                                                        octets(kv[0][1])))]
-        return {"collections": collections, "urls": urls, "queue": queue, "reductions_pending": pending,
-                "records": records}
+        out = {"collections": collections, "urls": urls, "queue": queue, "reductions_pending": pending,
+               "records": records}
+        if self.labels:
+            out["labels"] = [{"type": e["type"], "publisher": e["publisher"], "label": identifier,
+                              "place": e["place"], "eligibility": e["eligibility"],
+                              "ceiling": self.ceiling(e["eligibility"])}
+                             for identifier, e in sorted(self.labels.items(),
+                                                         key=lambda kv: (place_key(kv[1]["publisher"], kv[1]["place"]),
+                                                                         octets(kv[0])))]
+        return out
 
 
 def unmatched(want, got):
@@ -1407,7 +1555,7 @@ def check_members(data):
                 members_read(want, EPOCH_EXPECTED, EPOCH_EXPECTED_OPTIONAL, where=f"{where} expected {index}")
             else:
                 raise VerifierError(f"{where}: event {index} is neither a pull nor an Epoch")
-            members_read(want["state"], STATE_MEMBERS, where=f"{where} expected {index} state")
+            members_read(want["state"], STATE_MEMBERS, STATE_OPTIONAL, where=f"{where} expected {index} state")
         named = {name for event in history["events"] for name in event.get("updates", [])}
         if named != set(history.get("registry_updates", {})):
             raise VerifierError(f"{where}: registry updates no Epoch seals, or an Epoch names one not given")

@@ -605,16 +605,19 @@ Catalog and carries the proof against it. While a Catalog of another
 latest Catalog fails the binding check, they wait, with their places,
 for the Catalog the Publisher signs next.
 
-A Catalog or an Item is eligible for the Epoch that follows the event
-at which it took its place, and the inclusion ceiling (WIST-4 §5)
-counts from the Epoch it is eligible for. A replacement that keeps a
-place moves no eligibility Epoch. Each of the following, and nothing
-else, defers the eligibility, and the ceiling with it, to the first
-Epoch at which none of them applies:
+A Catalog, an Item, a Label or a dispute is eligible for the Epoch
+that follows the event at which it took its place, and the inclusion
+ceiling (WIST-4 §5) counts from the Epoch it is eligible for. A
+replacement that keeps a place moves no eligibility Epoch. Each of the
+following defers the eligibility, and the ceiling with it, to the
+first Epoch at which none of them applies, and nothing else defers a
+Catalog or an Item:
 
-- a recovery window of the Publisher open at the Epoch (Recovery);
+- for a Catalog or an Item, a recovery window of the Publisher open at
+  the Epoch (Recovery);
 - no room in the capacity of the Registrable Domain, taken in the
-  order below;
+  order below, and for a Label or a dispute no room under the
+  per-Labeler cap either, both named `capacity`;
 - for an Item, a waiting Catalog of its Collection that one of the two
   above holds out of the Epoch;
 - for an Item, a latest Catalog of its Collection that fails I4 at the
@@ -622,7 +625,15 @@ Epoch at which none of them applies:
   defers.
 
 Where the recovery window applies it alone defers and is reported
-(Recovery).
+(Recovery). The deferrals of a Catalog or an Item are reported at the
+status endpoint; those of a Label or a dispute are not, since the
+endpoint's `waiting` member carries Catalogs and Items alone. A Label
+or a dispute leaves only when sealed or when it fails at its turn a
+check of WIST-2 §3.3 that the Aggregator repeats before sealing under
+the candidate Epoch's map and clock, reported with that check's code
+among the rejections; otherwise the inclusion ceiling would bind an
+Aggregator to seal a Label that a cap lowered since its pull now
+refuses.
 
 A Declaration that reduces authority orders the sealing and defers
 nothing (ADR-0051, Reaching the Log). A Catalog or an Item that the
@@ -642,7 +653,11 @@ Catalogs, then by its Items of kind `removed`, then by its Items of
 kind `page`, its Labels and its disputes together, and within each of
 the three in the order of the places. A Catalog or an Item that fails
 its judgment at its turn takes no room, and the next in order takes
-it. Every deferral that applies to a Catalog or an Item at an Epoch is
+it. Nor does an eligible Entry the Aggregator leaves unsealed in the
+Epoch: the capacity defers only what does not fit after the Entries
+sealed before it in the order of the places, so an Aggregator cannot
+claim the capacity for an Entry it chose to leave unsealed. Every
+deferral that applies to a Catalog or an Item at an Epoch is
 reported for it at the status endpoint, in the order of the list of
 deferrals above; the capacity defers only what nothing else defers at
 that Epoch. C2 defers a waiting Catalog and fails none, and C3 fails
@@ -838,15 +853,14 @@ The Delta Envelope, `change_type`, `prev`, chain tips and forks,
 `attest` and `delete`, the Feed of Deltas, the duty to keep every Delta
 retrievable, and the resolution of an anchor across a chain (WIST-3
 §6.1). Labels and disputes keep the Label Feed and its Pages (WIST-2
-§3.3), and a Label's `delta` binds an Item ID.
+§3.2), and a Label's `delta` binds an Item ID.
 
 ## Taking effect
 
 This decision takes effect with the revision of WIST-1 to WIST-4 that
 states every rule above, with a rule for every open point below. The
 conformance reference implements each rule, and a vector discriminates
-it, before that revision is written. Until it the normative text
-defines Deltas and Feeds.
+it, before that revision is written.
 
 ## Alternatives considered
 
@@ -942,6 +956,11 @@ defines Deltas and Feeds.
   nothing where a replaying one shows the record.
 - **A Snapshot carrying the instant of the latest complete Catalog.**
   Needs completeness as protocol state, left out above.
+- **A Snapshot carrying the Item ID of every Item of kind `page` ever
+  sealed.** A resumed Consumer would judge every withdrawal as a
+  replaying one does. The set grows with all history, superseded Items
+  included, while the residual difference arises only in a Log whose
+  Aggregator sealed a withdrawal that breaks its contract.
 
 ## Consequences
 
@@ -1010,10 +1029,14 @@ defines Deltas and Feeds.
 - A record that narrowing removed in one Log is shown from a Log that
   has not sealed the narrowing Declaration, as a record a base removed
   is.
-- A Consumer resumed from a Snapshot accepts as consistent a
-  withdrawal that names an Item sealed at or below the Snapshot
-  (WIST-4 §5.1), so it differs from a replaying Consumer only in a Log
-  whose Aggregator sealed a withdrawal that breaks its contract.
+- A Consumer resumed from a Snapshot judges a withdrawal sealed above
+  the Snapshot against the Entries it applied above it and the
+  `record`, `removal` and `withdrawal` tuples of the Snapshot it last
+  resumed from, and accepts as consistent one whose Item it finds in
+  none (WIST-4 §5.1). It differs from a replaying Consumer only for a
+  withdrawal that breaks its contract, which an Aggregator does not
+  seal, and for what follows from it in that Log, such as the earliest
+  height of a later withdrawal of the same Item.
 - Erasure stays as WIST-3 §6.2 has it: a `payload_withdrawal` under the
   Aggregator's signature, naming an Item ID.
 - ADR-0003, ADR-0007, ADR-0015, ADR-0026, ADR-0029, ADR-0030, ADR-0031,

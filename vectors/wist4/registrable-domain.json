@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a73.1, WIST-2 \u00a74, WIST-3 \u00a73.2 and \u00a77. lists are Public Suffix List snapshots as octets (text is the exact UTF-8 file). official_cases transcribe the Public Suffix List project's checkPublicSuffix cases over the first snapshot: host is the input's Canonical Host (null where it has none), expected the project's answer and registrable the Registrable Domain, the host itself where the list leaves none. domain_cases read a host under a named snapshot or under none. act_cases replay in Epoch order under the Log key: a suffix_list_update is in force from the Epoch after its sealing Epoch (in_force lists the snapshot in force at each height). capacity_cases count publisher_delta and label Entries per Registrable Domain under the snapshot in force at the Epoch; quota_cases apply quota_base to the noise Pings of one UTC day per Registrable Domain in order, each Ping under the snapshot in force at its own height where one is given; an act carrying consumer names a file no source holds, which fails its contract at the Aggregator and stops a Consumer with WIST3-E01; state_tuples are the WIST-3 \u00a77 suffix_list tuple at a tree_size.",
+  "note": "WIST-4 \u00a73.1, WIST-2 \u00a74, WIST-3 \u00a73.2 and \u00a77. lists are Public Suffix List snapshots as octets (text is the exact UTF-8 file). official_cases transcribe the Public Suffix List project's checkPublicSuffix cases over the first snapshot: host is the input's Canonical Host (null where it has none), expected the project's answer and registrable the Registrable Domain, the host itself where the list leaves none. domain_cases read a host under a named snapshot or under none. act_cases replay in Epoch order under the Log key: a suffix_list_update is in force from the Epoch after its sealing Epoch (in_force lists the snapshot in force at each height). capacity_cases count publisher_catalog, publisher_item, label and dispute Entries (a Catalog's or Item's publisher, a Label's labeler, a dispute's disputant; one that is not a Canonical Host counts toward no domain) per Registrable Domain under the snapshot in force at the Epoch; quota_cases apply quota_base to the noise Pings of one UTC day per Registrable Domain in order, each Ping under the snapshot in force at its own height where one is given; an act carrying consumer names a file no source holds, which fails its contract at the Aggregator and stops a Consumer with WIST3-E01; state_tuples are the WIST-3 \u00a77 suffix_list tuple at a tree_size.",
   "log_key": {
     "key_id": "test-agg-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
@@ -839,15 +839,15 @@
       "domain_epoch_entries_max": 2,
       "entries": [
         {
-          "type": "publisher_delta",
+          "type": "publisher_catalog",
           "domain": "a.example.com"
         },
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "b.example.com"
         },
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "c.example.com"
         }
       ],
@@ -859,15 +859,15 @@
       "domain_epoch_entries_max": 2,
       "entries": [
         {
-          "type": "publisher_delta",
+          "type": "publisher_catalog",
           "domain": "alice.github.io"
         },
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "alice.github.io"
         },
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "bob.github.io"
         },
         {
@@ -878,16 +878,16 @@
       "expected": null
     },
     {
-      "label": "a Label counts with the Deltas",
+      "label": "a Label counts with the Items",
       "height": 2,
       "domain_epoch_entries_max": 2,
       "entries": [
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "a.hosts.sample.net"
         },
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "a.hosts.sample.net"
         },
         {
@@ -898,16 +898,76 @@
       "expected": "WIST3-E03"
     },
     {
+      "label": "a dispute counts with its disputant's unit",
+      "height": 2,
+      "domain_epoch_entries_max": 2,
+      "entries": [
+        {
+          "type": "publisher_item",
+          "domain": "a.hosts.sample.net"
+        },
+        {
+          "type": "publisher_item",
+          "domain": "a.hosts.sample.net"
+        },
+        {
+          "type": "dispute",
+          "domain": "b.hosts.sample.net"
+        }
+      ],
+      "expected": "WIST3-E03"
+    },
+    {
+      "label": "a Label whose labeler is not a Canonical Host counts toward no domain",
+      "height": 2,
+      "domain_epoch_entries_max": 2,
+      "entries": [
+        {
+          "type": "publisher_item",
+          "domain": "a.hosts.sample.net"
+        },
+        {
+          "type": "publisher_item",
+          "domain": "a.hosts.sample.net"
+        },
+        {
+          "type": "label",
+          "domain": "B.hosts.sample.net"
+        }
+      ],
+      "expected": null
+    },
+    {
+      "label": "a dispute whose disputant is not a Canonical Host counts toward no domain",
+      "height": 2,
+      "domain_epoch_entries_max": 2,
+      "entries": [
+        {
+          "type": "publisher_item",
+          "domain": "a.hosts.sample.net"
+        },
+        {
+          "type": "publisher_item",
+          "domain": "a.hosts.sample.net"
+        },
+        {
+          "type": "dispute",
+          "domain": "B.hosts.sample.net"
+        }
+      ],
+      "expected": null
+    },
+    {
       "label": "the same Entries after the private rule",
       "height": 4,
       "domain_epoch_entries_max": 2,
       "entries": [
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "a.hosts.sample.net"
         },
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "a.hosts.sample.net"
         },
         {
@@ -923,19 +983,19 @@
       "domain_epoch_entries_max": 2,
       "entries": [
         {
-          "type": "publisher_delta",
+          "type": "publisher_catalog",
           "domain": "a.example.com"
         },
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "a.example.com"
         },
         {
-          "type": "publisher_delta",
+          "type": "publisher_catalog",
           "domain": "b.example.com"
         },
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "b.example.com"
         }
       ],
@@ -947,19 +1007,19 @@
       "domain_epoch_entries_max": 2,
       "entries": [
         {
-          "type": "publisher_delta",
+          "type": "publisher_catalog",
           "domain": "a.example.com"
         },
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "a.example.com"
         },
         {
-          "type": "publisher_delta",
+          "type": "publisher_catalog",
           "domain": "b.example.com"
         },
         {
-          "type": "publisher_delta",
+          "type": "publisher_item",
           "domain": "b.example.com"
         }
       ],

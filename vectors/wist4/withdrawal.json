@@ -1,103 +1,437 @@
 {
-  "note": "WIST-4 \u00a75.1 and WIST-3 \u00a76.2: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and names in details.delta_id the Item ID of an Item of kind page sealed at or below its Epoch whose Publisher is the subject (WIST4-E04 otherwise); the earliest accepted withdrawal's Epoch governs and a later withdrawal of the same Item changes nothing. sealed_items gives each sealed Item with the record it makes: its Collection and the Catalog ID and generated_at of the Catalog it was proved against. Acts replay in order; state_tuples are the WIST-3 \u00a77 withdrawal tuples the replay leaves, record_tuples the record each sealed Item makes, withdrawn or not (WIST-3 \u00a76.2: a withdrawal removes no record), and materialized the Item IDs of the sealed Items whose content materializes. resume replays acts at a Consumer that adopted the tuples at tree_size and walked only the Items above it: an act naming an Item it did not walk is accepted as consistent. `payloads` maps each Item ID to its Payload.",
+  "note": "WIST-4 section 5.1 and WIST-3 section 6.2: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and meets its details contract only where a valid publisher_item Entry sealed the Item its details.delta_id names, of kind page, at or below the act's Epoch, against a Catalog whose publisher is the act's subject (WIST4-E04 otherwise); the earliest accepted withdrawal's Epoch governs and a later withdrawal of the same Item changes nothing. sealed_items is the Log's every valid publisher_item Entry in Log order, each with its kind, sealing height and the Collection, Catalog ID and generated_at of the Catalog it was proved against; the Catalog's publisher is the Item's. Registry Updates precede Items in an Epoch's Entry order (WIST-3 section 3.3), so an act sealed with its Item stands before it. act_cases replay in order over that Log; state_tuples are the WIST-3 section 7 withdrawal tuples, record_tuples and removal_tuples the record and removal tuples after the last Epoch (a withdrawal removes no record), and materialized the Item IDs of the records whose content materializes. resume is a Consumer resumed from a Snapshot taken after Epoch snapshot_height: it adopted the Snapshot's withdrawal, record and removal tuples and applied every Entry of sealed_items above snapshot_height, and its act_cases are acts sealed above snapshot_height in place of those of act_cases. It judges each act against the Entries it applied through the act's Epoch and the tuples it adopted, which it keeps for this judgment after later Entries replace them. code and withdrawn_height are the resumed Consumer's result, replay_code and replay_withdrawn_height a replaying Consumer's for the same act in the same order; they differ only for an act the Aggregator breaks its contract by sealing and for what follows from that act, a later withdrawal of the same Item reading another earliest height. A withdrawal tuple of the subject naming the Item meets the contract and one of another Publisher fails it. resume.resumed_again is the same Consumer resumed again from a Snapshot taken after Epoch snapshot_height of the Log of act_cases: it reads only that Snapshot's tuples, so an Item only the earlier Snapshot's record tuple carried is found nowhere. `payloads` maps each Item ID of kind page to its Payload.",
   "log_key": {
     "key_id": "test-agg-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
   },
   "sealed_items": [
     {
-      "item_id": "sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624",
+      "item_id": "sha256:2cce5c8fde252f560f3bc2f6ce5918bcd891e57f29f65d95d4ebb3c6b13b9f86",
       "item": {
-        "publisher": "site.sample.net",
-        "url": "https://site.sample.net/one",
-        "observed_at": "2026-08-01T12:00:00Z",
+        "publisher": "old.sample.net",
+        "url": "https://old.sample.net/zero",
+        "observed_at": "2026-08-01T11:00:00Z",
         "payload": {
-          "commitment": "hmac-sha256:ba85f3e6b07f719b80c705780ae10d97e81d349d48b5deccf0f86b12519f6c83",
+          "commitment": "hmac-sha256:ea116b3b46a387c13d5e8f31425d9315af77c3b710d81b5fc63fdfef50bb9537",
           "alg": "HMAC-SHA256",
-          "bytes": 121
+          "bytes": 132
         },
         "meta": {
           "lang": "en"
         }
       },
+      "kind": "page",
+      "publisher": "old.sample.net",
+      "url": "https://old.sample.net/zero",
+      "height": 0,
+      "collection": "default",
+      "catalog": "sha256:b0936030897f1ebbdf1d2635e460df61c8fb9839505aa4e33a1d6e2fadec847f",
+      "generated_at": "2026-08-02T00:00:00Z"
+    },
+    {
+      "item_id": "sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8",
+      "item": {
+        "publisher": "site.sample.net",
+        "url": "https://site.sample.net/one",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:f8bf11f658ae5999af42d82736f69708cc0ffaa783dc9be09e17ff1c735d1b0a",
+          "alg": "HMAC-SHA256",
+          "bytes": 132
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
       "publisher": "site.sample.net",
       "url": "https://site.sample.net/one",
       "height": 1,
       "collection": "default",
-      "catalog": "sha256:1872b0ce0cb22378991122968129ca62d9848980723b7f74ee3c1e224564ef57",
-      "generated_at": "2026-08-02T00:00:00Z"
+      "catalog": "sha256:c9f458c451ef2f2ca0bfaaf58e00ff8fc4919c4f472209276d34c0311bb54686",
+      "generated_at": "2026-08-02T01:00:00Z"
     },
     {
-      "item_id": "sha256:73ebce777d5460d32b5bf9184c8b4a7c6aaa9b499f98d50c7f76bc5405846081",
+      "item_id": "sha256:28bce7994f66ffbbfe74470e75f31627628fbcb94f4a8484c6e76e351bdcbf6b",
       "item": {
-        "publisher": "other.sample.org",
-        "url": "https://other.sample.org/two",
-        "observed_at": "2026-08-01T12:00:00Z",
+        "publisher": "site.sample.net",
+        "url": "https://site.sample.net/five",
+        "observed_at": "2026-08-01T11:00:00Z",
         "payload": {
-          "commitment": "hmac-sha256:cd8d9310bfaa6a16448c8e4fc100a739eadf73adb290e1905d96a8c204255e20",
+          "commitment": "hmac-sha256:e212bd99aa93db7a61893dafe620c5579cf4e60982692f1f3dac7b326fb3f735",
           "alg": "HMAC-SHA256",
-          "bytes": 122
+          "bytes": 133
         },
         "meta": {
           "lang": "en"
         }
       },
+      "kind": "page",
+      "publisher": "site.sample.net",
+      "url": "https://site.sample.net/five",
+      "height": 1,
+      "collection": "default",
+      "catalog": "sha256:ea3d4e6aada28778ab11f12302c1cb9a092dd0e0eb29f2737d5c94c462697f89",
+      "generated_at": "2026-08-02T01:00:00Z"
+    },
+    {
+      "item_id": "sha256:3ca9dd7384debe2a40e6095941138fb296a353a534e33244ddc50567dd040088",
+      "item": {
+        "publisher": "site.sample.net",
+        "url": "https://site.sample.net/six",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:96a27f2b6f533c1b3b7ea8a8d9496ffa91f0bd55a8ce778898128d838aecf316",
+          "alg": "HMAC-SHA256",
+          "bytes": 132
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
+      "publisher": "site.sample.net",
+      "url": "https://site.sample.net/six",
+      "height": 1,
+      "collection": "default",
+      "catalog": "sha256:f44abc74a01d239746b2f5b542e4e98fd94332d432bad575cf6c499c439f981c",
+      "generated_at": "2026-08-02T01:00:00Z"
+    },
+    {
+      "item_id": "sha256:6271f36c2f7bd79871a972a591daf370a4142281be332589fa6a405e0d33dfd8",
+      "item": {
+        "publisher": "site.sample.net",
+        "url": "https://site.sample.net/ten",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:951b969b46bfb09bc4118ff41fe372af63b7346c491dacd2e565656b2ae7eca0",
+          "alg": "HMAC-SHA256",
+          "bytes": 132
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
+      "publisher": "site.sample.net",
+      "url": "https://site.sample.net/ten",
+      "height": 1,
+      "collection": "default",
+      "catalog": "sha256:8e80ec1973d100fd476d3e9ec7e48d39a2badf2a39477deb99985ff4aefe4510",
+      "generated_at": "2026-08-02T01:00:00Z"
+    },
+    {
+      "item_id": "sha256:76c3e8dc663851aef958777d8316965a38c1aa93f733e613eadddac6bb4bc845",
+      "item": {
+        "publisher": "other.sample.org",
+        "url": "https://other.sample.org/seven",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:179bc661f927b46b2c3f214880328f4031055bf4f4fb1d27e55947327060b045",
+          "alg": "HMAC-SHA256",
+          "bytes": 135
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
+      "publisher": "other.sample.org",
+      "url": "https://other.sample.org/seven",
+      "height": 1,
+      "collection": "default",
+      "catalog": "sha256:6479a0ba9c154395f444c7625410c2352f102a9627e72c7c6c3a5db64aea437d",
+      "generated_at": "2026-08-02T01:00:00Z"
+    },
+    {
+      "item_id": "sha256:cc4b91deb00489cf66717f864d37211ba4eaa63f211a6db81af5f31e07f14533",
+      "item": {
+        "publisher": "other.sample.org",
+        "url": "https://other.sample.org/four",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:9ec1af886d234d4e86734d0bf9e9fdde1e4553e6c93057fbdc8be46f83a48836",
+          "alg": "HMAC-SHA256",
+          "bytes": 134
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
+      "publisher": "other.sample.org",
+      "url": "https://other.sample.org/four",
+      "height": 2,
+      "collection": "default",
+      "catalog": "sha256:7e6f8eadc3edbf888b2b66d23cd06f834f106cd7ef328b0603c86fc14053f8ab",
+      "generated_at": "2026-08-02T02:00:00Z"
+    },
+    {
+      "item_id": "sha256:06de6234cbb6c320680f461ca7105bacb369ad9683984750823f345b5f516ef2",
+      "item": {
+        "publisher": "site.sample.net",
+        "url": "https://site.sample.net/five",
+        "observed_at": "2026-08-02T02:00:00Z",
+        "removed": true
+      },
+      "kind": "removed",
+      "publisher": "site.sample.net",
+      "url": "https://site.sample.net/five",
+      "height": 2,
+      "collection": "default",
+      "catalog": "sha256:0f3fa9aea5508beba5a7c2e8747cc851c8172637eda09ffb12bf9a2ed0fd5889",
+      "generated_at": "2026-08-02T02:00:00Z"
+    },
+    {
+      "item_id": "sha256:c7c9e692b13ed62b33f446c6ab818edfecf4edaa7b8e627cd3069280768d90c4",
+      "item": {
+        "publisher": "site.sample.net",
+        "url": "https://site.sample.net/six",
+        "observed_at": "2026-08-01T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:94587017bcb3380091efb607117a304aa61e2ef71fbd6f951476093ac951433d",
+          "alg": "HMAC-SHA256",
+          "bytes": 132
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
+      "publisher": "site.sample.net",
+      "url": "https://site.sample.net/six",
+      "height": 2,
+      "collection": "default",
+      "catalog": "sha256:08ebc447191bbd0f0bf78d75da79c2dfa60586a82846d28108a19e643e45b7c2",
+      "generated_at": "2026-08-02T02:00:00Z"
+    },
+    {
+      "item_id": "sha256:542ef1bfd08da63cc3aa0133da2715cbc8bb0de1a2d8184c877c90ac7f454210",
+      "item": {
+        "publisher": "site.sample.net",
+        "url": "https://site.sample.net/ten",
+        "observed_at": "2026-08-01T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:70c119e2b5092c23816e1e0f74e1a71dbbf7c35709807e4b09ceac8986a98fa4",
+          "alg": "HMAC-SHA256",
+          "bytes": 132
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
+      "publisher": "site.sample.net",
+      "url": "https://site.sample.net/ten",
+      "height": 2,
+      "collection": "default",
+      "catalog": "sha256:7175ff54c8634e205344db3c0c46277c5a087ce28adcfb31b97b97246e367e02",
+      "generated_at": "2026-08-02T02:00:00Z"
+    },
+    {
+      "item_id": "sha256:615c91a137642b206e8726327c5c088162499f45fcd9f960550dbf57adbac68b",
+      "item": {
+        "publisher": "other.sample.org",
+        "url": "https://other.sample.org/seven",
+        "observed_at": "2026-08-01T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:f0d8e47a7856b01a3f428cd7797f8e79f5eca911c5263eb0350ed302b1979406",
+          "alg": "HMAC-SHA256",
+          "bytes": 135
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
+      "publisher": "other.sample.org",
+      "url": "https://other.sample.org/seven",
+      "height": 2,
+      "collection": "default",
+      "catalog": "sha256:744ae42d29e0b159ca043588424cc6151bd286466419d5886ce32b468a0925fb",
+      "generated_at": "2026-08-02T02:00:00Z"
+    },
+    {
+      "item_id": "sha256:d86529a1195b369f346794c198c18242fd080e16016abe28315162d83b6379d1",
+      "item": {
+        "publisher": "third.sample.org",
+        "url": "https://third.sample.org/eight",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:514aaced332d94344d7c3c89dd92fb6591b096bd8b6123939ad5e3c2ecd942a7",
+          "alg": "HMAC-SHA256",
+          "bytes": 135
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
+      "publisher": "third.sample.org",
+      "url": "https://third.sample.org/eight",
+      "height": 2,
+      "collection": "default",
+      "catalog": "sha256:7a098c7057d798b56ecf852832017f7d83df7729352bda8a532f2602b2ac9fea",
+      "generated_at": "2026-08-02T02:00:00Z"
+    },
+    {
+      "item_id": "sha256:bf63d5eacb30f3900d00caf08b8b39f4fefe66ed59f8cab255adc376ab50586d",
+      "item": {
+        "publisher": "other.sample.org",
+        "url": "https://other.sample.org/eleven",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:4861543da72d6df2ed39952aa2baf038d6f5c5cec19b88cf7a755fa5e4d00e9c",
+          "alg": "HMAC-SHA256",
+          "bytes": 136
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
+      "publisher": "other.sample.org",
+      "url": "https://other.sample.org/eleven",
+      "height": 2,
+      "collection": "default",
+      "catalog": "sha256:42508518517956015a6a385ea8ea25bfef2cf7fc232e8d79916101a299009928",
+      "generated_at": "2026-08-02T02:00:00Z"
+    },
+    {
+      "item_id": "sha256:0eb55d4a0c4bccc2ff524295d55833957de9ed1d2068a4dae9e0ef70d83c0d2f",
+      "item": {
+        "publisher": "other.sample.org",
+        "url": "https://other.sample.org/two",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1046801baa95da6a8824538c5403ffc40b20c41957fe4b3aca7b85b2d8d7cbc0",
+          "alg": "HMAC-SHA256",
+          "bytes": 133
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
       "publisher": "other.sample.org",
       "url": "https://other.sample.org/two",
       "height": 4,
       "collection": "default",
-      "catalog": "sha256:626390f8392801f145cce989145716da56608b50daefee9144b53468a2c2569b",
-      "generated_at": "2026-08-02T03:00:00Z"
+      "catalog": "sha256:ad75d07bfb2b9835784d5325c3526e06bad0b4aaf185ecb9f029b6834970f95d",
+      "generated_at": "2026-08-02T04:00:00Z"
     },
     {
-      "item_id": "sha256:4ae7707638bdf3f686b2c87a0273b9870e4f899768ad2c07fcc2fd07c797ccc2",
+      "item_id": "sha256:3914ff7c79f77ceaedce33c05fdbe761d02cde2f0f8b0a917b691d4aa343e54d",
       "item": {
         "publisher": "third.sample.org",
-        "url": "https://third.sample.org/three",
+        "url": "https://third.sample.org/eight",
+        "observed_at": "2026-08-02T04:00:00Z",
+        "removed": true
+      },
+      "kind": "removed",
+      "publisher": "third.sample.org",
+      "url": "https://third.sample.org/eight",
+      "height": 4,
+      "collection": "default",
+      "catalog": "sha256:fa9adb331dffc7bccba34e9537428563ace8b618a6cad71a061b37b6909d4d57",
+      "generated_at": "2026-08-02T04:00:00Z"
+    },
+    {
+      "item_id": "sha256:53aac58420ef27a7ded3f88ef9f9133eff083daa8eaab1c504750719001dc0ef",
+      "item": {
+        "publisher": "other.sample.org",
+        "url": "https://other.sample.org/eleven",
         "observed_at": "2026-08-01T12:00:00Z",
         "payload": {
-          "commitment": "hmac-sha256:d544f13e5733698d45a63f5b1df3f7bdde2d7692064f17a85f7b7640e864a70e",
+          "commitment": "hmac-sha256:274c70e32e76b7c1dee5626cb3f434a683519e3826ccdda5a9c5fa157b335f1e",
           "alg": "HMAC-SHA256",
-          "bytes": 124
+          "bytes": 136
         },
         "meta": {
           "lang": "en"
         }
       },
+      "kind": "page",
+      "publisher": "other.sample.org",
+      "url": "https://other.sample.org/eleven",
+      "height": 4,
+      "collection": "default",
+      "catalog": "sha256:60a7fafa24391e3cd81870849f7ec49eb88fc485b210cd974b7472b4b1a503da",
+      "generated_at": "2026-08-02T04:00:00Z"
+    },
+    {
+      "item_id": "sha256:590f1cee76171be05a1f5bc6257c28ce7e6cf46ba011de73546c696f22eb570b",
+      "item": {
+        "publisher": "third.sample.org",
+        "url": "https://third.sample.org/three",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:697b21abadb058f0c4b979e8894e7197442f940618ced172cc7ed6cf8e413288",
+          "alg": "HMAC-SHA256",
+          "bytes": 135
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
       "publisher": "third.sample.org",
       "url": "https://third.sample.org/three",
       "height": 5,
       "collection": "default",
-      "catalog": "sha256:b91f997df00523dd43f61eacef8cb018779b35f0f2049a0f708e6d483da9fe4a",
-      "generated_at": "2026-08-02T04:00:00Z"
+      "catalog": "sha256:afcb0dc66810b97367ddad5b8292fb9b685a327efb4bba4cb8e3487b0a2d2053",
+      "generated_at": "2026-08-02T05:00:00Z"
+    },
+    {
+      "item_id": "sha256:4339b1426e45ce1ac7471f2fe3a885d23438add41f4ede8d93b2e53a52355271",
+      "item": {
+        "publisher": "site.sample.net",
+        "url": "https://site.sample.net/nine",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:413fd3360df6da8a182a8f224f953176189dd6b25d47c9459e7e820b2bb00fee",
+          "alg": "HMAC-SHA256",
+          "bytes": 133
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "kind": "page",
+      "publisher": "site.sample.net",
+      "url": "https://site.sample.net/nine",
+      "height": 5,
+      "collection": "default",
+      "catalog": "sha256:d984295fbc0466cb8f98e2881733a0aef8189f8020f754a1fcbc4a65c400c9af",
+      "generated_at": "2026-08-02T05:00:00Z"
     }
   ],
   "act_cases": [
     {
       "label": "valid withdrawal",
       "height": 3,
-      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"MxgPGUSPLM6t-w5wq6Y191vtqvbmIolb1B-orBqeQNjtMrhQpWN0FrIAyd9co1dCye1w722FuZaCJcZ1q3TUCA\"}}",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"fMIgh6PSGDTnDlB69RYqvSQ2k8d-aQW3qSARTs0CPNphK1q_rlqbNb4DXGS-UNHoVk4NC93TH_ux6fz0D3PWDg\"}}",
       "code": null,
       "withdrawn_height": 3
     },
     {
       "label": "signed by a key the Log does not hold",
       "height": 3,
-      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-log-r1\", \"alg\": \"Ed25519\", \"value\": \"olmF3R0a4QWKHsjiUcBWCQU0IU2CVDKsoX5RrwDfaqPdvo2ohWPbZOaZk7z3c3CSrF_0_V-utUmzUPk-xs8hBQ\"}}",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-log-r1\", \"alg\": \"Ed25519\", \"value\": \"b2Vgi0OWxATTYXQp5OwlDXpf_MOHuZRlhvqoytiK9rj4_ySA4yAjwEl7-LhtLlOTIoYRQzdt-Th55rsnDHp3Bw\"}}",
       "code": "WIST4-E11",
       "withdrawn_height": null
     },
     {
       "label": "unsupported major",
       "height": 3,
-      "envelope_json": "{\"update\": {\"wist_version\": \"2.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"T7FSFcGes_lyxFf9q5Q4Ebrqc-jon6tPcuX0fO68ziHcsrs84szrF2eE58Mb_wTj3fFiEyJ0Pn2a5BLvKmpGCQ\"}}",
+      "envelope_json": "{\"update\": {\"wist_version\": \"2.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"w3F9FuS3oqnome74voOZa4m6iqLVaFDGzeQ6HcFUgTc2Tko6u74oe7CWlEc55AzvbpaKFxAKzIpf7VCB2HE6Aw\"}}",
       "code": "WIST4-E11",
       "withdrawn_height": null
     },
     {
       "label": "unknown member",
       "height": 3,
-      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}, \"note\": \"x\"}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"2MAcsONBDXHsD_RWIb2Q44X27ouO289XPJMkHZGIHTQAzrpTDodUU_f7efqlPmJF4YRjBjAVP7HNTiC1zqybDQ\"}}",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}, \"note\": \"x\"}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"sKe5YPcW5P6S6pruIrR9nIwZdXNKyFOe1YK8xXfuRTO5MOQzyNo0o8R-O9kgEMOvzl-ypJwPUwA2NU3LE04UDg\"}}",
       "code": "WIST4-E11",
       "withdrawn_height": null
     },
@@ -111,42 +445,63 @@
     {
       "label": "missing legal basis",
       "height": 3,
-      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"RHEvvdWKmZTF_SfzZziTkZZCDq8YEQBsoNQ68kSQbMFTbXYscCILh4Aa6aR4JiLgtyBL18nlX-NkPIeRkkcmBA\"}}",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"DLZq6bYw37xGTgxXkbv-Kdeb-wbCnRDUgkd0kdGQ0HP5l9I8cf4LoJ6wNB1rL2ifPqfZqPcRHF1SKujkTHytCQ\"}}",
       "code": "WIST4-E04",
       "withdrawn_height": null
     },
     {
       "label": "subject not a host",
       "height": 3,
-      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"not a host!\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"w2-mQcsFZzTT47Dp-EzL004-XjI7ovQr3qmpEmpgybrCOWL-LPC8ZE2ZABamO6T5Rbv5k4ENzpI_6Kb3yz7jBw\"}}",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"not a host!\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"bu0rYQbLSBPRubidIRiFUBsM9xjt9qqBmxGuuSCiCy5SBCFf3U3Q4gkbM0v5EbVXajPOwEB6VU9TphYMtJAuCw\"}}",
       "code": "WIST4-E04",
       "withdrawn_height": null
     },
     {
       "label": "subject is another Publisher",
       "height": 3,
-      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"2Tm0zJmWY9MagykIsdh4U3FmZUqZW6fxvzN2BPzFK2HTZ1hPsg2I58YXxRIi2YX_YTfmOBBKT0tHxthAQQJfBA\"}}",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"x_002mZ4hO4jtXXievMVG-keMU8EO_VYXjTAdet7-06Hm2ZXMbertu3NnVBGcFKGIueZ26nnJIjJKiVygr3kDw\"}}",
       "code": "WIST4-E04",
       "withdrawn_height": null
     },
     {
       "label": "Item sealed above the act",
       "height": 2,
-      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:73ebce777d5460d32b5bf9184c8b4a7c6aaa9b499f98d50c7f76bc5405846081\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"kjhYJQU1dFdSzH4DUzANFmcfywBp7vYlCXGKhgdBmbWyII8zTEO3lwX5lwuCcztOUDgEVxPNDPda0-tNXIiQBw\"}}",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:0eb55d4a0c4bccc2ff524295d55833957de9ed1d2068a4dae9e0ef70d83c0d2f\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"RjD1VfSB8T2vhbuwj8V4mSBqIh2VMESNLoPqYh1CGHNBq3VLzWJSAUv2yoWLm-oSiLx7O-j9gN7MGngx9SG4Dw\"}}",
       "code": "WIST4-E04",
       "withdrawn_height": null
     },
     {
+      "label": "Item of kind removed",
+      "height": 3,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:06de6234cbb6c320680f461ca7105bacb369ad9683984750823f345b5f516ef2\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"GC_hayTL74duseAMBKb2OZRjc3hF5QCTZWUC61yZAlIGBMOV1EQjpcbzJZtWR_D2mCC2Dz9zm-3hRYcbXjTqBw\"}}",
+      "code": "WIST4-E04",
+      "withdrawn_height": null
+    },
+    {
+      "label": "Item never sealed",
+      "height": 3,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:f47da311880ba0df96376a6b0779fe26238554a3bade194474762d4c3d74116f\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"W-Q1OhBR5Ptb-1VCOireZ-PNVDc350KaBKt2nKKtTYFClMIIGIjSw6Mbh509VLUjnAwspFqbBltmLq0PXbnpCA\"}}",
+      "code": "WIST4-E04",
+      "withdrawn_height": null
+    },
+    {
+      "label": "superseded Item of the subject",
+      "height": 3,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3ca9dd7384debe2a40e6095941138fb296a353a534e33244ddc50567dd040088\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"o1ZvnhCP9paq4T8gZMYSQMHuQX3N-20IL9MAVclri494o6pjqq1rK_6YUSzlTAzsRawIzc91X5e-ehzCgKLrDA\"}}",
+      "code": null,
+      "withdrawn_height": 3
+    },
+    {
       "label": "Item sealed in the act's Epoch",
       "height": 4,
-      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:73ebce777d5460d32b5bf9184c8b4a7c6aaa9b499f98d50c7f76bc5405846081\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"kjhYJQU1dFdSzH4DUzANFmcfywBp7vYlCXGKhgdBmbWyII8zTEO3lwX5lwuCcztOUDgEVxPNDPda0-tNXIiQBw\"}}",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:0eb55d4a0c4bccc2ff524295d55833957de9ed1d2068a4dae9e0ef70d83c0d2f\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"RjD1VfSB8T2vhbuwj8V4mSBqIh2VMESNLoPqYh1CGHNBq3VLzWJSAUv2yoWLm-oSiLx7O-j9gN7MGngx9SG4Dw\"}}",
       "code": null,
       "withdrawn_height": 4
     },
     {
       "label": "repeated withdrawal keeps the first height",
       "height": 6,
-      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624\", \"legal_basis\": \"second order\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"2-e3QGBPVkZ9gC8f47Hay-ogdriWq_Ergb2hEglKingr1CD0xKPkUTEWkteO_bRfAbCIAR1lGrjGaInUeVUVCg\"}}",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8\", \"legal_basis\": \"second order\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"5__vPxLdIESXViUPUEU_TyfRqzmRh9WAh8nJxRCQE-Dth4yL7UCniI7L9lK9tkuosN2EReq2FOvHxRSmp3FqDA\"}}",
       "code": null,
       "withdrawn_height": 3
     }
@@ -154,38 +509,107 @@
   "state_tuples": [
     [
       "withdrawal",
-      "sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624",
+      "sha256:0eb55d4a0c4bccc2ff524295d55833957de9ed1d2068a4dae9e0ef70d83c0d2f",
+      "other.sample.org",
+      4
+    ],
+    [
+      "withdrawal",
+      "sha256:3ca9dd7384debe2a40e6095941138fb296a353a534e33244ddc50567dd040088",
       "site.sample.net",
       3
     ],
     [
       "withdrawal",
-      "sha256:73ebce777d5460d32b5bf9184c8b4a7c6aaa9b499f98d50c7f76bc5405846081",
-      "other.sample.org",
-      4
+      "sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8",
+      "site.sample.net",
+      3
     ]
   ],
   "record_tuples": [
     [
       "record",
-      "site.sample.net",
-      "https://site.sample.net/one",
+      "old.sample.net",
+      "https://old.sample.net/zero",
       {
-        "publisher": "site.sample.net",
-        "url": "https://site.sample.net/one",
-        "observed_at": "2026-08-01T12:00:00Z",
+        "publisher": "old.sample.net",
+        "url": "https://old.sample.net/zero",
+        "observed_at": "2026-08-01T11:00:00Z",
         "payload": {
-          "commitment": "hmac-sha256:ba85f3e6b07f719b80c705780ae10d97e81d349d48b5deccf0f86b12519f6c83",
+          "commitment": "hmac-sha256:ea116b3b46a387c13d5e8f31425d9315af77c3b710d81b5fc63fdfef50bb9537",
           "alg": "HMAC-SHA256",
-          "bytes": 121
+          "bytes": 132
         },
         "meta": {
           "lang": "en"
         }
       },
       "default",
-      "sha256:1872b0ce0cb22378991122968129ca62d9848980723b7f74ee3c1e224564ef57",
+      "sha256:b0936030897f1ebbdf1d2635e460df61c8fb9839505aa4e33a1d6e2fadec847f",
       "2026-08-02T00:00:00Z"
+    ],
+    [
+      "record",
+      "other.sample.org",
+      "https://other.sample.org/eleven",
+      {
+        "publisher": "other.sample.org",
+        "url": "https://other.sample.org/eleven",
+        "observed_at": "2026-08-01T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:274c70e32e76b7c1dee5626cb3f434a683519e3826ccdda5a9c5fa157b335f1e",
+          "alg": "HMAC-SHA256",
+          "bytes": 136
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "default",
+      "sha256:60a7fafa24391e3cd81870849f7ec49eb88fc485b210cd974b7472b4b1a503da",
+      "2026-08-02T04:00:00Z"
+    ],
+    [
+      "record",
+      "other.sample.org",
+      "https://other.sample.org/four",
+      {
+        "publisher": "other.sample.org",
+        "url": "https://other.sample.org/four",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:9ec1af886d234d4e86734d0bf9e9fdde1e4553e6c93057fbdc8be46f83a48836",
+          "alg": "HMAC-SHA256",
+          "bytes": 134
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "default",
+      "sha256:7e6f8eadc3edbf888b2b66d23cd06f834f106cd7ef328b0603c86fc14053f8ab",
+      "2026-08-02T02:00:00Z"
+    ],
+    [
+      "record",
+      "other.sample.org",
+      "https://other.sample.org/seven",
+      {
+        "publisher": "other.sample.org",
+        "url": "https://other.sample.org/seven",
+        "observed_at": "2026-08-01T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:f0d8e47a7856b01a3f428cd7797f8e79f5eca911c5263eb0350ed302b1979406",
+          "alg": "HMAC-SHA256",
+          "bytes": 135
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "default",
+      "sha256:744ae42d29e0b159ca043588424cc6151bd286466419d5886ce32b468a0925fb",
+      "2026-08-02T02:00:00Z"
     ],
     [
       "record",
@@ -194,19 +618,103 @@
       {
         "publisher": "other.sample.org",
         "url": "https://other.sample.org/two",
-        "observed_at": "2026-08-01T12:00:00Z",
+        "observed_at": "2026-08-01T11:00:00Z",
         "payload": {
-          "commitment": "hmac-sha256:cd8d9310bfaa6a16448c8e4fc100a739eadf73adb290e1905d96a8c204255e20",
+          "commitment": "hmac-sha256:1046801baa95da6a8824538c5403ffc40b20c41957fe4b3aca7b85b2d8d7cbc0",
           "alg": "HMAC-SHA256",
-          "bytes": 122
+          "bytes": 133
         },
         "meta": {
           "lang": "en"
         }
       },
       "default",
-      "sha256:626390f8392801f145cce989145716da56608b50daefee9144b53468a2c2569b",
-      "2026-08-02T03:00:00Z"
+      "sha256:ad75d07bfb2b9835784d5325c3526e06bad0b4aaf185ecb9f029b6834970f95d",
+      "2026-08-02T04:00:00Z"
+    ],
+    [
+      "record",
+      "site.sample.net",
+      "https://site.sample.net/nine",
+      {
+        "publisher": "site.sample.net",
+        "url": "https://site.sample.net/nine",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:413fd3360df6da8a182a8f224f953176189dd6b25d47c9459e7e820b2bb00fee",
+          "alg": "HMAC-SHA256",
+          "bytes": 133
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "default",
+      "sha256:d984295fbc0466cb8f98e2881733a0aef8189f8020f754a1fcbc4a65c400c9af",
+      "2026-08-02T05:00:00Z"
+    ],
+    [
+      "record",
+      "site.sample.net",
+      "https://site.sample.net/one",
+      {
+        "publisher": "site.sample.net",
+        "url": "https://site.sample.net/one",
+        "observed_at": "2026-08-01T11:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:f8bf11f658ae5999af42d82736f69708cc0ffaa783dc9be09e17ff1c735d1b0a",
+          "alg": "HMAC-SHA256",
+          "bytes": 132
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "default",
+      "sha256:c9f458c451ef2f2ca0bfaaf58e00ff8fc4919c4f472209276d34c0311bb54686",
+      "2026-08-02T01:00:00Z"
+    ],
+    [
+      "record",
+      "site.sample.net",
+      "https://site.sample.net/six",
+      {
+        "publisher": "site.sample.net",
+        "url": "https://site.sample.net/six",
+        "observed_at": "2026-08-01T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:94587017bcb3380091efb607117a304aa61e2ef71fbd6f951476093ac951433d",
+          "alg": "HMAC-SHA256",
+          "bytes": 132
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "default",
+      "sha256:08ebc447191bbd0f0bf78d75da79c2dfa60586a82846d28108a19e643e45b7c2",
+      "2026-08-02T02:00:00Z"
+    ],
+    [
+      "record",
+      "site.sample.net",
+      "https://site.sample.net/ten",
+      {
+        "publisher": "site.sample.net",
+        "url": "https://site.sample.net/ten",
+        "observed_at": "2026-08-01T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:70c119e2b5092c23816e1e0f74e1a71dbbf7c35709807e4b09ceac8986a98fa4",
+          "alg": "HMAC-SHA256",
+          "bytes": 132
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "default",
+      "sha256:7175ff54c8634e205344db3c0c46277c5a087ce28adcfb31b97b97246e367e02",
+      "2026-08-02T02:00:00Z"
     ],
     [
       "record",
@@ -215,144 +723,797 @@
       {
         "publisher": "third.sample.org",
         "url": "https://third.sample.org/three",
-        "observed_at": "2026-08-01T12:00:00Z",
+        "observed_at": "2026-08-01T11:00:00Z",
         "payload": {
-          "commitment": "hmac-sha256:d544f13e5733698d45a63f5b1df3f7bdde2d7692064f17a85f7b7640e864a70e",
+          "commitment": "hmac-sha256:697b21abadb058f0c4b979e8894e7197442f940618ced172cc7ed6cf8e413288",
           "alg": "HMAC-SHA256",
-          "bytes": 124
+          "bytes": 135
         },
         "meta": {
           "lang": "en"
         }
       },
       "default",
-      "sha256:b91f997df00523dd43f61eacef8cb018779b35f0f2049a0f708e6d483da9fe4a",
+      "sha256:afcb0dc66810b97367ddad5b8292fb9b685a327efb4bba4cb8e3487b0a2d2053",
+      "2026-08-02T05:00:00Z"
+    ]
+  ],
+  "removal_tuples": [
+    [
+      "removal",
+      "site.sample.net",
+      "https://site.sample.net/five",
+      "sha256:06de6234cbb6c320680f461ca7105bacb369ad9683984750823f345b5f516ef2",
+      "sha256:0f3fa9aea5508beba5a7c2e8747cc851c8172637eda09ffb12bf9a2ed0fd5889",
+      "2026-08-02T02:00:00Z"
+    ],
+    [
+      "removal",
+      "third.sample.org",
+      "https://third.sample.org/eight",
+      "sha256:3914ff7c79f77ceaedce33c05fdbe761d02cde2f0f8b0a917b691d4aa343e54d",
+      "sha256:fa9adb331dffc7bccba34e9537428563ace8b618a6cad71a061b37b6909d4d57",
       "2026-08-02T04:00:00Z"
     ]
   ],
   "materialized": [
-    "sha256:4ae7707638bdf3f686b2c87a0273b9870e4f899768ad2c07fcc2fd07c797ccc2"
+    "sha256:2cce5c8fde252f560f3bc2f6ce5918bcd891e57f29f65d95d4ebb3c6b13b9f86",
+    "sha256:4339b1426e45ce1ac7471f2fe3a885d23438add41f4ede8d93b2e53a52355271",
+    "sha256:53aac58420ef27a7ded3f88ef9f9133eff083daa8eaab1c504750719001dc0ef",
+    "sha256:542ef1bfd08da63cc3aa0133da2715cbc8bb0de1a2d8184c877c90ac7f454210",
+    "sha256:590f1cee76171be05a1f5bc6257c28ce7e6cf46ba011de73546c696f22eb570b",
+    "sha256:615c91a137642b206e8726327c5c088162499f45fcd9f960550dbf57adbac68b",
+    "sha256:c7c9e692b13ed62b33f446c6ab818edfecf4edaa7b8e627cd3069280768d90c4",
+    "sha256:cc4b91deb00489cf66717f864d37211ba4eaa63f211a6db81af5f31e07f14533"
   ],
   "resume": {
-    "tree_size": 3,
+    "snapshot_height": 3,
     "adopted": [
       [
         "withdrawal",
-        "sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624",
+        "sha256:3ca9dd7384debe2a40e6095941138fb296a353a534e33244ddc50567dd040088",
+        "site.sample.net",
+        3
+      ],
+      [
+        "withdrawal",
+        "sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8",
         "site.sample.net",
         3
       ]
     ],
-    "walked_items": [
-      {
-        "item_id": "sha256:73ebce777d5460d32b5bf9184c8b4a7c6aaa9b499f98d50c7f76bc5405846081",
-        "item": {
+    "record_tuples": [
+      [
+        "record",
+        "old.sample.net",
+        "https://old.sample.net/zero",
+        {
+          "publisher": "old.sample.net",
+          "url": "https://old.sample.net/zero",
+          "observed_at": "2026-08-01T11:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:ea116b3b46a387c13d5e8f31425d9315af77c3b710d81b5fc63fdfef50bb9537",
+            "alg": "HMAC-SHA256",
+            "bytes": 132
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "default",
+        "sha256:b0936030897f1ebbdf1d2635e460df61c8fb9839505aa4e33a1d6e2fadec847f",
+        "2026-08-02T00:00:00Z"
+      ],
+      [
+        "record",
+        "other.sample.org",
+        "https://other.sample.org/eleven",
+        {
           "publisher": "other.sample.org",
-          "url": "https://other.sample.org/two",
-          "observed_at": "2026-08-01T12:00:00Z",
+          "url": "https://other.sample.org/eleven",
+          "observed_at": "2026-08-01T11:00:00Z",
           "payload": {
-            "commitment": "hmac-sha256:cd8d9310bfaa6a16448c8e4fc100a739eadf73adb290e1905d96a8c204255e20",
+            "commitment": "hmac-sha256:4861543da72d6df2ed39952aa2baf038d6f5c5cec19b88cf7a755fa5e4d00e9c",
             "alg": "HMAC-SHA256",
-            "bytes": 122
+            "bytes": 136
           },
           "meta": {
             "lang": "en"
           }
         },
-        "publisher": "other.sample.org",
-        "url": "https://other.sample.org/two",
-        "height": 4,
-        "collection": "default",
-        "catalog": "sha256:626390f8392801f145cce989145716da56608b50daefee9144b53468a2c2569b",
-        "generated_at": "2026-08-02T03:00:00Z"
-      },
-      {
-        "item_id": "sha256:4ae7707638bdf3f686b2c87a0273b9870e4f899768ad2c07fcc2fd07c797ccc2",
-        "item": {
+        "default",
+        "sha256:42508518517956015a6a385ea8ea25bfef2cf7fc232e8d79916101a299009928",
+        "2026-08-02T02:00:00Z"
+      ],
+      [
+        "record",
+        "other.sample.org",
+        "https://other.sample.org/four",
+        {
+          "publisher": "other.sample.org",
+          "url": "https://other.sample.org/four",
+          "observed_at": "2026-08-01T11:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:9ec1af886d234d4e86734d0bf9e9fdde1e4553e6c93057fbdc8be46f83a48836",
+            "alg": "HMAC-SHA256",
+            "bytes": 134
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "default",
+        "sha256:7e6f8eadc3edbf888b2b66d23cd06f834f106cd7ef328b0603c86fc14053f8ab",
+        "2026-08-02T02:00:00Z"
+      ],
+      [
+        "record",
+        "other.sample.org",
+        "https://other.sample.org/seven",
+        {
+          "publisher": "other.sample.org",
+          "url": "https://other.sample.org/seven",
+          "observed_at": "2026-08-01T12:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f0d8e47a7856b01a3f428cd7797f8e79f5eca911c5263eb0350ed302b1979406",
+            "alg": "HMAC-SHA256",
+            "bytes": 135
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "default",
+        "sha256:744ae42d29e0b159ca043588424cc6151bd286466419d5886ce32b468a0925fb",
+        "2026-08-02T02:00:00Z"
+      ],
+      [
+        "record",
+        "site.sample.net",
+        "https://site.sample.net/one",
+        {
+          "publisher": "site.sample.net",
+          "url": "https://site.sample.net/one",
+          "observed_at": "2026-08-01T11:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f8bf11f658ae5999af42d82736f69708cc0ffaa783dc9be09e17ff1c735d1b0a",
+            "alg": "HMAC-SHA256",
+            "bytes": 132
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "default",
+        "sha256:c9f458c451ef2f2ca0bfaaf58e00ff8fc4919c4f472209276d34c0311bb54686",
+        "2026-08-02T01:00:00Z"
+      ],
+      [
+        "record",
+        "site.sample.net",
+        "https://site.sample.net/six",
+        {
+          "publisher": "site.sample.net",
+          "url": "https://site.sample.net/six",
+          "observed_at": "2026-08-01T12:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:94587017bcb3380091efb607117a304aa61e2ef71fbd6f951476093ac951433d",
+            "alg": "HMAC-SHA256",
+            "bytes": 132
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "default",
+        "sha256:08ebc447191bbd0f0bf78d75da79c2dfa60586a82846d28108a19e643e45b7c2",
+        "2026-08-02T02:00:00Z"
+      ],
+      [
+        "record",
+        "site.sample.net",
+        "https://site.sample.net/ten",
+        {
+          "publisher": "site.sample.net",
+          "url": "https://site.sample.net/ten",
+          "observed_at": "2026-08-01T12:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:70c119e2b5092c23816e1e0f74e1a71dbbf7c35709807e4b09ceac8986a98fa4",
+            "alg": "HMAC-SHA256",
+            "bytes": 132
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "default",
+        "sha256:7175ff54c8634e205344db3c0c46277c5a087ce28adcfb31b97b97246e367e02",
+        "2026-08-02T02:00:00Z"
+      ],
+      [
+        "record",
+        "third.sample.org",
+        "https://third.sample.org/eight",
+        {
           "publisher": "third.sample.org",
-          "url": "https://third.sample.org/three",
-          "observed_at": "2026-08-01T12:00:00Z",
+          "url": "https://third.sample.org/eight",
+          "observed_at": "2026-08-01T11:00:00Z",
           "payload": {
-            "commitment": "hmac-sha256:d544f13e5733698d45a63f5b1df3f7bdde2d7692064f17a85f7b7640e864a70e",
+            "commitment": "hmac-sha256:514aaced332d94344d7c3c89dd92fb6591b096bd8b6123939ad5e3c2ecd942a7",
             "alg": "HMAC-SHA256",
-            "bytes": 124
+            "bytes": 135
           },
           "meta": {
             "lang": "en"
           }
         },
-        "publisher": "third.sample.org",
-        "url": "https://third.sample.org/three",
-        "height": 5,
-        "collection": "default",
-        "catalog": "sha256:b91f997df00523dd43f61eacef8cb018779b35f0f2049a0f708e6d483da9fe4a",
-        "generated_at": "2026-08-02T04:00:00Z"
-      }
+        "default",
+        "sha256:7a098c7057d798b56ecf852832017f7d83df7729352bda8a532f2602b2ac9fea",
+        "2026-08-02T02:00:00Z"
+      ]
+    ],
+    "removal_tuples": [
+      [
+        "removal",
+        "site.sample.net",
+        "https://site.sample.net/five",
+        "sha256:06de6234cbb6c320680f461ca7105bacb369ad9683984750823f345b5f516ef2",
+        "sha256:0f3fa9aea5508beba5a7c2e8747cc851c8172637eda09ffb12bf9a2ed0fd5889",
+        "2026-08-02T02:00:00Z"
+      ]
     ],
     "act_cases": [
       {
         "label": "repeats an adopted withdrawal",
         "height": 5,
-        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"MxgPGUSPLM6t-w5wq6Y191vtqvbmIolb1B-orBqeQNjtMrhQpWN0FrIAyd9co1dCye1w722FuZaCJcZ1q3TUCA\"}}",
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"fMIgh6PSGDTnDlB69RYqvSQ2k8d-aQW3qSARTs0CPNphK1q_rlqbNb4DXGS-UNHoVk4NC93TH_ux6fz0D3PWDg\"}}",
         "code": null,
-        "withdrawn_height": 3
+        "withdrawn_height": 3,
+        "replay_code": null,
+        "replay_withdrawn_height": 3
       },
       {
-        "label": "names an Item sealed below the Snapshot",
+        "label": "names a record tuple Item of the subject",
         "height": 5,
-        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"old.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:1551e4ef3c5264df31062526aa61ce3138e85cd81d16ee8e00e3e629c8d21536\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"wKk1ihBfuQsGFGAKPS6MubcP7p4QlKOnJLVlZz5xeFNNjzWVjjAxW9VVfRMDHOJrNzHD62BHYkYyWPCC-QceAQ\"}}",
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"old.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:2cce5c8fde252f560f3bc2f6ce5918bcd891e57f29f65d95d4ebb3c6b13b9f86\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"UoaHfB45yrY0YC7MrerWW7xAx-0TTcSoiVee_B_1Rv5Ve5FMeTjLp2ESXZuemldE8awXNB3YZ-gBOCJH0xNMAQ\"}}",
         "code": null,
-        "withdrawn_height": 5
+        "withdrawn_height": 5,
+        "replay_code": null,
+        "replay_withdrawn_height": 5
+      },
+      {
+        "label": "names a record tuple Item of another Publisher",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:cc4b91deb00489cf66717f864d37211ba4eaa63f211a6db81af5f31e07f14533\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"Dxbl5UJEclTF1Gd0_74COcJl-_Fn_rD6xrb7rn0stvUhRfdUKKUfptuvlYADbgLgpGZY2jmd46pKvCVhs-wdCQ\"}}",
+        "code": "WIST4-E04",
+        "withdrawn_height": null,
+        "replay_code": "WIST4-E04",
+        "replay_withdrawn_height": null
+      },
+      {
+        "label": "names the Item ID of a removal tuple",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:06de6234cbb6c320680f461ca7105bacb369ad9683984750823f345b5f516ef2\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"GC_hayTL74duseAMBKb2OZRjc3hF5QCTZWUC61yZAlIGBMOV1EQjpcbzJZtWR_D2mCC2Dz9zm-3hRYcbXjTqBw\"}}",
+        "code": "WIST4-E04",
+        "withdrawn_height": null,
+        "replay_code": "WIST4-E04",
+        "replay_withdrawn_height": null
       },
       {
         "label": "names a walked Item of another Publisher",
         "height": 5,
-        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:73ebce777d5460d32b5bf9184c8b4a7c6aaa9b499f98d50c7f76bc5405846081\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"yYTNHFcehbWOzFkiVlR2WXGKLb4j0ThcUa7w20VhEaic3HutBbe4HX7_H3zDXW9VMAsZ2t-xtuamZP0hctW5Dg\"}}",
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:0eb55d4a0c4bccc2ff524295d55833957de9ed1d2068a4dae9e0ef70d83c0d2f\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"RA4Fwm3pqPhRVwxiw-XDwh9rORFSey7TV9QxhanPvUtfsk90urHJX49BC4cJRt5Prv6AdUH9101NTe7bYMEcBQ\"}}",
         "code": "WIST4-E04",
-        "withdrawn_height": null
+        "withdrawn_height": null,
+        "replay_code": "WIST4-E04",
+        "replay_withdrawn_height": null
+      },
+      {
+        "label": "names a walked Item of kind removed",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"third.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3914ff7c79f77ceaedce33c05fdbe761d02cde2f0f8b0a917b691d4aa343e54d\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"x9dZCihMOvHvOrRBipPoyvacSq8pOG7ydwWvBiGkf4UMKIl_Wn0lrOp--cg75dirS5zkUhr7JDm2cwaDpth7BA\"}}",
+        "code": "WIST4-E04",
+        "withdrawn_height": null,
+        "replay_code": "WIST4-E04",
+        "replay_withdrawn_height": null
+      },
+      {
+        "label": "names a Snapshot record tuple Item of another Publisher replaced by a walked Entry",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:bf63d5eacb30f3900d00caf08b8b39f4fefe66ed59f8cab255adc376ab50586d\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"i66ltUsVutHRJFl2Sfq3uwuGRxDfxA0-yVuKoGWyrNi4Ogaz0Aq3T17q3H6eObo4RbcrRAW8UqGK7Sh8WVlcCw\"}}",
+        "code": "WIST4-E04",
+        "withdrawn_height": null,
+        "replay_code": "WIST4-E04",
+        "replay_withdrawn_height": null
+      },
+      {
+        "label": "names a Snapshot record tuple Item of the subject replaced by a walked Entry",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:bf63d5eacb30f3900d00caf08b8b39f4fefe66ed59f8cab255adc376ab50586d\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"I7KHz4-sDKw2r75DimVz478nRuIKNH-yG8BS4CasBgfEHkQjCsmACK8gY3MhsxSHbpEv-_ZxINLh_XgdT1xtBQ\"}}",
+        "code": null,
+        "withdrawn_height": 5,
+        "replay_code": null,
+        "replay_withdrawn_height": 5
       },
       {
         "label": "names a walked Item sealed above the act",
         "height": 4,
-        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"third.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:4ae7707638bdf3f686b2c87a0273b9870e4f899768ad2c07fcc2fd07c797ccc2\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"xTTA-Q8KoWoeQw-MfLtBvkWa9pUsBWUpDT1wbPTrnRSmKuR0fpaDjXzoalniizkUHWFZkRS3OeA7eHsb-okuCA\"}}",
-        "code": "WIST4-E04",
-        "withdrawn_height": null
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"third.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:590f1cee76171be05a1f5bc6257c28ce7e6cf46ba011de73546c696f22eb570b\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"QXWsSf95LCwpWSI1W9_uhIC_dEjB4jYDtsO0zIzKkyFTim9vurm2NUTjW9wDhY9C4ZXdM1n68CsMenEdAYPZBw\"}}",
+        "code": null,
+        "withdrawn_height": 4,
+        "replay_code": "WIST4-E04",
+        "replay_withdrawn_height": null
       },
       {
-        "label": "withdraws a walked Item",
-        "height": 6,
-        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"third.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:4ae7707638bdf3f686b2c87a0273b9870e4f899768ad2c07fcc2fd07c797ccc2\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"xTTA-Q8KoWoeQw-MfLtBvkWa9pUsBWUpDT1wbPTrnRSmKuR0fpaDjXzoalniizkUHWFZkRS3OeA7eHsb-okuCA\"}}",
+        "label": "names a superseded Item of the subject found nowhere",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:6271f36c2f7bd79871a972a591daf370a4142281be332589fa6a405e0d33dfd8\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"18A_X8YtgFqB12egPXMQ9XoaWAzmF9FnrJZh01OtKpsAeBV1hkNYX_AlJ37jpbi6nQJHX5HlDPhq0zKAwjiMCQ\"}}",
         "code": null,
-        "withdrawn_height": 6
+        "withdrawn_height": 5,
+        "replay_code": null,
+        "replay_withdrawn_height": 5
+      },
+      {
+        "label": "names a superseded Item of another Publisher found nowhere",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:76c3e8dc663851aef958777d8316965a38c1aa93f733e613eadddac6bb4bc845\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"0up_apyVJdspUpdMgIrtlvOM0vxGZun8LV8NeBbZYnziy3EGTmju3nad97LEZ58IzvrGUCftiNN4e9p1qdqGAg\"}}",
+        "code": null,
+        "withdrawn_height": 5,
+        "replay_code": "WIST4-E04",
+        "replay_withdrawn_height": null
+      },
+      {
+        "label": "names an Item never sealed",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:f47da311880ba0df96376a6b0779fe26238554a3bade194474762d4c3d74116f\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"W-Q1OhBR5Ptb-1VCOireZ-PNVDc350KaBKt2nKKtTYFClMIIGIjSw6Mbh509VLUjnAwspFqbBltmLq0PXbnpCA\"}}",
+        "code": null,
+        "withdrawn_height": 5,
+        "replay_code": "WIST4-E04",
+        "replay_withdrawn_height": null
+      },
+      {
+        "label": "names a withdrawal tuple Item of the subject",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3ca9dd7384debe2a40e6095941138fb296a353a534e33244ddc50567dd040088\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"o1ZvnhCP9paq4T8gZMYSQMHuQX3N-20IL9MAVclri494o6pjqq1rK_6YUSzlTAzsRawIzc91X5e-ehzCgKLrDA\"}}",
+        "code": null,
+        "withdrawn_height": 3,
+        "replay_code": null,
+        "replay_withdrawn_height": 3
+      },
+      {
+        "label": "names a withdrawal tuple Item of another Publisher",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:3ca9dd7384debe2a40e6095941138fb296a353a534e33244ddc50567dd040088\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"jPxRNwZ5cBiw7gZ-4kYdt9eeMXdYofldyws2UGUeIT9zE3djFlzs8XmCJEPSTRZmXmr8pxh3U4IXGeaCKzZKDg\"}}",
+        "code": "WIST4-E04",
+        "withdrawn_height": null,
+        "replay_code": "WIST4-E04",
+        "replay_withdrawn_height": null
+      },
+      {
+        "label": "a later withdrawal of an Item a contract breaking act named reads another earliest height",
+        "height": 6,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"third.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:590f1cee76171be05a1f5bc6257c28ce7e6cf46ba011de73546c696f22eb570b\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"QXWsSf95LCwpWSI1W9_uhIC_dEjB4jYDtsO0zIzKkyFTim9vurm2NUTjW9wDhY9C4ZXdM1n68CsMenEdAYPZBw\"}}",
+        "code": null,
+        "withdrawn_height": 4,
+        "replay_code": null,
+        "replay_withdrawn_height": 6
+      },
+      {
+        "label": "withdraws a walked Item of the subject",
+        "height": 6,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:4339b1426e45ce1ac7471f2fe3a885d23438add41f4ede8d93b2e53a52355271\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"ZKnRCwDzVNG8Ca_WurTjOoy-NCGffosRSAxM0PFwcuoNzwyN0wNINfydbDBSQCYTtwmcWHiOqihW6bkoLufYCQ\"}}",
+        "code": null,
+        "withdrawn_height": 6,
+        "replay_code": null,
+        "replay_withdrawn_height": 6
       }
     ],
     "state_tuples": [
       [
         "withdrawal",
-        "sha256:1551e4ef3c5264df31062526aa61ce3138e85cd81d16ee8e00e3e629c8d21536",
+        "sha256:2cce5c8fde252f560f3bc2f6ce5918bcd891e57f29f65d95d4ebb3c6b13b9f86",
         "old.sample.net",
         5
       ],
       [
         "withdrawal",
-        "sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624",
+        "sha256:3ca9dd7384debe2a40e6095941138fb296a353a534e33244ddc50567dd040088",
         "site.sample.net",
         3
       ],
       [
         "withdrawal",
-        "sha256:4ae7707638bdf3f686b2c87a0273b9870e4f899768ad2c07fcc2fd07c797ccc2",
+        "sha256:4339b1426e45ce1ac7471f2fe3a885d23438add41f4ede8d93b2e53a52355271",
+        "site.sample.net",
+        6
+      ],
+      [
+        "withdrawal",
+        "sha256:590f1cee76171be05a1f5bc6257c28ce7e6cf46ba011de73546c696f22eb570b",
+        "third.sample.org",
+        4
+      ],
+      [
+        "withdrawal",
+        "sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8",
+        "site.sample.net",
+        3
+      ],
+      [
+        "withdrawal",
+        "sha256:6271f36c2f7bd79871a972a591daf370a4142281be332589fa6a405e0d33dfd8",
+        "site.sample.net",
+        5
+      ],
+      [
+        "withdrawal",
+        "sha256:76c3e8dc663851aef958777d8316965a38c1aa93f733e613eadddac6bb4bc845",
+        "site.sample.net",
+        5
+      ],
+      [
+        "withdrawal",
+        "sha256:bf63d5eacb30f3900d00caf08b8b39f4fefe66ed59f8cab255adc376ab50586d",
+        "other.sample.org",
+        5
+      ],
+      [
+        "withdrawal",
+        "sha256:f47da311880ba0df96376a6b0779fe26238554a3bade194474762d4c3d74116f",
+        "site.sample.net",
+        5
+      ]
+    ],
+    "replay_state_tuples": [
+      [
+        "withdrawal",
+        "sha256:2cce5c8fde252f560f3bc2f6ce5918bcd891e57f29f65d95d4ebb3c6b13b9f86",
+        "old.sample.net",
+        5
+      ],
+      [
+        "withdrawal",
+        "sha256:3ca9dd7384debe2a40e6095941138fb296a353a534e33244ddc50567dd040088",
+        "site.sample.net",
+        3
+      ],
+      [
+        "withdrawal",
+        "sha256:4339b1426e45ce1ac7471f2fe3a885d23438add41f4ede8d93b2e53a52355271",
+        "site.sample.net",
+        6
+      ],
+      [
+        "withdrawal",
+        "sha256:590f1cee76171be05a1f5bc6257c28ce7e6cf46ba011de73546c696f22eb570b",
         "third.sample.org",
         6
+      ],
+      [
+        "withdrawal",
+        "sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8",
+        "site.sample.net",
+        3
+      ],
+      [
+        "withdrawal",
+        "sha256:6271f36c2f7bd79871a972a591daf370a4142281be332589fa6a405e0d33dfd8",
+        "site.sample.net",
+        5
+      ],
+      [
+        "withdrawal",
+        "sha256:bf63d5eacb30f3900d00caf08b8b39f4fefe66ed59f8cab255adc376ab50586d",
+        "other.sample.org",
+        5
       ]
-    ]
+    ],
+    "resumed_again": {
+      "snapshot_height": 5,
+      "adopted": [
+        [
+          "withdrawal",
+          "sha256:0eb55d4a0c4bccc2ff524295d55833957de9ed1d2068a4dae9e0ef70d83c0d2f",
+          "other.sample.org",
+          4
+        ],
+        [
+          "withdrawal",
+          "sha256:3ca9dd7384debe2a40e6095941138fb296a353a534e33244ddc50567dd040088",
+          "site.sample.net",
+          3
+        ],
+        [
+          "withdrawal",
+          "sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8",
+          "site.sample.net",
+          3
+        ]
+      ],
+      "record_tuples": [
+        [
+          "record",
+          "old.sample.net",
+          "https://old.sample.net/zero",
+          {
+            "publisher": "old.sample.net",
+            "url": "https://old.sample.net/zero",
+            "observed_at": "2026-08-01T11:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:ea116b3b46a387c13d5e8f31425d9315af77c3b710d81b5fc63fdfef50bb9537",
+              "alg": "HMAC-SHA256",
+              "bytes": 132
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          "default",
+          "sha256:b0936030897f1ebbdf1d2635e460df61c8fb9839505aa4e33a1d6e2fadec847f",
+          "2026-08-02T00:00:00Z"
+        ],
+        [
+          "record",
+          "other.sample.org",
+          "https://other.sample.org/eleven",
+          {
+            "publisher": "other.sample.org",
+            "url": "https://other.sample.org/eleven",
+            "observed_at": "2026-08-01T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:274c70e32e76b7c1dee5626cb3f434a683519e3826ccdda5a9c5fa157b335f1e",
+              "alg": "HMAC-SHA256",
+              "bytes": 136
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          "default",
+          "sha256:60a7fafa24391e3cd81870849f7ec49eb88fc485b210cd974b7472b4b1a503da",
+          "2026-08-02T04:00:00Z"
+        ],
+        [
+          "record",
+          "other.sample.org",
+          "https://other.sample.org/four",
+          {
+            "publisher": "other.sample.org",
+            "url": "https://other.sample.org/four",
+            "observed_at": "2026-08-01T11:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:9ec1af886d234d4e86734d0bf9e9fdde1e4553e6c93057fbdc8be46f83a48836",
+              "alg": "HMAC-SHA256",
+              "bytes": 134
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          "default",
+          "sha256:7e6f8eadc3edbf888b2b66d23cd06f834f106cd7ef328b0603c86fc14053f8ab",
+          "2026-08-02T02:00:00Z"
+        ],
+        [
+          "record",
+          "other.sample.org",
+          "https://other.sample.org/seven",
+          {
+            "publisher": "other.sample.org",
+            "url": "https://other.sample.org/seven",
+            "observed_at": "2026-08-01T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:f0d8e47a7856b01a3f428cd7797f8e79f5eca911c5263eb0350ed302b1979406",
+              "alg": "HMAC-SHA256",
+              "bytes": 135
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          "default",
+          "sha256:744ae42d29e0b159ca043588424cc6151bd286466419d5886ce32b468a0925fb",
+          "2026-08-02T02:00:00Z"
+        ],
+        [
+          "record",
+          "other.sample.org",
+          "https://other.sample.org/two",
+          {
+            "publisher": "other.sample.org",
+            "url": "https://other.sample.org/two",
+            "observed_at": "2026-08-01T11:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:1046801baa95da6a8824538c5403ffc40b20c41957fe4b3aca7b85b2d8d7cbc0",
+              "alg": "HMAC-SHA256",
+              "bytes": 133
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          "default",
+          "sha256:ad75d07bfb2b9835784d5325c3526e06bad0b4aaf185ecb9f029b6834970f95d",
+          "2026-08-02T04:00:00Z"
+        ],
+        [
+          "record",
+          "site.sample.net",
+          "https://site.sample.net/nine",
+          {
+            "publisher": "site.sample.net",
+            "url": "https://site.sample.net/nine",
+            "observed_at": "2026-08-01T11:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:413fd3360df6da8a182a8f224f953176189dd6b25d47c9459e7e820b2bb00fee",
+              "alg": "HMAC-SHA256",
+              "bytes": 133
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          "default",
+          "sha256:d984295fbc0466cb8f98e2881733a0aef8189f8020f754a1fcbc4a65c400c9af",
+          "2026-08-02T05:00:00Z"
+        ],
+        [
+          "record",
+          "site.sample.net",
+          "https://site.sample.net/one",
+          {
+            "publisher": "site.sample.net",
+            "url": "https://site.sample.net/one",
+            "observed_at": "2026-08-01T11:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:f8bf11f658ae5999af42d82736f69708cc0ffaa783dc9be09e17ff1c735d1b0a",
+              "alg": "HMAC-SHA256",
+              "bytes": 132
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          "default",
+          "sha256:c9f458c451ef2f2ca0bfaaf58e00ff8fc4919c4f472209276d34c0311bb54686",
+          "2026-08-02T01:00:00Z"
+        ],
+        [
+          "record",
+          "site.sample.net",
+          "https://site.sample.net/six",
+          {
+            "publisher": "site.sample.net",
+            "url": "https://site.sample.net/six",
+            "observed_at": "2026-08-01T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:94587017bcb3380091efb607117a304aa61e2ef71fbd6f951476093ac951433d",
+              "alg": "HMAC-SHA256",
+              "bytes": 132
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          "default",
+          "sha256:08ebc447191bbd0f0bf78d75da79c2dfa60586a82846d28108a19e643e45b7c2",
+          "2026-08-02T02:00:00Z"
+        ],
+        [
+          "record",
+          "site.sample.net",
+          "https://site.sample.net/ten",
+          {
+            "publisher": "site.sample.net",
+            "url": "https://site.sample.net/ten",
+            "observed_at": "2026-08-01T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:70c119e2b5092c23816e1e0f74e1a71dbbf7c35709807e4b09ceac8986a98fa4",
+              "alg": "HMAC-SHA256",
+              "bytes": 132
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          "default",
+          "sha256:7175ff54c8634e205344db3c0c46277c5a087ce28adcfb31b97b97246e367e02",
+          "2026-08-02T02:00:00Z"
+        ],
+        [
+          "record",
+          "third.sample.org",
+          "https://third.sample.org/three",
+          {
+            "publisher": "third.sample.org",
+            "url": "https://third.sample.org/three",
+            "observed_at": "2026-08-01T11:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:697b21abadb058f0c4b979e8894e7197442f940618ced172cc7ed6cf8e413288",
+              "alg": "HMAC-SHA256",
+              "bytes": 135
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          "default",
+          "sha256:afcb0dc66810b97367ddad5b8292fb9b685a327efb4bba4cb8e3487b0a2d2053",
+          "2026-08-02T05:00:00Z"
+        ]
+      ],
+      "removal_tuples": [
+        [
+          "removal",
+          "site.sample.net",
+          "https://site.sample.net/five",
+          "sha256:06de6234cbb6c320680f461ca7105bacb369ad9683984750823f345b5f516ef2",
+          "sha256:0f3fa9aea5508beba5a7c2e8747cc851c8172637eda09ffb12bf9a2ed0fd5889",
+          "2026-08-02T02:00:00Z"
+        ],
+        [
+          "removal",
+          "third.sample.org",
+          "https://third.sample.org/eight",
+          "sha256:3914ff7c79f77ceaedce33c05fdbe761d02cde2f0f8b0a917b691d4aa343e54d",
+          "sha256:fa9adb331dffc7bccba34e9537428563ace8b618a6cad71a061b37b6909d4d57",
+          "2026-08-02T04:00:00Z"
+        ]
+      ],
+      "act_cases": [
+        {
+          "label": "names an Item only the earlier Snapshot's record tuple carried",
+          "height": 6,
+          "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:bf63d5eacb30f3900d00caf08b8b39f4fefe66ed59f8cab255adc376ab50586d\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"i66ltUsVutHRJFl2Sfq3uwuGRxDfxA0-yVuKoGWyrNi4Ogaz0Aq3T17q3H6eObo4RbcrRAW8UqGK7Sh8WVlcCw\"}}",
+          "code": null,
+          "withdrawn_height": 6,
+          "replay_code": "WIST4-E04",
+          "replay_withdrawn_height": null
+        },
+        {
+          "label": "names that Item under its Publisher",
+          "height": 6,
+          "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:bf63d5eacb30f3900d00caf08b8b39f4fefe66ed59f8cab255adc376ab50586d\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"I7KHz4-sDKw2r75DimVz478nRuIKNH-yG8BS4CasBgfEHkQjCsmACK8gY3MhsxSHbpEv-_ZxINLh_XgdT1xtBQ\"}}",
+          "code": null,
+          "withdrawn_height": 6,
+          "replay_code": null,
+          "replay_withdrawn_height": 6
+        }
+      ],
+      "state_tuples": [
+        [
+          "withdrawal",
+          "sha256:0eb55d4a0c4bccc2ff524295d55833957de9ed1d2068a4dae9e0ef70d83c0d2f",
+          "other.sample.org",
+          4
+        ],
+        [
+          "withdrawal",
+          "sha256:3ca9dd7384debe2a40e6095941138fb296a353a534e33244ddc50567dd040088",
+          "site.sample.net",
+          3
+        ],
+        [
+          "withdrawal",
+          "sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8",
+          "site.sample.net",
+          3
+        ],
+        [
+          "withdrawal",
+          "sha256:bf63d5eacb30f3900d00caf08b8b39f4fefe66ed59f8cab255adc376ab50586d",
+          "site.sample.net",
+          6
+        ]
+      ]
+    }
   },
   "payloads": {
-    "sha256:3ef580783627fb6ebf6d69f93f1406f8f6d1e291394751f45c68b5b8b1f93624": {
+    "sha256:2cce5c8fde252f560f3bc2f6ce5918bcd891e57f29f65d95d4ebb3c6b13b9f86": {
       "wist_version": "1.0.0",
-      "salt": "E1Jbxa-CuU-GuvFqnulH7Q",
+      "salt": "emXq1OFmqZzE9tHItiKQYw",
       "content": {
-        "extract": "Text of https://site.sample.net/one.",
+        "extract": "Text of https://old.sample.net/zero, version 1.",
         "links": {
           "total": 0,
           "urls": []
@@ -362,11 +1523,11 @@
         }
       }
     },
-    "sha256:73ebce777d5460d32b5bf9184c8b4a7c6aaa9b499f98d50c7f76bc5405846081": {
+    "sha256:605ac2f4d37f6d823155aa07fcf7cef996d543be78f96e87c2d741021023a1b8": {
       "wist_version": "1.0.0",
-      "salt": "kdUGpL5jC_IppAP9lOvjww",
+      "salt": "nPN-pCJNhDaPqQQfLLl9Qg",
       "content": {
-        "extract": "Text of https://other.sample.org/two.",
+        "extract": "Text of https://site.sample.net/one, version 1.",
         "links": {
           "total": 0,
           "urls": []
@@ -376,11 +1537,11 @@
         }
       }
     },
-    "sha256:4ae7707638bdf3f686b2c87a0273b9870e4f899768ad2c07fcc2fd07c797ccc2": {
+    "sha256:28bce7994f66ffbbfe74470e75f31627628fbcb94f4a8484c6e76e351bdcbf6b": {
       "wist_version": "1.0.0",
-      "salt": "785xJYuwWbqm9rvVwY16jw",
+      "salt": "-qCyHembWfMuwaoteaqbnw",
       "content": {
-        "extract": "Text of https://third.sample.org/three.",
+        "extract": "Text of https://site.sample.net/five, version 1.",
         "links": {
           "total": 0,
           "urls": []
@@ -390,11 +1551,179 @@
         }
       }
     },
-    "sha256:1551e4ef3c5264df31062526aa61ce3138e85cd81d16ee8e00e3e629c8d21536": {
+    "sha256:3ca9dd7384debe2a40e6095941138fb296a353a534e33244ddc50567dd040088": {
       "wist_version": "1.0.0",
-      "salt": "E3pgHs7T3NBZOlEFs2aAhQ",
+      "salt": "h_obpGQU7ZSUkeuldqTVoA",
       "content": {
-        "extract": "Text of https://old.sample.net/zero.",
+        "extract": "Text of https://site.sample.net/six, version 1.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Withdrawal fixture"
+        }
+      }
+    },
+    "sha256:6271f36c2f7bd79871a972a591daf370a4142281be332589fa6a405e0d33dfd8": {
+      "wist_version": "1.0.0",
+      "salt": "nY0nK270KLkSj5mTaS7wog",
+      "content": {
+        "extract": "Text of https://site.sample.net/ten, version 1.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Withdrawal fixture"
+        }
+      }
+    },
+    "sha256:76c3e8dc663851aef958777d8316965a38c1aa93f733e613eadddac6bb4bc845": {
+      "wist_version": "1.0.0",
+      "salt": "PRJVTYblBOUWkwBGykV9Xw",
+      "content": {
+        "extract": "Text of https://other.sample.org/seven, version 1.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Withdrawal fixture"
+        }
+      }
+    },
+    "sha256:cc4b91deb00489cf66717f864d37211ba4eaa63f211a6db81af5f31e07f14533": {
+      "wist_version": "1.0.0",
+      "salt": "YnmCfwmE4GyKHt2GyTrUig",
+      "content": {
+        "extract": "Text of https://other.sample.org/four, version 1.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Withdrawal fixture"
+        }
+      }
+    },
+    "sha256:c7c9e692b13ed62b33f446c6ab818edfecf4edaa7b8e627cd3069280768d90c4": {
+      "wist_version": "1.0.0",
+      "salt": "djkDUPmS_hhdATHIkuVRYg",
+      "content": {
+        "extract": "Text of https://site.sample.net/six, version 2.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Withdrawal fixture"
+        }
+      }
+    },
+    "sha256:542ef1bfd08da63cc3aa0133da2715cbc8bb0de1a2d8184c877c90ac7f454210": {
+      "wist_version": "1.0.0",
+      "salt": "lCzkoLprU9IwQD56iVm75Q",
+      "content": {
+        "extract": "Text of https://site.sample.net/ten, version 2.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Withdrawal fixture"
+        }
+      }
+    },
+    "sha256:615c91a137642b206e8726327c5c088162499f45fcd9f960550dbf57adbac68b": {
+      "wist_version": "1.0.0",
+      "salt": "xYAG1tvaw5Sl9FqtVpTmAQ",
+      "content": {
+        "extract": "Text of https://other.sample.org/seven, version 2.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Withdrawal fixture"
+        }
+      }
+    },
+    "sha256:d86529a1195b369f346794c198c18242fd080e16016abe28315162d83b6379d1": {
+      "wist_version": "1.0.0",
+      "salt": "b24stAoZhsnNQi41XnQr0A",
+      "content": {
+        "extract": "Text of https://third.sample.org/eight, version 1.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Withdrawal fixture"
+        }
+      }
+    },
+    "sha256:bf63d5eacb30f3900d00caf08b8b39f4fefe66ed59f8cab255adc376ab50586d": {
+      "wist_version": "1.0.0",
+      "salt": "DtqWMb2HdHBtT9oCvMO1lw",
+      "content": {
+        "extract": "Text of https://other.sample.org/eleven, version 1.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Withdrawal fixture"
+        }
+      }
+    },
+    "sha256:0eb55d4a0c4bccc2ff524295d55833957de9ed1d2068a4dae9e0ef70d83c0d2f": {
+      "wist_version": "1.0.0",
+      "salt": "FCTqXfoLWcTgQDFmqqdBuw",
+      "content": {
+        "extract": "Text of https://other.sample.org/two, version 1.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Withdrawal fixture"
+        }
+      }
+    },
+    "sha256:53aac58420ef27a7ded3f88ef9f9133eff083daa8eaab1c504750719001dc0ef": {
+      "wist_version": "1.0.0",
+      "salt": "_KHWiJRFfVqNgO3zO8pnAw",
+      "content": {
+        "extract": "Text of https://other.sample.org/eleven, version 2.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Withdrawal fixture"
+        }
+      }
+    },
+    "sha256:590f1cee76171be05a1f5bc6257c28ce7e6cf46ba011de73546c696f22eb570b": {
+      "wist_version": "1.0.0",
+      "salt": "fpJV0A319I4Ql3Nwq2QfVg",
+      "content": {
+        "extract": "Text of https://third.sample.org/three, version 1.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Withdrawal fixture"
+        }
+      }
+    },
+    "sha256:4339b1426e45ce1ac7471f2fe3a885d23438add41f4ede8d93b2e53a52355271": {
+      "wist_version": "1.0.0",
+      "salt": "B9PO59YmxU3tojaXKRc7eA",
+      "content": {
+        "extract": "Text of https://site.sample.net/nine, version 1.",
         "links": {
           "total": 0,
           "urls": []

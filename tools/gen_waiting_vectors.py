@@ -55,7 +55,8 @@ BLOG = "blog.example.com"
 BJ = "https://blog.example.com/journal/"
 DEFAULT_MAP = {
     "clock_skew_seconds": 600, "catalog_items_max": 16777216, "catalog_refresh_seconds": 604800,
-    "payload_window_days": 180, "domain_epoch_entries_max": 10000, "max_inclusion_epochs": 4,
+    "payload_window_days": 180, "domain_epoch_entries_max": 10000, "labeler_epoch_entries_max": 1000,
+    "max_inclusion_epochs": 4,
     "record_seal_epochs": 24, "url_cap_bytes": 2048, "extract_cap_bytes": 32768, "links_cap_bytes": 4096,
     "link_url_cap_bytes": 2048, "summary_cap_bytes": 2048, "tree_file_cap_bytes": 65536, "tree_depth_max": 16,
     "collections_max": 16, "scope_entries_max": 32, "recovery_window_days": 7, "declaration_activation_epochs": 24}
@@ -174,11 +175,13 @@ class Cat:
 
 
 class History:
-    def __init__(self, name, why, suffix_list=None, **parameters):
+    def __init__(self, name, why, suffix_list=None, schedule=None, **parameters):
         self.name, self.why = name, why
         self.suffix_list = suffix_list
+        self.schedule = schedule
         self.parameters = {**DEFAULT_MAP, **parameters}
         self.events, self.declarations, self.catalogs, self.tree_files, self.updates = [], {}, {}, {}, {}
+        self.labels = {}
         self.height = -1
         self.last = T0 - HOUR
         self.clock = None
@@ -187,6 +190,16 @@ class History:
     def declare(self, name, signer, inner):
         self.declarations[name] = sign(signer, "publisher", inner)
         return inner
+
+    def label(self, name, subject, asserted_at, labeler="example.com", signer="owner"):
+        self.labels[name] = sign(signer, "label", {"wist_version": "1.0.0", "labeler": labeler, "subject": subject,
+                                                   "name": "wist:spam", "asserted_at": stamp(asserted_at)})
+
+    def dispute(self, name, disputed, asserted_at, disputant="example.com", signer="owner"):
+        self.labels[name] = sign(signer, "dispute", {"wist_version": "1.0.0", "disputant": disputant,
+                                                     "label": disputed,
+                                                     "log": "log.example", "height": 1,
+                                                     "asserted_at": stamp(asserted_at)})
 
     def withdraw(self, name, withdrawn):
         update = {"wist_version": "1.0.0", "action": "payload_withdrawal", "subject": withdrawn["publisher"],
@@ -208,20 +221,26 @@ class History:
     def at(self, offset):
         return self.last + offset
 
-    def epoch(self, *declarations, sealed_at=None, updates=(), late=(), **parameters):
+    def epoch(self, *declarations, sealed_at=None, updates=(), late=(), unsealed=(), **parameters):
         self.height += 1
         self.last = sealed_at if sealed_at is not None else self.last + HOUR
         self.map = {**self.parameters, **parameters}
+        self.map["labeler_epoch_entries_max"] = min(self.map["labeler_epoch_entries_max"],
+                                                    self.map["domain_epoch_entries_max"])
+        if self.schedule is not None:
+            self.map["max_inclusion_epochs"] = [v for start, v in self.schedule if start <= self.height][-1]
         event = {"event": "epoch", "height": self.height, "sealed_at": stamp(self.last), "parameters": self.map,
                  "declarations": list(declarations)}
         if updates:
             event["updates"] = list(updates)
         if late:
             event["sealed_later"] = list(late)
+        if unsealed:
+            event["unsealed"] = list(unsealed)
         self.events.append(event)
 
     def pull(self, offset, declaration, collections, publisher="example.com", withhold=(), tamper=(),
-             omit=(), parameters=None, not_modified=(), limit_objects=None):
+             omit=(), parameters=None, not_modified=(), limit_objects=None, labels=()):
         served = {}
         for name, catalog_name in collections.items():
             made = self.catalogs[catalog_name]
@@ -243,13 +262,22 @@ class History:
                  "collections": served}
         if limit_objects is not None:
             event["limit_objects"] = limit_objects
+        if labels:
+            event["labels"] = list(labels)
         self.events.append(event)
 
 
+def unsealed_key(history, ref):
+    if ref["type"] == "label":
+        return "label", waiting.label_id(history.labels[ref["label"]])
+    return ref["type"], (ref["publisher"], ref["url"])
+
+
 def run(history, check=None):
-    aggregator = waiting.Aggregator(history.suffix_list)
+    aggregator = waiting.Aggregator(history.suffix_list, history.schedule)
     names = {rules.declaration_hash(e["publisher"]): n for n, e in history.declarations.items()}
     ids = {c.id: n for n, c in history.catalogs.items()}
+    ids.update({waiting.label_id(e): n for n, e in history.labels.items()})
     expected, epochs, previous = [], [], None
     for event in history.events:
         instant = seconds(event["at"] if event["event"] == "pull" else event["sealed_at"])
@@ -260,7 +288,8 @@ def run(history, check=None):
                                    [history.declarations[n] for n in event["declarations"]],
                                    [history.updates[n] for n in event.get("updates", [])],
                                    {rules.declaration_hash(history.declarations[n]["publisher"])
-                                    for n in event.get("sealed_later", [])})
+                                    for n in event.get("sealed_later", [])},
+                                   {unsealed_key(history, ref) for ref in event.get("unsealed", [])})
             for member in ("declarations_failed", "declarations_left"):
                 for entry in out.get(member, []):
                     entry["declaration"] = names[entry["declaration"]]
@@ -276,7 +305,7 @@ def run(history, check=None):
                                 "payloads": s["payloads"]}
             envelope = history.declarations[event["declaration"]] if event["declaration"] else None
             out = aggregator.pull(event["publisher"], event["at"], envelope, served, event["parameters"],
-                                  event.get("limit_objects"))
+                                  event.get("limit_objects"), [history.labels[n] for n in event.get("labels", [])])
             out["declaration"]["sources"] = [names[h] for h in out["declaration"]["sources"]]
             for result in out["catalogs"]:
                 if "sources" in result:
@@ -305,6 +334,10 @@ def run(history, check=None):
         out["suffix_list"] = history.suffix_list
     if history.updates:
         out["registry_updates"] = history.updates
+    if history.schedule is not None:
+        out["inclusion_schedule"] = [list(row) for row in history.schedule]
+    if history.labels:
+        out["labels"] = history.labels
     return {**out, "declarations": history.declarations,
             "catalogs": {n: c.envelope for n, c in history.catalogs.items()},
             "catalog_ids": {n: c.id for n, c in history.catalogs.items()},
@@ -319,6 +352,8 @@ class View:
     def label(self, ref):
         if ref["type"] == "publisher_catalog":
             return self.ids[ref["catalog"]]
+        if ref["type"] in ("label", "dispute"):
+            return self.ids[ref["label"]]
         return ref["url"]
 
     def sealed(self, event):
@@ -332,6 +367,12 @@ class View:
 
     def held(self, event):
         return {self.label(r): r["reasons"] for r in self.expected[event].get("held", [])}
+
+    def unsealed(self, event):
+        return [self.label(r) for r in self.expected[event].get("unsealed", [])]
+
+    def labels(self, event):
+        return {self.ids[r["label"]]: r for r in self.expected[event]["state"].get("labels", [])}
 
     def eligibility(self, event):
         return {self.label(r): (r["eligibility"], r["ceiling"]) for r in self.expected[event]["sealed"]}
@@ -1336,6 +1377,227 @@ def waiting_vectors():
         assert v.expected[4]["left"][0]["item"] == items.item_id(px)
 
     histories.append(run(h, other_collection))
+
+    h = History("the inclusion ceiling reads the map in force at the eligibility Epoch",
+                "max_inclusion_epochs is 4 in the maps of heights 0 and 1 and 2 from height 2, a schedule the Log "
+                "sealed in advance. J1 and a are accepted at the pull after height 1, whose map carries 4, and are "
+                "eligible for height 2: their ceiling is 2 + 2 = 4, read from the map of height 2, not 2 + 4 from "
+                "the map in force at the pull or at the last sealed Epoch.", schedule=[(0, 4), (2, 2)])
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    h.epoch()
+    pa = page(J + "a")
+    h.cat("J1", [pa], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+
+    def ceiling_at_eligibility(v):
+        assert v.collection(2, "journal")["waiting"]["eligibility"] == 2
+        assert v.collection(2, "journal")["waiting"]["ceiling"] == 4 and v.urls(2)[J + "a"]["ceiling"] == 4
+        assert v.eligibility(3) == {"J1": (2, 4), J + "a": (2, 4)}
+
+    histories.append(run(h, ceiling_at_eligibility))
+
+    h = History("a deferral that moves the eligibility Epoch reads the ceiling again",
+                "domain_epoch_entries_max is 1, and max_inclusion_epochs is 4 in the maps of heights 0 to 2 and 6 "
+                "from height 3. J1 lists a and b, all eligible for height 1. Height 1 seals J1 and defers a and b "
+                "by capacity to height 2, ceiling 2 + 4 = 6. Height 2 seals the first in list order and defers the "
+                "other to height 3, whose map carries 6: its ceiling is 3 + 6 = 9, not 3 + 4 read where it was first "
+                "eligible.", schedule=[(0, 4), (3, 6)], domain_epoch_entries_max=1)
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    pa, pb = page(J + "a"), page(J + "b")
+    first, second = [i["url"] for i in items.in_list_order([pa, pb])]
+    h.cat("J1", [pa, pb], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    for _ in range(3):
+        h.epoch()
+
+    def ceiling_moves(v):
+        assert v.deferred(2) == {first: ["capacity"], second: ["capacity"]}
+        assert v.urls(2)[second]["ceiling"] == 6
+        assert v.eligibility(3) == {first: (2, 6)} and v.deferred(3) == {second: ["capacity"]}
+        assert v.urls(3)[second]["eligibility"] == 3 and v.urls(3)[second]["ceiling"] == 9
+        assert v.eligibility(4) == {second: (3, 9)}
+
+    histories.append(run(h, ceiling_moves))
+
+    h = History("an eligible Item the Aggregator leaves unsealed takes no room",
+                "domain_epoch_entries_max is 1. J1 lists a and b; height 1 seals J1 and defers both by capacity to "
+                "height 2. At height 2 the Aggregator leaves the first in list order unsealed, within its ceiling "
+                "6: it takes no room, so the other is sealed and is not deferred by capacity, and the one left "
+                "unsealed keeps its eligibility Epoch and ceiling and is sealed at height 3.",
+                domain_epoch_entries_max=1)
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    pa, pb = page(J + "a"), page(J + "b")
+    first, second = [i["url"] for i in items.in_list_order([pa, pb])]
+    h.cat("J1", [pa, pb], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+    h.epoch(unsealed=[{"type": "publisher_item", "publisher": "example.com", "url": first}])
+    h.epoch()
+
+    def unsealed_item(v):
+        assert v.unsealed(3) == [first] and v.deferred(3) == {}
+        assert v.eligibility(3) == {second: (2, 6)}
+        assert v.urls(3)[first]["eligibility"] == 2 and v.urls(3)[first]["ceiling"] == 6
+        assert v.eligibility(4) == {first: (2, 6)}
+
+    histories.append(run(h, unsealed_item))
+
+    foreign = {"wist_version": "1.0.0", "labeler": "watch.example.net", "subject": J + "a", "name": "wist:spam",
+               "asserted_at": "2026-09-30T08:00:00Z"}
+    disputed = "sha256:" + hashlib.sha256(rfc8785.dumps(foreign)).hexdigest()
+
+    def labels_history(name, why, **parameters):
+        h = History(name, why, **parameters)
+        h.declare("G", "owner", G)
+        h.epoch("G")
+        h.cat("J1", [page(J + "a")], h.at(4 * MINUTE), "journal")
+        h.label("L1", "https://watch.example.net/one", h.at(3 * MINUTE))
+        h.label("L2", "https://watch.example.net/two", h.at(3 * MINUTE))
+        h.dispute("D1", disputed, h.at(3 * MINUTE))
+        h.pull(5 * MINUTE, "G", {"journal": "J1"}, labels=["L1", "L2", "D1"])
+        h.pull(10 * MINUTE, "G", {"journal": "J1"}, labels=["L2"])
+        h.epoch()
+        h.epoch()
+        return h
+
+    h = labels_history(
+        "Labels and a dispute take their places after the pull's Catalogs and URLs and share the capacity",
+        "domain_epoch_entries_max is 3. The pull after height 0 accepts J1, a, then L1, L2 and D1 from the Label "
+        "Feed, which take places after J1's and a's in the order the pull accepts them; all are eligible for "
+        "height 1. A pull serving L2 again finds it seen. Height 1 gives the capacity to J1, then to a, L1, L2 and "
+        "D1 together in the order of places: J1, a and L1 are sealed, and L2 and D1, which do not fit, are "
+        "deferred by capacity to height 2, a deferral the status endpoint does not report, and sealed there.",
+        domain_epoch_entries_max=3)
+
+    def labels_capacity(v):
+        accepted = v.expected[1]["labels"]
+        assert [(r["type"], r["outcome"], r["place"]) for r in accepted] == [
+            ("label", "accepted", [1, 2, 0]), ("label", "accepted", [1, 2, 1]), ("dispute", "accepted", [1, 2, 2])]
+        assert [r["outcome"] for r in v.expected[2]["labels"]] == ["seen"]
+        assert v.labels(2)["L1"]["eligibility"] == 1 and v.labels(2)["L1"]["ceiling"] == 5
+        assert v.sealed(3) == ["J1", J + "a", "L1"] and v.deferred(3) == {}
+        assert v.labels(3)["L2"]["eligibility"] == 2 and v.labels(3)["D1"]["eligibility"] == 2
+        assert v.eligibility(4) == {"L2": (2, 6), "D1": (2, 6)} and "labels" not in v.expected[4]["state"]
+
+    histories.append(run(h, labels_capacity))
+
+    h = labels_history(
+        "Labels and a dispute that fit the capacity are sealed together",
+        "As the previous history under domain_epoch_entries_max 5: J1, a, L1, L2 and D1 fit and are all sealed "
+        "at height 1.", domain_epoch_entries_max=5)
+
+    def labels_fit(v):
+        assert v.sealed(3) == ["J1", J + "a", "L1", "L2", "D1"] and v.deferred(3) == {}
+
+    histories.append(run(h, labels_fit))
+
+    h = labels_history(
+        "the per-Labeler cap defers a Label by capacity",
+        "As the previous history under labeler_epoch_entries_max 2, the per-domain capacity 10 000: J1, a, L1 and "
+        "L2 are sealed at height 1, and D1, the third Label or dispute of the domain, is deferred by capacity to "
+        "height 2 although the per-domain capacity has room.", labeler_epoch_entries_max=2)
+
+    def labeler_cap(v):
+        assert v.sealed(3) == ["J1", J + "a", "L1", "L2"] and v.deferred(3) == {}
+        assert v.labels(3)["D1"]["eligibility"] == 2
+        assert v.eligibility(4) == {"D1": (2, 6)}
+
+    histories.append(run(h, labeler_cap))
+
+    h = History("a Label the Aggregator leaves unsealed takes no room under the per-Labeler cap",
+                "labeler_epoch_entries_max is 1. L1 and L2 are accepted at the pull after height 0 and are eligible "
+                "for height 1. The Aggregator leaves L1 unsealed at height 1, within its ceiling 5: it takes no "
+                "room, so L2 is sealed and not deferred by capacity, and L1 keeps its eligibility Epoch and is "
+                "sealed at height 2.", labeler_epoch_entries_max=1)
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    h.label("L1", "https://watch.example.net/one", h.at(3 * MINUTE))
+    h.label("L2", "https://watch.example.net/two", h.at(3 * MINUTE))
+    h.pull(5 * MINUTE, "G", {}, labels=["L1", "L2"])
+    h.epoch(unsealed=[{"type": "label", "label": "L1"}])
+    h.epoch()
+
+    def unsealed_label(v):
+        assert v.unsealed(2) == ["L1"] and v.deferred(2) == {} and v.sealed(2) == ["L2"]
+        assert v.labels(2)["L1"]["eligibility"] == 1 and v.labels(2)["L1"]["ceiling"] == 5
+        assert v.eligibility(3) == {"L1": (1, 5)}
+
+    histories.append(run(h, unsealed_label))
+
+    long_subject = "https://watch.example.net/" + "s" * (3000 - 2 - len("https://watch.example.net/"))
+    assert len(items.jcs(long_subject)) == 3000
+
+    def leave_history(name, why, lowered_at):
+        h = History(name, why, url_cap_bytes=4096)
+        h.declare("G", "owner", G)
+        h.epoch("G")
+        h.label("L1", long_subject, h.at(3 * MINUTE))
+        h.pull(5 * MINUTE, "G", {}, labels=["L1"])
+        for height in (1, 2):
+            h.epoch(**({"url_cap_bytes": 2048} if height >= lowered_at else {}))
+        return h
+
+    h = leave_history(
+        "a Label that fails a check repeated at its turn leaves and is reported",
+        "url_cap_bytes is 4096 at height 0 and at the pull that accepts L1, whose subject is 3000 octets of JCS; "
+        "the map of height 1, L1's candidate Epoch, carries 2048. At its turn L1 fails the subject check of WIST-2 "
+        "section 3.3 repeated under that map: it is not sealed, leaves with its rejection reported with WIST2-E06 "
+        "and its Label ID, and is not late.", 1)
+
+    def label_leaves(v):
+        assert v.sealed(2) == [] and v.expected[2]["rejections"] == [
+            {"id": waiting.label_id(h_labels["L1"]), "code": "WIST2-E06"}]
+        assert "labels" not in v.expected[2]["state"] and v.sealed(3) == []
+
+    h_labels = h.labels
+    histories.append(run(h, label_leaves))
+
+    h = leave_history(
+        "a Label sealed before the cap its subject exceeds takes effect",
+        "As the previous history, the map lowering url_cap_bytes to 2048 only from height 2: L1 is sealed at "
+        "height 1 under 4096, and the later map changes nothing.", 2)
+
+    def label_sealed_first(v):
+        assert v.sealed(2) == ["L1"] and "rejections" not in v.expected[2]
+
+    histories.append(run(h, label_sealed_first))
+
+    def dispute_history(name, why, lowered_at):
+        h = History(name, why, clock_skew_seconds=4 * HOUR)
+        h.declare("G", "owner", G)
+        h.epoch("G")
+        h.dispute("D1", disputed, h.at(3 * HOUR))
+        h.pull(5 * MINUTE, "G", {}, labels=["D1"])
+        for height in (1, 2):
+            h.epoch(**({"clock_skew_seconds": 600} if height >= lowered_at else {}))
+        return h
+
+    h = dispute_history(
+        "a dispute that fails a check repeated at its turn leaves and is reported",
+        "clock_skew_seconds is four hours at height 0 and at the pull that accepts D1, asserted three hours after "
+        "the end of height 0; the map of height 1, D1's candidate Epoch, carries 600. At its turn D1's asserted_at "
+        "is beyond that Epoch's sealed_at plus 600 seconds: it is not sealed and leaves with its rejection reported "
+        "with WIST2-E06 and its Dispute ID.", 1)
+
+    def dispute_leaves(v):
+        assert v.sealed(2) == [] and [r["code"] for r in v.expected[2]["rejections"]] == ["WIST2-E06"]
+        assert "labels" not in v.expected[2]["state"]
+
+    histories.append(run(h, dispute_leaves))
+
+    h = dispute_history(
+        "a dispute sealed before the allowance its instant exceeds takes effect",
+        "As the previous history, the map lowering clock_skew_seconds to 600 only from height 2: D1 is sealed at "
+        "height 1.", 2)
+
+    def dispute_sealed_first(v):
+        assert v.sealed(2) == ["D1"] and "rejections" not in v.expected[2]
+
+    histories.append(run(h, dispute_sealed_first))
 
     return {"note": NOTE_COMMON + (
         " This file exercises ADR-0052 Sealing, Waiting (the last accepted Catalog, what waits, places, leaving, "
@@ -2727,19 +2989,21 @@ def pull_vectors():
 
     histories.append(run(h, withdrawn))
 
+    raised = {"extract_cap_bytes": 65536, "links_cap_bytes": 16384}
     h = History("an Item whose Payload fails a cap amended before its candidate Epoch",
-                "J1 lists a and x, whose extract is 20 000 octets of JCS. At pull 1, under extract_cap_bytes 32 768, "
-                "x's Payload is fetched and verifies, and x is admitted. The map in force at height 1 amends "
-                "extract_cap_bytes to 16 384: x still meets every Item condition, but its Payload, checked again "
-                "under that map before sealing, fails (WIST1-E04), so x is not sealed, is no longer admitted and is "
-                "reported with WIST2-E03. J1 and a are sealed.")
+                "J1 lists a and x, whose extract is 40 000 octets of JCS. Height 0 and pull 1 read a map that raises "
+                "extract_cap_bytes to 65 536 and links_cap_bytes to 16 384: x's Payload is fetched and verifies, and "
+                "x is admitted. The map in force at height 1 returns extract_cap_bytes to 32 768: x still meets "
+                "every Item condition, its payload.bytes inside the cap the raised links_cap_bytes derives, but its "
+                "Payload, checked again under that map before sealing, fails (WIST1-E04), so x is not sealed, is no "
+                "longer admitted and is reported with WIST2-E03. J1 and a are sealed.", **raised)
     h.declare("G", "owner", G)
     h.epoch("G")
-    pa, px = page(J + "a"), page(J + "x", extract="x" * 19998)
-    assert len(items.jcs(PAYLOADS[items.item_id(px)]["content"]["extract"])) == 20000
+    pa, px = page(J + "a"), page(J + "x", extract="x" * 39998)
+    assert len(items.jcs(PAYLOADS[items.item_id(px)]["content"]["extract"])) == 40000
     h.cat("J1", [pa, px], h.at(4 * MINUTE), "journal")
     h.pull(5 * MINUTE, "G", {"journal": "J1"})
-    h.epoch(extract_cap_bytes=16384)
+    h.epoch(extract_cap_bytes=32768)
 
     def amended_cap(v):
         assert v.items(1, "journal")[J + "x"]["payload"] == "fetched"
@@ -2751,15 +3015,16 @@ def pull_vectors():
     histories.append(run(h, amended_cap))
 
     h = History("a record's Item that waits under a base and whose Payload fails an amended cap",
-                "J1 lists a and x, whose extract is 20 000 octets of JCS, sealed at height 1. J2, the same list with "
+                "Every map raises extract_cap_bytes to 65 536 and links_cap_bytes to 16 384 until height 2. J1 lists "
+                "a and x, whose extract is 40 000 octets of JCS, sealed at height 1. J2, the same list with "
                 "b added more than 180 days after the floor, is a base: from pull 2 I7 is read for the journal "
                 "against no record, so x waits although it is its record's Item, admitted without a Payload check. "
-                "The map of height 2 amends extract_cap_bytes to 16 384: the base removes the records, a and b are "
+                "The map of height 2 returns extract_cap_bytes to 32 768: the base removes the records, a and b are "
                 "sealed, and x, whose held Payload is checked at its turn under that map and fails (WIST1-E04), is "
-                "not sealed, is no longer admitted and is reported with WIST2-E03.")
+                "not sealed, is no longer admitted and is reported with WIST2-E03.", **raised)
     h.declare("G", "owner", G)
     h.epoch("G")
-    pa, px, pb = page(J + "a"), page(J + "big/x", extract="y" * 19998), page(J + "b")
+    pa, px, pb = page(J + "a"), page(J + "big/x", extract="y" * 39998), page(J + "b")
     j1 = h.cat("J1", [pa, px], h.at(4 * MINUTE), "journal")
     h.pull(5 * MINUTE, "G", {"journal": "J1"})
     h.epoch()
@@ -2767,7 +3032,7 @@ def pull_vectors():
     h.cat("J2", [pa, px, pb], later, "journal")
     h.last = later
     h.pull(1 * MINUTE, "G", {"journal": "J2"})
-    h.epoch(sealed_at=later + 10 * MINUTE, extract_cap_bytes=16384)
+    h.epoch(sealed_at=later + 10 * MINUTE, extract_cap_bytes=32768)
 
     def record_payload(v):
         assert v.catalog(3, "journal")["base"] is True
@@ -2834,6 +3099,57 @@ def pull_vectors():
         assert v.sealed(6) == [J + "old/x"] and v.left(6) == []
 
     histories.append(run(h, not_sealed))
+
+    h = History("a withdrawal of an Item not yet sealed is held back until its Item is sealed",
+                "J1 lists a and x, accepted at the pull after height 0. Height 1 is to seal J1, a and x and a "
+                "payload_withdrawal of x: the Payloads an Epoch's withdrawals name are destroyed before its Items "
+                "take their turn, so the Aggregator seals no withdrawal of an Item not sealed below the Epoch; the "
+                "act is not sealed and is reported with WIST4-E04, and x is sealed with its Payload. Height 2 seals "
+                "the same act, which meets its contract, and destroys x's Payload; x stays its URL's record.")
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    pa, px = page(J + "a"), page(J + "x")
+    h.cat("J1", [pa, px], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.withdraw("withdrawal of x", px)
+    h.epoch(updates=["withdrawal of x"])
+    h.epoch(updates=["withdrawal of x"])
+
+    def same_epoch(v):
+        assert v.expected[2]["updates_refused"] == [{"delta_id": items.item_id(px), "subject": "example.com",
+                                                     "code": "WIST4-E04"}]
+        assert all(e["type"] != "registry_update" for e in v.expected[2]["entries"])
+        assert set(v.sealed(2)) == {"J1", J + "a", J + "x"}
+        assert "updates_refused" not in v.expected[3]
+        assert [e["type"] for e in v.expected[3]["entries"]] == ["registry_update"]
+        assert {r["url"] for r in v.expected[3]["state"]["records"]} == {J + "a", J + "x"}
+
+    histories.append(run(h, same_epoch))
+
+    h = History("a withdrawal naming an Item of kind removed is not sealed",
+                "J1's x is sealed at height 1; J2 lists x removed, sealed at height 2 with the removal. Height 3 is "
+                "to seal a payload_withdrawal naming the removed Item: no Item of kind page of that ID was sealed, "
+                "so the act breaks its contract and is reported with WIST4-E04.")
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    px = page(J + "x")
+    j1 = h.cat("J1", [px], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+    gone = removed(J + "x", stamp(seconds(j1.inner["generated_at"]) + HOUR))
+    h.cat("J2", [gone], seconds(j1.inner["generated_at"]) + HOUR, "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J2"})
+    h.epoch()
+    h.withdraw("withdrawal of the removed x", gone)
+    h.epoch(updates=["withdrawal of the removed x"])
+
+    def removed_kind(v):
+        assert v.sealed(4) == ["J2", J + "x"]
+        assert v.expected[5]["updates_refused"] == [{"delta_id": items.item_id(gone), "subject": "example.com",
+                                                     "code": "WIST4-E04"}]
+        assert all(e["type"] != "registry_update" for e in v.expected[5]["entries"])
+
+    histories.append(run(h, removed_kind))
 
     h = History("a withdrawn Item that also fails an Item condition",
                 "J1's new/a and old/x are sealed at height 1 and a payload_withdrawal of x at height 2. D1, sealed at "
@@ -2907,11 +3223,21 @@ NOTE_COMMON = (
     "where its Items are: the Items not yet judged are not listed and are judged only at a later pull that meets "
     "that Catalog again as an idempotent re-serve. A Collection absent from `collections` has no catalog.json and a file absent from a pull is "
     "unavailable; there is no HTTP, these maps stand for the Publisher's site, and the octets of catalog.json are "
-    "not modelled (its read bound is carried by vectors/wist1/catalog-fields.json). max_inclusion_epochs and "
-    "record_seal_epochs are constant within each history. Every Canonical Host is its own capacity unit unless the "
+    "not modelled (its read bound is carried by vectors/wist1/catalog-fields.json). record_seal_epochs is "
+    "constant within each history, and max_inclusion_epochs too unless the history carries `inclusion_schedule`, "
+    "rows [height, value] giving the max_inclusion_epochs of the map in force at every Epoch from that height, a "
+    "schedule the Log sealed in advance, which every Epoch's map follows. Every Canonical Host is its own capacity "
+    "unit unless the "
     "history carries `suffix_list`, the rules of a Public Suffix List snapshot in force at every event, from which "
-    "the Registrable Domain is derived as WIST-4 section 3.1 states; no history carries Labels, disputes or other "
-    "registry updates. `expected` has one element per event. For a pull, `settlement` is empty unless the pull "
+    "the Registrable Domain is derived as WIST-4 section 3.1 states. A history may carry `labels`, signed Label and "
+    "dispute Envelopes by name (WIST-2 section 3.3), which the replay neither authenticates nor validates; a "
+    "pull's `labels` names those its walk of the Publisher's Label Feed accepts, in the order it accepts them, "
+    "and a pull result then carries `labels`, each with its type, its Label or Dispute ID and `outcome` "
+    "`accepted` with its place, or `seen` for one already accepted or sealed. No Labeler of a history has a "
+    "recovery window, and no history carries registry updates other than payload_withdrawal acts. An epoch "
+    "event's `unsealed` names eligible Items and Labels the Aggregator leaves unsealed in that Epoch within their "
+    "ceiling; the Epoch result lists them in `unsealed` with their places, and they take no room. `expected` has "
+    "one element per event. For a pull, `settlement` is empty unless the pull "
     "settles a queue (catalog-recovery.json), and `declaration` gives `outcome` (the served Declaration applied "
     "under WIST-1 section 5.2 after the Log's Declarations and those the Aggregator discovered that are still in "
     "the eligible sealing set: `initial`, `ordinary_rotation`, `recovery_rotation`, `fresh_identity_pending`, "
@@ -2922,8 +3248,8 @@ NOTE_COMMON = (
     "sources, the Declaration in effect before the recovery and the recovery Declaration that owns the window or "
     "was discovered, inside an open window or for a recovery rotation discovered and not yet sealed, and otherwise "
     "the current Declaration) and `window`, whether the pull is inside an open window. A pull result carries `noise`, "
-    "true, where the pull discovers no Declaration (WIST-1 section 5.2), accepts no Catalog, admits no Item and "
-    "does not suspend (WIST-2 section 5.4), and no `noise` otherwise; no history carries a Label Feed, and a pull "
+    "true, where the pull discovers no Declaration (WIST-1 section 5.2), accepts no Catalog, admits no Item, "
+    "accepts no Label or dispute and does not suspend (WIST-2 section 5.4), and no `noise` otherwise; a pull "
     "stopped at its Declaration outside first contact carries none. "
     "From the pull that discovers a recovery rotation, a pull queues what it accepts as a pull inside the window "
     "does, per Collection name and signing key, its order read against the floor, against the queued Catalog "
@@ -2977,8 +3303,9 @@ NOTE_COMMON = (
     "and `records_removed`. After every event `state` gives per Publisher and Collection name the latest Catalog, "
     "the last accepted Catalog and the waiting Catalog with its place, eligibility Epoch and ceiling; every waiting "
     "URL with its Collection, Item, place, eligibility Epoch and ceiling (null while a window holds it); the queue; "
-    "the Declarations that reduce authority, discovered, in the eligible sealing set and not sealed; and the "
-    "records. A place is [event index, position of the Collection] for a Catalog; event indices count a pull "
+    "the Declarations that reduce authority, discovered, in the eligible sealing set and not sealed; the "
+    "records; and, while any waits, `labels`, every waiting Label and dispute with its place, eligibility Epoch "
+    "and ceiling. A place is [event index, position of the Collection] for a Catalog; event indices count a pull "
     "that settles a queue as two events, the settlement first, so they run one ahead of the positions in "
     "`expected` after such a pull, with the Item's index in the "
     "list appended for a URL. The position is that of the Collection among the Collections of the Declaration in "
@@ -2987,10 +3314,22 @@ NOTE_COMMON = (
     "Epoch the one in force once its transitions have applied; at a settlement the one it leaves current, at a "
     "pull's settlement the admission head, unsealed followers included. Places "
     "compare by event index, then by the Publisher's Canonical Host in ascending octet order, then by position and "
-    "list index. A URL that begins to wait at an Epoch or at a settlement takes that event's place. What takes a "
+    "list index. A Label or dispute takes [event index, number of Collections in that order, index among the "
+    "pull's accepted Labels and disputes], after the places the pull gives Catalogs and URLs, its Labeler's or "
+    "disputant's Canonical Host standing for the Publisher's. A URL that begins to wait at an Epoch or at a "
+    "settlement takes that event's place. What takes a "
     "place is eligible for the Epoch after that event, a replacement that keeps a place keeps its eligibility "
     "Epoch, and each Epoch at which a deferral applies to it moves it to the following one; the hold and a waiting "
-    "Catalog that nothing defers move none. The ceiling is the eligibility Epoch plus max_inclusion_epochs. A URL "
+    "Catalog that nothing defers move none. The ceiling is the eligibility Epoch plus the max_inclusion_epochs of "
+    "the map in force at the eligibility Epoch, read again when a deferral moves it (WIST-4 section 5). The "
+    "capacity is taken by Catalogs, then Items of kind removed, then Items of kind page, Labels and disputes "
+    "together in the order of places, a Label or dispute also within labeler_epoch_entries_max of its unit; "
+    "what does not fit is deferred by `capacity`, a Label or dispute by no other deferral and without a report. "
+    "A Label or dispute waits from the pull that accepts it and leaves when sealed or when, at its turn, it fails "
+    "a WIST-2 section 3.3 check repeated under the candidate Epoch's map and its sealed_at as the clock (the "
+    "subject of a Label within url_cap_bytes octets of JCS, asserted_at within clock_skew_seconds of the clock): "
+    "it is then not sealed and the Epoch result lists it in `rejections` with its ID and WIST2-E06 (present only "
+    "when nonempty). A URL "
     "waits while its Item is admitted and I7 holds for it, an Item of kind page whose Item ID a sealed withdrawal "
     "names failing I7; where the last accepted Catalogs of two Collections of the Publisher each list an admitted "
     "Item for one URL that meets that row, the Item of the Collection whose Scope covers the URL under the "
@@ -3001,7 +3340,8 @@ NOTE_COMMON = (
     "their URL's record's Items leave as Items for which I7 no longer holds, listed in `left` with `I7`, the "
     "codes of their judgment against the latest Catalog once the Epoch has applied, and not reported. The "
     "payload_withdrawal acts an Epoch seals that meet their contract through an Item sealed below that Epoch "
-    "destroy their Payloads before its planning; the Aggregator seals no withdrawal that breaks its contract: "
+    "destroy their Payloads before its planning; the Aggregator seals no withdrawal of an Item not sealed below "
+    "the Epoch (WIST-3 section 3.3), nor one that breaks its contract: "
     "one the Epoch lists is left out, destroys nothing and is reported in `updates_refused` with WIST4-E04 "
     "(present only when nonempty). An Item "
     "of kind page whose Payload is not held at its turn is treated as one whose Payload fails (`payload`, "

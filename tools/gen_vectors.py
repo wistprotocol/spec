@@ -94,7 +94,7 @@ def spaced_labels(node):
 # no random source by construction — it must stay byte-reproducible — so the
 # vector's salt is derived from a fixed domain-separated string and the Item's
 # URL. That is a property of the vector, never of a conforming Publisher.
-DELTA_URL = "https://example.com/blog/post-1"
+ITEM_URL = "https://example.com/blog/post-1"
 EXTRACT = "WIST is an open, verifiable, push-based web index protocol."
 
 # The example Item's own page, in raw HTML octets — link_extraction.py's
@@ -114,7 +114,7 @@ FIXTURE_HTML = b"""<!doctype html><html><body>
 <a href="https://example.org/%7euser">escape renormalized, distinct URL</a>
 </body></html>"""
 LINKS = link_extraction.links_member(
-    *link_extraction.extract_links(FIXTURE_HTML, DELTA_URL, "example.com"),
+    *link_extraction.extract_links(FIXTURE_HTML, ITEM_URL, "example.com"),
     LINKS_CAP_BYTES)
 
 CONTENT = {
@@ -123,30 +123,19 @@ CONTENT = {
     "summary": {"title": "Post 1", "abstract": "An introduction to WIST."},
 }
 content_canonical = rfc8785.dumps(CONTENT)
-salt = hashlib.sha256(b"wist-test-salt|" + DELTA_URL.encode()).digest()[:16]
+salt = hashlib.sha256(b"wist-test-salt|" + ITEM_URL.encode()).digest()[:16]
 assert len(salt) >= 16, "salt must be at least 128 bits (WIST-1 §3.6)"
 commitment = "hmac-sha256:" + hmac.new(salt, content_canonical, hashlib.sha256).hexdigest()
 
 payload = {"wist_version": "1.0.0", "salt": b64u(salt), "content": CONTENT}
 
-delta = {
-    "wist_version": "1.0.0",
+example_item = {
     "publisher": "example.com",
-    "url": DELTA_URL,
-    "change_type": "new",
+    "url": ITEM_URL,
     "observed_at": "2026-08-02T12:00:00Z",
     "payload": {"commitment": commitment, "alg": "HMAC-SHA256",
                 "bytes": len(content_canonical)},
     "meta": {"lang": "en", "topics": ["software"], "license": "CC-BY-4.0"},
-}
-
-
-example_item = {
-    "publisher": "example.com",
-    "url": DELTA_URL,
-    "observed_at": "2026-08-02T12:00:00Z",
-    "payload": delta["payload"],
-    "meta": delta["meta"],
 }
 example_item_id = items.item_id(example_item)
 example_tree, example_tree_files = tree_files.write_tree([example_item])
@@ -925,7 +914,7 @@ def recovery_admission_vectors():
                 "candidates are separate supplied local events, not claims of inclusion. Admission "
                 "happens at admitted_at, including when later than last_inside_epoch. Settle at "
                 "deadline, evaluate at_deadline candidates in order, then repeat admission settlement "
-                "before evaluating the deadline Epoch. No Delta, Payload, quota, Snapshot, durable "
+                "before evaluating the deadline Epoch. No Catalog, Item, Payload, quota, Snapshot, durable "
                 "storage or authenticated Audit Record eligibility is asserted.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
         "recovery_window_days": 7, "declaration_activation_epochs": 0,
@@ -1149,34 +1138,29 @@ def declaration_field_vectors():
                   "expected": "WIST1-E14", "author_signature_valid": False})
     key_time_cases = []
     ten = nbf_at("2026-08-04T10:00:00Z")
-    for name, window, observed_at, expected in [
-        ("fraction follows whole second", (ten, None), "2026-08-04T10:00:00.5Z", "key_bound_satisfied"),
+    for name, window, generated_at, expected in [
         ("inclusive start", (ten, None), "2026-08-04T10:00:00Z", "key_bound_satisfied"),
-        ("fraction before the start", (ten, None), "2026-08-04T09:59:59.999999999999999999999999999999Z", "WIST1-E02"),
-        ("no fractional rounding", (ten, None), "2026-08-04T09:59:59." + "9" * 4400 + "Z", "WIST1-E02"),
-        ("unknown local offset equality", (ten, None), "2026-08-04t10:00:00.000-00:00", "key_bound_satisfied"),
-        ("numeric offset equality", (ten, None), "2026-08-04T11:30:00+01:30", "key_bound_satisfied"),
-        ("numeric offset before the start", (ten, None), "2026-08-04T11:29:59.9+01:30", "WIST1-E02"),
+        ("one second before the start", (ten, None), "2026-08-04T09:59:59Z", "WIST1-E02"),
         ("exclusive expiry", (ten, ten + 3600), "2026-08-04T11:00:00Z", "WIST1-E02"),
-        ("fraction below the expiry", (ten, ten + 3600), "2026-08-04T10:59:59.99999999999999999999Z", "key_bound_satisfied"),
-        ("expiry under an offset spelling", (ten, ten + 3600), "2026-08-04T08:00:00-03:00", "WIST1-E02"),
+        ("one second below the expiry", (ten, ten + 3600), "2026-08-04T10:59:59Z", "key_bound_satisfied"),
+        ("fractional spelling", (ten, None), "2026-08-04T10:00:00.5Z", "WIST1-E14"),
+        ("numeric offset spelling", (ten, None), "2026-08-04T11:30:00+01:30", "WIST1-E14"),
+        ("lowercase separators", (ten, None), "2026-08-04t10:00:00z", "WIST1-E14"),
         ("inserted leap label invalid", (ten, None), "2026-08-04T10:00:60Z", "WIST1-E14"),
         ("positive leap boundary", (nbf_at("2016-12-31T23:59:59Z"), None), "2017-01-01T00:00:00Z", "key_bound_satisfied"),
-        ("leap second not counted", (nbf_at("2017-01-01T00:00:00Z"), None), "2016-12-31T23:59:59.999Z", "WIST1-E02"),
+        ("leap second not counted", (nbf_at("2017-01-01T00:00:00Z"), None), "2016-12-31T23:59:59Z", "WIST1-E02"),
         ("hypothetical deletion keeps 59", (nbf_at("2030-06-30T23:59:58Z"), None), "2030-06-30T23:59:59Z", "key_bound_satisfied"),
         ("Unix time origin", (0, None), "1970-01-01T00:00:00Z", "key_bound_satisfied"),
-        ("before the Unix time origin precedes every window", (0, None), "1969-12-31T23:59:59.999Z", "WIST1-E02"),
-        ("year zero precedes every window", (0, None), "0000-01-01T00:00:00+23:59", "WIST1-E02"),
+        ("before the Unix time origin precedes every window", (0, None), "1969-12-31T23:59:59Z", "WIST1-E02"),
+        ("year zero precedes every window", (0, None), "0000-01-01T00:00:00Z", "WIST1-E02"),
         ("last representable start", (253402300799, None), "9999-12-31T23:59:59Z", "key_bound_satisfied"),
-        ("offset beyond the written year range", (253402300799, None), "9999-12-31T23:59:59.5-00:01", "key_bound_satisfied"),
-        ("largest expiry", (0, 253402300799), "9999-12-31T23:59:58.999Z", "key_bound_satisfied"),
+        ("largest expiry", (0, 253402300799), "9999-12-31T23:59:58Z", "key_bound_satisfied"),
     ]:
         declaration = dict(publisher, keys=[jwk(pub_raw, window[0], window[1])])
-        inner = {key: value for key, value in delta.items() if key != "payload"}
-        inner.update(change_type="delete", observed_at=observed_at, prev=decl_hash(delta))
         key_time_cases.append({"name": name,
                                "declaration": sign_envelope("publisher", declaration, KID1),
-                               "envelope": sign_envelope("delta", inner, KID1),
+                               "envelope": sign_envelope("catalog", dict(example_catalog, generated_at=generated_at),
+                                                         KID1),
                                "expected": expected})
     elapsed_cases = [
         {"start": "2016-12-31T23:59:59Z", "end": "2017-01-01T00:00:00Z", "seconds": "1"},
@@ -1187,22 +1171,24 @@ def declaration_field_vectors():
     ]
 
     relation_cases = []
-    for name, kind, reference, observed_at, expected in [
-        ("skew bound inclusive", "clock", "2026-08-04T10:00:00Z", "2026-08-04T07:10:00-03:00", "relation_satisfied"),
-        ("skew bound exact excess", "clock", "2026-08-04T10:00:00Z", "2026-08-04T10:10:00.00000000000000000001Z", "WIST1-E06"),
-        ("skew bound tiny older", "clock", "2026-08-04T10:00:00Z", "2026-08-04T10:09:59.99999999999999999999Z", "relation_satisfied"),
-        ("equal predecessor offset", "predecessor", "2026-08-04T10:00:00Z", "2026-08-04T07:00:00.000-03:00", "WIST1-E07"),
-        ("strict predecessor tiny later", "predecessor", "2026-08-04T10:00:00Z", "2026-08-04T10:00:00.00000000000000000001Z", "relation_satisfied"),
-        ("strict predecessor tiny earlier", "predecessor", "2026-08-04T10:00:00.00000000000000000002Z", "2026-08-04T10:00:00.00000000000000000001Z", "WIST1-E07"),
+    for name, kind, reference, instant, expected in [
+        ("skew bound inclusive", "clock", "2026-08-04T10:00:00Z", "2026-08-04T10:10:00Z", "relation_satisfied"),
+        ("skew bound one second over", "clock", "2026-08-04T10:00:00Z", "2026-08-04T10:10:01Z", "WIST1-E06"),
+        ("skew bound over a fractional clock", "clock", "2026-08-04T10:00:00.5Z", "2026-08-04T10:10:01Z", "WIST1-E06"),
+        ("skew bound tiny later clock", "clock", "2026-08-04T10:00:00.00000000000000000001Z", "2026-08-04T10:10:00Z", "relation_satisfied"),
+        ("Item at generated_at under an offset", "item", "2026-08-04T10:00:00Z", "2026-08-04T07:00:00.000-03:00", "relation_satisfied"),
+        ("Item tiny later than generated_at", "item", "2026-08-04T10:00:00Z", "2026-08-04T10:00:00.00000000000000000001Z", "WIST1-E06"),
+        ("Item tiny earlier than generated_at", "item", "2026-08-04T10:00:00Z", "2026-08-04T09:59:59.99999999999999999999Z", "relation_satisfied"),
     ]:
-        inner = {key: value for key, value in delta.items() if key != "payload"}
-        inner.update(change_type="delete", observed_at=observed_at, prev=decl_hash(delta))
         case = {"name": name, "kind": kind, "reference": reference, "expected": expected}
-        if kind == "predecessor":
-            predecessor = dict(delta, observed_at=reference)
-            case["predecessor"] = sign_envelope("delta", predecessor, KID1)
-            inner["prev"] = decl_hash(predecessor)
-        case["envelope"] = sign_envelope("delta", inner, KID1)
+        if kind == "clock":
+            case["envelope"] = sign_envelope("catalog", dict(example_catalog, generated_at=instant), KID1)
+        else:
+            listed = dict(example_item, observed_at=instant)
+            tree, _ = tree_files.write_tree([listed])
+            case["item"] = listed
+            case["envelope"] = sign_envelope("catalog", dict(example_catalog, generated_at=reference,
+                                                             root=items.root_string([listed]), tree=tree), KID1)
         relation_cases.append(case)
 
     def epoch(leaves, height, batch):
@@ -1259,11 +1245,13 @@ def declaration_field_vectors():
                 "including due settlement and other domains. Timestamp fields follow the event-independent "
                 "Gregorian profile in WIST-1 section 3.4, rejecting every leap label; the 2030-06-30 "
                 "deletion is hypothetical and asserts no IERS announcement. Key-time cases authenticate "
-                "one supplied binding and assert only field validity and its window, inclusive at nbf "
-                "and exclusive at exp. Elapsed cases "
-                "use exact civil-clock seconds. Relation cases isolate the inclusive 600-second clock bound "
-                "and strict predecessor ordering; predecessor authorship and ID are checked but lower Log "
-                "position, chain availability and clock acquisition are supplied assumptions. Hostname coverage is limited to ASCII structural examples. No full field profile, "
+                "one supplied binding and assert only the Catalog's generated_at field validity, the "
+                "whole-second literal-Z profile of WIST-3 section 3.1, and its window, inclusive at nbf "
+                "and exclusive at exp (WIST-1 section 5.1). Elapsed cases "
+                "use exact civil-clock seconds. Relation cases isolate the inclusive 600-second bound of a "
+                "Catalog's generated_at over the supplied clock and an Item's observed_at against its "
+                "Catalog's generated_at as exact instants (WIST-1 section 3.4); clock acquisition and the "
+                "rest of the Catalog's judgment are supplied assumptions. Hostname coverage is limited to ASCII structural examples. No full field profile, "
                 "cryptographic key admission, Snapshot restoration or live service conformance is asserted.",
         "log_key": conflicts["log_key"], "author_key": b64u(pub_raw), "stored": initial,
         "recovery_window_days": 7, "declaration_activation_epochs": 0,
@@ -1360,7 +1348,7 @@ def declaration_key_eligibility_vectors():
                 "even for rejected Envelopes, and is not installed state. Fixtures use canonical base64url "
                 "and ordinary valid fields; nbf and exp never filter a Declaration signer. No temporal "
                 "authority selection, full field/encoding profile, live "
-                "admission, Delta replay or Snapshot result is asserted.",
+                "admission, Catalog replay or Snapshot result is asserted.",
         "cases": cases})
 
 
@@ -1561,7 +1549,7 @@ def declaration_host_vectors():
 declaration_host_vectors()
 
 # ------------------------------ WIST-1 §5.2: the Key Set at a sealing height
-# The ordinary resolution rule over key identifiers alone: a Delta sealed at height N
+# The ordinary resolution rule over key identifiers alone: a Catalog sealed at height N
 # verifies under the highest-seq Declaration sealed at a height <= N, the
 # Epoch's own Declarations included (WIST-3 §3.3 applies them first). The
 # recovery exception is exercised by recovery-settlement.json.
@@ -1873,10 +1861,10 @@ link_cap_html = ('<html><body><a href="' + link_at_cap + 'k">one octet above lin
 
 cases = []
 for label, html, base, dom in (
-        ("example-item-page-links", FIXTURE_HTML, DELTA_URL, "example.com"),
-        ("budget-truncation", overflow_html, DELTA_URL, "example.com"),
-        ("scan-hardening", scan_html, DELTA_URL, "example.com"),
-        ("link-url-cap", link_cap_html, DELTA_URL, "example.com")):
+        ("example-item-page-links", FIXTURE_HTML, ITEM_URL, "example.com"),
+        ("budget-truncation", overflow_html, ITEM_URL, "example.com"),
+        ("scan-hardening", scan_html, ITEM_URL, "example.com"),
+        ("link-url-cap", link_cap_html, ITEM_URL, "example.com")):
     urls, total = link_extraction.extract_links(html, base, dom)
     member = link_extraction.links_member(urls, total, LINKS_CAP_BYTES)
     cases.append({"label": label, "html_hex": html.hex(), "base_url": base,
@@ -3252,7 +3240,7 @@ assert catalogs.catalog_disposition(reduced_catalog_envelope, reduced_declaratio
 
 RECORD_FIELDS = ["url", "publisher", "item_id", "observed_at", "attested_at"]
 example_collection_tuple = ["collection", "example.com", "default", example_catalog_envelope, 0]
-example_record_tuple = ["record", "example.com", DELTA_URL, example_item, "default", example_catalog_id,
+example_record_tuple = ["record", "example.com", ITEM_URL, example_item, "default", example_catalog_id,
                         example_catalog["generated_at"]]
 reduced_collection_tuple = ["collection", "reduced.example.org", "default", reduced_catalog_envelope, 0]
 reduced_record_tuple = ["record", "reduced.example.org", REDUCED_URL, reduced_item, "default",
@@ -3305,7 +3293,7 @@ sharded_records = {
     "files": [{"path": "shard-%d/%s" % (i, path), "tier": tier, "shard": i}
               for i in range(SHARD_COUNT) for path, tier in SHARD_TIER_FILES],
     "label_rows": [
-        {"labeler": _labeler_a, "subject": DELTA_URL, "name": "wist:copied",
+        {"labeler": _labeler_a, "subject": ITEM_URL, "name": "wist:copied",
          "shard": shard_of(_labeler_a, SHARD_COUNT)},
         {"labeler": _labeler_b, "subject": "https://reduced.example.org/notice",
          "name": "wist:spam", "shard": shard_of(_labeler_b, SHARD_COUNT)},
@@ -3317,7 +3305,7 @@ sharded_records = {
 assert sorted(sharded_records["digests"]) != [snapshot_digest] * SHARD_COUNT
 
 snapshot_links = [
-    {"source_url": DELTA_URL, "target_url": u, "position": i}
+    {"source_url": ITEM_URL, "target_url": u, "position": i}
     for i, u in enumerate(CONTENT["links"]["urls"])
 ]
 
@@ -4640,7 +4628,7 @@ print("wist4 parameter-in-force vector written")
 PROSPECTIVE_DEFAULTS = {"links_cap_bytes": 4096, "link_url_cap_bytes": 2048,
                         "mirror_retention_days": 90, "payload_window_days": 180,
                         "labeler_epoch_entries_max": 1000, "domain_epoch_entries_max": 10000}
-PROSPECTIVE_FLOORS = {"links_cap_bytes": 21, "link_url_cap_bytes": 14,
+PROSPECTIVE_FLOORS = {"links_cap_bytes": 4096, "link_url_cap_bytes": 2048,
                       "mirror_retention_days": 30, "payload_window_days": 30,
                       "labeler_epoch_entries_max": 1, "domain_epoch_entries_max": 1}
 
@@ -4681,15 +4669,19 @@ def prospective_acceptance(changes):
 prospective_cases = []
 for label, rows, rejected in (
     ("pending link cap then incompatible aggregate cap", [(0, 0, "link_url_cap_bytes", 4000, 10), (1, 0, "links_cap_bytes", 4000, 11)], [1]),
-    ("later activation sealed first", [(0, 0, "links_cap_bytes", 3000, 20), (1, 0, "link_url_cap_bytes", 2990, 10)], [1]),
-    ("invalid future after earlier activation", [(0, 0, "link_url_cap_bytes", 4000, 20), (1, 0, "links_cap_bytes", 3000, 10)], [1]),
-    ("intermediate replacement makes schedule valid", [(0, 0, "link_url_cap_bytes", 4000, 10), (1, 0, "link_url_cap_bytes", 1000, 11), (2, 0, "links_cap_bytes", 3000, 12)], []),
-    ("same effective time conflicts", [(0, 0, "link_url_cap_bytes", 4000, 10), (1, 0, "links_cap_bytes", 3000, 10)], [1]),
-    ("rejected candidate is not retried", [(0, 0, "link_url_cap_bytes", 4000, 10), (1, 0, "links_cap_bytes", 3000, 10), (2, 0, "link_url_cap_bytes", 1000, 10)], [1]),
-    ("canonical same Epoch order", [(0, 1, "link_url_cap_bytes", 4000, 10), (0, 0, "links_cap_bytes", 3000, 10)], [0]),
-    ("invalid bound cannot hide behind replacement", [(0, 0, "links_cap_bytes", 20, 10), (1, 0, "links_cap_bytes", 4096, 10)], [0]),
-    ("grace period required", [(0, 0, "links_cap_bytes", 4000, 6)], [0]),
-    ("aggregate cap exactly the link cap plus its structure", [(0, 0, "links_cap_bytes", 2069, 10)], []),
+    ("later activation sealed first", [(0, 0, "links_cap_bytes", 8000, 9), (1, 0, "links_cap_bytes", 5000, 20), (2, 0, "link_url_cap_bytes", 5990, 15)], [2]),
+    ("invalid future after earlier activation", [(0, 0, "links_cap_bytes", 6000, 9), (1, 0, "link_url_cap_bytes", 5000, 20), (2, 0, "links_cap_bytes", 5010, 10)], [2]),
+    ("intermediate replacement makes schedule valid", [(0, 0, "links_cap_bytes", 8000, 9), (1, 0, "link_url_cap_bytes", 6000, 10), (2, 0, "link_url_cap_bytes", 4000, 11), (3, 0, "links_cap_bytes", 5000, 12)], []),
+    ("same effective time conflicts", [(0, 0, "links_cap_bytes", 8000, 9), (1, 0, "link_url_cap_bytes", 5000, 10), (2, 0, "links_cap_bytes", 5010, 10)], [2]),
+    ("rejected candidate is not retried", [(0, 0, "links_cap_bytes", 8000, 9), (1, 0, "link_url_cap_bytes", 5000, 10), (2, 0, "links_cap_bytes", 5010, 10), (3, 0, "link_url_cap_bytes", 4000, 10)], [2]),
+    ("canonical same Epoch order", [(0, 0, "links_cap_bytes", 8000, 9), (1, 1, "link_url_cap_bytes", 5000, 10), (1, 0, "links_cap_bytes", 5010, 10)], [1]),
+    ("invalid bound cannot hide behind replacement", [(0, 0, "links_cap_bytes", 4095, 10), (1, 0, "links_cap_bytes", 4096, 10)], [0]),
+    ("grace period required", [(0, 0, "links_cap_bytes", 5000, 6)], [0]),
+    ("aggregate cap exactly the link cap plus its structure", [(0, 0, "links_cap_bytes", 5021, 9), (1, 0, "link_url_cap_bytes", 5000, 10)], []),
+    ("links cap one below its floor", [(0, 0, "links_cap_bytes", 4095, 10)], [0]),
+    ("links cap at its floor", [(0, 0, "links_cap_bytes", 4096, 10)], []),
+    ("link url cap one below its floor", [(0, 0, "link_url_cap_bytes", 2047, 10)], [0]),
+    ("link url cap at its floor", [(0, 0, "link_url_cap_bytes", 2048, 10)], []),
     ("retention below a sixth of the window", [(0, 0, "payload_window_days", 541, 10)], [0]),
     ("retention exactly a sixth of the window", [(0, 0, "payload_window_days", 540, 10)], []),
     ("window raised after retention raised", [(0, 0, "mirror_retention_days", 120, 10), (1, 0, "payload_window_days", 720, 11)], []),
@@ -4741,7 +4733,33 @@ for parameter, value, schema_valid, combinations_hold_at_defaults in (
     ("payload_window_days", 29, False, True),
     ("payload_window_days", 30, True, True),
     ("payload_window_days", 541, True, False),
-    ("links_cap_bytes", 2000, True, False),
+    ("link_url_cap_bytes", 4076, True, False),
+    ("url_cap_bytes", 2047, False, True),
+    ("url_cap_bytes", 2048, True, True),
+    ("url_cap_bytes", 32768, True, True),
+    ("url_cap_bytes", 32769, False, True),
+    ("extract_cap_bytes", 32767, False, True),
+    ("extract_cap_bytes", 32768, True, True),
+    ("summary_cap_bytes", 2047, False, True),
+    ("summary_cap_bytes", 2048, True, True),
+    ("links_cap_bytes", 4095, False, True),
+    ("links_cap_bytes", 4096, True, True),
+    ("link_url_cap_bytes", 2047, False, True),
+    ("link_url_cap_bytes", 2048, True, True),
+    ("collections_max", 15, False, True),
+    ("collections_max", 16, True, True),
+    ("scope_entries_max", 31, False, True),
+    ("scope_entries_max", 32, True, True),
+    ("catalog_items_max", 16777215, False, True),
+    ("catalog_items_max", 16777216, True, True),
+    ("tree_file_cap_bytes", 65535, False, True),
+    ("tree_file_cap_bytes", 65536, True, True),
+    ("tree_depth_max", 15, False, True),
+    ("tree_depth_max", 16, True, True),
+    ("catalog_refresh_seconds", 0, False, True),
+    ("catalog_refresh_seconds", 1, True, True),
+    ("catalog_refresh_seconds", 7776000, True, True),
+    ("catalog_refresh_seconds", 7776001, False, True),
     ("labeler_epoch_entries_max", 0, False, True),
     ("labeler_epoch_entries_max", 20000, True, False),
     ("epoch_cadence_seconds", 86400, True, True),
@@ -4753,15 +4771,35 @@ for parameter, value, schema_valid, combinations_hold_at_defaults in (
         "effective_at": "2026-08-12T00:00:00Z", "details": {"parameter": parameter, "value": value if canonical else 0}}
     envelope = sign_envelope("update", inner, "test-agg-k1")
     envelope["update"]["details"]["value"] = value
+    if not canonical:
+        code = "WIST1-E05"
+    elif isinstance(value, str):
+        code = "WIST4-E04"
+    else:
+        code = None if schema_valid else "WIST4-E03"
     parameter_wire_cases.append({"label": parameter + " value " + repr(value), "envelope": envelope,
         "canonical_integer": canonical, "schema_valid": schema_valid,
         "combinations_hold_at_defaults": combinations_hold_at_defaults,
-        "sealed_disposition": "candidate" if schema_valid else "ignored"})
+        "sealed_disposition": "candidate" if schema_valid else "ignored", "code": code})
 inner = {"wist_version": "1.0.0", "action": "parameter_change", "subject": "quota_base",
     "effective_at": "2026-08-12T00:00:00.5Z", "details": {"parameter": "quota_base", "value": 1}}
 parameter_wire_cases.append({"label": "quota_base fractional effective_at",
     "envelope": sign_envelope("update", inner, "test-agg-k1"), "canonical_integer": True,
-    "schema_valid": False, "combinations_hold_at_defaults": True, "sealed_disposition": "ignored"})
+    "schema_valid": False, "combinations_hold_at_defaults": True, "sealed_disposition": "ignored",
+    "code": "WIST4-E11"})
+for label, parameter, subject, value, signer, code in (
+    ("value below its bound under a signature that fails", "url_cap_bytes", "url_cap_bytes", 2047, priv2, "WIST4-E11"),
+    ("identifier the Parameter Registry does not list with the same subject", "page_rank_weight", "page_rank_weight", 5, priv, "WIST4-E03"),
+    ("identifier the Parameter Registry does not list under a signature that fails", "page_rank_weight", "page_rank_weight", 5, priv2,
+     "WIST4-E11"),
+    ("identifier the Parameter Registry does not list with another subject", "page_rank_weight", "quota_base", 5, priv, "WIST4-E04"),
+    ("non-string parameter", 7, "7", 5, priv, "WIST4-E04"),
+):
+    inner = {"wist_version": "1.0.0", "action": "parameter_change", "subject": subject,
+             "effective_at": "2026-08-12T00:00:00Z", "details": {"parameter": parameter, "value": value}}
+    parameter_wire_cases.append({"label": label, "envelope": sign_envelope_with(signer, "update", inner, "test-agg-k1"),
+        "canonical_integer": True, "schema_valid": False, "combinations_hold_at_defaults": True,
+        "sealed_disposition": "ignored", "code": code})
 
 EPOCH_CAP_DEFAULT = 256 * 1024 * 1024
 EPOCH_SIZE_FLOOR = 65537
@@ -4920,7 +4958,7 @@ assert [[e["sealable"] for e in c["eligible_recoveries"]] for c in recovery_wind
 assert [len(c["rejected_amendments"]) for c in recovery_window_cases] == [0, 0, 0, 0, 0, 0, 0, 1, 0]
 
 write_json(WIST4 / "parameter-combinations.json", spaced_labels({
-    "note": "WIST-4 §5 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. epoch_size_cases and epoch_transport_cases: the Epoch-size guarantee over the sealed prefix and the transport bound it fixes. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract. clock_cases: a parameter read for work already begun stays attached to its anchor.",
+    "note": "WIST-4 §5 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. epoch_size_cases and epoch_transport_cases: the Epoch-size guarantee over the sealed prefix and the transport bound it fixes. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract, each with `code`, its disposition through JSON/JCS eligibility, the schema, authentication under wire_public_key and the fixed bounds of WIST-4 section 5 (null for a candidate): a string details.parameter that names no identifier with the same subject, and an integer value outside its bound, are WIST4-E03 once authenticated. clock_cases: a parameter read for work already begun stays attached to its anchor.",
     "prospective_defaults": PROSPECTIVE_DEFAULTS,
     "prospective_floors": PROSPECTIVE_FLOORS,
     "prospective_cases": prospective_cases,
@@ -4940,31 +4978,81 @@ print("wist4 parameter-combinations vector written")
 # ------------------------------------- WIST-4 §5.1: payload_withdrawal acts
 def withdrawal_vectors():
     payloads = {}
+    hour = {height: f"2026-08-02T0{height}:00:00Z" for height in range(7)}
 
-    def sealed_item(publisher_domain, url, height, generated_at):
-        made, made_payload = items.new_page_item(
-            publisher_domain,
-            {"url": url, "lang": "en", "modified": "2026-08-01T12:00:00Z",
-             "content": {"extract": f"Text of {url}.", "links": {"total": 0, "urls": []},
-                         "summary": {"title": "Withdrawal fixture"}}},
-            b64u(hashlib.sha256(b"wist-test-salt|withdrawal|" + url.encode()).digest()[:16]))
-        payloads[items.item_id(made)] = made_payload
+    def sealed(publisher_domain, path, height, version=1, removed=False):
+        url = f"https://{publisher_domain}/{path}"
+        if removed:
+            made = items.removed_item(publisher_domain, url, hour[height])
+        else:
+            made, made_payload = items.new_page_item(
+                publisher_domain,
+                {"url": url, "lang": "en", "modified": f"2026-08-01T1{version}:00:00Z",
+                 "content": {"extract": f"Text of {url}, version {version}.", "links": {"total": 0, "urls": []},
+                             "summary": {"title": "Withdrawal fixture"}}},
+                b64u(hashlib.sha256(f"wist-test-salt|withdrawal|{url}|{version}".encode()).digest()[:16]))
+            payloads[items.item_id(made)] = made_payload
         tree, _ = tree_files.write_tree([made])
         inner = {"wist_version": "1.0.0", "publisher": publisher_domain, "collection": "default",
-                 "generated_at": generated_at, "size": 1, "root": items.root_string([made]), "tree": tree}
-        return {"item_id": items.item_id(made), "item": made, "publisher": publisher_domain, "url": url,
-                "height": height, "collection": "default", "catalog": catalogs.catalog_id(inner),
-                "generated_at": generated_at}
+                 "generated_at": hour[height], "size": 1, "root": items.root_string([made]), "tree": tree}
+        return {"item_id": items.item_id(made), "item": made, "kind": items.kind(made),
+                "publisher": publisher_domain, "url": url, "height": height, "collection": "default",
+                "catalog": catalogs.catalog_id(inner), "generated_at": hour[height]}
 
-    s1 = sealed_item("site.sample.net", "https://site.sample.net/one", 1, "2026-08-02T00:00:00Z")
-    s2 = sealed_item("other.sample.org", "https://other.sample.org/two", 4, "2026-08-02T03:00:00Z")
-    s3 = sealed_item("third.sample.org", "https://third.sample.org/three", 5, "2026-08-02T04:00:00Z")
-    s0 = sealed_item("old.sample.net", "https://old.sample.net/zero", 0, "2026-08-01T23:00:00Z")
-    d1, d2, d3, d0 = s1["item_id"], s2["item_id"], s3["item_id"], s0["item_id"]
-    sealed = [s1, s2, s3]
+    history = [
+        sealed("old.sample.net", "zero", 0),
+        sealed("site.sample.net", "one", 1),
+        sealed("site.sample.net", "five", 1),
+        sealed("site.sample.net", "six", 1),
+        sealed("site.sample.net", "ten", 1),
+        sealed("other.sample.org", "seven", 1),
+        sealed("other.sample.org", "four", 2),
+        sealed("site.sample.net", "five", 2, removed=True),
+        sealed("site.sample.net", "six", 2, version=2),
+        sealed("site.sample.net", "ten", 2, version=2),
+        sealed("other.sample.org", "seven", 2, version=2),
+        sealed("third.sample.org", "eight", 2),
+        sealed("other.sample.org", "eleven", 2),
+        sealed("other.sample.org", "two", 4),
+        sealed("third.sample.org", "eight", 4, removed=True),
+        sealed("other.sample.org", "eleven", 4, version=2),
+        sealed("third.sample.org", "three", 5),
+        sealed("site.sample.net", "nine", 5),
+    ]
+    by_path = {(d["url"], d["kind"], d["height"]): d["item_id"] for d in history}
 
-    def act(label, code, *, height=3, delta_id=d1, subject="site.sample.net", signer=priv,
-            key_id="test-agg-k1", version="1.0.0", extra=None, details=None, withdrawn_height=None):
+    def named(publisher_domain, path, height, kind="page"):
+        return by_path[(f"https://{publisher_domain}/{path}", kind, height)]
+
+    s1, s0, s2, s3 = (named("site.sample.net", "one", 1), named("old.sample.net", "zero", 0),
+                      named("other.sample.org", "two", 4), named("third.sample.org", "three", 5))
+    s4, s6, s7, s9, s10 = (named("other.sample.org", "four", 2), named("site.sample.net", "six", 1),
+                           named("other.sample.org", "seven", 1), named("site.sample.net", "nine", 5),
+                           named("site.sample.net", "ten", 1))
+    s11 = named("other.sample.org", "eleven", 2)
+    r5, r8 = named("site.sample.net", "five", 2, "removed"), named("third.sample.org", "eight", 4, "removed")
+    never = "sha256:" + hashlib.sha256(b"wist-test|withdrawal|never sealed").hexdigest()
+
+    def meets(identifier, subject, height):
+        return any(d["item_id"] == identifier and d["kind"] == "page" and d["publisher"] == subject
+                   and d["height"] <= height for d in history)
+
+    def state_at(height):
+        records, removals = {}, {}
+        for d in history:
+            if d["height"] > height:
+                continue
+            slot = (d["publisher"], d["url"])
+            if d["kind"] == "page":
+                records[slot] = d
+                removals.pop(slot, None)
+            else:
+                records.pop(slot, None)
+                removals[slot] = d
+        return records, removals
+
+    def act(label, code, *, height=3, delta_id=s1, subject="site.sample.net", signer=priv,
+            key_id="test-agg-k1", version="1.0.0", extra=None, details=None):
         body = ({"delta_id": delta_id, "legal_basis": "court order 12/2026", "jurisdiction": "BR"}
                 if details is None else details)
         update = {"wist_version": version, "action": "payload_withdrawal", "subject": subject,
@@ -4974,61 +5062,179 @@ def withdrawal_vectors():
         return {"label": label, "height": height,
                 "envelope_json": json.dumps(sign_envelope_with(signer, "update", update, key_id),
                                             ensure_ascii=True),
-                "code": code, "withdrawn_height": withdrawn_height}
+                "code": code, "withdrawn_height": None}
+
+    def replay(acts, withdrawn, key="code", at="withdrawn_height"):
+        for case in acts:
+            update = json.loads(case["envelope_json"])["update"]
+            identifier = update["details"].get("delta_id")
+            if case[key] is None:
+                withdrawn.setdefault(identifier, (case["height"], update["subject"]))
+                case[at] = withdrawn[identifier][0]
+        return withdrawn
 
     acts = [
-        act("valid withdrawal", None, withdrawn_height=3),
+        act("valid withdrawal", None),
         act("signed by a key the Log does not hold", "WIST4-E11", signer=priv2, key_id="test-log-r1"),
         act("unsupported major", "WIST4-E11", version="2.0.0"),
         act("unknown member", "WIST4-E11", extra={"note": "x"}),
         act("delta id not an Item ID", "WIST4-E04",
             details={"delta_id": "sha256:xyz", "legal_basis": "b", "jurisdiction": "BR"}),
-        act("missing legal basis", "WIST4-E04", details={"delta_id": d1, "jurisdiction": "BR"}),
+        act("missing legal basis", "WIST4-E04", details={"delta_id": s1, "jurisdiction": "BR"}),
         act("subject not a host", "WIST4-E04", subject="not a host!"),
         act("subject is another Publisher", "WIST4-E04", subject="other.sample.org"),
-        act("Item sealed above the act", "WIST4-E04", delta_id=d2, subject="other.sample.org", height=2),
-        act("Item sealed in the act's Epoch", None, delta_id=d2, subject="other.sample.org", height=4,
-            withdrawn_height=4),
+        act("Item sealed above the act", "WIST4-E04", delta_id=s2, subject="other.sample.org", height=2),
+        act("Item of kind removed", "WIST4-E04", delta_id=r5),
+        act("Item never sealed", "WIST4-E04", delta_id=never),
+        act("superseded Item of the subject", None, delta_id=s6),
+        act("Item sealed in the act's Epoch", None, delta_id=s2, subject="other.sample.org", height=4),
         act("repeated withdrawal keeps the first height", None, height=6,
-            details={"delta_id": d1, "legal_basis": "second order", "jurisdiction": "BR"},
-            withdrawn_height=3),
+            details={"delta_id": s1, "legal_basis": "second order", "jurisdiction": "BR"}),
     ]
+    withdrawn = replay(acts, {})
+    for case in acts:
+        update = json.loads(case["envelope_json"])["update"]
+        if case["code"] != "WIST4-E11" and isinstance(update["details"].get("delta_id"), str) \
+                and update["details"].get("legal_basis") and update["subject"] != "not a host!":
+            assert (case["code"] is None) == meets(update["details"]["delta_id"], update["subject"],
+                                                   case["height"]), case["label"]
+    final_records, final_removals = state_at(6)
+    state_tuples = sorted((["withdrawal", i, p, h] for i, (h, p) in withdrawn.items()), key=rfc8785.dumps)
 
-    state_tuples = [["withdrawal", d1, "site.sample.net", 3], ["withdrawal", d2, "other.sample.org", 4]]
-    record_tuples = [["record", d["publisher"], d["url"], d["item"], d["collection"], d["catalog"],
-                      d["generated_at"]] for d in sealed]
+    def record_tuple(d):
+        return ["record", d["publisher"], d["url"], d["item"], d["collection"], d["catalog"], d["generated_at"]]
+
+    def removal_tuple(d):
+        return ["removal", d["publisher"], d["url"], d["item_id"], d["catalog"], d["generated_at"]]
+
+    record_tuples = sorted((record_tuple(d) for d in final_records.values()), key=rfc8785.dumps)
+    removal_tuples = sorted((removal_tuple(d) for d in final_removals.values()), key=rfc8785.dumps)
+    materialized = sorted(d["item_id"] for d in final_records.values() if d["item_id"] not in withdrawn)
+
+    snapshot_height = 3
+    snap_records, snap_removals = state_at(snapshot_height)
+    adopted = {i: (h, p) for i, (h, p) in withdrawn.items() if h <= snapshot_height}
+
+    def resumed_code(identifier, subject, height, top=snapshot_height, records=None, removals=None, kept=None):
+        records = snap_records if records is None else records
+        removals = snap_removals if removals is None else removals
+        kept = adopted if kept is None else kept
+        walked = [d for d in history if top < d["height"] <= height and d["item_id"] == identifier]
+        tuple_publishers = [d["publisher"] for d in records.values() if d["item_id"] == identifier]
+        tuple_publishers += [p for i, (_, p) in kept.items() if i == identifier]
+        if any(d["kind"] == "page" and d["publisher"] == subject for d in walked) or subject in tuple_publishers:
+            return None
+        if walked or tuple_publishers or any(d["item_id"] == identifier for d in removals.values()):
+            return "WIST4-E04"
+        return None
+
+    resume_acts = [
+        act("repeats an adopted withdrawal", None, height=5),
+        act("names a record tuple Item of the subject", None, height=5, delta_id=s0, subject="old.sample.net"),
+        act("names a record tuple Item of another Publisher", "WIST4-E04", height=5, delta_id=s4),
+        act("names the Item ID of a removal tuple", "WIST4-E04", height=5, delta_id=r5),
+        act("names a walked Item of another Publisher", "WIST4-E04", height=5, delta_id=s2),
+        act("names a walked Item of kind removed", "WIST4-E04", height=5, delta_id=r8,
+            subject="third.sample.org"),
+        act("names a Snapshot record tuple Item of another Publisher replaced by a walked Entry", "WIST4-E04",
+            height=5, delta_id=s11),
+        act("names a Snapshot record tuple Item of the subject replaced by a walked Entry", None, height=5,
+            delta_id=s11, subject="other.sample.org"),
+        act("names a walked Item sealed above the act", None, height=4, delta_id=s3,
+            subject="third.sample.org"),
+        act("names a superseded Item of the subject found nowhere", None, height=5, delta_id=s10),
+        act("names a superseded Item of another Publisher found nowhere", None, height=5, delta_id=s7),
+        act("names an Item never sealed", None, height=5, delta_id=never),
+        act("names a withdrawal tuple Item of the subject", None, height=5, delta_id=s6),
+        act("names a withdrawal tuple Item of another Publisher", "WIST4-E04", height=5, delta_id=s6,
+            subject="other.sample.org"),
+        act("a later withdrawal of an Item a contract-breaking act named reads another earliest height", None,
+            height=6, delta_id=s3, subject="third.sample.org"),
+        act("withdraws a walked Item of the subject", None, height=6, delta_id=s9),
+    ]
+    for case in resume_acts:
+        update = json.loads(case["envelope_json"])["update"]
+        identifier = update["details"]["delta_id"]
+        assert resumed_code(identifier, update["subject"], case["height"]) == case["code"], case["label"]
+        case["replay_code"] = None if meets(identifier, update["subject"], case["height"]) else "WIST4-E04"
+        case["replay_withdrawn_height"] = None
+    resumed = replay(resume_acts, dict(adopted))
+    replayed = replay(resume_acts, dict(adopted), "replay_code", "replay_withdrawn_height")
+    assert any(c["code"] != c["replay_code"] for c in resume_acts)
+    assert any(c["withdrawn_height"] != c["replay_withdrawn_height"] and c["code"] is None
+               and c["replay_code"] is None for c in resume_acts)
+
+    second_height = 5
+    second_records, second_removals = state_at(second_height)
+    second_adopted = {i: (h, p) for i, (h, p) in withdrawn.items() if h <= second_height}
+    second_acts = [
+        act("names an Item only the earlier Snapshot's record tuple carried", None, height=6, delta_id=s11),
+        act("names that Item under its Publisher", None, height=6, delta_id=s11, subject="other.sample.org"),
+    ]
+    for case in second_acts:
+        update = json.loads(case["envelope_json"])["update"]
+        identifier = update["details"]["delta_id"]
+        assert resumed_code(identifier, update["subject"], case["height"], second_height, second_records,
+                            second_removals, second_adopted) == case["code"], case["label"]
+        assert resumed_code(identifier, update["subject"], case["height"]) == (
+            "WIST4-E04" if update["subject"] == "site.sample.net" else None)
+        case["replay_code"] = None if meets(identifier, update["subject"], case["height"]) else "WIST4-E04"
+        case["replay_withdrawn_height"] = None
+    second_resumed = replay(second_acts, dict(second_adopted))
+    replay(second_acts, dict(second_adopted), "replay_code", "replay_withdrawn_height")
+    assert second_acts[0]["code"] != second_acts[0]["replay_code"]
+    second = {
+        "snapshot_height": second_height,
+        "adopted": sorted((["withdrawal", i, p, h] for i, (h, p) in second_adopted.items()), key=rfc8785.dumps),
+        "record_tuples": sorted((record_tuple(d) for d in second_records.values()), key=rfc8785.dumps),
+        "removal_tuples": sorted((removal_tuple(d) for d in second_removals.values()), key=rfc8785.dumps),
+        "act_cases": second_acts,
+        "state_tuples": sorted((["withdrawal", i, p, h] for i, (h, p) in second_resumed.items()),
+                               key=rfc8785.dumps),
+    }
+
     resume = {
-        "tree_size": 3,
-        "adopted": [["withdrawal", d1, "site.sample.net", 3]],
-        "walked_items": [d for d in sealed if d["height"] > 3],
-        "act_cases": [
-            act("repeats an adopted withdrawal", None, height=5, withdrawn_height=3),
-            act("names an Item sealed below the Snapshot", None, height=5, delta_id=d0,
-                subject="old.sample.net", withdrawn_height=5),
-            act("names a walked Item of another Publisher", "WIST4-E04", height=5, delta_id=d2),
-            act("names a walked Item sealed above the act", "WIST4-E04", height=4, delta_id=d3,
-                subject="third.sample.org"),
-            act("withdraws a walked Item", None, height=6, delta_id=d3, subject="third.sample.org",
-                withdrawn_height=6),
-        ],
-        "state_tuples": [["withdrawal", d0, "old.sample.net", 5], ["withdrawal", d1, "site.sample.net", 3],
-                         ["withdrawal", d3, "third.sample.org", 6]],
+        "snapshot_height": snapshot_height,
+        "adopted": sorted((["withdrawal", i, p, h] for i, (h, p) in adopted.items()), key=rfc8785.dumps),
+        "record_tuples": sorted((record_tuple(d) for d in snap_records.values()), key=rfc8785.dumps),
+        "removal_tuples": sorted((removal_tuple(d) for d in snap_removals.values()), key=rfc8785.dumps),
+        "act_cases": resume_acts,
+        "state_tuples": sorted((["withdrawal", i, p, h] for i, (h, p) in resumed.items()), key=rfc8785.dumps),
+        "replay_state_tuples": sorted((["withdrawal", i, p, h] for i, (h, p) in replayed.items()),
+                                      key=rfc8785.dumps),
+        "resumed_again": second,
     }
     return spaced_labels({
-        "note": ("WIST-4 §5.1 and WIST-3 §6.2: a payload_withdrawal is authenticated under the Log key "
-                 "(WIST4-E11 otherwise) and names in details.delta_id the Item ID of an Item of kind page sealed "
-                 "at or below its Epoch whose Publisher is the subject (WIST4-E04 otherwise); the earliest "
+        "note": ("WIST-4 section 5.1 and WIST-3 section 6.2: a payload_withdrawal is authenticated under the Log "
+                 "key (WIST4-E11 otherwise) and meets its details contract only where a valid publisher_item "
+                 "Entry sealed the Item its details.delta_id names, of kind page, at or below the act's Epoch, "
+                 "against a Catalog whose publisher is the act's subject (WIST4-E04 otherwise); the earliest "
                  "accepted withdrawal's Epoch governs and a later withdrawal of the same Item changes nothing. "
-                 "sealed_items gives each sealed Item with the record it makes: its Collection and the Catalog ID "
-                 "and generated_at of the Catalog it was proved against. Acts replay in order; state_tuples are "
-                 "the WIST-3 §7 withdrawal tuples the replay leaves, record_tuples the record each sealed Item "
-                 "makes, withdrawn or not (WIST-3 §6.2: a withdrawal removes no record), and materialized the "
-                 "Item IDs of the sealed Items whose content materializes. resume replays acts at a Consumer "
-                 "that adopted the tuples at tree_size and walked only the Items above it: an act naming an Item "
-                 "it did not walk is accepted as consistent. `payloads` maps each Item ID to its Payload."),
-        "log_key": {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)}, "sealed_items": sealed,
+                 "sealed_items is the Log's every valid publisher_item Entry in Log order, each with its kind, "
+                 "sealing height and the Collection, Catalog ID and generated_at of the Catalog it was proved "
+                 "against; the Catalog's publisher is the Item's. Registry Updates precede Items in an Epoch's "
+                 "Entry order (WIST-3 section 3.3), so an act sealed with its Item stands before it. act_cases "
+                 "replay in order over that Log; state_tuples are the WIST-3 section 7 withdrawal tuples, "
+                 "record_tuples and removal_tuples the record and removal tuples after the last Epoch (a "
+                 "withdrawal removes no record), and materialized the Item IDs of the records whose content "
+                 "materializes. resume is a Consumer resumed from a Snapshot taken after Epoch snapshot_height: "
+                 "it adopted the Snapshot's withdrawal, record and removal tuples and applied every Entry of "
+                 "sealed_items above snapshot_height, and its act_cases are acts sealed above snapshot_height in "
+                 "place of those of act_cases. It judges each act against the Entries it applied through "
+                 "the act's Epoch and the tuples it adopted, which it keeps for this judgment after later Entries "
+                 "replace them. code and withdrawn_height are the resumed Consumer's "
+                 "result, replay_code and replay_withdrawn_height a replaying Consumer's for the same act in the "
+                 "same order; they differ only for an act the Aggregator breaks its contract by sealing and for "
+                 "what follows from that act, a later withdrawal of the same Item reading another earliest "
+                 "height. A withdrawal tuple of the subject naming the Item meets the contract and one of "
+                 "another Publisher fails it. resume.resumed_again is the same Consumer resumed again from a "
+                 "Snapshot taken after Epoch snapshot_height of the Log of act_cases: it reads only that "
+                 "Snapshot's tuples, so an Item only the earlier Snapshot's record tuple carried is found "
+                 "nowhere. `payloads` maps each Item ID of kind page to its Payload."),
+        "log_key": {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)}, "sealed_items": history,
         "act_cases": acts, "state_tuples": state_tuples, "record_tuples": record_tuples,
-        "materialized": [d3], "resume": resume, "payloads": payloads})
+        "removal_tuples": removal_tuples, "materialized": materialized, "resume": resume,
+        "payloads": payloads})
 
 
 write_json(WIST4 / "withdrawal.json", withdrawal_vectors())
@@ -5213,6 +5419,8 @@ def registrable_domain_vectors():
     def capacity(label, height, entries, cap=2):
         counts = {}
         for e in entries:
+            if not re.fullmatch(r"[a-z0-9-]{1,63}(\.[a-z0-9-]{1,63})*", e["domain"]):
+                continue
             unit = registrable_domain(e["domain"], rules[force_at[height]])[0]
             counts[unit] = counts.get(unit, 0) + 1
         expected = "WIST3-E03" if max(counts.values()) > cap else None
@@ -5221,23 +5429,32 @@ def registrable_domain_vectors():
 
     capacity_cases = [
         capacity("three hosts of one registrable domain", 2,
-                 [entry("publisher_delta", "a.example.com"), entry("publisher_delta", "b.example.com"),
-                  entry("publisher_delta", "c.example.com")]),
+                 [entry("publisher_catalog", "a.example.com"), entry("publisher_item", "b.example.com"),
+                  entry("publisher_item", "c.example.com")]),
         capacity("two private section hosts at the cap each", 2,
-                 [entry("publisher_delta", "alice.github.io"), entry("publisher_delta", "alice.github.io"),
-                  entry("publisher_delta", "bob.github.io"), entry("label", "bob.github.io")]),
-        capacity("a Label counts with the Deltas", 2,
-                 [entry("publisher_delta", "a.hosts.sample.net"), entry("publisher_delta", "a.hosts.sample.net"),
+                 [entry("publisher_catalog", "alice.github.io"), entry("publisher_item", "alice.github.io"),
+                  entry("publisher_item", "bob.github.io"), entry("label", "bob.github.io")]),
+        capacity("a Label counts with the Items", 2,
+                 [entry("publisher_item", "a.hosts.sample.net"), entry("publisher_item", "a.hosts.sample.net"),
                   entry("label", "b.hosts.sample.net")]),
+        capacity("a dispute counts with its disputant's unit", 2,
+                 [entry("publisher_item", "a.hosts.sample.net"), entry("publisher_item", "a.hosts.sample.net"),
+                  entry("dispute", "b.hosts.sample.net")]),
+        capacity("a Label whose labeler is not a Canonical Host counts toward no domain", 2,
+                 [entry("publisher_item", "a.hosts.sample.net"), entry("publisher_item", "a.hosts.sample.net"),
+                  entry("label", "B.hosts.sample.net")]),
+        capacity("a dispute whose disputant is not a Canonical Host counts toward no domain", 2,
+                 [entry("publisher_item", "a.hosts.sample.net"), entry("publisher_item", "a.hosts.sample.net"),
+                  entry("dispute", "B.hosts.sample.net")]),
         capacity("the same Entries after the private rule", 4,
-                 [entry("publisher_delta", "a.hosts.sample.net"), entry("publisher_delta", "a.hosts.sample.net"),
+                 [entry("publisher_item", "a.hosts.sample.net"), entry("publisher_item", "a.hosts.sample.net"),
                   entry("label", "b.hosts.sample.net")]),
         capacity("no snapshot in force keys on the host", 0,
-                 [entry("publisher_delta", "a.example.com"), entry("publisher_delta", "a.example.com"),
-                  entry("publisher_delta", "b.example.com"), entry("publisher_delta", "b.example.com")]),
+                 [entry("publisher_catalog", "a.example.com"), entry("publisher_item", "a.example.com"),
+                  entry("publisher_catalog", "b.example.com"), entry("publisher_item", "b.example.com")]),
         capacity("the same Entries under the first snapshot", 1,
-                 [entry("publisher_delta", "a.example.com"), entry("publisher_delta", "a.example.com"),
-                  entry("publisher_delta", "b.example.com"), entry("publisher_delta", "b.example.com")]),
+                 [entry("publisher_catalog", "a.example.com"), entry("publisher_item", "a.example.com"),
+                  entry("publisher_catalog", "b.example.com"), entry("publisher_item", "b.example.com")]),
     ]
 
     def quota(label, height, pings, base=2):
@@ -5282,7 +5499,9 @@ def registrable_domain_vectors():
                  "itself where the list leaves none. domain_cases read a host under a named snapshot or under "
                  "none. act_cases replay in Epoch order under the Log key: a suffix_list_update is in force from "
                  "the Epoch after its sealing Epoch (in_force lists the snapshot in force at each height). "
-                 "capacity_cases count publisher_delta and label Entries per Registrable Domain under the "
+                 "capacity_cases count publisher_catalog, publisher_item, label and dispute Entries (a "
+                 "Catalog's or Item's publisher, a Label's labeler, a dispute's disputant; one that is not a "
+                 "Canonical Host counts toward no domain) per Registrable Domain under the "
                  "snapshot in force at the Epoch; quota_cases apply quota_base to the noise Pings of one UTC day "
                  "per Registrable Domain in order, each Ping under the snapshot in force at its own height where "
                  "one is given; an act carrying consumer names a file no source holds, which fails its contract "
@@ -5484,7 +5703,7 @@ for entry, path in (
     (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, timestamp_probe, None, None, "sha256:" + "0" * 64, 1], [5]),
     (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, "2026-08-02T12:00:00Z", timestamp_probe, None, "sha256:" + "0" * 64, 1], [6]),
     (["dispute", "sha256:" + "0" * 64, "example.com", None, timestamp_probe, 1], [4]),
-    (["record", "example.com", DELTA_URL, example_item, "default", example_catalog_id, timestamp_probe], [6]),
+    (["record", "example.com", ITEM_URL, example_item, "default", example_catalog_id, timestamp_probe], [6]),
     (["removal", "example.com", DELETED_URL, items.item_id(retired_item), catalogs.catalog_id(retired_catalog),
       timestamp_probe], [5]),
 ):
@@ -6092,16 +6311,21 @@ def payload_field_vectors():
             ('extract', 'x' * 32769, dict(extract_cap_bytes=40000)),
             ('links', dict(total=1, urls=['https://example.org/' + 'x' * 2100]), dict(link_url_cap_bytes=4096))]:
         add('increased cap ' + field, changed(['content', field], value), caps=caps)
+    many_links = dict(total=200, urls=[f'https://example.org/reference/{n:03}' for n in range(200)])
+    long_summary = dict(title='Title', abstract='\U0001f600' * 600)
+    assert len(rfc8785.dumps(many_links)) > 4097 and len(rfc8785.dumps(long_summary)) > 2049
     for field, value, caps in [
-            ('extract', 'x' * 8, dict(extract_cap_bytes=10)),
-            ('extract', '\U0001f600' * 2, dict(extract_cap_bytes=10)),
-            ('extract', '\n' * 4, dict(extract_cap_bytes=10)),
-            ('links', base['content']['links'], dict(links_cap_bytes=len(rfc8785.dumps(base['content']['links'])))),
-            ('summary', base['content']['summary'], dict(summary_cap_bytes=len(rfc8785.dumps(base['content']['summary']))))]:
-        add('exact cap ' + field + ' ' + repr(value), changed(['content', field], value), caps=caps)
-        add('exceeded cap ' + field + ' ' + repr(value), changed(['content', field], value), ['WIST1-E04'],
+            ('extract', 'x' * 32998, dict(extract_cap_bytes=33000)),
+            ('extract', '\U0001f600' * 8250, dict(extract_cap_bytes=33002)),
+            ('extract', '\n' * 16499, dict(extract_cap_bytes=33000)),
+            ('links', many_links, dict(links_cap_bytes=len(rfc8785.dumps(many_links)))),
+            ('summary', long_summary, dict(summary_cap_bytes=len(rfc8785.dumps(long_summary))))]:
+        shown = repr(value)[:24]
+        add('exact cap ' + field + ' ' + shown, changed(['content', field], value), caps=caps)
+        add('exceeded cap ' + field + ' ' + shown, changed(['content', field], value), ['WIST1-E04'],
             {key: value - 1 for key, value in caps.items()})
-    add('URL octet cap', copy.deepcopy(base), ['WIST1-E04'], dict(link_url_cap_bytes=14))
+    add('URL octet cap', changed(['content', 'links', 'urls'], ['https://example.org/' + 'x' * 2027]), ['WIST1-E04'])
+    add('URL at the octet cap', changed(['content', 'links', 'urls'], ['https://example.org/' + 'x' * 2026]))
     add('declared length', copy.deepcopy(base), ['WIST1-E10'], wrong_length=True)
     add('commitment mismatch', copy.deepcopy(base), ['WIST1-E10'], corrupt=True)
     add('duplicate links', changed(['content', 'links'], dict(total=2, urls=['https://example.org/'] * 2)), ['WIST1-E12'])
@@ -6110,8 +6334,9 @@ def payload_field_vectors():
     add('underdeclared links', changed(['content', 'links', 'total'], 0), ['WIST1-E12'])
     payload = changed(['wist_version'], '2.0.0')
     payload['content']['links']['urls'] = ['http://example.org/']
+    payload['content']['extract'] = 'x' * 32767
     add('semantic combination', payload, ['WIST1-E04', 'WIST1-E10', 'WIST1-E12', 'WIST1-E15'],
-        dict(extract_cap_bytes=2), corrupt=True, wrong_length=True)
+        corrupt=True, wrong_length=True)
     for path, value in [(['content', 'summary', 'abstract'], None), (['wist_version'], '02.0.0'),
                         (['content', 'links', 'total'], 0.5)]:
         combined = copy.deepcopy(payload)
@@ -6119,8 +6344,7 @@ def payload_field_vectors():
         for key in path[:-1]:
             target = target[key]
         target[path[-1]] = value
-        add('field precedence ' + '.'.join(path), combined, ['WIST1-E14'],
-            dict(extract_cap_bytes=2), corrupt=True, wrong_length=True)
+        add('field precedence ' + '.'.join(path), combined, ['WIST1-E14'], corrupt=True, wrong_length=True)
     raw = json.dumps(base)
     wire_cases = [
         ('duplicate version', raw.replace('"wist_version": "1.0.0"', '"wist_version": "2.0.0", "wist_version": "1.0.0"')),

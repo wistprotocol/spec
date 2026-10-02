@@ -10,7 +10,8 @@ show history — and it must be replaceable.
 
 ## Decision
 
-All system events (deltas, audits, governance) are sequenced into an
+All system events (Declarations, Catalogs and Items, Labels and
+disputes, governance acts) are sequenced into an
 append-only, hash-chained, signed log with per-Epoch Merkle roots and
 signed checkpoints, following the Certificate Transparency model.
 

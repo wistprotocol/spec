@@ -44,10 +44,10 @@ Signed objects commit to content; they do not carry it.
   ID**: the Publisher serves them beside the Catalog that lists the Item
   (WIST-2 §3.1), and the Aggregator alongside the Epoch, in the same
   hourly synchronisation, as static files exactly as Epochs are.
-- Payloads are erasable. A withdrawal is recorded in the Log as a signed
-  redaction entry naming its legal basis, following the same due process
-  the suite already uses for sanctions: notice, evidence, public and
-  permanent record.
+- Payloads are erasable. A withdrawal is a `payload_withdrawal`
+  Registry Update the Aggregator signs and seals, naming the Item ID,
+  the legal basis and the jurisdiction (WIST-3 §6.2, WIST-4 §5.1): notice
+  in the Log, a named basis, a public and permanent record.
 - Operators and mirrors MUST serve payloads for a minimum availability
   window (a Parameter Registry value), so that a payload disappearing
   quietly is distinguishable from one withdrawn for cause.
@@ -65,12 +65,15 @@ demonstrate that it corresponds to the commitment in the Log.
   costs a file deletion plus a Log entry, not a re-serialisation of
   history.
 - The publisher remains cryptographically bound to what it declared for as
-  long as the payload exists, which is the window in which auditing
-  happens. After withdrawal, accountability rests on the Audit Records
-  already sealed, which record verdicts as data.
-- Reputation remains a pure function of Log history: a replaying party
-  reads recorded verdicts rather than recomputing similarity, so
-  withdrawal does not change any score.
+  long as the payload exists. After withdrawal, what stays is the signed
+  Item — its URL, its commitment and `payload.bytes` — and every Label
+  sealed about it (WIST-3 §6.2).
+- Every value derived from the Log remains a pure function of its
+  history, the withdrawal included: the withdrawal is itself a sealed
+  act, so every party derives the same exclusion of the content, the
+  same refusal to seal the withdrawn Item again (WIST-3 §3.3, I7) and
+  the same `withdrawal` state a Snapshot carries under `state_digest`
+  (WIST-3 §7).
 - Deduplication by identical content can no longer be done from Log
   commitments, because salts differ. It moves to materialisation, where
   the Aggregator holds the plaintext — which is where it belongs.

@@ -436,8 +436,8 @@ def reduces_authority(predecessor, successor):
     return bool(authority_reductions(predecessor, successor))
 
 
-def last_seal_height(discovery_height, record_seal_epochs):
-    return discovery_height + record_seal_epochs
+def last_seal_height(last_sealed_at_discovery, record_seal_epochs):
+    return last_sealed_at_discovery + 1 + record_seal_epochs
 
 
 FETCH_SUCCESSES = ("new_octets", "same_octets", "not_modified")

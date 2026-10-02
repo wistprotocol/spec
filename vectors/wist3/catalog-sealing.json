@@ -5641,7 +5641,7 @@
     },
     {
       "name": "I5: the Declaration and the parameter map of the Item's own Epoch",
-      "why": "D1 narrows the journal to 2026/: narrowing removes the 2025 record, and the 2025 Item against J1 fails I5 (WIST1-E03) under D1. D2 widens the Scope again and the same Item, an unchanged list's, is valid. At height 4 the parameter map lowers url_cap_bytes one octet below JCS of the long URL: its Item fails I5 (WIST1-E11); at height 5 the map is back to 2048 and the same Entry is valid.",
+      "why": "D1 narrows the journal to 2026/: narrowing removes the 2025 record, and the 2025 Item against J1 fails I5 (WIST1-E03) under D1. D2 widens the Scope again and the same Item, an unchanged list's, is valid. At height 4, under url_cap_bytes 2048, the Item of the long URL, whose JCS is one octet above it, fails I5 (WIST1-E11); at height 5 the map raises url_cap_bytes to 4096 and the same Entry is valid.",
       "epochs": [
         {
           "height": 0,
@@ -5773,13 +5773,13 @@
                     "collection": "journal",
                     "generated_at": "2026-10-01T00:59:00Z",
                     "size": 3,
-                    "root": "sha256:21d66ce3142b947d8874e32a45325f168d24e5e6be56edccfef5ccd056f0ec0b",
-                    "tree": "sha256:a100d674f43ef74f636e385f830e5dcd5c93b588fab9071ea236826716abf327"
+                    "root": "sha256:9663500c86ee0c2b613613fac443d3b86cccf87b51604029c1cd3d8696055573",
+                    "tree": "sha256:a8f3bcd1017534dfd2345d10e0a437b171099c990ef6b6842de39a27d41708b2"
                   },
                   "sig": {
                     "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
                     "alg": "Ed25519",
-                    "value": "7qwe7irzoQfv5wzJsnTKWdQmppW1MveDxyAnB_dDST0etmTRny_sdN7YOqQSGhDo5QPtrOHjwVzQ2pEn1wzvBA"
+                    "value": "Jcuv3cBWdXmog7XsL0CFjEKKkJI293veOzx22WLkiW5mTctEG9IJ0UwShXKH9HR2aSzdtVd8jobyRnoXbikXDQ"
                   }
                 }
               }
@@ -5803,12 +5803,12 @@
                     }
                   },
                   "collection": "journal",
-                  "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                  "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                   "proof": {
                     "index": 2,
                     "tree_size": 3,
                     "path": [
-                      "18c23aa7cb060370e995942cb6f1c623e49d0d68b3bcaa206881d4021c4821d0"
+                      "538554535b66c230350cf2f620ab81366d5f2475019fb753dcfa214a440e2bf6"
                     ]
                   }
                 }
@@ -5833,12 +5833,12 @@
                     }
                   },
                   "collection": "journal",
-                  "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                  "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                   "proof": {
-                    "index": 0,
+                    "index": 1,
                     "tree_size": 3,
                     "path": [
-                      "981a93fe1e7b0b659e10eafd2d667ccd5b2d88e4919d7644a52c96480981c7e5",
+                      "ccfa43ef558d4e58df2637e4237fe8b3e1e3d2f42f09479412e6b254f4c2b7d0",
                       "56b97dbf46666fbbc6a2182f5b64c3a88ecec83d92036eee8489f09a267c144b"
                     ]
                   }
@@ -5964,12 +5964,12 @@
                     }
                   },
                   "collection": "journal",
-                  "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                  "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                   "proof": {
                     "index": 2,
                     "tree_size": 3,
                     "path": [
-                      "18c23aa7cb060370e995942cb6f1c623e49d0d68b3bcaa206881d4021c4821d0"
+                      "538554535b66c230350cf2f620ab81366d5f2475019fb753dcfa214a440e2bf6"
                     ]
                   }
                 }
@@ -6094,12 +6094,12 @@
                     }
                   },
                   "collection": "journal",
-                  "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                  "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                   "proof": {
                     "index": 2,
                     "tree_size": 3,
                     "path": [
-                      "18c23aa7cb060370e995942cb6f1c623e49d0d68b3bcaa206881d4021c4821d0"
+                      "538554535b66c230350cf2f620ab81366d5f2475019fb753dcfa214a440e2bf6"
                     ]
                   }
                 }
@@ -6116,7 +6116,7 @@
             "catalog_refresh_seconds": 604800,
             "payload_window_days": 180,
             "domain_epoch_entries_max": 10000,
-            "url_cap_bytes": 94,
+            "url_cap_bytes": 2048,
             "extract_cap_bytes": 32768,
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 2048,
@@ -6134,21 +6134,21 @@
                 "body": {
                   "item": {
                     "publisher": "example.com",
-                    "url": "https://example.com/journal/2026/llllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+                    "url": "https://example.com/journal/2026/llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
                     "observed_at": "2026-09-30T10:00:00Z",
                     "payload": {
-                      "commitment": "hmac-sha256:03d0264d70f1a9e0d24c3c4bcfe67d498a93f1ddc282d498cf9bbac3b4ab21bc",
+                      "commitment": "hmac-sha256:df32dc60c2ab1da5551e8441c69b31e7f9065a28016b07666842d27f92d27b66",
                       "alg": "HMAC-SHA256",
-                      "bytes": 268
+                      "bytes": 90
                     },
                     "meta": {
                       "lang": "en"
                     }
                   },
                   "collection": "journal",
-                  "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                  "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                   "proof": {
-                    "index": 1,
+                    "index": 0,
                     "tree_size": 3,
                     "path": [
                       "b397f7365b2984d898b69f8a0cd56f878a384f2c658ab8f05b78245cce190618",
@@ -6169,7 +6169,7 @@
             "catalog_refresh_seconds": 604800,
             "payload_window_days": 180,
             "domain_epoch_entries_max": 10000,
-            "url_cap_bytes": 2048,
+            "url_cap_bytes": 4096,
             "extract_cap_bytes": 32768,
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 2048,
@@ -6187,21 +6187,21 @@
                 "body": {
                   "item": {
                     "publisher": "example.com",
-                    "url": "https://example.com/journal/2026/llllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+                    "url": "https://example.com/journal/2026/llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
                     "observed_at": "2026-09-30T10:00:00Z",
                     "payload": {
-                      "commitment": "hmac-sha256:03d0264d70f1a9e0d24c3c4bcfe67d498a93f1ddc282d498cf9bbac3b4ab21bc",
+                      "commitment": "hmac-sha256:df32dc60c2ab1da5551e8441c69b31e7f9065a28016b07666842d27f92d27b66",
                       "alg": "HMAC-SHA256",
-                      "bytes": 268
+                      "bytes": 90
                     },
                     "meta": {
                       "lang": "en"
                     }
                   },
                   "collection": "journal",
-                  "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                  "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                   "proof": {
-                    "index": 1,
+                    "index": 0,
                     "tree_size": 3,
                     "path": [
                       "b397f7365b2984d898b69f8a0cd56f878a384f2c658ab8f05b78245cce190618",
@@ -6265,7 +6265,7 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "floor": "2026-10-01T00:59:00Z",
                 "sealing_height": 1,
                 "base": false
@@ -6289,7 +6289,7 @@
                   }
                 },
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "generated_at": "2026-10-01T00:59:00Z"
               },
               {
@@ -6309,7 +6309,7 @@
                   }
                 },
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "generated_at": "2026-10-01T00:59:00Z"
               }
             ],
@@ -6351,7 +6351,7 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "floor": "2026-10-01T00:59:00Z",
                 "sealing_height": 1,
                 "base": false
@@ -6375,7 +6375,7 @@
                   }
                 },
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "generated_at": "2026-10-01T00:59:00Z"
               }
             ],
@@ -6405,7 +6405,7 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "floor": "2026-10-01T00:59:00Z",
                 "sealing_height": 1,
                 "base": false
@@ -6429,7 +6429,7 @@
                   }
                 },
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "generated_at": "2026-10-01T00:59:00Z"
               },
               {
@@ -6449,7 +6449,7 @@
                   }
                 },
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "generated_at": "2026-10-01T00:59:00Z"
               }
             ],
@@ -6485,7 +6485,7 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "floor": "2026-10-01T00:59:00Z",
                 "sealing_height": 1,
                 "base": false
@@ -6509,7 +6509,7 @@
                   }
                 },
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "generated_at": "2026-10-01T00:59:00Z"
               },
               {
@@ -6529,7 +6529,7 @@
                   }
                 },
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "generated_at": "2026-10-01T00:59:00Z"
               }
             ],
@@ -6559,7 +6559,7 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "floor": "2026-10-01T00:59:00Z",
                 "sealing_height": 1,
                 "base": false
@@ -6583,27 +6583,27 @@
                   }
                 },
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "generated_at": "2026-10-01T00:59:00Z"
               },
               {
                 "publisher": "example.com",
-                "url": "https://example.com/journal/2026/llllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+                "url": "https://example.com/journal/2026/llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
                 "item": {
                   "publisher": "example.com",
-                  "url": "https://example.com/journal/2026/llllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+                  "url": "https://example.com/journal/2026/llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
                   "observed_at": "2026-09-30T10:00:00Z",
                   "payload": {
-                    "commitment": "hmac-sha256:03d0264d70f1a9e0d24c3c4bcfe67d498a93f1ddc282d498cf9bbac3b4ab21bc",
+                    "commitment": "hmac-sha256:df32dc60c2ab1da5551e8441c69b31e7f9065a28016b07666842d27f92d27b66",
                     "alg": "HMAC-SHA256",
-                    "bytes": 268
+                    "bytes": 90
                   },
                   "meta": {
                     "lang": "en"
                   }
                 },
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "generated_at": "2026-10-01T00:59:00Z"
               },
               {
@@ -6623,7 +6623,7 @@
                   }
                 },
                 "collection": "journal",
-                "catalog": "sha256:9c9c5e5bbb0b0d8af73dface430de6e3d20e79d4b167032a1aa7b14418e4f763",
+                "catalog": "sha256:9aaa23b0f3ef2d727d600474cc22eaadb37897af4909cdd463e166967e2fbee7",
                 "generated_at": "2026-10-01T00:59:00Z"
               }
             ],
@@ -20676,6 +20676,26 @@
       "expected": "refused"
     },
     {
+      "name": "catalog_refresh_seconds at 1",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 1,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "accepted"
+    },
+    {
       "name": "url_cap_bytes at 32 768",
       "parameters": {
         "clock_skew_seconds": 600,
@@ -20704,6 +20724,186 @@
         "payload_window_days": 180,
         "domain_epoch_entries_max": 10000,
         "url_cap_bytes": 32769,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "refused"
+    },
+    {
+      "name": "url_cap_bytes at 2 048",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 604800,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "url_cap_bytes at 2 047",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 604800,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2047,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "refused"
+    },
+    {
+      "name": "extract_cap_bytes at 32 767",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 604800,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32767,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "refused"
+    },
+    {
+      "name": "summary_cap_bytes at 2 047",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 604800,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2047,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "refused"
+    },
+    {
+      "name": "links_cap_bytes at 4 095",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 604800,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4095,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "refused"
+    },
+    {
+      "name": "link_url_cap_bytes at 2 047",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 604800,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2047,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "refused"
+    },
+    {
+      "name": "collections_max at 15",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 604800,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 15,
+        "scope_entries_max": 32,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "refused"
+    },
+    {
+      "name": "scope_entries_max at 31",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "catalog_refresh_seconds": 604800,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "collections_max": 16,
+        "scope_entries_max": 31,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "expected": "refused"
+    },
+    {
+      "name": "catalog_items_max at 16 777 215",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777215,
+        "catalog_refresh_seconds": 604800,
+        "payload_window_days": 180,
+        "domain_epoch_entries_max": 10000,
+        "url_cap_bytes": 2048,
         "extract_cap_bytes": 32768,
         "links_cap_bytes": 4096,
         "link_url_cap_bytes": 2048,
@@ -20833,20 +21033,6 @@
         },
         "summary": {
           "title": "Title https://example.com/journal/e"
-        }
-      }
-    },
-    "sha256:64c93bfc9e21ff51f7c67b425dae0121fb668ad3ee3321b6d7fb327b2b77e424": {
-      "wist_version": "1.0.0",
-      "salt": "ieSfOiqF6vQJFb71vC1f4g",
-      "content": {
-        "extract": "Text of https://example.com/journal/2026/llllllllllllllllllllllllllllllllllllllllllllllllllllllllllll.",
-        "links": {
-          "total": 0,
-          "urls": []
-        },
-        "summary": {
-          "title": "Title https://example.com/journal/2026/llllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
         }
       }
     },
@@ -21085,6 +21271,20 @@
         },
         "summary": {
           "title": "Title https://example.com/journal/new/u"
+        }
+      }
+    },
+    "sha256:d76c7d9acd24a949bdc90f4db881ff75ecdb2fc486dcf944dd4defcdc64901c1": {
+      "wist_version": "1.0.0",
+      "salt": "ynEyYxZA4KMb2NDCYJi39w",
+      "content": {
+        "extract": "Text of long.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title long"
         }
       }
     },

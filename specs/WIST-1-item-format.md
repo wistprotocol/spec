@@ -1394,11 +1394,12 @@ by what signs it, using the authenticated public key resolved above:
   MUST NOT rest on the Aggregator choosing to file. The sealing itself is
   a duty with a deadline for the same reason: on discovering a served
   recovery Declaration that verifies — by pull, by hint, or by the
-  Publisher's Ping — the Aggregator MUST seal its Entry within the number
-  of Epochs `record_seal_epochs` (WIST-4 §5) fixes. Supersession of a
-  still-unsealed non-chain copy at the recovery deadline cancels that
-  copy's remaining sealing duty, without excusing a sealing-latency
-  violation already incurred before supersession. Legitimate followers
+  Publisher's Ping — the Aggregator MUST seal its Entry no later than
+  `record_seal_epochs` (WIST-4 §5) Epochs after the first Epoch it seals
+  after the discovery. Supersession of a still-unsealed non-chain copy at
+  the recovery deadline cancels that copy's remaining sealing duty,
+  without excusing a sealing-latency violation already incurred before
+  supersession. Legitimate followers
   retain their sealing duty. A recovery the operator can shelve
   indefinitely would leave the suite's only answer to a stolen key resting
   on the operator's goodwill. The violation is attributable — the

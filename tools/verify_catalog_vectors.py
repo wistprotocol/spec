@@ -28,8 +28,9 @@ CATALOG_JSON_READ_OCTETS = 16384
 NESTING_LEVELS_MAX = 64
 STRING_LITERAL = re.compile(r'"(?:[^"\\]|\\.)*"', re.DOTALL)
 PARAMETER_FLOORS = {"catalog_items_max": 16777216, "tree_file_cap_bytes": 65536, "tree_depth_max": 16}
-SIZE_CAP_BOUNDS = {"url_cap_bytes": (14, 32768), "extract_cap_bytes": (2, None), "links_cap_bytes": (21, None),
-                   "link_url_cap_bytes": (14, None), "summary_cap_bytes": (12, None)}
+SIZE_CAP_BOUNDS = {"url_cap_bytes": (2048, 32768), "extract_cap_bytes": (32768, None),
+                   "links_cap_bytes": (4096, None), "link_url_cap_bytes": (2048, None),
+                   "summary_cap_bytes": (2048, None)}
 SUITE_CATALOG_ITEMS_MAX = 16777216
 
 PUBLISHER_TS = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})"

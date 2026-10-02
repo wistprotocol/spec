@@ -27,11 +27,11 @@ on how much one party can say.
   current one, so an earlier Label does not return. Tuples and the
   label table drop an expired Label and carry `expires_at` while it
   lives.
-- **A Label can bind to one publication.** An OPTIONAL `delta`, a Delta
-  ID, on a URL subject binds the Label to the publication anchored at
-  that Delta; a later `new` or `update` of the URL is not covered. The
-  binding is not checked against any Log at pull, since the Delta may
-  be sealed elsewhere.
+- **A Label can bind to one publication.** An OPTIONAL `delta`, an Item
+  ID, on a URL subject binds the Label to that Item: the Label applies
+  only while the URL's record carries the Item, and a later Item of the
+  URL is not covered. The binding is not checked against any Log at
+  pull, since the Item may be sealed elsewhere.
 - **A Labeler defines the names it uses.** A signed label definition
   per name, served under the Labeler's well-known prefix at a path
   derived from the name, carries a description URL and a default
@@ -87,8 +87,8 @@ on how much one party can say.
 
 - Label objects carry nine members; label tuples carry `expires_at`,
   `delta` and the Label ID a dispute names, and the label table
-  `expires_at` and `delta`; Epochs carry a fifth Entry type; the
-  Registry carries a twenty-first parameter with a combination rule.
+  `expires_at` and `delta`; Epochs carry the `dispute` Entry type; the
+  Registry carries `labeler_epoch_entries_max` with a combination rule.
 - `vectors/wist2/labels.json` gains expiry, binding and Snapshot-instant
   cases; `vectors/wist2/disputes.json`, `vectors/wist2/label-definitions.json`
   and `vectors/wist3/label-tables.json` are new; the parameter

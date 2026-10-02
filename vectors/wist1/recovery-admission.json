@@ -1,5 +1,5 @@
 {
-  "note": "WIST-1 section 5.2. Shared signed hourly prefix plus each case's last inside Epoch and deadline Epoch authenticate sealed Declaration state. Named signed admission candidates are separate supplied local events, not claims of inclusion. Admission happens at admitted_at, including when later than last_inside_epoch. Settle at deadline, evaluate at_deadline candidates in order, then repeat admission settlement before evaluating the deadline Epoch. No Delta, Payload, quota, Snapshot, durable storage or authenticated Audit Record eligibility is asserted.",
+  "note": "WIST-1 section 5.2. Shared signed hourly prefix plus each case's last inside Epoch and deadline Epoch authenticate sealed Declaration state. Named signed admission candidates are separate supplied local events, not claims of inclusion. Admission happens at admitted_at, including when later than last_inside_epoch. Settle at deadline, evaluate at_deadline candidates in order, then repeat admission settlement before evaluating the deadline Epoch. No Catalog, Item, Payload, quota, Snapshot, durable storage or authenticated Audit Record eligibility is asserted.",
   "log_key": {
     "key_id": "test-log-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"

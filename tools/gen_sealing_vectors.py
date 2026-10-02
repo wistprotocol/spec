@@ -425,9 +425,9 @@ def sealing_vectors():
          "a@J1 again": "valid", "J2": (E06, ["C3"]), "J3": "valid"}, check=dropped_check))
 
     old, new = page(J + "2025/x"), page(J + "2026/y")
-    long_url = J + "2026/" + "l" * 60
-    plong = page(long_url)
-    cap = len(items.jcs(long_url)) - 1
+    long_url = J + "2026/" + "l" * (DEFAULT_MAP["url_cap_bytes"] + 1 - len(items.jcs(J + "2026/")))
+    plong = page(long_url, "long")
+    assert len(items.jcs(long_url)) == DEFAULT_MAP["url_cap_bytes"] + 1
     s_list = Cat([old, new, plong], at(1))
     narrowed = successor(G, collections=[collection("journal", [prefix(J + "2026/")], [key("journal")]), STORE])
     widened = successor(narrowed, collections=[JOURNAL, STORE])
@@ -435,15 +435,15 @@ def sealing_vectors():
         "I5: the Declaration and the parameter map of the Item's own Epoch",
         "D1 narrows the journal to 2026/: narrowing removes the 2025 record, and the 2025 Item against J1 fails "
         "I5 (WIST1-E03) under D1. D2 widens the Scope again and the same Item, an unchanged list's, is valid. At "
-        "height 4 the parameter map lowers url_cap_bytes one octet below JCS of the long URL: its Item fails I5 "
-        "(WIST1-E11); at height 5 the map is back to 2048 and the same Entry is valid.",
+        "height 4, under url_cap_bytes 2048, the Item of the long URL, whose JCS is one octet above it, fails I5 "
+        "(WIST1-E11); at height 5 the map raises url_cap_bytes to 4096 and the same Entry is valid.",
         [{"entries": [("G", decl("owner", G))]},
          {"entries": [("J1", cat("journal", s_list)), ("x@J1", item(s_list, old["url"])),
                       ("y@J1", item(s_list, new["url"]))]},
          {"entries": [("D1", decl("owner", narrowed)), ("x@J1 again", item(s_list, old["url"]))]},
          {"entries": [("D2", decl("owner", widened)), ("x@J1 third", item(s_list, old["url"]))]},
-         {"entries": [("long@J1", item(s_list, long_url))], "parameters": {"url_cap_bytes": cap}},
-         {"entries": [("long@J1 again", item(s_list, long_url))]}],
+         {"entries": [("long@J1", item(s_list, long_url))]},
+         {"entries": [("long@J1 again", item(s_list, long_url))], "parameters": {"url_cap_bytes": 4096}}],
         {"J1": "valid", "x@J1": "valid", "y@J1": "valid", "x@J1 again": ("WIST1-E03", ["I5"]),
          "x@J1 third": "valid", "long@J1": ("WIST1-E11", ["I5"]), "long@J1 again": "valid"}))
 
@@ -887,8 +887,18 @@ def sealing_vectors():
     for name, changes in (("catalog_refresh_seconds at 7 776 000", {"catalog_refresh_seconds": 7776000}),
                           ("catalog_refresh_seconds at 7 776 001", {"catalog_refresh_seconds": 7776001}),
                           ("catalog_refresh_seconds at 0", {"catalog_refresh_seconds": 0}),
+                          ("catalog_refresh_seconds at 1", {"catalog_refresh_seconds": 1}),
                           ("url_cap_bytes at 32 768", {"url_cap_bytes": 32768}),
                           ("url_cap_bytes at 32 769", {"url_cap_bytes": 32769}),
+                          ("url_cap_bytes at 2 048", {"url_cap_bytes": 2048}),
+                          ("url_cap_bytes at 2 047", {"url_cap_bytes": 2047}),
+                          ("extract_cap_bytes at 32 767", {"extract_cap_bytes": 32767}),
+                          ("summary_cap_bytes at 2 047", {"summary_cap_bytes": 2047}),
+                          ("links_cap_bytes at 4 095", {"links_cap_bytes": 4095}),
+                          ("link_url_cap_bytes at 2 047", {"link_url_cap_bytes": 2047}),
+                          ("collections_max at 15", {"collections_max": 15}),
+                          ("scope_entries_max at 31", {"scope_entries_max": 31}),
+                          ("catalog_items_max at 16 777 215", {"catalog_items_max": 16777215}),
                           ("a map carrying removal_retention_days", {"removal_retention_days": 180})):
         try:
             sealing.check_parameters({**DEFAULT_MAP, **changes})

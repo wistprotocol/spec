@@ -210,15 +210,17 @@ Registrable Domain under the Public Suffix List snapshot in force at the
 Epoch (WIST-4 §3.1), and a Consumer replaying the Log MUST reject an
 Epoch that does (`WIST3-E03`). The Publisher's Canonical Host of a
 `publisher_catalog` Entry is its `catalog.publisher` and that of a
-`publisher_item` Entry its `item.publisher`; such an Entry counts whether
-its judgment (§3.3) finds it valid or ignores it, and one whose member is
+`publisher_item` Entry its `item.publisher`, and the Labeler's of a
+`label` Entry its `label.labeler`; such an Entry counts whether its
+judgment (§3.3) finds it valid or ignores it, and one whose member is
 not a Canonical Host counts toward no domain. The unit is the Registrable
 Domain, not the hostname, because a hostname under a name one holds is
 free; before the first accepted `suffix_list_update` every Canonical
 Host is its own unit. `dispute` Entries count with the publications and
-Labels of the disputant's unit. The Publishers and Collections of one
-Registrable Domain share its capacity, and no Collection has a share of
-its own. **Per-Labeler cap.** Inside that capacity, an Epoch MUST NOT
+Labels of the unit of their `dispute.disputant`, and one whose
+`disputant` is not a Canonical Host counts toward no domain. The
+Publishers and Collections of one Registrable Domain share its capacity,
+and no Collection has a share of its own. **Per-Labeler cap.** Inside that capacity, an Epoch MUST NOT
 carry more than `labeler_epoch_entries_max` (Parameter Registry; default
 1 000) `label` and `dispute` Entries, counted together, of one
 Registrable Domain, and a Consumer replaying the Log MUST reject an Epoch
@@ -446,6 +448,14 @@ Publisher and URL at most one Item.
 | Place | Taken at the pull that accepts a Catalog while none of the Collection waits. A later accepted Catalog takes the place and the eligibility Epoch of the waiting one it replaces | Taken at the pull from which the URL waits, and kept with its eligibility Epoch while the URL waits without interruption, whichever Item waits for it |
 | Leaves | When sealed. When it fails C1 at its turn, whether or not it fails C4: it is reported with C1's code alone at the status endpoint (WIST-2 §7.1) and is no longer the last accepted Catalog. When it fails C4 alone at its turn: it is not reported and stays the last accepted Catalog | When sealed. When the URL no longer waits: an Item for which I7 no longer holds once the Epoch's transitions and Catalogs have applied leaves unreported, whatever other condition it fails. When the Item fails I5 at its turn: it is reported with the code and is a refused Item of its list |
 
+A Label or a dispute waits from the pull that accepts it. It leaves when
+sealed, or when it fails at its turn a check of WIST-2 §3.3 that the
+Aggregator repeats before sealing under the candidate Epoch's parameter
+map and clock (WIST-4 §5, WIST-1 §§3.4, 3.6): it is then not sealed and
+is reported among the status endpoint's `rejections` (WIST-2 §7.1) with
+the code of that check and its Label or Dispute ID. It leaves no other
+way.
+
 An idempotent re-serve replaces no Catalog and gives no waiting Item
 another place. Where the last accepted Catalogs of two Collections of a
 Publisher each list for one URL an admitted Item for which I7 holds, the
@@ -477,24 +487,30 @@ before the recovery. For this order a settlement and the Epoch at which
 it settles are one event; the eligibility of what a settlement keeps is
 WIST-1 §5.2's.
 
-**Eligibility.** A Catalog or an Item is eligible for the Epoch that
-follows the event at which it took its place, and the inclusion ceiling
-(`max_inclusion_epochs`, WIST-4 §5) counts from the Epoch it is eligible
-for. A replacement that keeps a place moves no eligibility Epoch. Each of
-the following **deferrals**, and nothing else, defers the eligibility,
-and the ceiling with it, to the first Epoch at which none of them
-applies; each is reported at the status endpoint (WIST-2 §7.1) under the
-name it carries:
+**Eligibility.** A Catalog, an Item, a Label or a dispute is eligible
+for the Epoch that follows the event at which it took its place, and the
+inclusion ceiling (`max_inclusion_epochs`, WIST-4 §5) counts from the
+Epoch it is eligible for. A replacement that keeps a place moves no
+eligibility Epoch. Each of the following **deferrals** defers the
+eligibility, and the ceiling with it, to the first Epoch at which none of
+them applies. Each that applies to a Catalog or an Item is reported at
+the status endpoint (WIST-2 §7.1) under the name it carries; those of a
+Label or a dispute are not reported:
 
-1. `recovery_window`: a recovery window of the Publisher open at the
-   Epoch;
+1. `recovery_window`: for a Catalog or an Item, a recovery window of the
+   Publisher open at the Epoch;
 2. `capacity`: no room in the capacity of the Registrable Domain (§3.2),
-   taken in the order below;
+   taken in the order below, and for a Label or a dispute no room under
+   the per-Labeler cap (§3.2) either;
 3. `catalog_waiting`: for an Item, a waiting Catalog of its Collection
    that one of the two above holds out of the Epoch;
 4. `latest_fails_i4`: for an Item, a latest Catalog of its Collection
    that fails I4 at the Epoch, while no Catalog of that Collection waits
    that nothing defers.
+
+Nothing else defers a Catalog or an Item. Whether a recovery window open
+for a Labeler or a disputant defers its Labels and disputes is not fixed
+by this edition.
 
 Every deferral that applies to a Catalog or an Item at an Epoch is
 reported for it, in the order of this list; the capacity defers only
@@ -545,10 +561,13 @@ taken first by its Catalogs, then by its Items of kind `removed`, then by
 its Items of kind `page`, its Labels and its disputes together, and
 within each of the three in the order of the places; the per-Labeler cap
 (§3.2) applies inside it. A Catalog or an Item that fails its judgment at
-its turn takes no room, and the next in order takes it. C2 defers a
-waiting Catalog and fails none, and C3 fails none that a pull accepted
-or a settlement kept, since the order of the pull and the settlement
-read the floor.
+its turn takes no room, and the next in order takes it. Nor does an
+eligible Catalog, Item, Label or dispute that the Aggregator leaves
+unsealed in the Epoch: `capacity` defers only what does not fit, under
+the capacity or the per-Labeler cap, after the Entries sealed before it
+in the order of the places. C2 defers a waiting Catalog and fails none,
+and C3 fails none that a pull accepted or a settlement kept, since the
+order of the pull and the settlement read the floor.
 
 ### 3.4. Aggregator Keys and the Log Anchor
 
@@ -1980,11 +1999,10 @@ sealed dispute, carrying the current dispute's `reason` or `null`, its
 every Item ID a withdrawal that meets its contract names, with the height
 of the earliest such withdrawal (WIST-4 §5.1), since a Consumer resuming
 above the withdrawal's Epoch never sees its Entry and must still exclude
-the content (§6.2) and judge I7 (§3.3) — and, since no tuple names every
-Item sealed at or below `tree_size`, a resuming Consumer accepts a later
-act naming one of them as consistent and checks WIST-4 §5.1's contract
-only for an act naming an Item it walked. The schema pins each kind's
-arity and member types
+the content (§6.2) and judge I7 (§3.3); no tuple names every Item sealed
+at or below `tree_size`, and a resuming Consumer judges the contract of a
+later act as WIST-4 §5.1 states for a Consumer resumed from a Snapshot.
+The schema pins each kind's arity and member types
 ([`schemas/snapshot-state.schema.json`](../schemas/snapshot-state.schema.json));
 the table remains the normative inventory, and a state file omitting a
 kind with live instances at `tree_size`, omitting a removed key's
@@ -2133,7 +2151,8 @@ to process. Both paths converge to identical state — the content tuples by
 `content_digest`, the protocol state by `state_digest`, each recomputable
 from the Entries alone (§7) — so the choice is purely economic, except in
 a Log that sealed a `payload_withdrawal` breaking its `details` contract,
-which a resuming Consumer cannot always tell from a conforming one (§7). Without
+which a resuming Consumer cannot always tell from a conforming one
+(WIST-4 §5.1). Without
 the state artifact the sentence before this one would be false: content
 tuples alone carry no key registry, no governance state, no latest
 Catalog and no record the one-URL rule leaves unmaterialized, and the two
@@ -2298,7 +2317,8 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       its Payload and no `payload_withdrawal` that breaks its `details`
       contract (§3.3)
 - [ ] Keeps the last accepted Catalog, what waits, places, eligibility
-      Epochs and the inclusion ceiling of §3.3, defers only by its four
+      Epochs and the inclusion ceiling of §3.3 for Catalogs, Items, Labels
+      and disputes, defers a Catalog or an Item only by its four
       deferrals and reports each at the status endpoint, holds
       publications behind a Declaration that reduces authority, gives
       the capacity to Catalogs, then Items of kind `removed`, then Items

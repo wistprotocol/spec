@@ -17,6 +17,7 @@ REVERSAL_KINDS = ("reversal_ordinary_rotation", "reversal_recovery_rotation")
 PENDING_KINDS = ("fresh_identity_pending", "pending_replacement")
 NOT_DISCOVERED = ("idempotent", "recovery_chain_head")
 KIND_ORDER = ("removed", "page")
+LABEL_REJECTED = "WIST2-E06"
 
 
 def refusal(check, *arguments):
@@ -33,6 +34,11 @@ def seconds(value):
 
 def place_key(place, publisher):
     return place[0], publisher.encode(), place[1:]
+
+
+def label_id(envelope):
+    inner = envelope["label"] if "label" in envelope else envelope["dispute"]
+    return "sha256:" + hashlib.sha256(items.jcs(inner)).hexdigest()
 
 
 def registrable_domain(host, suffix_rules):
@@ -78,9 +84,12 @@ class Site:
 
 
 class Aggregator:
-    def __init__(self, suffix_rules=None):
+    def __init__(self, suffix_rules=None, inclusion_schedule=None):
         self.log = sealing.Sealing()
         self.suffix_rules = suffix_rules
+        self.schedule = inclusion_schedule
+        self.labels = {}
+        self.sealed_labels = set()
         self.height = None
         self.parameters = None
         self.event = -1
@@ -108,6 +117,14 @@ class Aggregator:
 
     def unit(self, publisher):
         return registrable_domain(publisher, self.suffix_rules)
+
+    def inclusion_at(self, height):
+        if self.schedule is None:
+            return self.parameters["max_inclusion_epochs"]
+        return [value for start, value in self.schedule if start <= height][-1]
+
+    def ceiling(self, eligibility):
+        return None if eligibility is None else eligibility + self.inclusion_at(eligibility)
 
     def latest_id(self, publisher, name):
         held = self.log.latest.get((publisher, name))
@@ -464,7 +481,25 @@ class Aggregator:
             out["suspended"] = True
         return out
 
-    def pull(self, publisher, clock, envelope, served, parameters=None, limit_objects=None):
+    def accept_labels(self, publisher, envelopes, position):
+        accepted = []
+        for index, envelope in enumerate(envelopes):
+            kind = "label" if "label" in envelope else "dispute"
+            inner = envelope[kind]
+            host = inner["labeler" if kind == "label" else "disputant"]
+            if host != publisher:
+                raise ValueError("a Label or dispute of another domain than the Label Feed's")
+            identifier = label_id(envelope)
+            if identifier in self.labels or identifier in self.sealed_labels:
+                accepted.append({"type": kind, "label": identifier, "outcome": "seen"})
+                continue
+            place = [self.event, position, index]
+            self.labels[identifier] = {"type": kind, "publisher": host, "envelope": envelope, "place": place,
+                                       "eligibility": self.height + 1}
+            accepted.append({"type": kind, "label": identifier, "outcome": "accepted", "place": place})
+        return accepted
+
+    def pull(self, publisher, clock, envelope, served, parameters=None, limit_objects=None, labels=()):
         if self.height is None:
             raise ValueError("the first event is an Epoch")
         parameters = sealing.check_parameters(parameters if parameters is not None else self.parameters)
@@ -497,8 +532,13 @@ class Aggregator:
         if mode != "window":
             self.refresh(publisher, self.height + 1, self.place_order(publisher, sources[0] if sources else None,
                                                                       names))
+        if labels:
+            if self.window_opened(publisher):
+                raise ValueError("Labels of a Labeler whose recovery window is open are outside this model")
+            out["labels"] = self.accept_labels(publisher, labels, len(order))
         if not (report["discovered"] or self.suspended or any(c["outcome"] == "accepted" for c in out["catalogs"])
-                or any(i["outcome"] == "admitted" for c in out["catalogs"] for i in c.get("items", []))):
+                or any(i["outcome"] == "admitted" for c in out["catalogs"] for i in c.get("items", []))
+                or any(entry["outcome"] == "accepted" for entry in out.get("labels", []))):
             out["noise"] = True
         self.suspended = False
         return out
@@ -601,15 +641,52 @@ class Aggregator:
             return True
         return refusal(catalogs.binding, envelope, declaration) is not None
 
-    def plan(self, height, parameters, held, deferred_i4, probe, gone):
+    def label_refusal(self, entry, sealed_at, parameters):
+        inner = entry["envelope"][entry["type"]]
+        if entry["type"] == "label" and len(items.jcs(inner["subject"])) > parameters["url_cap_bytes"]:
+            return LABEL_REJECTED
+        if items.instant(inner["asserted_at"]) > seconds(sealed_at) + parameters["clock_skew_seconds"]:
+            return LABEL_REJECTED
+        return None
+
+    def plan(self, height, parameters, held, deferred_i4, probe, gone, unsealed=frozenset(), sealed_at=None):
         room, planned, deferred, holding, sealed_names, deferred_names, dropped = {}, [], [], [], {}, set(), []
+        chosen, rejected = [], []
         capacity = parameters["domain_epoch_entries_max"]
+        labeler_cap = parameters["labeler_epoch_entries_max"]
+        labeler_room = {}
 
         def free(publisher):
             return room.get(self.unit(publisher), capacity)
 
         def take(publisher):
             room[self.unit(publisher)] = free(publisher) - 1
+
+        def leave_unsealed(ref, place, eligibility):
+            if self.ceiling(eligibility) <= height:
+                raise ValueError("an eligible Entry is left unsealed past its inclusion ceiling")
+            chosen.append({**ref, "place": place})
+
+        def plan_label(identifier):
+            entry = self.labels[identifier]
+            publisher = entry["publisher"]
+            ref = {"type": entry["type"], "publisher": publisher, "label": identifier}
+            if self.window_blocks(probe, publisher):
+                raise ValueError("Labels of a Labeler whose recovery window is open are outside this model")
+            unit = self.unit(publisher)
+            if free(publisher) == 0 or labeler_room.get(unit, labeler_cap) == 0:
+                deferred.append({**ref, "place": entry["place"], "reasons": ["capacity"]})
+                return
+            if ("label", identifier) in unsealed:
+                leave_unsealed(ref, entry["place"], entry["eligibility"])
+                return
+            code = self.label_refusal(entry, sealed_at, parameters)
+            if code is not None:
+                rejected.append({"id": identifier, "code": code})
+                return
+            take(publisher)
+            labeler_room[unit] = labeler_room.get(unit, labeler_cap) - 1
+            planned.append((ref, {"type": entry["type"], "body": entry["envelope"]}, entry["eligibility"]))
 
         waiting = sorted(((state["place"], publisher, name) for (publisher, name), state in self.collections.items()
                           if self.catalog_waits(publisher, name) and state["eligibility"] <= height),
@@ -633,11 +710,17 @@ class Aggregator:
             sealed_names[(publisher, name)] = (catalog_id, state["envelope"])
             planned.append((ref, {"type": "publisher_catalog", "body": state["envelope"]}, state["eligibility"]))
         for kind in KIND_ORDER:
-            candidates = sorted(((entry["place"], publisher, url) for (publisher, url), entry in self.urls.items()
-                                 if items.kind(entry["item"]) == kind and (publisher, url) not in gone
-                                 and (entry["eligibility"] is None or entry["eligibility"] <= height)),
-                                key=lambda t: (place_key(t[0], t[1]), t[2].encode()))
+            candidates = [(entry["place"], publisher, url) for (publisher, url), entry in self.urls.items()
+                          if items.kind(entry["item"]) == kind and (publisher, url) not in gone
+                          and (entry["eligibility"] is None or entry["eligibility"] <= height)]
+            if kind == "page":
+                candidates += [(entry["place"], entry["publisher"], ("label", identifier))
+                               for identifier, entry in self.labels.items() if entry["eligibility"] <= height]
+            candidates.sort(key=lambda t: (place_key(t[0], t[1]), repr(t[2]).encode()))
             for place, publisher, url in candidates:
+                if isinstance(url, tuple):
+                    plan_label(url[1])
+                    continue
                 entry = self.urls[(publisher, url)]
                 name, item = entry["collection"], entry["item"]
                 ref = {"type": "publisher_item", "publisher": publisher, "collection": name, "url": url,
@@ -663,6 +746,9 @@ class Aggregator:
                 if reasons:
                     deferred.append({**ref, "place": place, "reasons": reasons})
                     continue
+                if ("publisher_item", (publisher, url)) in unsealed:
+                    leave_unsealed(ref, place, entry["eligibility"])
+                    continue
                 accepted = self.last_accepted(publisher, name)
                 status = self.admission[accepted][url]
                 if kind == "page":
@@ -679,7 +765,7 @@ class Aggregator:
                 body = items.publisher_item_body(item, named["envelope"]["catalog"], named["list"])
                 planned.append(({**ref, "catalog": latest}, {"type": "publisher_item", "body": body},
                                 entry["eligibility"]))
-        return planned, deferred, holding, dropped
+        return planned, deferred, holding, dropped, chosen, rejected
 
     def waiting_after_catalogs(self, publisher, url, height, sealed_at, parameters, declarations, planned, probe):
         after = copy.deepcopy(self.log)
@@ -731,10 +817,15 @@ class Aggregator:
         kept = [e for e in envelopes if rules.declaration_hash(e["publisher"]) not in cause]
         return kept, reports, left
 
-    def epoch(self, height, sealed_at, parameters, envelopes, updates=(), late=()):
+    def epoch(self, height, sealed_at, parameters, envelopes, updates=(), late=(), unsealed=frozenset()):
         if self.height is not None and height != self.height + 1:
             raise ValueError("Epochs must have consecutive heights")
         parameters = sealing.check_parameters(parameters)
+        if self.schedule is not None and parameters["max_inclusion_epochs"] != self.inclusion_at(height):
+            raise ValueError("the map of the Epoch disagrees with the inclusion schedule")
+        if self.schedule is None and self.parameters is not None \
+                and parameters["max_inclusion_epochs"] != self.parameters["max_inclusion_epochs"]:
+            raise ValueError("max_inclusion_epochs changes in a history without an inclusion schedule")
         self.event += 1
         self.parameters = parameters
         settlement = self.settle(height, sealed_at, parameters)
@@ -770,9 +861,9 @@ class Aggregator:
         held = {p: self.reducing_pending(p, sealed) for p in self.publishers()}
         held = {p: hashes for p, hashes in held.items() if hashes}
         deferred_i4, gone, left, replaced = set(), set(), [], {}
-        maximum = parameters["max_inclusion_epochs"]
         while True:
-            planned, deferred, holding, dropped = self.plan(height, parameters, held, deferred_i4, probe, gone)
+            planned, deferred, holding, dropped, chosen, rejected = self.plan(
+                height, parameters, held, deferred_i4, probe, gone, unsealed, sealed_at)
             left += dropped
             entries = declarations + [entry for _, entry, _ in planned]
             ordered = sealing.canonical_order(entries)
@@ -858,7 +949,7 @@ class Aggregator:
                 if slot in self.urls:
                     self.urls[slot].update(collection=name, item=item)
         for entry in holding:
-            if entry["eligibility"] is not None and entry["eligibility"] + maximum <= height:
+            if entry["eligibility"] is not None and self.ceiling(entry["eligibility"]) <= height:
                 raise ValueError("a Declaration that reduces authority is sealed later than the earliest ceiling "
                                  "among the waiting publications of its Publisher allows")
         epoch = self.epoch_input(height, sealed_at, parameters, entries)
@@ -876,7 +967,7 @@ class Aggregator:
             self.refresh(publisher, height + 1, self.place_order(publisher, self.log.declaration(publisher)))
         self.open_windows()
         moved = {(d["publisher"], d["collection"] if d["type"] == "publisher_catalog" else d["url"], d["type"])
-                 for d in deferred}
+                 for d in deferred if d["type"] in ("publisher_catalog", "publisher_item")}
         for (publisher, name), state in self.collections.items():
             if not self.catalog_waits(publisher, name):
                 state.update(place=None, eligibility=None)
@@ -885,13 +976,27 @@ class Aggregator:
         for (publisher, url), entry in self.urls.items():
             if not self.window_opened(publisher) and (publisher, url, "publisher_item") in moved:
                 entry["eligibility"] = height + 1
+        for ref, _, _ in planned:
+            if ref["type"] in ("label", "dispute"):
+                del self.labels[ref["label"]]
+                self.sealed_labels.add(ref["label"])
+        for row in deferred:
+            if row["type"] in ("label", "dispute"):
+                self.labels[row["label"]]["eligibility"] = height + 1
+        for row in rejected:
+            del self.labels[row["id"]]
+        deferred = [row for row in deferred if row["type"] not in ("label", "dispute")]
         out = {"settlement": settlement, "entries": epoch["entries"],
-               "sealed": [{**ref, "eligibility": eligibility, "ceiling": eligibility + maximum}
+               "sealed": [{**ref, "eligibility": eligibility, "ceiling": self.ceiling(eligibility)}
                           for ref, _, eligibility in planned],
                "left": [entry for _, entry in sorted(left, key=lambda pair: pair[0])], "deferred": deferred,
                "records_removed": result["records_removed"]}
         if holding:
             out["held"] = [{k: v for k, v in h.items() if k != "eligibility"} for h in holding]
+        if chosen:
+            out["unsealed"] = chosen
+        if rejected:
+            out["rejections"] = rejected
         if failed_declarations:
             out["declarations_failed"] = failed_declarations
         if left_declarations:
@@ -901,10 +1006,7 @@ class Aggregator:
         return out
 
     def state(self):
-        maximum = self.parameters["max_inclusion_epochs"]
-
-        def ceiling(eligibility):
-            return None if eligibility is None else eligibility + maximum
+        ceiling = self.ceiling
 
         keys = sorted(set(self.collections) | set(self.log.latest), key=lambda k: (k[0].encode(), k[1].encode()))
         collections = []
@@ -933,5 +1035,13 @@ class Aggregator:
         records = [{"publisher": r["publisher"], "url": r["url"], "collection": r["collection"],
                     "item": items.item_id(r["item"]),
                     "catalog": r["catalog"]} for r in self.log.state()["records"]]
-        return {"collections": collections, "urls": urls, "queue": queue, "reductions_pending": reductions,
-                "records": records}
+        out = {"collections": collections, "urls": urls, "queue": queue, "reductions_pending": reductions,
+               "records": records}
+        if self.labels:
+            out["labels"] = [{"type": entry["type"], "publisher": entry["publisher"], "label": identifier,
+                              "place": entry["place"], "eligibility": entry["eligibility"],
+                              "ceiling": ceiling(entry["eligibility"])}
+                             for identifier, entry in sorted(self.labels.items(),
+                                                             key=lambda kv: (place_key(kv[1]["place"],
+                                                                                       kv[1]["publisher"]), kv[0]))]
+        return out

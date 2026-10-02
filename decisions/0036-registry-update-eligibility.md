@@ -26,15 +26,22 @@ E04; field failures precede authenticity; authenticity precedes semantics, a
 key-act failure's `WIST4-E04` included. An act rejected at the gate changes
 no key registry, schedule or withdrawal state; the containing Epoch stays
 valid. The schema's version, timestamp and identifier patterns are exact
-whole-string patterns.
+whole-string patterns. Two schema failures of a `parameter_change` are
+not the gate's: a string `details.parameter` that names no WIST-4 §5
+identifier, with a `subject` that is the same string, and an integer
+`details.value` outside its WIST-4 §5 bound. Such an act passes to
+authentication and is rejected under WIST-4 §5 as `WIST4-E03`, the code
+WIST-4 §7 gives both and a value that breaks a combination rule also
+takes, so a value past a bound has one code whether the schema can
+express that bound or not; a non-string `parameter` stays `WIST4-E04`.
 
 A `payload_withdrawal` is authenticated under the Log key (WIST4-E11
-otherwise). Its `delta_id` names the Item ID of the Item of kind `page`
-whose Payload it withdraws (WIST-3 §6.2); it must name an Item that a
-valid `publisher_item` Entry sealed at or below the act's Epoch against a
-Catalog whose `publisher` is the `subject`
-([ADR-0052](0052-items-and-catalogs.md)), or the act fails its `details`
-contract (WIST4-E04). Repeated withdrawals of one Item are accepted, the
+otherwise). Its `delta_id` names the Item ID of the Item whose Payload
+it withdraws (WIST-3 §6.2): an Item of kind `page` that a valid
+`publisher_item` Entry sealed at or below the act's Epoch, that Epoch
+included whatever the order of its Entries, against a Catalog whose
+`publisher` is the `subject` ([ADR-0052](0052-items-and-catalogs.md)),
+or the act fails its `details` contract (WIST4-E04). Repeated withdrawals of one Item are accepted, the
 earliest Epoch governing. Rejecting a withdrawal of an unsealed or
 foreign Item keeps the act's `subject` truthful and gives every replayer
 one withdrawal height per Item.

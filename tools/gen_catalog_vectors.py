@@ -229,7 +229,7 @@ def item_field_vectors():
     for member in sorted(items.REMOVED_MEMBERS - {"removed"}):
         case(f"removed Item without {member}", changed(gone, [member], REMOVE), "WIST1-E14")
     for member, value in (("prev", "sha256:" + "0" * 64), ("change_type", "update"), ("wist_version", "1.0.0")):
-        case(f"page Item with a Delta member {member}", changed(base, [member], value), "WIST1-E14")
+        case(f"page Item with a member outside its kind {member}", changed(base, [member], value), "WIST1-E14")
     case("removed Item carrying payload", changed(gone, ["payload"], base["payload"]), "WIST1-E14")
     case("removed Item carrying meta", changed(gone, ["meta"], {"lang": "en"}), "WIST1-E14")
     case("page Item carrying removed true", changed(base, ["removed"], True), "WIST1-E14")
@@ -296,10 +296,20 @@ def item_field_vectors():
     for name, amendment, expected in (
             ("url_cap_bytes 32 768 is read", {"url_cap_bytes": items.URL_CAP_BYTES_MAX}, "read"),
             ("url_cap_bytes 32 769 is refused", {"url_cap_bytes": items.URL_CAP_BYTES_MAX + 1}, "refused"),
+            ("url_cap_bytes 2 048 is read", {"url_cap_bytes": 2048}, "read"),
+            ("url_cap_bytes 2 047 is refused", {"url_cap_bytes": 2047}, "refused"),
+            ("extract_cap_bytes 32 768 is read", {"extract_cap_bytes": 32768}, "read"),
+            ("extract_cap_bytes 32 767 is refused", {"extract_cap_bytes": 32767}, "refused"),
+            ("summary_cap_bytes 2 048 is read", {"summary_cap_bytes": 2048}, "read"),
+            ("summary_cap_bytes 2 047 is refused", {"summary_cap_bytes": 2047}, "refused"),
+            ("links_cap_bytes 4 096 is read", {"links_cap_bytes": 4096}, "read"),
+            ("links_cap_bytes 4 095 is refused", {"links_cap_bytes": 4095}, "refused"),
+            ("link_url_cap_bytes 2 048 is read", {"link_url_cap_bytes": 2048}, "read"),
+            ("link_url_cap_bytes 2 047 is refused", {"link_url_cap_bytes": 2047}, "refused"),
             ("links_cap_bytes at link_url_cap_bytes + 21 is read",
-             {"link_url_cap_bytes": 2048, "links_cap_bytes": 2069}, "read"),
+             {"link_url_cap_bytes": 4075, "links_cap_bytes": 4096}, "read"),
             ("links_cap_bytes one below link_url_cap_bytes + 21 is refused",
-             {"link_url_cap_bytes": 2048, "links_cap_bytes": 2068}, "refused")):
+             {"link_url_cap_bytes": 4076, "links_cap_bytes": 4096}, "refused")):
         amended = {**ITEM_PARAMETERS, **amendment}
         try:
             items.check_parameters(amended)
@@ -309,31 +319,33 @@ def item_field_vectors():
         assert got == expected, (name, got)
         parameter_cases.append({"name": name, "parameters": amended, "expected": got})
 
-    small_url = {"url_cap_bytes": 64}
+    raised_url = {"url_cap_bytes": 4096}
     stem = "https://example.com/journal/"
-    at_cap = stem + "a" * (64 - 2 - len(stem))
-    assert len(rfc8785.dumps(at_cap)) == 64
-    case("JCS(url) at url_cap_bytes", changed(base, ["url"], at_cap), "accepted", small_url)
-    case("JCS(url) one octet above url_cap_bytes", changed(base, ["url"], at_cap + "a"), "WIST1-E11", small_url)
+    at_cap = stem + "a" * (ITEM_PARAMETERS["url_cap_bytes"] - 2 - len(stem))
+    assert len(rfc8785.dumps(at_cap)) == ITEM_PARAMETERS["url_cap_bytes"]
+    case("JCS(url) at url_cap_bytes", changed(base, ["url"], at_cap), "accepted")
+    case("JCS(url) one octet above url_cap_bytes", changed(base, ["url"], at_cap + "a"), "WIST1-E11")
+    case("JCS(url) one octet above the suite url_cap_bytes under a raised url_cap_bytes",
+         changed(base, ["url"], at_cap + "a"), "accepted", raised_url)
     case("removed Item with JCS(url) one octet above url_cap_bytes", changed(gone, ["url"], at_cap + "a"),
-         "accepted", small_url)
+         "accepted")
     bound = item_bound(ITEM_PARAMETERS)
     case("page Item whose JCS(item) is at 16 384 + url_cap_bytes octets", padded_to(base, bound), "accepted")
     case("page Item whose JCS(item) is one octet above 16 384 + url_cap_bytes octets", padded_to(base, bound + 1),
          "WIST1-E04")
-    small_bound = item_bound({**ITEM_PARAMETERS, **small_url})
-    long_gone = changed(gone, ["url"], stem + "x" * (small_bound - len(rfc8785.dumps(changed(gone, ["url"], stem)))))
-    assert len(rfc8785.dumps(long_gone)) == small_bound
-    case("removed Item whose JCS(item) is at 16 384 + url_cap_bytes octets through its url", long_gone, "accepted",
-         small_url)
+    long_gone = changed(gone, ["url"], stem + "x" * (bound - len(rfc8785.dumps(changed(gone, ["url"], stem)))))
+    assert len(rfc8785.dumps(long_gone)) == bound
+    case("removed Item whose JCS(item) is at 16 384 + url_cap_bytes octets through its url", long_gone, "accepted")
     case("removed Item whose JCS(item) is one octet above 16 384 + url_cap_bytes octets through its url",
-         changed(long_gone, ["url"], long_gone["url"] + "x"), "WIST1-E04", small_url)
-    small_caps = {"extract_cap_bytes": 100, "links_cap_bytes": 50, "link_url_cap_bytes": 29, "summary_cap_bytes": 50}
-    cap = items.derived_payload_cap({**ITEM_PARAMETERS, **small_caps})
-    assert cap == 232
-    case("payload.bytes at the derived cap", changed(base, ["payload", "bytes"], cap), "accepted", small_caps)
-    case("payload.bytes one above the derived cap", changed(base, ["payload", "bytes"], cap + 1), "WIST1-E04",
-         small_caps)
+         changed(long_gone, ["url"], long_gone["url"] + "x"), "WIST1-E04")
+    raised_caps = {"extract_cap_bytes": 40000, "links_cap_bytes": 5000, "link_url_cap_bytes": 2048,
+                   "summary_cap_bytes": 3000}
+    cap = items.derived_payload_cap({**ITEM_PARAMETERS, **raised_caps})
+    assert cap == 48032
+    case("payload.bytes at the derived cap under raised caps", changed(base, ["payload", "bytes"], cap), "accepted",
+         raised_caps)
+    case("payload.bytes one above the derived cap under raised caps", changed(base, ["payload", "bytes"], cap + 1),
+         "WIST1-E04", raised_caps)
     case("payload.bytes one above the default derived cap", changed(base, ["payload", "bytes"], 38945), "WIST1-E04")
     case("payload.bytes at the default derived cap", changed(base, ["payload", "bytes"], 38944), "accepted")
 
@@ -407,7 +419,7 @@ def item_field_vectors():
         "and the size-cap map `parameters`. An object with a member `removed` is of kind removed and carries "
         "exactly publisher, url, observed_at and removed (true); any other is of kind page and carries exactly "
         "publisher, url, observed_at, payload and meta; each member has the form WIST-1 sections 3.2, 3.4, 3.6, "
-        "3.7 and 3.8 give a Delta's. A form failure is WIST1-E14, except that a string url keeps WIST1-E03 and "
+        "3.7 and 3.8 give it. A form failure is WIST1-E14, except that a string url keeps WIST1-E03 and "
         "WIST1-E11 and a nonnegative safe-integer payload.bytes above the derived cap (extract_cap_bytes + "
         "links_cap_bytes + summary_cap_bytes + 32) keeps WIST1-E04. WIST1-E03: url not byte-identical to its "
         "Normalized URL, host (without port) outside domain and subdomain_scope, or url outside the Scope of the "
@@ -423,9 +435,9 @@ def item_field_vectors():
         "WIST-1 section 3.6: JCS(content) must be exactly payload.bytes octets and HMAC-SHA256(salt, JCS(content)) "
         "must reproduce payload.commitment, else WIST1-E10. Every case supplies its own parameter map; no default "
         "applies. parameter_cases give whether a parameter map is `read` or `refused` under the bounds WIST-4 "
-        "section 5 states for the size caps: url_cap_bytes at least 14 and at most 32 768, extract_cap_bytes at "
-        "least 2, links_cap_bytes at least 21 and at least link_url_cap_bytes + 21, link_url_cap_bytes at least 14, "
-        "summary_cap_bytes at least 12; every map of every case keeps them. " + DECLARATIONS_NOTE + " " + KEYS_NOTE),
+        "section 5 states for the size caps: url_cap_bytes at least 2 048 and at most 32 768, extract_cap_bytes at "
+        "least 32 768, links_cap_bytes at least 4 096 and at least link_url_cap_bytes + 21, link_url_cap_bytes at "
+        "least 2 048, summary_cap_bytes at least 2 048; every map of every case keeps them. " + DECLARATIONS_NOTE + " " + KEYS_NOTE),
         "keys": KEYS_MEMBER, "declarations": DECLARATIONS, "item_cases": cases, "known_answers": known,
         "payload_cases": payload_cases, "parameter_cases": parameter_cases}
 

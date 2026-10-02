@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wistprotocol.org/schemas/registry-update.schema.json",
   "title": "WIST Registry Update (WIST-4)",
-  "description": "A governance act sealed as a `registry_update` Entry (WIST-3 §3.3) under the Log key. `action` selects the `details` contract of WIST-4 §5.1; the semantic checks that section names — the grace period, the parameter bounds that depend on other values, the Delta a withdrawal names, the octets a suffix_list_update pins — are outside the schema.",
+  "description": "A governance act sealed as a `registry_update` Entry (WIST-3 §3.3) under the Log key. `action` selects the `details` contract of WIST-4 §5.1; the semantic checks that section names — the grace period, the parameter bounds that depend on other values, the Item a withdrawal names, the octets a suffix_list_update pins — are outside the schema.",
   "type": "object",
   "required": ["update", "sig"],
   "additionalProperties": false,
@@ -81,7 +81,7 @@
       }
     },
     {
-      "comment": "WIST-4 §5: `parameter` is an Identifier from the Parameter Registry, `subject` repeats it, and `value` is an integer in that parameter's unit inside the wire range; the fixed bounds the Registry publishes are enforced per identifier below, and the bounds that depend on another parameter's value are replay checks (WIST4-E03).",
+      "comment": "WIST-4 §5: `parameter` is an Identifier from the Parameter Registry, `subject` repeats it, and `value` is an integer in that parameter's unit inside the wire range; the fixed bounds the Registry publishes are enforced per identifier below, and two failures here are WIST4-E03, not details failures (WIST-4 §5.1): a string `details.parameter` that names no §5 identifier, with a `subject` that is the same string, and an integer `details.value` outside its §5 bound; a non-string `parameter` stays WIST4-E04. A value that breaks a bound depending on another parameter's value is also WIST4-E03, a replay check.",
       "if": {"properties": {"update": {"properties": {"action": {"const": "parameter_change"}}}}},
       "then": {
         "properties": {
@@ -91,11 +91,13 @@
                 "epoch_cadence_seconds", "epoch_cap_bytes",
                 "checkpoint_witness_quorum",
                 "extract_cap_bytes", "links_cap_bytes", "link_url_cap_bytes",
-                "summary_cap_bytes", "url_cap_bytes", "payload_window_days",
+                "summary_cap_bytes", "url_cap_bytes", "collections_max",
+                "scope_entries_max", "catalog_items_max", "tree_file_cap_bytes",
+                "tree_depth_max", "catalog_refresh_seconds", "payload_window_days",
                 "mirror_retention_days", "record_seal_epochs",
                 "domain_epoch_entries_max", "labeler_epoch_entries_max", "max_inclusion_epochs",
                 "ingest_budget_bytes_day", "feed_window", "clock_skew_seconds",
-                "keyset_cache_ttl_seconds", "baseline_poll_seconds", "quota_base",
+                "baseline_poll_seconds", "quota_base",
                 "recovery_window_days", "param_grace_days",
                 "declaration_activation_epochs"
               ]},
@@ -108,25 +110,33 @@
                     "epoch_cadence_seconds", "epoch_cap_bytes",
                     "checkpoint_witness_quorum",
                     "extract_cap_bytes", "links_cap_bytes", "link_url_cap_bytes",
-                    "summary_cap_bytes", "url_cap_bytes", "payload_window_days",
+                    "summary_cap_bytes", "url_cap_bytes", "collections_max",
+                    "scope_entries_max", "catalog_items_max", "tree_file_cap_bytes",
+                    "tree_depth_max", "catalog_refresh_seconds", "payload_window_days",
                     "mirror_retention_days", "record_seal_epochs",
                     "domain_epoch_entries_max", "labeler_epoch_entries_max", "max_inclusion_epochs",
                     "ingest_budget_bytes_day", "feed_window", "clock_skew_seconds",
-                    "keyset_cache_ttl_seconds", "baseline_poll_seconds", "quota_base",
+                    "baseline_poll_seconds", "quota_base",
                     "recovery_window_days", "param_grace_days",
                     "declaration_activation_epochs"
                   ]},
-                  "value": {"type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991, "description": "Every numeric constant in this suite is an integer in the unit WIST-4 §5 states for it, and this is the one field through which any of them is ever rewritten; the range is WIST-1 §4's JCS integer domain."}
+                  "value": {"type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991, "description": "Every value the Parameter Registry carries is an integer in the unit WIST-4 §5 states for it, and this is the one field through which any of them is ever rewritten; the range is WIST-1 §4's JCS integer domain."}
                 },
                 "allOf": [
                   {"if": {"properties": {"parameter": {"const": "epoch_cadence_seconds"}}}, "then": {"properties": {"value": {"minimum": 1, "maximum": 86400}}}},
                   {"if": {"properties": {"parameter": {"const": "epoch_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 65537}}}},
                   {"if": {"properties": {"parameter": {"const": "checkpoint_witness_quorum"}}}, "then": {"properties": {"value": {"minimum": 0}}}},
-                  {"if": {"properties": {"parameter": {"const": "extract_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 2}}}},
-                  {"if": {"properties": {"parameter": {"const": "links_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 21}}}},
-                  {"if": {"properties": {"parameter": {"const": "link_url_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 14}}}},
-                  {"if": {"properties": {"parameter": {"const": "summary_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 12}}}},
-                  {"if": {"properties": {"parameter": {"const": "url_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 14}}}},
+                  {"if": {"properties": {"parameter": {"const": "extract_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 32768}}}},
+                  {"if": {"properties": {"parameter": {"const": "links_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 4096}}}},
+                  {"if": {"properties": {"parameter": {"const": "link_url_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 2048}}}},
+                  {"if": {"properties": {"parameter": {"const": "summary_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 2048}}}},
+                  {"if": {"properties": {"parameter": {"const": "url_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 2048, "maximum": 32768}}}},
+                  {"if": {"properties": {"parameter": {"const": "collections_max"}}}, "then": {"properties": {"value": {"minimum": 16}}}},
+                  {"if": {"properties": {"parameter": {"const": "scope_entries_max"}}}, "then": {"properties": {"value": {"minimum": 32}}}},
+                  {"if": {"properties": {"parameter": {"const": "catalog_items_max"}}}, "then": {"properties": {"value": {"minimum": 16777216}}}},
+                  {"if": {"properties": {"parameter": {"const": "tree_file_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 65536}}}},
+                  {"if": {"properties": {"parameter": {"const": "tree_depth_max"}}}, "then": {"properties": {"value": {"minimum": 16}}}},
+                  {"if": {"properties": {"parameter": {"const": "catalog_refresh_seconds"}}}, "then": {"properties": {"value": {"minimum": 1, "maximum": 7776000}}}},
                   {"if": {"properties": {"parameter": {"const": "feed_window"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
                   {"if": {"properties": {"parameter": {"const": "recovery_window_days"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
                   {"if": {"properties": {"parameter": {"const": "param_grace_days"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
@@ -147,7 +157,7 @@
       }
     },
     {
-      "comment": "WIST-3 §6.2, WIST-4 §5.1: a payload_withdrawal names the Delta whose Payload leaves distribution, the legal ground and the jurisdiction, and `subject` is the Publisher's Canonical Host. Which Delta it may name is a replay check (WIST4-E04).",
+      "comment": "WIST-3 §6.2, WIST-4 §5.1: a payload_withdrawal names in `delta_id` the Item ID of the Item of kind page whose Payload leaves distribution, the legal ground and the jurisdiction, and `subject` is the Publisher's Canonical Host. Which Item it may name is a replay check (WIST4-E04).",
       "if": {"properties": {"update": {"properties": {"action": {"const": "payload_withdrawal"}}}}},
       "then": {
         "properties": {

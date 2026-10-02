@@ -5,15 +5,17 @@ import collection_rules as rules
 import items
 import merkle
 import narrowing
+import tree_files
 
 ENTRY_GROUPS = ("publisher_declaration", "registry_update", "publisher_catalog", "publisher_item", "label", "dispute")
-REPLAYED_TYPES = ("publisher_declaration", "registry_update", "publisher_catalog", "publisher_item")
+REPLAYED_TYPES = ENTRY_GROUPS
+LABEL_MEMBERS = {"label": "labeler", "dispute": "disputant"}
 OUT_OF_PLACE = "WIST3-E06"
 EPOCH_REJECTED = "WIST3-E03"
 DAY_SECONDS = 86400
 DECLARATION_PARAMETERS = tuple(rules.DEFAULT_PARAMETERS)
 REFRESH_BOUNDS = (1, 7776000)
-URL_CAP_MAX = 32768
+TREE_FLOORS = dict(tree_files.DEFAULT_PARAMETERS)
 WITHDRAWAL = "payload_withdrawal"
 CONTRACT_FAILED = "WIST4-E04"
 
@@ -24,8 +26,12 @@ def check_parameters(parameters):
     low, high = REFRESH_BOUNDS
     if not low <= parameters["catalog_refresh_seconds"] <= high:
         raise ValueError("catalog_refresh_seconds is amended outside 1 to 7 776 000")
-    if parameters["url_cap_bytes"] > URL_CAP_MAX:
-        raise ValueError("url_cap_bytes is amended above 32 768")
+    items.check_parameters({k: parameters[k] for k in items.DEFAULT_PARAMETERS})
+    for name, floor in {**TREE_FLOORS, "catalog_items_max": items.CATALOG_ITEMS_MAX}.items():
+        if name in parameters and parameters[name] < floor:
+            raise ValueError(f"{name} is amended below {floor}")
+    if parameters.get("labeler_epoch_entries_max", 1) > parameters["domain_epoch_entries_max"]:
+        raise ValueError("labeler_epoch_entries_max exceeds domain_epoch_entries_max")
     rules.parameter_map({k: parameters[k] for k in DECLARATION_PARAMETERS})
     return parameters
 
@@ -57,11 +63,12 @@ def catalog_strings(body):
 
 def counted_host(entry):
     body = entry["body"]
-    member = {"publisher_catalog": "catalog", "publisher_item": "item"}.get(entry["type"])
+    member = {"publisher_catalog": "catalog", "publisher_item": "item", "label": "label",
+              "dispute": "dispute"}.get(entry["type"])
     if member is None:
         return None
     inner = body.get(member) if isinstance(body, dict) else None
-    host = inner.get("publisher") if isinstance(inner, dict) else None
+    host = inner.get(LABEL_MEMBERS.get(member, "publisher")) if isinstance(inner, dict) else None
     if not isinstance(host, str) or not rules.is_canonical_host(host):
         return None
     return host
@@ -288,6 +295,9 @@ class Sealing:
             return EPOCH_REJECTED, "two publisher_catalog Entries of one publisher and collection"
         if any(n > parameters["domain_epoch_entries_max"] for n in capacity_counts(entries).values()):
             return EPOCH_REJECTED, "above the per-domain Epoch capacity"
+        labeled = capacity_counts([e for e in entries if e["type"] in LABEL_MEMBERS])
+        if any(n > parameters["labeler_epoch_entries_max"] for n in labeled.values()):
+            return EPOCH_REJECTED, "above the per-Labeler Epoch cap"
         return None
 
     def epoch(self, epoch):

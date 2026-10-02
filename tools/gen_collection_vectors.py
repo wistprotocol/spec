@@ -983,8 +983,8 @@ def pull_vectors():
         reduces = bool(found)
         reduction_cases.append({
             "name": label, "predecessor": p_env, "declaration": d_env, "reduces_authority": reduces,
-            "reductions": found, "discovery_height": 100, "record_seal_epochs": record_seal_epochs,
-            "last_seal_height": rules.last_seal_height(100, record_seal_epochs) if reduces else None})
+            "reductions": found, "last_sealed_at_discovery": 99, "record_seal_epochs": record_seal_epochs,
+            "last_seal_height": rules.last_seal_height(99, record_seal_epochs) if reduces else None})
 
     reduction("a key added to keys", N_G, [], keys=[key("owner"), key("owner2")])
     expiring = NBF + 180 * DAY
@@ -1066,8 +1066,9 @@ def pull_vectors():
                      "against the `predecessor` it names, with the ADR's tests that hold (`key`, `key_window`, "
                      "`collection`, `scope_entry`, `subdomain_scope`); `key_window` holds when D lists a key P "
                      "lists in the same member with a later nbf, an earlier exp, or an exp where P has none; when it does, the last height at which its "
-                     "publisher_declaration Entry may seal is discovery_height + record_seal_epochs, counted as "
-                     "WIST-1 section 5.2 counts a recovery Declaration's deadline, and null otherwise."),
+                     "publisher_declaration Entry may seal is the first Epoch sealed after the discovery, "
+                     "last_sealed_at_discovery + 1, plus record_seal_epochs, as WIST-1 section 5.2 counts a "
+                     "recovery Declaration's deadline, and null otherwise."),
             "state_pull_note": (
                 "state_pull_cases: an Aggregator's view of one Publisher when a pull starts. `epochs` are the Epochs "
                 "sealed before it, applied as vectors/wist1/collection-narrowing.json applies them, each under the "

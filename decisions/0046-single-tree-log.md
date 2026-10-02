@@ -98,12 +98,13 @@ inside it, and the height a Snapshot is taken at.
   Witnesses, under a verifier-side policy of its own.
 - **SCITT vocabulary, receipts deferred.** The specification maps its
   terms to RFC 9943's — the Aggregator is the Transparency Service, a
-  Publisher the Issuer, a Delta's subject the Subject, the admission rules
-  the Registration Policy, and an inclusion proof against a cosigned
-  checkpoint the Receipt — so that a reader arriving from SCITT can place
-  the suite. COSE-encoded receipts are optional and deferred: nothing in
-  the suite needs them, and adding a second encoding of a proof the tiles
-  already serve would be two formats to keep agreeing.
+  Publisher the Issuer, the URL an Item is about the Subject, the
+  admission rules the Registration Policy, and an inclusion proof
+  against a cosigned checkpoint the Receipt — so that a reader arriving
+  from SCITT can place the suite. COSE-encoded receipts are optional and
+  deferred: nothing in the suite needs them, and adding a second encoding
+  of a proof the tiles already serve would be two formats to keep
+  agreeing.
 
 ## Alternatives considered
 

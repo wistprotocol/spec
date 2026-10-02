@@ -1,5 +1,5 @@
 {
-  "note": "ADR-0051 reaching the Log. pull_cases: an Aggregator whose current Declaration is `known`, with no open recovery window and no pending head, fetches the Declaration at the start of a pull and applies `fetched` against `known` under WIST-1 section 5.2; `acceptance` is the classification, `idempotent`, the rejection code, or `not_fetched` when the fetch failed or timed out. `proceeds` is whether it may pull any Collection of the Publisher, and `collections_pulled` names the Collections (implicit default included) of the Declarations authorized for admission once `fetched` applied: the fetched one after an ordinary rotation, the current one for a re-serve, an unchanged answer or a fresh identity that becomes pending, and none after a failed fetch or a rejected Declaration. reduction_cases: whether `declaration` reduces authority against the `predecessor` it names, with the ADR's tests that hold (`key`, `key_window`, `collection`, `scope_entry`, `subdomain_scope`); `key_window` holds when D lists a key P lists in the same member with a later nbf, an earlier exp, or an exp where P has none; when it does, the last height at which its publisher_declaration Entry may seal is discovery_height + record_seal_epochs, counted as WIST-1 section 5.2 counts a recovery Declaration's deadline, and null otherwise.",
+  "note": "ADR-0051 reaching the Log. pull_cases: an Aggregator whose current Declaration is `known`, with no open recovery window and no pending head, fetches the Declaration at the start of a pull and applies `fetched` against `known` under WIST-1 section 5.2; `acceptance` is the classification, `idempotent`, the rejection code, or `not_fetched` when the fetch failed or timed out. `proceeds` is whether it may pull any Collection of the Publisher, and `collections_pulled` names the Collections (implicit default included) of the Declarations authorized for admission once `fetched` applied: the fetched one after an ordinary rotation, the current one for a re-serve, an unchanged answer or a fresh identity that becomes pending, and none after a failed fetch or a rejected Declaration. reduction_cases: whether `declaration` reduces authority against the `predecessor` it names, with the ADR's tests that hold (`key`, `key_window`, `collection`, `scope_entry`, `subdomain_scope`); `key_window` holds when D lists a key P lists in the same member with a later nbf, an earlier exp, or an exp where P has none; when it does, the last height at which its publisher_declaration Entry may seal is the first Epoch sealed after the discovery, last_sealed_at_discovery + 1, plus record_seal_epochs, as WIST-1 section 5.2 counts a recovery Declaration's deadline, and null otherwise.",
   "state_pull_note": "state_pull_cases: an Aggregator's view of one Publisher when a pull starts. `epochs` are the Epochs sealed before it, applied as vectors/wist1/collection-narrowing.json applies them, each under the `parameters` map in force at its sealed_at, and all under `history_parameters` (recovery_window_days, declaration_activation_epochs), trusted fixture input, 7 and 24 where the case omits it. `discovered` lists, in discovery order, Declarations accepted at their discovery and not yet sealed, applied after the Epochs without reading collections_max, scope_entries_max, url_cap_bytes or the Entry bound again; one that no longer applies there has left the eligible sealing set and is skipped. A pending head activates only in the Epoch at its activation height, never at a pull. The pull then fetches the Declaration at `pull.sealed_at` under `pull.parameters`, as the next Epoch at `pull.height` would apply it; `pull.fetched` names the Declaration the answer carries, for `not_modified` the Declaration whose validator the request sent, judged as an answer 200 carrying it, and is null when the fetch failed. First contact lasts while neither the Epochs nor `discovered` hold an accepted Declaration. `expected.acceptance` is the transition kind of the fetched Declaration (`recovery_chain_head` for the recovery-chain head of an open window served while another Declaration is current), the rejection code, or `not_fetched`; `sources` name the Declarations the pull reads, `collections_pulled` their Collections in pull order, and a pull that does not proceed carries its `disposition` and whether it is `noise` against the Ping quota (WIST-2 section 4).",
   "keys": {
     "owner": {
@@ -1289,7 +1289,7 @@
       },
       "reduces_authority": false,
       "reductions": [],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": null
     },
@@ -1478,7 +1478,7 @@
       "reductions": [
         "key_window"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -1667,7 +1667,7 @@
       "reductions": [
         "key_window"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -1857,7 +1857,7 @@
       "reductions": [
         "key_window"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -2044,7 +2044,7 @@
       },
       "reduces_authority": false,
       "reductions": [],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": null
     },
@@ -2231,7 +2231,7 @@
       },
       "reduces_authority": false,
       "reductions": [],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": null
     },
@@ -2417,7 +2417,7 @@
       },
       "reduces_authority": false,
       "reductions": [],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": null
     },
@@ -2591,7 +2591,7 @@
       "reductions": [
         "key_window"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -2780,7 +2780,7 @@
       },
       "reduces_authority": false,
       "reductions": [],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": null
     },
@@ -2945,7 +2945,7 @@
       },
       "reduces_authority": false,
       "reductions": [],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": null
     },
@@ -3113,7 +3113,7 @@
       },
       "reduces_authority": false,
       "reductions": [],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": null
     },
@@ -3285,7 +3285,7 @@
       },
       "reduces_authority": false,
       "reductions": [],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": null
     },
@@ -3457,7 +3457,7 @@
       },
       "reduces_authority": false,
       "reductions": [],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": null
     },
@@ -3637,7 +3637,7 @@
       "reductions": [
         "key"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -3817,7 +3817,7 @@
       "reductions": [
         "key"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 48,
       "last_seal_height": 148
     },
@@ -3982,7 +3982,7 @@
       "reductions": [
         "key"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -4155,7 +4155,7 @@
       "reductions": [
         "key"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -4309,7 +4309,7 @@
       "reductions": [
         "key"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -4496,7 +4496,7 @@
       "reductions": [
         "key"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -4657,7 +4657,7 @@
       "reductions": [
         "key"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -4818,7 +4818,7 @@
       "reductions": [
         "key"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -4961,7 +4961,7 @@
         "collection",
         "scope_entry"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -5126,7 +5126,7 @@
         "collection",
         "scope_entry"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -5285,7 +5285,7 @@
       "reductions": [
         "scope_entry"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -5448,7 +5448,7 @@
       "reductions": [
         "scope_entry"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -5611,7 +5611,7 @@
       "reductions": [
         "scope_entry"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -5774,7 +5774,7 @@
       "reductions": [
         "scope_entry"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -5877,7 +5877,7 @@
       "reductions": [
         "scope_entry"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -5968,7 +5968,7 @@
         "collection",
         "scope_entry"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -6091,7 +6091,7 @@
         "collection",
         "scope_entry"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -6181,7 +6181,7 @@
       "reductions": [
         "scope_entry"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -6259,7 +6259,7 @@
       "reductions": [
         "subdomain_scope"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     },
@@ -6431,7 +6431,7 @@
       "reductions": [
         "subdomain_scope"
       ],
-      "discovery_height": 100,
+      "last_sealed_at_discovery": 99,
       "record_seal_epochs": 24,
       "last_seal_height": 124
     }

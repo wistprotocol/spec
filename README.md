@@ -131,7 +131,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0049](decisions/0049-snapshot-key-authentication.md) — A Snapshot carries its key acts, and unsealed Aggregator documents verify at the adopted head
 - [ADR-0050](decisions/0050-emitted-publications.md) — A publication is emitted from the content's source, and `links` declares the links of the published content
 - [ADR-0051](decisions/0051-collections-scope-and-keys.md) — A Publisher's publications are divided into Collections, each with an enforced Scope and its own keys
-- [ADR-0052](decisions/0052-items-and-catalogs.md) — Publications are Items, and one signed Catalog per Collection commits to all of them (takes effect with the revision of WIST-1 to WIST-4 that states it)
+- [ADR-0052](decisions/0052-items-and-catalogs.md) — Publications are Items, and one signed Catalog per Collection commits to all of them
 - [ADR-0053](decisions/0053-change-lists.md) — A change list carries the Items by which a Catalog differs from the one it replaced
 
 ## Licenses

@@ -575,9 +575,9 @@ def derivation_cases():
                         emission("/notes/empty", "Empty", text="None.", links=[])),
         derivation_case("links-truncated-at-default-cap",
                         emission("/notes/many", "Many", text="References.", links=many)),
-        derivation_case("links-read-at-default-cap-whatever-log-amended",
-                        emission("/notes/many", "Many", text="References.", links=many[:10]),
-                        log_parameters={"links_cap_bytes": 128}),
+        derivation_case("links-truncated-at-default-cap-whatever-log-raised",
+                        emission("/notes/many", "Many", text="References.", links=many),
+                        log_parameters={"links_cap_bytes": 65536}),
         derivation_case("href-with-leading-and-trailing-space-yields-bare-link",
                         emission("/notes/spaced", "Spaced",
                                  html='<a href=" https://example.org/spaced ">spaced</a>'

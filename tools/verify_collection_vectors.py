@@ -969,7 +969,7 @@ FILE_ARRAYS = {
     },
     "declaration-pull": {
         "pull_cases": {"name", "known", "fetch_outcome", "fetched", "acceptance", "proceeds", "collections_pulled"},
-        "reduction_cases": {"name", "predecessor", "declaration", "discovery_height", "record_seal_epochs",
+        "reduction_cases": {"name", "predecessor", "declaration", "last_sealed_at_discovery", "record_seal_epochs",
                             "reduces_authority", "reductions", "last_seal_height"},
         "state_pull_cases": {"name", "declarations", "epochs", "discovered", "pull", "expected"},
     },
@@ -1107,7 +1107,8 @@ def family_pull(data, failures):
             if declaration["publisher"].get("prev_declaration") != declaration_hash(predecessor["publisher"]):
                 raise VerifierError("the Declaration does not name the predecessor")
             found = reductions(predecessor["publisher"], declaration["publisher"])
-            last = c["discovery_height"] + c["record_seal_epochs"] if found else None
+            # WIST-1 section 5.2: counted from the first Epoch sealed after the discovery.
+            last = c["last_sealed_at_discovery"] + 1 + c["record_seal_epochs"] if found else None
             compare(failures, c["name"],
                     {"reduces_authority": c["reduces_authority"], "reductions": c["reductions"],
                      "last_seal_height": c["last_seal_height"]},

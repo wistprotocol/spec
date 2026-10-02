@@ -24,8 +24,7 @@ DAY_SECONDS = 86400
 REMOVAL_RETENTION_DAYS = 180
 ITEM_BOUND_OCTETS = 16384
 URL_CAP_BYTES_MAX = 32768
-SIZE_CAP_FLOORS = {"url_cap_bytes": 14, "extract_cap_bytes": 2, "links_cap_bytes": 21, "link_url_cap_bytes": 14,
-                   "summary_cap_bytes": 12}
+SIZE_CAP_FLOORS = dict(DEFAULT_PARAMETERS)
 LINKS_STRUCTURE_OCTETS = 21
 CATALOG_ITEMS_MAX = 16777216
 CONTENT_STRUCTURE_OCTETS = 32

@@ -644,10 +644,9 @@ def _link_extraction_vector():
     assert fixture1["expected"] == _FIXTURE1_EXPECTED, \
         "fixture 1's expected member is not the hand-pinned 3-URL set"
     cap = vec["links_cap_bytes"]
-    # WIST-4 §5's `link_url_cap_bytes` floor: `JCS("https://a.b/")`, the
-    # serialization of the shortest Normalized URL that can exist (WIST-1 §2).
+    # The shortest Normalized URL that can exist (WIST-1 §2).
     shortest_entry = len(rfc8785.dumps("https://a.b/"))
-    assert shortest_entry == 14, "the published shortest-URL floor (14) drifted"
+    assert shortest_entry == 14, "JCS of the shortest Normalized URL is not 14 octets"
     for case in vec["cases"]:
         html = bytes.fromhex(case["html_hex"])
         urls, total = link_extraction.extract_links(
@@ -849,11 +848,16 @@ def _recovery_queue_disposition():
     ceiling were two MUSTs one Aggregator could not both keep, and the
     queue's disposition at window end was unstated."""
     w1 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-item-format.md").read_text())
+    w3 = re.sub(r"\s+", " ",
+                (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
     w4 = re.sub(r"\s+", " ",
                 (ROOT / "specs" / "WIST-4-governance.md").read_text())
     assert "Every queued Catalog is judged again by C1 (WIST-3 §3.3) under the settlement source" in w1
     assert w1.count("WIST1-E13") >= 2, "E13 must appear in §5.2 and the §7 registry"
-    assert "queued under WIST-1 §5.2" in w4, "the §5 ceiling needs the recovery carve-out"
+    assert ("`recovery_window`: for a Catalog or an Item, a recovery window of the "
+            "Publisher open at the Epoch") in w3, "WIST-3 §3.3 needs the recovery deferral"
+    assert "the deferrals that move it and the ceiling with it" in w4, \
+        "the §5 ceiling needs to move with WIST-3 §3.3's deferrals"
 
 check("spec:recovery-queue-disposition", _recovery_queue_disposition)
 
@@ -1290,7 +1294,7 @@ def _locate_values(predicate):
 def _instance_suffix(schema_path, n=2):
     """The trailing property names of a schema path, as an instance-path suffix.
 
-    `properties/delta/properties/payload/properties/commitment` names instances
+    `properties/item/properties/payload/properties/commitment` names instances
     reachable at `…/payload/commitment`. Two segments is enough to separate the
     occurrences that matter — `payload/commitment` from `meta/commitment` — while
     staying insensitive to how deeply an envelope nests the object.
@@ -2590,6 +2594,49 @@ def _dc4_parameter_clocks():
     assert included["selected_value"] == included["changes"][0]["value"]
 check("vectors:wist4-parameter-clocks", _dc4_parameter_clocks)
 
+def _strict_json(raw):
+    return item_rules.strict_loads(raw.encode("utf-8") if isinstance(raw, str) else raw)
+
+def _registry_update_eligibility(raw, validator):
+    """WIST-4 §5.1: JSON/JCS eligibility (WIST1-E05), then the schema, where a
+    failure inside an action's branch is the details contract (WIST4-E04) and
+    any other field failure, the version check included, is WIST4-E11."""
+    try:
+        doc = _strict_json(raw)
+        rfc8785.dumps(doc)
+    except (ValueError, TypeError, item_rules.NotJcsInput):
+        return "WIST1-E05", None
+    errors = list(validator.iter_errors(doc))
+    if any("allOf" not in e.absolute_schema_path for e in errors):
+        return "WIST4-E11", None
+    if errors and not _parameter_rejection(doc, errors):
+        return "WIST4-E04", None
+    if doc["update"]["wist_version"].partition(".")[0] != "1":
+        return "WIST4-E11", None
+    return ("WIST4-E03" if errors else None), doc
+
+def _parameter_rejection(doc, errors):
+    """WIST-4 §5.1: a string `parameter` naming no identifier, with the same
+    `subject`, and an integer `value` past its bound pass to authentication
+    and are rejected as WIST4-E03; the caller authenticates first."""
+    update = doc["update"]
+    details = update.get("details")
+    if update.get("action") != "parameter_change" or not isinstance(details, dict):
+        return False
+    parameter, value = details.get("parameter"), details.get("value")
+    if not isinstance(parameter, str) or update.get("subject") != parameter:
+        return False
+    integral = (isinstance(value, int) and not isinstance(value, bool)) or \
+        (isinstance(value, float) and value.is_integer())
+    for e in errors:
+        where = list(e.absolute_path)
+        if e.validator == "enum" and where in (["update", "details", "parameter"], ["update", "subject"]):
+            continue
+        if integral and e.validator in ("minimum", "maximum") and where == ["update", "details", "value"]:
+            continue
+        return False
+    return True
+
 def _dc4_parameter_wire_range():
     v = json.loads((ROOT / "vectors/wist4/parameter-combinations.json").read_text())
     validator = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
@@ -2597,9 +2644,18 @@ def _dc4_parameter_wire_range():
     for case in v["wire_cases"]:
         doc = case["envelope"]
         assert validator.is_valid(doc) == case["schema_valid"], case["label"]
+        code, parsed = ("WIST1-E05", None) if not case["canonical_integer"] else \
+            _registry_update_eligibility(json.dumps(doc), validator)
+        if parsed is not None:
+            try:
+                key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
+            except InvalidSignature:
+                code = "WIST4-E11"
+        assert code == case["code"], (case["label"], code)
         assert case["sealed_disposition"] == ("candidate" if case["schema_valid"] else "ignored"), case["label"]
         if case["canonical_integer"]:
-            key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
+            if case["code"] != "WIST4-E11" or doc["update"]["effective_at"].endswith(".5Z"):
+                key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
         else:
             try:
                 rfc8785.dumps(doc["update"])
@@ -2608,7 +2664,6 @@ def _dc4_parameter_wire_range():
             else:
                 raise AssertionError(case["label"])
         d = doc["update"]["details"]
-        assert doc["update"]["subject"] == d["parameter"]
         values = dict(v["prospective_defaults"])
         if d["parameter"] in values and isinstance(d["value"], int):
             values[d["parameter"]] = d["value"]
@@ -2622,7 +2677,29 @@ def _dc4_parameter_wire_range():
     assert spellings[1]["envelope"]["update"]["details"]["value"] == 65537 and spellings[1]["sealed_disposition"] == "candidate"
     fractional = next(c for c in v["wire_cases"] if c["envelope"]["update"]["effective_at"].endswith(".5Z"))
     assert not fractional["schema_valid"] and fractional["sealed_disposition"] == "ignored"
+    probed = {(c["envelope"]["update"]["details"]["parameter"], c["envelope"]["update"]["details"]["value"]):
+              c["schema_valid"] for c in v["wire_cases"]}
+    defaults = _registry_table_defaults()
+    for name in ("url_cap_bytes", "extract_cap_bytes", "summary_cap_bytes", "links_cap_bytes",
+                 "link_url_cap_bytes", "collections_max", "scope_entries_max", "catalog_items_max",
+                 "tree_file_cap_bytes", "tree_depth_max"):
+        assert probed.get((name, defaults[name])) is True and probed.get((name, defaults[name] - 1)) is False, \
+            f"{name} lacks a case at its floor, the default, and one below it"
+    for name, edges in (("url_cap_bytes", ((32768, True), (32769, False))),
+                        ("catalog_refresh_seconds", ((0, False), (1, True), (7776000, True), (7776001, False)))):
+        for value, valid in edges:
+            assert probed.get((name, value)) is valid, f"{name} lacks the bound case {value}"
+    codes = {c["label"]: c["code"] for c in v["wire_cases"]}
+    for label, code in (("value below its bound under a signature that fails", "WIST4-E11"),
+                        ("identifier the Parameter Registry does not list with the same subject", "WIST4-E03"),
+                        ("identifier the Parameter Registry does not list under a signature that fails", "WIST4-E11"),
+                        ("identifier the Parameter Registry does not list with another subject", "WIST4-E04"),
+                        ("non string parameter", "WIST4-E04")):
+        assert codes.get(label) == code, label
+    assert codes["url_cap_bytes value 2047"] == "WIST4-E03"
     prose4 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
+    assert ("a string `details.parameter` that names no §5 identifier, with a `subject` that is the same string, "
+            "and an integer `details.value` outside its §5 bound") in prose4
     assert "never reaches these checks" in prose4, "WIST-4 §5 does not exclude schema-invalid acts from schedule candidates"
 check("vectors:wist4-parameter-wire-range", _dc4_parameter_wire_range)
 
@@ -2655,7 +2732,7 @@ NON_CONTENT_DIGESTS = {
     ("publisher.schema.json", "properties/publisher/properties/next_keys"):
         "a Key Set fingerprint (WIST-1 §5.1): SHA-256 over a JSON array of JWK thumbprints, no content",
     ("feed.schema.json", "properties/feed/properties/deltas/items"):
-        "Delta IDs",
+        "Label and Dispute IDs (WIST-2 §3.2): SHA-256 over Labels and disputes, no page content",
     ("log-anchor.schema.json",
      "properties/anchor/properties/predecessor/properties/final_root_hash"):
         "SHA-256 of an Epoch header (the predecessor Log's final Epoch, WIST-3 §3.4)",
@@ -2869,7 +2946,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-key-eligibility.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/declaration-key-eligibility.json", "author_key"): "the fixture author public key",
     ("vectors/wist1/declaration-key-eligibility.json", "prev_declaration"): "SHA-256 of the original signed predecessor publisher object",
-    ("vectors/wist1/declaration-fields.json", "prev"): "a Delta predecessor ID; relation cases authenticate the supplied predecessor",
     ("vectors/wist2/feed-regression.json", "x"): "the supplied Declaration public key",
     ("vectors/wist2/feed-regression.json", "value"): "a valid or deliberately invalid signature",
     ("vectors/wist2/feed-fields.json", "domain"): "supplied Canonical Hosts or deliberately malformed field probes",
@@ -2949,6 +3025,9 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/withdrawal.json", "record_tuples"): "fixture Catalog IDs inside WIST-3 §7 record tuples",
     ("vectors/wist4/withdrawal.json", "materialized"): "fixture Item IDs whose content materializes",
     ("vectors/wist4/withdrawal.json", "adopted"): "fixture Item IDs inside adopted withdrawal tuples",
+    ("vectors/wist4/withdrawal.json", "replay_state_tuples"): "fixture Item IDs inside WIST-3 §7 withdrawal tuples",
+    ("vectors/wist4/withdrawal.json", "removal_tuples"):
+        "fixture Item IDs of Items of kind removed and Catalog IDs inside WIST-3 §7 removal tuples",
     ("vectors/wist4/registrable-domain.json", "entries"): "Public Suffix List snapshot identifiers inside WIST-3 §7 suffix_list tuples",
     ("vectors/wist3/timestamps.json", "entries"): "a placeholder Label ID inside a WIST-3 §7 label or dispute tuple whose timestamp position is probed",
     ("examples/dispute.json", "label"): "the disputed Label's ID: SHA-256 over a Label, no page content (WIST-2 §3.3)",
@@ -3096,7 +3175,7 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/item-fields.json", "tree"): "a tree file name (ADR-0052): SHA-256 over a file of Items that carry only a salted commitment",
     ("vectors/wist1/item-fields.json", "salt"): "Payload salts",
     ("vectors/wist1/item-fields.json", "license"): "a license string of 64 letters at its field bound, no page content",
-    ("vectors/wist1/item-fields.json", "prev"): "a Delta member an Item may not carry, all zero digits, no page content",
+    ("vectors/wist1/item-fields.json", "prev"): "a member an Item may not carry, all zero digits, no page content",
     ("vectors/wist1/item-roots.json", "keys"): "Item keys (ADR-0052): SHA-256 over URLs the Items carry in the clear",
     ("vectors/wist1/item-roots.json", "leaves"): "Item leaves (ADR-0052): SHA-256 over an Item key and an Item hash, no page content",
     ("vectors/wist1/item-roots.json", "root"): "an Item list root (ADR-0052): a Merkle Tree Hash over leaves that carry only a URL hash and an Item hash",
@@ -3246,10 +3325,15 @@ for _rel, _keys in (
           "tuples", "value", "x")),
         ("vectors/wist3/snapshot-records.json", ("item_id", "key_id", "kid", "root", "salt", "tree", "tuples",
                                                  "value", "x")),
-        ("vectors/wist4/withdrawal.json", ("catalog", "item_id", "salt"))):
+        ("vectors/wist4/withdrawal.json", ("catalog", "item_id", "salt")),
+        ("vectors/wist1/declaration-fields.json", ("root", "tree"))):
     NON_CONTENT_VALUES.update({(_rel, key): _CATALOG_VALUE_MEANINGS[key] for key in _keys})
 for _rel in ("vectors/wist3/catalog-waiting.json", "vectors/wist2/collection-pull.json"):
     NON_CONTENT_VALUES[(_rel, "outcome")] = "a Declaration outcome name, no page content"
+NON_CONTENT_VALUES[("vectors/wist3/catalog-waiting.json", "id")] = (
+    "the Label or Dispute ID a rejection reports (WIST-2 §7.1): SHA-256 over a Label or a dispute, no page content")
+NON_CONTENT_VALUES[("vectors/wist3/catalog-waiting.json", "label")] = (
+    "a Label or Dispute ID (WIST-2 §3.3): SHA-256 over a Label or a dispute, which carries no page content")
 for _rel in ("vectors/wist3/catalog-sealing.json", "vectors/wist2/collection-pull.json"):
     NON_CONTENT_VALUES[(_rel, "delta_id")] = ("the Item ID a payload_withdrawal names (ADR-0052): SHA-256 over an Item "
                                               "that carries only a salted commitment")
@@ -4553,7 +4637,8 @@ def _declaration_history_epochs(vector, epochs, pinned, entry_types=("publisher_
     log_id = vector["log_key"]["key_id"]
     keys = {log_id: b64u_decode(vector["log_key"]["public_key"])}
     ranks = {name: rank for rank, name in enumerate(
-        ("publisher_declaration", "registry_update", "publisher_delta", "label"))}
+        ("publisher_declaration", "registry_update", "publisher_catalog", "publisher_item", "label",
+         "dispute"))}
     previous_time = None
     leaves = []
     authenticated = []
@@ -4920,9 +5005,9 @@ def publisher_instant(value):
     return seconds + fraction
 
 
-def _in_window(entry, observed):
-    """WIST-1 §5.1: a signing binding is eligible when nbf <= observed_at < exp."""
-    return entry["nbf"] <= observed and ("exp" not in entry or observed < entry["exp"])
+def _in_window(entry, instant):
+    """WIST-1 §5.1: a signing binding is eligible when nbf <= generated_at < exp."""
+    return entry["nbf"] <= instant and ("exp" not in entry or instant < entry["exp"])
 
 
 def _publisher_timestamp_format(value):
@@ -4964,18 +5049,21 @@ def _declaration_field_vectors():
         assert valid == case["author_signature_valid"], case["name"]
         result = field_error(env) or _declaration_binding_result(vector["stored"], env)
         assert result == case["expected"], case["name"]
-    def observed_at_valid(envelope):
-        value = envelope["delta"].get("observed_at")
-        return isinstance(value, str) and _publisher_timestamp_format(value)
+    def generated_seconds(envelope):
+        value = envelope["catalog"].get("generated_at")
+        try:
+            return log_seconds(value) if isinstance(value, str) else None
+        except ValueError:
+            return None
     for case in vector["key_time_cases"]:
         declaration, envelope = case["declaration"], case["envelope"]
-        for env, inner in ((declaration, "publisher"), (envelope, "delta")):
+        for env, inner in ((declaration, "publisher"), (envelope, "catalog")):
             author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(env[inner]))
             changed = copy.deepcopy(env[inner])
             if inner == "publisher":
                 changed["keys"][0]["nbf"] += 1
             else:
-                changed["observed_at"] += "0"
+                changed["generated_at"] += "0"
             try:
                 author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(changed))
             except InvalidSignature:
@@ -4983,29 +5071,31 @@ def _declaration_field_vectors():
             else:
                 raise AssertionError("changed timestamp retained its signature")
         result = field_error(declaration)
-        if result is None and not observed_at_valid(envelope):
+        generated = generated_seconds(envelope)
+        if result is None and generated is None:
             result = "WIST1-E14"
         if result is None:
-            observed = publisher_instant(envelope["delta"]["observed_at"])
             entry = declaration["publisher"]["keys"][0]
-            result = "key_bound_satisfied" if _in_window(entry, observed) else "WIST1-E02"
+            result = "key_bound_satisfied" if _in_window(entry, generated) else "WIST1-E02"
         assert result == case["expected"], case["name"]
     for case in vector["relation_cases"]:
         env = case["envelope"]
-        assert observed_at_valid(env), case["name"]
-        author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["delta"]))
-        observed, reference = publisher_instant(env["delta"]["observed_at"]), publisher_instant(case["reference"])
+        author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["catalog"]))
+        generated = generated_seconds(env)
+        assert generated is not None, case["name"]
         if case["kind"] == "clock":
-            result = "WIST1-E06" if observed - reference > 600 else "relation_satisfied"
+            result = ("WIST1-E06" if generated - publisher_instant(case["reference"]) > 600
+                      else "relation_satisfied")
         else:
-            assert case["kind"] == "predecessor"
-            previous = case["predecessor"]
-            author.verify(b64u_decode(previous["sig"]["value"]), rfc8785.dumps(previous["delta"]))
-            assert previous["delta"]["observed_at"] == case["reference"]
-            assert env["delta"]["url"] == previous["delta"]["url"]
-            assert env["delta"]["prev"] == "sha256:" + hashlib.sha256(rfc8785.dumps(previous["delta"])).hexdigest()
-            result = "WIST1-E07" if observed <= reference else "relation_satisfied"
+            assert case["kind"] == "item"
+            item = case["item"]
+            assert env["catalog"]["generated_at"] == case["reference"]
+            assert item["publisher"] == env["catalog"]["publisher"]
+            assert _publisher_timestamp_format(item["observed_at"]), case["name"]
+            result = ("WIST1-E06" if publisher_instant(item["observed_at"]) > generated
+                      else "relation_satisfied")
         assert result == case["expected"], case["name"]
+    assert {c["kind"] for c in vector["relation_cases"]} == {"clock", "item"}
     for case in vector["elapsed_cases"]:
         assert publisher_instant(case["end"]) - publisher_instant(case["start"]) == Fraction(case["seconds"])
     assert publisher_instant("1970-01-01T00:00:00Z") == 0
@@ -5667,7 +5757,7 @@ def _parameter_registry_enum():
         overlap = ids & found
         assert not overlap, f"§5 lists {sorted(overlap)} in more than one row"
         ids |= found
-    assert rows == 23, f"{rows} Parameter Registry rows parsed; the table has twenty-three"
+    assert rows == 28, f"{rows} Parameter Registry rows parsed; the table has twenty-eight"
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     enum = None
     for branch in schema["allOf"]:
@@ -5750,8 +5840,8 @@ def _parameter_bounds():
             f"§5's bounds table gives {names[0]} no parseable bound: {cells[1]!r}"
         assert cells[2], f"§5's bounds table gives {names[0]} no stated consequence"
         published[names[0]] = (lo, hi)
-    assert len(published) == 20, \
-        f"{len(published)} bounds parsed from §5; the table has twenty"
+    assert len(published) == 26, \
+        f"{len(published)} bounds parsed from §5; the table has twenty-six"
     enforced = _parameter_change_bounds()
     assert published == enforced, (
         "§5's published bounds and the schema's differ:\n"
@@ -5813,19 +5903,18 @@ def _parameter_bounds():
     assert "`payload_window_days` divided by 6" in re.sub(r"\s+", " ", section5), \
         "§5 does not state the retention-to-window rule"
 
-    # Three of these floors are derived from octet counts this harness can
-    # compute, so the published numbers are checked against the artifacts they
-    # describe rather than asserted. A cap below any of them is not a small cap
-    # but the absence of the thing it bounds.
-    assert enforced["extract_cap_bytes"][0] == len(rfc8785.dumps("")), \
-        "the extract cap floor is not the octet length of JCS of the empty extract"
-    assert enforced["summary_cap_bytes"][0] == len(rfc8785.dumps({"title": ""})), \
-        "the summary cap floor is not the octet length of the smallest conforming summary"
-    assert enforced["links_cap_bytes"][0] == len(rfc8785.dumps({"total": 0, "urls": []})), \
-        "the links cap floor is not the octet length of the empty links member"
-    for name in ("url_cap_bytes", "link_url_cap_bytes"):
-        assert enforced[name][0] == len(rfc8785.dumps("https://a.b/")), \
-            f"the {name} floor is not the octet length of the shortest two-label Normalized URL"
+    assert "**Values a Publisher builds to.**" in section5, \
+        "§5 does not state why the publication caps are not amended below their defaults"
+    for name in ("extract_cap_bytes", "links_cap_bytes", "link_url_cap_bytes",
+                 "summary_cap_bytes", "url_cap_bytes", "collections_max",
+                 "scope_entries_max", "catalog_items_max", "tree_file_cap_bytes",
+                 "tree_depth_max"):
+        assert enforced[name][0] == defaults[name], (
+            f"the {name} floor {enforced[name][0]} is not its Registry default "
+            f"{defaults[name]}, the value a Publisher builds to")
+    assert enforced["url_cap_bytes"][1] == 32768, "the url cap has no 32 768 ceiling"
+    assert enforced["catalog_refresh_seconds"] == (1, 7776000), \
+        "the Catalog refresh interval is not bounded to 1 through 7 776 000 seconds"
     empty_epoch = json.loads((ROOT / "vectors/wist3/empty-epoch.json").read_text())["epoch_1"]
     assert enforced["epoch_cap_bytes"][0] >= len(rfc8785.dumps(empty_epoch)), (
         "the Epoch cap floor is below the size of an empty Epoch, which "
@@ -5915,20 +6004,20 @@ def _dc4_payload_withdrawal():
     """A withdrawal is only distinguishable from censorship if it is typed.
 
     WIST-3 §6.2 rests on the Log carrying, for every withdrawn Payload, an entry
-    naming which Delta, on what legal basis, at whose demand. A withdrawal
+    naming which Item, on what legal basis, at whose demand. A withdrawal
     missing any of the three would let an operator record an unfalsifiable
     "we removed something", which is what a quiet drop looks like.
     """
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     actions = schema["properties"]["update"]["properties"]["action"]["enum"]
     assert "payload_withdrawal" in actions, "action enum lacks payload_withdrawal"
-    delta_id = (ROOT / "vectors" / "wist1" / "id.txt").read_text().strip()
+    item_id = _item_id(json.loads((ROOT / "examples" / "item.json").read_text()))
     withdrawal = {
         "update": {
             "wist_version": "1.0.0",
             "action": "payload_withdrawal",
             "subject": "example.com",
-            "details": {"delta_id": delta_id,
+            "details": {"delta_id": item_id,
                         "legal_basis": "GDPR Art. 17(1)(a)",
                         "jurisdiction": "EU"},
             "effective_at": "2026-08-02T16:00:00Z",
@@ -5944,8 +6033,8 @@ def _dc4_payload_withdrawal():
         del bad["update"]["details"][missing]
         assert not v.is_valid(bad), f"a withdrawal without {missing} validates"
     bad = copy.deepcopy(withdrawal)
-    bad["update"]["details"]["delta_id"] = "not-a-delta-id"
-    assert not v.is_valid(bad), "a withdrawal naming no well-formed Delta ID validates"
+    bad["update"]["details"]["delta_id"] = "not-an-item-id"
+    assert not v.is_valid(bad), "a withdrawal naming no well-formed Item ID validates"
 check("schema:wist4-payload-withdrawal", _dc4_payload_withdrawal)
 
 
@@ -7240,112 +7329,175 @@ check('vectors:wist1-payload-fields', _payload_field_vectors)
 def _withdrawal_vector():
     return json.loads((ROOT / "vectors/wist4/withdrawal.json").read_text())
 
-def _strict_json(raw):
-    return item_rules.strict_loads(raw.encode("utf-8") if isinstance(raw, str) else raw)
-
-def _registry_update_eligibility(raw, validator):
-    """WIST-4 §5.1: JSON/JCS eligibility (WIST1-E05), then the schema, where a
-    failure inside an action's branch is the details contract (WIST4-E04) and
-    any other field failure, the version check included, is WIST4-E11."""
+def _withdrawal_judged(case, validator, log_key, key_id, contract):
+    code, doc = _registry_update_eligibility(case["envelope_json"], validator)
+    if doc is None:
+        return code, None
     try:
-        doc = _strict_json(raw)
-        rfc8785.dumps(doc)
-    except (ValueError, TypeError, item_rules.NotJcsInput):
-        return "WIST1-E05", None
-    errors = list(validator.iter_errors(doc))
-    if any("allOf" not in e.absolute_schema_path for e in errors):
+        assert doc["sig"]["key_id"] == key_id
+        log_key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
+    except (AssertionError, InvalidSignature):
         return "WIST4-E11", None
-    if errors:
-        return "WIST4-E04", None
-    if doc["update"]["wist_version"].partition(".")[0] != "1":
-        return "WIST4-E11", None
-    return None, doc
+    update = doc["update"]
+    return contract(update["details"]["delta_id"], update["subject"], case["height"]), update
+
+def _withdrawal_replay(cases, judged, withdrawn, code_key, height_key):
+    for case in cases:
+        code, update = judged(case)
+        assert code == case[code_key], (case["label"], code_key, code)
+        if code is None:
+            withdrawn.setdefault(update["details"]["delta_id"], (case["height"], update["subject"]))
+            assert withdrawn[update["details"]["delta_id"]][0] == case[height_key], (case["label"], height_key)
+        else:
+            assert case[height_key] is None, (case["label"], height_key)
+    return sorted((["withdrawal", i, p, h] for i, (h, p) in withdrawn.items()), key=rfc8785.dumps)
 
 def _dc4_withdrawal():
     """WIST-4 §5.1 and WIST-3 §6.2: payload_withdrawal acts under the Log key
-    naming a sealed Item of the subject; the earliest accepted withdrawal's
-    Epoch governs and the state carries one withdrawal tuple per withdrawn Item."""
+    naming an Item of kind page sealed against a Catalog of the subject at or
+    below the act's Epoch; the earliest accepted withdrawal's Epoch governs.
+    A Consumer resumed from a Snapshot judges the contract against the Entries
+    it applied and the record and removal tuples it holds."""
     v = _withdrawal_vector()
     validator = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
     log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(v["log_key"]["public_key"]))
-    for d in v["sealed_items"] + v["resume"]["walked_items"]:
+    history = v["sealed_items"]
+    for d in history:
         assert _item_id(d["item"]) == d["item_id"] and d["item"]["publisher"] == d["publisher"] \
-            and d["item"]["url"] == d["url"] and "payload" in d["item"], "a sealed Item is not the one it names"
-    sealed = {d["item_id"]: d for d in v["sealed_items"]}
+            and d["item"]["url"] == d["url"], "a sealed Item is not the one it names"
+        assert d["kind"] == ("removed" if d["item"].get("removed") is True else "page")
+        assert ("payload" in d["item"]) == (d["kind"] == "page")
+    assert [d["height"] for d in history] == sorted(d["height"] for d in history)
+
+    def meets(identifier, subject, height):
+        return None if any(d["item_id"] == identifier and d["kind"] == "page" and d["publisher"] == subject
+                           and d["height"] <= height for d in history) else "WIST4-E04"
+
+    def holdings(height):
+        records, removals = {}, {}
+        for d in history:
+            if d["height"] <= height:
+                slot = (d["publisher"], d["url"])
+                (records if d["kind"] == "page" else removals)[slot] = d
+                (removals if d["kind"] == "page" else records).pop(slot, None)
+        return ([["record", d["publisher"], d["url"], d["item"], d["collection"], d["catalog"], d["generated_at"]]
+                 for d in records.values()],
+                [["removal", d["publisher"], d["url"], d["item_id"], d["catalog"], d["generated_at"]]
+                 for d in removals.values()])
+
+    def ordered(tuples):
+        return sorted(tuples, key=rfc8785.dumps)
+
+    key_id = v["log_key"]["key_id"]
     withdrawn = {}
-    seen = set()
-    for case in v["act_cases"]:
-        code, doc = _registry_update_eligibility(case["envelope_json"], validator)
-        if doc is not None:
-            try:
-                assert doc["sig"]["key_id"] == v["log_key"]["key_id"]
-                log_key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
-            except (AssertionError, InvalidSignature):
-                code = "WIST4-E11"
-            else:
-                update = doc["update"]
-                fact = sealed.get(update["details"]["delta_id"])
-                if fact is None or fact["height"] > case["height"] or fact["publisher"] != update["subject"]:
-                    code = "WIST4-E04"
-        assert code == case["code"], (case["label"], code)
-        if code is None:
-            delta_id = doc["update"]["details"]["delta_id"]
-            withdrawn.setdefault(delta_id, (case["height"], doc["update"]["subject"]))
-            assert withdrawn[delta_id][0] == case["withdrawn_height"], case["label"]
-        else:
-            assert case["withdrawn_height"] is None, case["label"]
-        seen.add(code)
-    assert seen == {None, "WIST4-E11", "WIST4-E04"}
+    tuples = _withdrawal_replay(
+        v["act_cases"], lambda c: _withdrawal_judged(c, validator, log_key, key_id, meets),
+        withdrawn, "code", "withdrawn_height")
+    assert {c["code"] for c in v["act_cases"]} == {None, "WIST4-E11", "WIST4-E04"}
     assert any(c["code"] is None and c["height"] > c["withdrawn_height"] for c in v["act_cases"]), \
         "no repeated withdrawal keeps the first height"
-    tuples = sorted(["withdrawal", d, p, h] for d, (h, p) in withdrawn.items())
-    assert tuples == sorted(v["state_tuples"]), "the replay does not leave the vector's withdrawal tuples"
+    assert tuples == ordered(v["state_tuples"]), "the replay does not leave the vector's withdrawal tuples"
+    last = max(d["height"] for d in history)
+    records, removals = holdings(last)
+    assert ordered(records) == ordered(v["record_tuples"]) and ordered(removals) == ordered(v["removal_tuples"])
     state = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text()))
     envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
-    envelope["state"]["entries"] = v["state_tuples"]
+    envelope["state"]["entries"] = v["state_tuples"] + v["record_tuples"] + v["removal_tuples"]
     state.validate(envelope)
-    records = sorted(rfc8785.dumps(["record", d["publisher"], d["url"], d["item"], d["collection"], d["catalog"],
-                                    d["generated_at"]]) for d in v["sealed_items"])
-    assert records == sorted(rfc8785.dumps(t) for t in v["record_tuples"]), "a withdrawn Item made no record"
-    materialized = sorted(d["item_id"] for d in v["sealed_items"] if d["item_id"] not in withdrawn)
+    materialized = sorted(_item_id(t[3]) for t in records if _item_id(t[3]) not in withdrawn)
     assert materialized == sorted(v["materialized"]) and materialized, "withdrawn content materialized"
-    assert any(withdrawn[d["item_id"]][0] == d["height"] for d in v["sealed_items"] if d["item_id"] in withdrawn), \
-        "no Item withdrawn in its own Epoch"
-    envelope["state"]["entries"] = v["state_tuples"] + v["record_tuples"]
-    state.validate(envelope)
+    by_id = {d["item_id"]: d for d in history}
+    assert any(withdrawn[i][0] == by_id[i]["height"] for i in withdrawn), "no Item withdrawn in its own Epoch"
+    held = {_item_id(t[3]) for t in records}
+    assert any(i not in held for i in withdrawn), "no withdrawal of a superseded Item meets the contract"
+
+    def resumed_judge(snapshot):
+        top = snapshot["snapshot_height"]
+        snap_records, snap_removals = holdings(top)
+        assert ordered(snap_records) == ordered(snapshot["record_tuples"])
+        assert ordered(snap_removals) == ordered(snapshot["removal_tuples"])
+        adopted = {t[1]: (t[3], t[2]) for t in snapshot["adopted"]}
+        assert adopted == {i: hp for i, hp in withdrawn.items() if hp[0] <= top}
+        assert all(c["height"] > top for c in snapshot["act_cases"])
+
+        def resumed(identifier, subject, height):
+            walked = [d for d in history if top < d["height"] <= height and d["item_id"] == identifier]
+            holders = [t[1] for t in snapshot["record_tuples"] if _item_id(t[3]) == identifier]
+            holders += [t[2] for t in snapshot["adopted"] if t[1] == identifier]
+            if any(d["kind"] == "page" and d["publisher"] == subject for d in walked) or subject in holders:
+                return None
+            if walked or holders or any(t[3] == identifier for t in snapshot["removal_tuples"]):
+                return "WIST4-E04"
+            return None
+        return adopted, resumed
+
     resume = v["resume"]
-    walked = {d["item_id"]: d for d in resume["walked_items"]}
-    assert all(d["height"] > resume["tree_size"] for d in walked.values())
-    resumed = {t[1]: (t[3], t[2]) for t in resume["adopted"]}
-    assert all(h <= resume["tree_size"] for h, _ in resumed.values())
-    unverified = 0
-    for case in resume["act_cases"]:
-        code, doc = _registry_update_eligibility(case["envelope_json"], validator)
-        assert code is None, case["label"]
-        log_key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
-        update = doc["update"]
-        fact = walked.get(update["details"]["delta_id"])
-        if fact is not None and (fact["height"] > case["height"] or fact["publisher"] != update["subject"]):
-            code = "WIST4-E04"
-        assert code == case["code"], (case["label"], code)
-        if code is None:
-            delta_id = update["details"]["delta_id"]
-            unverified += fact is None and delta_id not in resumed
-            resumed.setdefault(delta_id, (case["height"], update["subject"]))
-            assert resumed[delta_id][0] == case["withdrawn_height"], case["label"]
-    assert unverified, "no act names an Item below the Snapshot"
-    assert sorted(["withdrawal", d, p, h] for d, (h, p) in resumed.items()) == sorted(resume["state_tuples"])
+    adopted, resumed = resumed_judge(resume)
+    cases = resume["act_cases"]
+    after = _withdrawal_replay(cases, lambda c: _withdrawal_judged(c, validator, log_key, key_id, resumed),
+                               dict(adopted), "code", "withdrawn_height")
+    assert after == ordered(resume["state_tuples"])
+    replayed = _withdrawal_replay(cases, lambda c: _withdrawal_judged(c, validator, log_key, key_id, meets),
+                                  dict(adopted), "replay_code", "replay_withdrawn_height")
+    assert replayed == ordered(resume["replay_state_tuples"])
+    differing = [c for c in cases if c["code"] != c["replay_code"]]
+    assert differing and all(c["code"] is None and c["replay_code"] == "WIST4-E04" for c in differing), \
+        "the resumed Consumer differs from replay other than by accepting an act the Aggregator must not seal"
+    assert {c["code"] for c in cases} == {None, "WIST4-E04"} and {c["replay_code"] for c in cases} == {None, "WIST4-E04"}
+    residue = [c for c in cases if c["code"] is None and c["replay_code"] is None
+               and c["withdrawn_height"] != c["replay_withdrawn_height"]]
+    assert residue, "no later withdrawal reads another earliest height after a contract-breaking act"
+    named = lambda c: json.loads(c["envelope_json"])["update"]
+    tuples_of = {t[1]: t[2] for t in resume["adopted"]}
+    assert {c["code"] for c in cases if named(c)["details"]["delta_id"] in tuples_of
+            and named(c)["details"]["delta_id"] not in {_item_id(t[3]) for t in resume["record_tuples"]}
+            and not any(d["item_id"] == named(c)["details"]["delta_id"] and d["height"] > resume["snapshot_height"]
+                        for d in history)} == {None, "WIST4-E04"}, \
+        "no act judged against a withdrawal tuple alone, for its Publisher and for another"
+    again = resume["resumed_again"]
+    adopted_again, resumed_again = resumed_judge(again)
+    assert again["snapshot_height"] > resume["snapshot_height"]
+    after_again = _withdrawal_replay(again["act_cases"],
+                                     lambda c: _withdrawal_judged(c, validator, log_key, key_id, resumed_again),
+                                     dict(adopted_again), "code", "withdrawn_height")
+    assert after_again == ordered(again["state_tuples"])
+    _withdrawal_replay(again["act_cases"], lambda c: _withdrawal_judged(c, validator, log_key, key_id, meets),
+                       dict(adopted_again), "replay_code", "replay_withdrawn_height")
+    dropped = {_item_id(t[3]) for t in resume["record_tuples"]} - {_item_id(t[3]) for t in again["record_tuples"]}
+    assert any(named(c)["details"]["delta_id"] in dropped and c["code"] is None
+               and resumed(named(c)["details"]["delta_id"], named(c)["subject"], c["height"]) == "WIST4-E04"
+               for c in again["act_cases"]), "no act shows that only the last Snapshot's tuples are read"
+    current = {_item_id(d["item"]) for d in history if d["kind"] == "page"} & {
+        _item_id(t[3]) for t in holdings(max(c["height"] for c in cases))[0]}
+    replaced = {_item_id(t[3]): t[1] for t in resume["record_tuples"] if _item_id(t[3]) not in current}
+    judged = {(json.loads(c["envelope_json"])["update"]["details"]["delta_id"],
+               json.loads(c["envelope_json"])["update"]["subject"] == replaced.get(
+                   json.loads(c["envelope_json"])["update"]["details"]["delta_id"])): c["code"]
+              for c in cases}
+    assert any(judged.get((i, False)) == "WIST4-E04" and (i, True) in judged and judged[(i, True)] is None
+               for i in replaced), "no act names a Snapshot record tuple's Item that a walked Entry replaced"
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
-    assert "`delta_id` MUST name a Delta sealed at or below the act's Epoch whose signed `publisher` is `subject`" in prose
-    assert "the earliest accepted withdrawal's Epoch is the height every rule reads" in prose
-    assert "E11 takes precedence over E04" in prose
-    assert "the Delta's content never materializes, its chain tip moves as any Delta's does" in prose
-    assert "checks the contract only for an act naming a Delta sealed above `tree_size`" in prose
+    for marker in ("The act meets its `details` contract only where a valid `publisher_item` Entry (WIST-3 §3.3) "
+                   "sealed the Item it names, of kind `page`, at or below the act's Epoch — in the act's own Epoch "
+                   "whatever the order of its Entries — against a Catalog whose `publisher` is `subject`; otherwise "
+                   "it fails the contract (`WIST4-E04`).",
+                   "the earliest accepted withdrawal's Epoch is the height every rule reads",
+                   "E11 takes precedence over E04",
+                   "a `record` or `withdrawal` tuple of the Publisher `subject` naming the Item — the act meets "
+                   "the contract",
+                   "an Entry, a `record` tuple or a `withdrawal` tuple of another Publisher, an Entry of an Item of "
+                   "kind `removed`, a `removal` tuple naming the Item ID — the act fails it (`WIST4-E04`), as it "
+                   "does on replay",
+                   "Where none shows the Item, the Consumer accepts the act as consistent.",
+                   "the `record`, `removal` and `withdrawal` tuples of the Snapshot it last resumed from",
+                   "for what follows from that act in that Log"):
+        assert marker in prose, marker
     prose3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
     assert ("A withdrawal takes effect at the height of the Epoch that seals it, for an Item sealed in that same "
             "Epoch included: the Item becomes its URL's record (§3.3) and its content is never materialized") in prose3
     assert "What withdrawal does not touch is the record." in prose3
-    assert "a resuming Consumer accepts a later act naming one of them as consistent" in prose3
+    assert ("judges the contract of a later act as WIST-4 §5.1 states for a Consumer resumed from a "
+            "Snapshot") in prose3
 check("vectors:wist4-withdrawal", _dc4_withdrawal)
 
 def _dc4_withdrawal_twin():
@@ -8558,11 +8710,16 @@ def _dc4_registrable_domain():
     assert {row["list"] for row in v["in_force"]} == {None, "first", "second"}
     for case in v["capacity_cases"]:
         counts = collections.Counter(_psl_registrable(e["domain"], rules[force_at(case["height"])])[0]
-                                     for e in case["entries"])
-        assert all(e["type"] in ("publisher_delta", "label") for e in case["entries"])
+                                     for e in case["entries"] if _declaration_host_format(e["domain"]))
+        assert all(e["type"] in ("publisher_catalog", "publisher_item", "label", "dispute")
+                   for e in case["entries"])
         expected = "WIST3-E03" if max(counts.values()) > case["domain_epoch_entries_max"] else None
         assert expected == case["expected"], case["label"]
     assert {c["expected"] for c in v["capacity_cases"]} == {None, "WIST3-E03"}
+    assert {e["type"] for c in v["capacity_cases"] for e in c["entries"]} == \
+        {"publisher_catalog", "publisher_item", "label", "dispute"}
+    assert any(not _declaration_host_format(e["domain"]) for c in v["capacity_cases"] for e in c["entries"]
+               if e["type"] == "dispute"), "no dispute of a disputant that is not a Canonical Host"
     changed = 0
     for case in v["quota_cases"]:
         noise = collections.Counter()

@@ -308,7 +308,7 @@ Declaration whose `publisher_declaration` Entry (WIST-3 §3.3) has a
 JCS serialization above 65 535 octets is rejected with `WIST1-E04`.
 
 The two counts and `url_cap_bytes` are read for a Declaration at the
-instants WIST-1 §3.6's size-cap parameter time gives a Delta: at the
+instants WIST-1 §3.6's size-cap parameter time gives a Catalog: at the
 validation attempt that accepts it, and before sealing under the map
 in force at the candidate Epoch's `sealed_at`. A fetched Declaration
 whose `publisher` object is that of the current Declaration or of the

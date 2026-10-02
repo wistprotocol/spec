@@ -55,10 +55,11 @@ key ID, where some tie-break is unavoidable.
 
 `WIST4-E04` is the code because WIST-4 §5.1 already assigns it to the other
 contract failures that read Log state: a `payload_withdrawal` naming no
-sealed Delta of its subject and a `suffix_list_update` with a wrong octet
-count. `WIST4-E03` is scoped to `parameter_change` rules under WIST-4 §5.
-Voiding the Epoch instead would give any key holder a veto over every Entry
-sealed beside a bad act, which WIST-4 §9 rules out for the whole registry.
+Item of kind `page` sealed for its subject and a `suffix_list_update` with
+a wrong octet count. `WIST4-E03` is scoped to `parameter_change` rules
+under WIST-4 §5. Voiding the Epoch instead would give any key holder a veto
+over every Entry sealed beside a bad act, which WIST-4 §7 rules out for the
+whole registry.
 
 A key may sign its own removal, the genesis key is removable, and an Epoch
 whose removals empty the key set has no valid Checkpoint and is never

@@ -122,7 +122,11 @@ The part that reads a stream or signs reads every parameter at its
 default in WIST-4 §5, `url_cap_bytes`, `extract_cap_bytes`,
 `summary_cap_bytes`, `links_cap_bytes` and `link_url_cap_bytes`
 included, whatever a Log has amended, since a Publisher reads no Log's
-parameters.
+parameters. No Log amends those five caps below their defaults, 2048,
+32 768, 2048, 4096 and 2048 octets: a Log below one would refuse by
+parameter publications built to it, as ADR-0051 and ADR-0052 have it
+for the counts. A Log may raise them, `url_cap_bytes` to 32 768 at
+most (ADR-0052).
 
 Each Emission yields one publication: its URL, `lang`, `modified` and
 the Payload's `content` (WIST-1 §3.6), whose `summary` carries `title`
@@ -242,6 +246,11 @@ carries it.
   the scan §11 already fixes.
 - **An Emitter that shortens content above a cap.** The tool would
   choose what part of a page is published.
+- **Cap floors at the smallest conforming value.** WIST-4 §5 set the
+  floors of the five caps, in the order above, at 14, 2, 12, 21 and 14
+  octets, the serialization of the shortest conforming value of each. A Log could then lower a
+  cap under the value every conforming Publisher builds to and refuse
+  its Items and Payloads by parameter.
 
 ## Consequences
 
@@ -264,6 +273,11 @@ carries it.
   its Emissions by hand.
 - WIST-5 can gain a profile without a new version of any signed
   object, since no sealed object depends on it.
+- WIST-4 §5's floors of `url_cap_bytes`, `extract_cap_bytes`,
+  `summary_cap_bytes`, `links_cap_bytes` and `link_url_cap_bytes` are
+  their defaults, and the Registry Update schema enforces them. The
+  rule that `links_cap_bytes` is at least `link_url_cap_bytes` + 21
+  stays.
 
 ## Verification
 

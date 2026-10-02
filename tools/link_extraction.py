@@ -364,13 +364,6 @@ def extract_links(html: bytes, base_url: str, publisher_domain: str,
 
 
 def links_member(urls, total, cap_bytes: int) -> dict:
-    """The longest prefix whose serialized links object fits cap_bytes.
-
-    `links` is REQUIRED (WIST-3 §6.1) and `links_cap_bytes` MUST be at
-    least the 21 octets of `{"total":0,"urls":[]}` (WIST-4 §9), so a
-    cap_bytes below that admits no conforming member at all — a bug in
-    the caller, not a case to paper over by returning something over cap.
-    """
     for k in range(len(urls), -1, -1):
         member = {"total": total, "urls": urls[:k]}
         if len(rfc8785.dumps(member)) <= cap_bytes:

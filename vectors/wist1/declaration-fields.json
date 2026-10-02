@@ -1,5 +1,5 @@
 {
-  "note": "WIST-1 sections 3.4, 5.1 and 7. Signature-valid field mutations use the supplied fixture author key independently of eligibility. Each Declaration case replaces stored; each batch appends to its named authenticated prefix. Rejection preserves the full accepted state and head, including due settlement and other domains. Timestamp fields follow the event-independent Gregorian profile in WIST-1 section 3.4, rejecting every leap label; the 2030-06-30 deletion is hypothetical and asserts no IERS announcement. Key-time cases authenticate one supplied binding and assert only field validity and its window, inclusive at nbf and exclusive at exp. Elapsed cases use exact civil-clock seconds. Relation cases isolate the inclusive 600-second clock bound and strict predecessor ordering; predecessor authorship and ID are checked but lower Log position, chain availability and clock acquisition are supplied assumptions. Hostname coverage is limited to ASCII structural examples. No full field profile, cryptographic key admission, Snapshot restoration or live service conformance is asserted.",
+  "note": "WIST-1 sections 3.4, 5.1 and 7. Signature-valid field mutations use the supplied fixture author key independently of eligibility. Each Declaration case replaces stored; each batch appends to its named authenticated prefix. Rejection preserves the full accepted state and head, including due settlement and other domains. Timestamp fields follow the event-independent Gregorian profile in WIST-1 section 3.4, rejecting every leap label; the 2030-06-30 deletion is hypothetical and asserts no IERS announcement. Key-time cases authenticate one supplied binding and assert only the Catalog's generated_at field validity, the whole-second literal-Z profile of WIST-3 section 3.1, and its window, inclusive at nbf and exclusive at exp (WIST-1 section 5.1). Elapsed cases use exact civil-clock seconds. Relation cases isolate the inclusive 600-second bound of a Catalog's generated_at over the supplied clock and an Item's observed_at against its Catalog's generated_at as exact instants (WIST-1 section 3.4); clock acquisition and the rest of the Catalog's judgment are supplied assumptions. Hostname coverage is limited to ASCII structural examples. No full field profile, cryptographic key admission, Snapshot restoration or live service conformance is asserted.",
   "log_key": {
     "key_id": "test-log-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
@@ -11825,67 +11825,6 @@
   ],
   "key_time_cases": [
     {
-      "name": "fraction follows whole second",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785837600
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "v5QHvjjFI5GWk4Oin045Mfp-lpQfU0okHBbhm5pQZ8MisZIGp5CMum7AN9gM-Qwen-wa_WnngubpOvT76FtQBA"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T10:00:00.5Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "R_5_tz56_TAAL8mA3wcgwCRuBF3U1KMHTfzSwXhQEwmn0S2g2t4ccwCyzJu6RyNfXOPghwEx6BwmotgvP8NkDA"
-        }
-      },
-      "expected": "key_bound_satisfied"
-    },
-    {
       "name": "inclusive start",
       "declaration": {
         "publisher": {
@@ -11923,31 +11862,25 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T10:00:00Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "2026-08-04T10:00:00Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "zrfmB8XW3at5sI0J9-uNNCm4Ruqx2AhEHY23MUmRvHTHlXoSpTZLNyEJg_VCJ7XixXBZqX4iOV1pjSKYGnZUBQ"
+          "value": "xkOA1eikhIjHzV5cZ14sBXFm-E-b03Kmu8718JG6WANqEmV1NoQQD3Hbebx2YFGhnYDHqv3beELhrVI7sd39BQ"
         }
       },
       "expected": "key_bound_satisfied"
     },
     {
-      "name": "fraction before the start",
+      "name": "one second before the start",
       "declaration": {
         "publisher": {
           "wist_version": "1.0.0",
@@ -11984,269 +11917,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T09:59:59.999999999999999999999999999999Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "2026-08-04T09:59:59Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "os7BEqcZUB9xOsvbJr9jUHTQejdXYLYlGhJNFYjKgmWGSDY8QgN6kXaPcQXydb9wox63o5sG0M_ZFoECnt6BBg"
-        }
-      },
-      "expected": "WIST1-E02"
-    },
-    {
-      "name": "no fractional rounding",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785837600
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "v5QHvjjFI5GWk4Oin045Mfp-lpQfU0okHBbhm5pQZ8MisZIGp5CMum7AN9gM-Qwen-wa_WnngubpOvT76FtQBA"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T09:59:59.99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "IA1Skr7ysvgplsVJXEMic26eKYZ8pOAdKiD-bmCnAA5ITjLGneaZBDoUfCaH0GkzNt-hn2knuOiyW93f4T20DQ"
-        }
-      },
-      "expected": "WIST1-E02"
-    },
-    {
-      "name": "unknown local offset equality",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785837600
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "v5QHvjjFI5GWk4Oin045Mfp-lpQfU0okHBbhm5pQZ8MisZIGp5CMum7AN9gM-Qwen-wa_WnngubpOvT76FtQBA"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04t10:00:00.000-00:00",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "PhKnca94ioM4X562CWgcCG375OHs7jmLrDjyjP7fhGO6uV2T6yLbVe_fwltJk_R0i6so5cnkpwhP4Z8Bnx0UAg"
-        }
-      },
-      "expected": "key_bound_satisfied"
-    },
-    {
-      "name": "numeric offset equality",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785837600
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "v5QHvjjFI5GWk4Oin045Mfp-lpQfU0okHBbhm5pQZ8MisZIGp5CMum7AN9gM-Qwen-wa_WnngubpOvT76FtQBA"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T11:30:00+01:30",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "CPHg3sX9tF1arbz_BaqfFWe2a7io8Omgn11umtn2MHbtEz1GXaW4fCRJFmSOuWafW_3AA9vqFyTb3qmWq6iyCg"
-        }
-      },
-      "expected": "key_bound_satisfied"
-    },
-    {
-      "name": "numeric offset before the start",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785837600
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "v5QHvjjFI5GWk4Oin045Mfp-lpQfU0okHBbhm5pQZ8MisZIGp5CMum7AN9gM-Qwen-wa_WnngubpOvT76FtQBA"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T11:29:59.9+01:30",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "wuA6phs3d11NkVQO9ZKs7LN2L1hLNxPLYU7QlCKVceQc4WL_RUngKzARaqSCQ3-Yrw2HO1ItpzkJM1cXJbscDQ"
+          "value": "t85iBbck_4LR-AXtH7o0BW2pQF4txDnaLSqakcgLV9a-o5JMMv4ltPjcu8Gsz1uYBCe--Df-8JHz9Jy9Xdi7BA"
         }
       },
       "expected": "WIST1-E02"
@@ -12290,31 +11973,25 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T11:00:00Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "2026-08-04T11:00:00Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "k3PvK65U1mcXZOOJHHrtlDzEG7jiL8gstfA4yHAaXBG_0tat5KLrNK0h3jJCZtF7qXgN2iqme6TQind_M6ObCw"
+          "value": "l-qrAZ3nFjgtSBhsjSUESLZ-yORwSXhTkA3eOutkUe5cIGSQ5ZYIk5t9jgncGDgnviV3CzSL8RxgvE-wwcv4AQ"
         }
       },
       "expected": "WIST1-E02"
     },
     {
-      "name": "fraction below the expiry",
+      "name": "one second below the expiry",
       "declaration": {
         "publisher": {
           "wist_version": "1.0.0",
@@ -12352,31 +12029,25 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T10:59:59.99999999999999999999Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "2026-08-04T10:59:59Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "sfN4rjbMeNlCqO1EqQoPTrAuJ5gcTKwSraSBC-Ki5Fn6voVtHwAKVqchUzQQEGSvk59uoh5Uv-PpRAOEEvTWDg"
+          "value": "4kWQaJZDCifgTRSuI5zL9J8ObvRQDNOTkqp65J3qQrBQKQm7uJGEpwYi_06J7sEEXxKmBKlfXcaWsCe88k8EDQ"
         }
       },
       "expected": "key_bound_satisfied"
     },
     {
-      "name": "expiry under an offset spelling",
+      "name": "fractional spelling",
       "declaration": {
         "publisher": {
           "wist_version": "1.0.0",
@@ -12392,8 +12063,7 @@
               "crv": "Ed25519",
               "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
               "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 1785837600,
-              "exp": 1785841200
+              "nbf": 1785837600
             }
           ],
           "recovery_keys": [
@@ -12410,32 +12080,136 @@
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "nHccX8KvSyvStBGiIEwqvb3ALDIWDTxNBkKzcGBEaTnVkVIUck0r58vTQhz9PJZnUN-j7t5iiXZ4WeFOVBehAg"
+          "value": "v5QHvjjFI5GWk4Oin045Mfp-lpQfU0okHBbhm5pQZ8MisZIGp5CMum7AN9gM-Qwen-wa_WnngubpOvT76FtQBA"
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T08:00:00-03:00",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "2026-08-04T10:00:00.5Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "ryyA2uiCDFMkVwXQ4DIIdXhWzHwsgnmjuPqa2Dtt4QGWJnKx3ct3JvGm8Y94_LAhqc_cq6K69cdymzkM6i_fBA"
+          "value": "Ra5T9pjvnj07eQV_KQIanO1uaKxw_dqXGZfhjOASEiB_3yOVsxO_ALYVzcbZnmCyULgEd56Nuowu2kDAnIpgDw"
         }
       },
-      "expected": "WIST1-E02"
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "numeric offset spelling",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+              "nbf": 1785837600
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
+              "nbf": 1785672000
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "v5QHvjjFI5GWk4Oin045Mfp-lpQfU0okHBbhm5pQZ8MisZIGp5CMum7AN9gM-Qwen-wa_WnngubpOvT76FtQBA"
+        }
+      },
+      "envelope": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "default",
+          "generated_at": "2026-08-04T11:30:00+01:30",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "Hk-EhGAnOXWmIXPGP-NMbUQieXR2tkkXogjl89z1nT1Qdev11ee8qZUyjLlGR_3W_lQZkLtwb2v8YZWXJ2U2AA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "lowercase separators",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+              "nbf": 1785837600
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
+              "nbf": 1785672000
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "v5QHvjjFI5GWk4Oin045Mfp-lpQfU0okHBbhm5pQZ8MisZIGp5CMum7AN9gM-Qwen-wa_WnngubpOvT76FtQBA"
+        }
+      },
+      "envelope": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "default",
+          "generated_at": "2026-08-04t10:00:00z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "FrkG--dnRX2Cxx37m-UnACiqTsJ_ZkmIHy0ynYcHl01euh9NekNEOfcvWM9X83z_gYS23fTauegvgEsiIU4xBg"
+        }
+      },
+      "expected": "WIST1-E14"
     },
     {
       "name": "inserted leap label invalid",
@@ -12475,25 +12249,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T10:00:60Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "2026-08-04T10:00:60Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "q-wFYBLhxlsgr5trqoGtvfRJDrEnFV_rBZ5RQoEElvAeqpjAetT7aY5EXRCiR4X-izgbkWUlJAiI-d2hRTJyAQ"
+          "value": "tsLmy_Uabez0L-0jg3sy56COpwGnWtc3x6betNmvIn1DHQ7uTqzIxLWbiincZHLk6EnNVxn8pCm1lIQQZkmQBQ"
         }
       },
       "expected": "WIST1-E14"
@@ -12536,25 +12304,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2017-01-01T00:00:00Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "2017-01-01T00:00:00Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "x-w3-ukO10wNjfzqR32xHnUToK_5-9612w-3fME2bY6KzLAl3v5d9-IKXbeyE_cf0or7h4Gg-xQrXW0vBG4-AQ"
+          "value": "zDbq6UbmomlkVTE3B1A3RuZgxmG3_WKmPNuImFonj_RwXTNDgtWJQos3cn7UmjwgFNBUoUe8u0S7AFtiHUocCw"
         }
       },
       "expected": "key_bound_satisfied"
@@ -12597,25 +12359,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2016-12-31T23:59:59.999Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "2016-12-31T23:59:59Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "e-hzH3jOX8D6kfZZt3pEqx23T9bSmAXfP4wOO38bbxfgfncWkv-buFEIQZrb9XezV_tmvR_v1myVfcg5j_MHDg"
+          "value": "MU3o9h1S5XshtPJhEUaEgEaaniksRGVh7EXWMv_RNS1X4DKemM7zkKGt-jS_r1P6qrtkD-EdhImxE3CfuC1uBQ"
         }
       },
       "expected": "WIST1-E02"
@@ -12658,25 +12414,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2030-06-30T23:59:59Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "2030-06-30T23:59:59Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "8fgxvN2Pngve_g4Us1wOiDL3Uu171CsVWnMyyaMUD9EqOT51yQGsn29o1fSyIt5ZlX053_pCZzu4mJRLeuO9DA"
+          "value": "z5ojbP-8FMWejAgPlnDWs4UmpGApLEJcD_X2AWj-lmlbt3UQhC7xUeub8xIdt4qp8LFeh1BUpiHBlXEhBKJ6Bw"
         }
       },
       "expected": "key_bound_satisfied"
@@ -12719,25 +12469,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "1970-01-01T00:00:00Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "1970-01-01T00:00:00Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "Hp6J_kvqoKRhg7qjHf6ecTFvtdOJVOKnWbBnvSNujbt7uak-sW_n9lubCoC6UtMRpPnA132ZExLhloMTM7u1Ag"
+          "value": "8_vvCPFsc5wYPxRAu04xI_R2TNh6rPOU_klgwaoIrCcA7wOuiVMqAzOMboGb2MlhdDiXFgNq585fj1rFapQCAg"
         }
       },
       "expected": "key_bound_satisfied"
@@ -12780,25 +12524,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "1969-12-31T23:59:59.999Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "1969-12-31T23:59:59Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "uBxT_LJ1eeJz8zEEwz_nIINnhgjyyTCjTKCv83uq8QgNWR3xNtBru5zMucJT4Ck7-u7GogW9DAqp6yI8x9kdCQ"
+          "value": "QcPMrSxqs-xghaMVp8OpX5zc1iccB16c_RantU3FyFXS5RA3Ju2KPDhOsWqk-5R6hAO1LX-Xdzr7wPsj2th4BQ"
         }
       },
       "expected": "WIST1-E02"
@@ -12841,25 +12579,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "0000-01-01T00:00:00+23:59",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "0000-01-01T00:00:00Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "Qhu-sTt6LLEgzB5ELTypIImhyBnZDumpY9TDxoyoNFZDbQYNU7eUIv_XFOVJApG2jnVg03_w0gHtO2HGtmwxAQ"
+          "value": "yLgjlWxLGdNd0c6sNGu22qgRTq4-At8wiDz2hmLX97ZqohW1jt9ah-qfDfEK4nR2YZCOAt7sZSYkXSYwgLHoDg"
         }
       },
       "expected": "WIST1-E02"
@@ -12902,86 +12634,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "9999-12-31T23:59:59Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "9999-12-31T23:59:59Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "DotfcUSsscHa5_P8PyylVjl-bsB0dVJiCqHmjY10Q9J7xzqJh-SSUxqodrdUpMfh38-QTIXy7AHeL-AnlfKlBA"
-        }
-      },
-      "expected": "key_bound_satisfied"
-    },
-    {
-      "name": "offset beyond the written year range",
-      "declaration": {
-        "publisher": {
-          "wist_version": "1.0.0",
-          "seq": 0,
-          "domain": "example.com",
-          "subdomain_scope": [
-            "www.example.com",
-            "blog.example.com"
-          ],
-          "keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-              "nbf": 253402300799
-            }
-          ],
-          "recovery_keys": [
-            {
-              "kty": "OKP",
-              "crv": "Ed25519",
-              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
-              "nbf": 1785672000
-            }
-          ],
-          "contact": "mailto:webmaster@example.com"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "QFM-R3DPyRkaw6qhyOWVNtchubAwV8RUgReD0mCbD9sLo_ffvyZa0vlQPHJDGm34tIrSKZW5EWMRJXDQhWe3Aw"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "9999-12-31T23:59:59.5-00:01",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "32vq1QSZilkeFwps22qXUXudDjTauLVNaLbnp7ANYKaIub6cmlt-OL3yPHoXzT098ReqW0o64R0eX9fGzUhYBQ"
+          "value": "7LM1x2Ae9qNn6_W-wSQ0Vd6Lk87HraSsbwXt0DwC2TPc6NWVi36H5EzMaF3KjIO9RrReSlQLu2irBn5ZjtGYCA"
         }
       },
       "expected": "key_bound_satisfied"
@@ -13025,25 +12690,19 @@
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "9999-12-31T23:59:58.999Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "9999-12-31T23:59:58Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "tOQakyWZ1Iwkw5TQjxD3abjt4UmmDwKmtaG5FPIHeWm1aHaFIKX-A31QoSbPuX7txAHkSrI82_1X9batNwe-CA"
+          "value": "kJwqUETOVfQr7AexsfI97Eo_hhK083trpyOY_hW3BK2HOu_G4ScVRfpCBICmfxWyBFqH3gAwAunbXfkEKrqIAQ"
         }
       },
       "expected": "key_bound_satisfied"
@@ -13083,243 +12742,202 @@
       "reference": "2026-08-04T10:00:00Z",
       "expected": "relation_satisfied",
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T07:10:00-03:00",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "2026-08-04T10:10:00Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "xGpL__H2EXMhkgMQhFaURVyLRAIud5CRHuKrUFfxrxIcHkluGeV7fOTQleyqnV0pEIxKOtRRXH7Q88YENMU_Dw"
+          "value": "V13DgaC5q7GkDkVldKE916CSw_Q7zOoD8j-oB1iJlFo4Ua6DXDG0Aht7W-_enzsVBxYJC95wyegwHX1iu8PUDQ"
         }
       }
     },
     {
-      "name": "skew bound exact excess",
+      "name": "skew bound one second over",
       "kind": "clock",
       "reference": "2026-08-04T10:00:00Z",
       "expected": "WIST1-E06",
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T10:10:00.00000000000000000001Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "2026-08-04T10:10:01Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "JrnvCtVsG20OIQ-WSclk3b7FIc3wh0aQX9ULmSe10y1HpWCjtkYbq5UQXmlTJHI1eFhwCnd1H0rvM8pwrhUJAA"
+          "value": "OgxQJ8_73-GJrK-E9H7cEKt8QeldlS6wULUimU7wwpUA37BycbkUCGP6omDDB66kJ5BeMGxvCEA83qoUTWyVBw"
         }
       }
     },
     {
-      "name": "skew bound tiny older",
+      "name": "skew bound over a fractional clock",
       "kind": "clock",
-      "reference": "2026-08-04T10:00:00Z",
+      "reference": "2026-08-04T10:00:00.5Z",
+      "expected": "WIST1-E06",
+      "envelope": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "default",
+          "generated_at": "2026-08-04T10:10:01Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "OgxQJ8_73-GJrK-E9H7cEKt8QeldlS6wULUimU7wwpUA37BycbkUCGP6omDDB66kJ5BeMGxvCEA83qoUTWyVBw"
+        }
+      }
+    },
+    {
+      "name": "skew bound tiny later clock",
+      "kind": "clock",
+      "reference": "2026-08-04T10:00:00.00000000000000000001Z",
       "expected": "relation_satisfied",
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T10:09:59.99999999999999999999Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+          "collection": "default",
+          "generated_at": "2026-08-04T10:10:00Z",
+          "size": 1,
+          "root": "sha256:de2a9142fb6818563ab345a80f3ad2fc36892989474d8d197078349295e4752c",
+          "tree": "sha256:775bcd4124a92cdabdc37c6d0dfc2fceafb0e9c2e88778b2991a1be043846ff7"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "JVuk4hGZDzMxbYsYd8N00FOhB4nuSIJJJEUbPSh2xKW1jh-FWZwokpPpQKciGylaDtGdkqsF6QWJXex0ImNNBA"
+          "value": "V13DgaC5q7GkDkVldKE916CSw_Q7zOoD8j-oB1iJlFo4Ua6DXDG0Aht7W-_enzsVBxYJC95wyegwHX1iu8PUDQ"
         }
       }
     },
     {
-      "name": "equal predecessor offset",
-      "kind": "predecessor",
-      "reference": "2026-08-04T10:00:00Z",
-      "expected": "WIST1-E07",
-      "predecessor": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "new",
-          "observed_at": "2026-08-04T10:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "t9Owsy6msVL2M3FFcBoreV6ASxRv2M8U7nWSiZjixKfgGLUm576cjfp6KSKGN7GQ7rwacaveiEPHOQSD_tHPBg"
-        }
-      },
-      "envelope": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T07:00:00.000-03:00",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:8deb1ec9870486457f059483c7c5c3811f4745b805a976ec17c6cb56e0c8eb39"
-        },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "bhoOSlwUL4cgAR6dbzFGtFF03_b_keax31HWT68Y7oMQ5m8x7c43SXoFa2RlEOSDpWGUw04VakI309QslqYhAQ"
-        }
-      }
-    },
-    {
-      "name": "strict predecessor tiny later",
-      "kind": "predecessor",
+      "name": "Item at generated_at under an offset",
+      "kind": "item",
       "reference": "2026-08-04T10:00:00Z",
       "expected": "relation_satisfied",
-      "predecessor": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "new",
-          "observed_at": "2026-08-04T10:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/blog/post-1",
+        "observed_at": "2026-08-04T07:00:00.000-03:00",
+        "payload": {
+          "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+          "alg": "HMAC-SHA256",
+          "bytes": 263
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "t9Owsy6msVL2M3FFcBoreV6ASxRv2M8U7nWSiZjixKfgGLUm576cjfp6KSKGN7GQ7rwacaveiEPHOQSD_tHPBg"
+        "meta": {
+          "lang": "en",
+          "topics": [
+            "software"
+          ],
+          "license": "CC-BY-4.0"
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T10:00:00.00000000000000000001Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:8deb1ec9870486457f059483c7c5c3811f4745b805a976ec17c6cb56e0c8eb39"
+          "collection": "default",
+          "generated_at": "2026-08-04T10:00:00Z",
+          "size": 1,
+          "root": "sha256:913985bd873635c1c5b3a8d703c567de9017bd5b214447e2c4bc8cadcceb66fd",
+          "tree": "sha256:67270e7b202bb6dc43de23958c03657929a135d54645d938411832148bde9387"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "u12CkfLFm05fW-sy4HeiQ2HY7UEDc4KoG_wsjnZXdYYFSgm90C1NxNKpfQFaISJLLvPyvgUSSuHaFlrPYEqMBw"
+          "value": "7_aTCkpOr_conAInCImXXZgZ22szHLMwCHsbWBQ8C33aUXyvozdYIQXP-4OZEZQx6LFPQb6GFPnTVvGmGbYOBA"
         }
       }
     },
     {
-      "name": "strict predecessor tiny earlier",
-      "kind": "predecessor",
-      "reference": "2026-08-04T10:00:00.00000000000000000002Z",
-      "expected": "WIST1-E07",
-      "predecessor": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "new",
-          "observed_at": "2026-08-04T10:00:00.00000000000000000002Z",
-          "payload": {
-            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-            "alg": "HMAC-SHA256",
-            "bytes": 263
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
+      "name": "Item tiny later than generated_at",
+      "kind": "item",
+      "reference": "2026-08-04T10:00:00Z",
+      "expected": "WIST1-E06",
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/blog/post-1",
+        "observed_at": "2026-08-04T10:00:00.00000000000000000001Z",
+        "payload": {
+          "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+          "alg": "HMAC-SHA256",
+          "bytes": 263
         },
-        "sig": {
-          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-          "alg": "Ed25519",
-          "value": "kJ6WmOvstltmeEY1Njo8FxkjzKdkuv_KO9x-d3Xhh4JaxGFmKYNRoC_FETXxH3o4R4wgWCKSVV2X3tllrG-nAg"
+        "meta": {
+          "lang": "en",
+          "topics": [
+            "software"
+          ],
+          "license": "CC-BY-4.0"
         }
       },
       "envelope": {
-        "delta": {
+        "catalog": {
           "wist_version": "1.0.0",
           "publisher": "example.com",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "delete",
-          "observed_at": "2026-08-04T10:00:00.00000000000000000001Z",
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          },
-          "prev": "sha256:a54774b79a6a30fc7a086b6beaf5c25c3dbf36fb213c9cc7fabc441bbc48cecc"
+          "collection": "default",
+          "generated_at": "2026-08-04T10:00:00Z",
+          "size": 1,
+          "root": "sha256:6765396e2f1c03a1ab0af333ad08e4b77d2e02beb12efc314f9cba012d0f5f7f",
+          "tree": "sha256:f00e8767f7ee42933eeca0aeed472a20b4348afaad095238726f435db4ecd694"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "_hdANc-6JonU-lvyPQ6zCk2FlQ5tocatGo59QroWShk2uS46azB9zkekjC3y6eF2_YrSztAxj0CZs2dgi8_3Bw"
+          "value": "hGrEERNkqYKEEXshk__9I7vgklCP88RF8pASk8SnCGNoM2TKpi86ORYfKe2SUNsCQEslow_rg9jxQcsHd3B5DQ"
+        }
+      }
+    },
+    {
+      "name": "Item tiny earlier than generated_at",
+      "kind": "item",
+      "reference": "2026-08-04T10:00:00Z",
+      "expected": "relation_satisfied",
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/blog/post-1",
+        "observed_at": "2026-08-04T09:59:59.99999999999999999999Z",
+        "payload": {
+          "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+          "alg": "HMAC-SHA256",
+          "bytes": 263
+        },
+        "meta": {
+          "lang": "en",
+          "topics": [
+            "software"
+          ],
+          "license": "CC-BY-4.0"
+        }
+      },
+      "envelope": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "default",
+          "generated_at": "2026-08-04T10:00:00Z",
+          "size": 1,
+          "root": "sha256:832d159d0f9e124fb366db369ff272080c71a220dae1206dd7ed88a11f5b5656",
+          "tree": "sha256:14737233ed587a762a029bcaca3251e0340969524a11e8ca8b80d9e8045e7712"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "g3BrupD6tldn55quwQiW--whsITx7Jsg7NPI2Z3iBNFWauYGnUk_RpwQKRrP3Ec67eUwOBvrssxqEnrigCr1AQ"
         }
       }
     }
