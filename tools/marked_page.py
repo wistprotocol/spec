@@ -1,51 +1,14 @@
 import re
 
-from link_extraction import _RAWTEXT_TAGS, _at_tag_boundary, _tag_end, extract_text
+from link_extraction import _at_tag_boundary, _comment_close, _raw_text_close, _raw_text_tag, extract_text
+from link_extraction import first_attribute as _first
+from link_extraction import read_attributes as _attributes
 
 OPEN_DELIMITER = b"<!--wist:content-->"
 CLOSE_DELIMITER = b"<!--/wist:content-->"
 READ_ELEMENTS = (b"a", b"meta", b"title", b"html")
 
-_WHITESPACE = (b" ", b"\t", b"\n", b"\f", b"\r")
 _LANG = re.compile(r"[a-z]{2,3}(?:-[A-Za-z0-9]{1,8})*")
-
-
-def _attributes(html, low, j):
-    n = len(html)
-    attributes = []
-    while j < n:
-        c = html[j:j + 1]
-        if c == b">":
-            return attributes, j + 1
-        if c in _WHITESPACE or c == b"/":
-            j += 1
-            continue
-        name_start = j
-        while j < n and html[j:j + 1] not in _WHITESPACE + (b"=", b">", b"/"):
-            j += 1
-        name = low[name_start:j]
-        while j < n and html[j:j + 1] in _WHITESPACE:
-            j += 1
-        value = b""
-        if j < n and html[j:j + 1] == b"=":
-            j += 1
-            while j < n and html[j:j + 1] in _WHITESPACE:
-                j += 1
-            if j < n and html[j:j + 1] in (b'"', b"'"):
-                quote = html[j:j + 1]
-                end_q = html.find(quote, j + 1)
-                value, j = (html[j + 1:], n) if end_q == -1 else (html[j + 1:end_q], end_q + 1)
-            else:
-                value_start = j
-                while j < n and html[j:j + 1] not in _WHITESPACE + (b">",):
-                    j += 1
-                value = html[value_start:j]
-        attributes.append((name, value))
-    return attributes, n
-
-
-def _first(attributes, name):
-    return next((value for attr, value in attributes if attr == name), None)
 
 
 def scan(html):
@@ -54,18 +17,13 @@ def scan(html):
     i = 0
     while i < n:
         if low.startswith(b"<!--", i):
-            end = low.find(b"-->", i + 4)
-            stop = n if end == -1 else end + 3
+            stop = _comment_close(low, i)
             yield "comment", html[i:stop], i, stop
             i = stop
             continue
-        raw_tag = next((t for t in _RAWTEXT_TAGS
-                        if low.startswith(b"<" + t, i)
-                        and _at_tag_boundary(low, i + 1 + len(t))), None)
+        raw_tag = _raw_text_tag(low, i)
         if raw_tag is not None:
-            open_end = _tag_end(html, i + 1 + len(raw_tag))
-            close = low.find(b"</" + raw_tag, open_end)
-            i = n if close == -1 else close
+            i = _raw_text_close(html, low, i, raw_tag)
             continue
         element = next((t for t in READ_ELEMENTS
                         if low.startswith(b"<" + t, i)

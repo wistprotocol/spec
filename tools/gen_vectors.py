@@ -96,7 +96,7 @@ DELTA_URL = "https://example.com/blog/post-1"
 EXTRACT = "WIST is an open, verifiable, push-based web index protocol."
 
 # The example Item's own page, in raw HTML octets — link_extraction.py's
-# "example-delta-page" vector fixture below runs its extraction procedure
+# "example-item-page-links" vector fixture below runs its extraction procedure
 # over this exact byte string, so the Payload's links member is derived from
 # a page rather than asserted, and the vector and the example agree by
 # construction.
@@ -1817,26 +1817,20 @@ write_json(WIST1 / "host-canonicalization.json", {
 })
 print("wist1 host-canonicalization vector written")
 
-# ----------------------------------------------------------------- WIST-2: feed
-feed = {
-    "wist_version": "1.0.0",
-    "domain": "example.com",
-    "generated_at": "2026-08-02T12:00:00Z",
-    "deltas": [delta_id],
-    "next": None,
-}
-write_json(EXAMPLES / "feed.json", sign_envelope("feed", feed, KID1))
-print("wist2 feed example written")
-
 # --------------------------------------------------------------- WIST-2: status
 # Not a signed Envelope (WIST-2 §7.1) — a plain JSON debugging surface.
 write_json(EXAMPLES / "status.json", {
     "wist_version": "1.0.0", "domain": "example.com",
-    "last_pull_at": "2026-08-02T12:05:00Z", "quota_remaining": 1098,
-    "state": "new",
-    "rejections": [{"code": "WIST1-E07", "at": "2026-08-02T12:05:00Z",
-                    "delta_id": "sha256:" + "0" * 64,
-                    "detail": "prev chain violation"}],
+    "last_pull_at": "2026-08-02T12:05:00Z", "quota_remaining": 998,
+    "state": "active",
+    "collections": [{
+        "name": "default", "latest": None, "accepted": "sha256:" + "1" * 64,
+        "waiting": [{"id": "sha256:" + "1" * 64, "deferrals": ["capacity"], "held": False}],
+    }],
+    "rejections": [{"code": "WIST2-E08", "at": "2026-08-02T12:05:00Z",
+                    "id": "sha256:" + "1" * 64, "collection": "default",
+                    "condition": "fetch", "change_list": "sha256:" + "1" * 64,
+                    "detail": "the change list leading to the fetched Catalog could not be fetched"}],
 })
 print("wist2 status example written")
 
@@ -1879,7 +1873,7 @@ link_cap_html = ('<html><body><a href="' + link_at_cap + 'k">one octet above lin
 
 cases = []
 for label, html, base, dom in (
-        ("example-delta-page", FIXTURE_HTML, DELTA_URL, "example.com"),
+        ("example-item-page-links", FIXTURE_HTML, DELTA_URL, "example.com"),
         ("budget-truncation", overflow_html, DELTA_URL, "example.com"),
         ("scan-hardening", scan_html, DELTA_URL, "example.com"),
         ("link-url-cap", link_cap_html, DELTA_URL, "example.com")):
@@ -1899,6 +1893,86 @@ assert cases[3]["expected"] == {"total": 1, "urls": [link_at_cap]}, "link cap no
 assert not any(host in u for u in cases[2]["expected"]["urls"]
               for host in scan_excluded_hosts), \
     "a comment-, script-, or data-href-only link leaked into the declared set"
+
+SCAN_BASE = "https://example.com/blog/post-1"
+SCAN_CASES = (
+    ("comment-marker-inside-a-start-tag-opens-no-comment",
+     b'<a title="<!--" href="https://example.org/x">x</a><a href="https://example.org/y">-->',
+     ["https://example.org/x", "https://example.org/y"]),
+    ("comment-marker-inside-another-tag-opens-a-comment",
+     b'<div title="<!--"><a href="https://example.org/x">x</a>--><a href="https://example.org/y">',
+     ["https://example.org/y"]),
+    ("comment-close-must-begin-after-the-open",
+     b'<!--><a href="https://example.org/x">--><a href="https://example.org/y">',
+     ["https://example.org/y"]),
+    ("raw-text-name-needs-a-boundary",
+     b'<scripts><a href="https://example.org/x"></scripts><script/>'
+     b'<a href="https://example.org/y"></script>',
+     ["https://example.org/x"]),
+    ("raw-text-ends-at-end-tag-name-whatever-follows",
+     b'<script>s</scriptx><a href="https://example.org/z">',
+     ["https://example.org/z"]),
+    ("whitespace-around-equals-sign",
+     b'<a href = "https://example.org/a"><a href=\n\'https://example.org/b\'>',
+     ["https://example.org/a", "https://example.org/b"]),
+    ("a-start-tag-reaching-end-of-input-counts",
+     b'<p><a href="https://example.org/end"',
+     ["https://example.org/end"]),
+    ("unclosed-quoted-value-runs-to-end-of-input",
+     b'<a href="https://example.org/q>x</a>',
+     []),
+    ("empty-attribute-name-and-slash-separator",
+     b'<a ="x" href="https://example.org/e"><a/href="https://example.org/s">',
+     ["https://example.org/e", "https://example.org/s"]),
+    ("first-href-attribute-wins",
+     b'<a href="https://example.org/one" href="https://example.org/two">',
+     ["https://example.org/one"]),
+    ("ill-formed-utf8-href-is-discarded",
+     b'<a href="https://example.org/\xff"><a href="https://example.org/ok">',
+     ["https://example.org/ok"]),
+    ("character-references-decode-in-one-pass",
+     b'<a href="https://example.org/?q=&amp;lt;">',
+     ["https://example.org/?q=&lt;"]),
+    ("decimal-reference-with-leading-zeros",
+     b'<a href="&#0000000000104;ttps://example.org/z">',
+     ["https://example.org/z"]),
+    ("uppercase-named-reference-left-as-written",
+     b'<a href="https://example.org/?a=1&AMP;b=2"></a>',
+     ["https://example.org/?a=1&AMP;b=2"]),
+    ("decoded-whitespace-is-trimmed",
+     b'<a href="&#32;https://example.org/sp&#9;">',
+     ["https://example.org/sp"]),
+    ("quote-in-raw-text-attribute-name-is-ordinary",
+     b'<script a"b>z</script><a href="https://example.org/d">',
+     ["https://example.org/d"]),
+    ("quote-in-raw-text-unquoted-value-is-ordinary",
+     b'<style x=a"b>z</style><a href="https://example.org/d2">"',
+     ["https://example.org/d2"]),
+    ("hex-reference-takes-lowercase-x-only",
+     b'<a href="&#X68;ttps://example.org/x"><a href="&#x68;ttps://example.org/y">',
+     ["https://example.org/y"]),
+    ("numeric-reference-to-a-surrogate-discards-the-candidate",
+     b'<a href="https://example.org/&#xD800;"><a href="https://example.org/ok">',
+     ["https://example.org/ok"]),
+    ("numeric-reference-above-the-last-code-point-discards-the-candidate",
+     b'<a href="https://example.org/&#1114112;"><a href="https://example.org/ok">',
+     ["https://example.org/ok"]),
+    ("non-ascii-digits-leave-the-reference-as-written",
+     '<a href="https://example.org/&#\u0666\u0665;"><a href="https://example.org/&#65;">'.encode("utf-8"),
+     ["https://example.org/A"]),
+)
+SCAN_CASES = tuple((label, html, "example.com", expected)
+                   for label, html, expected in SCAN_CASES) + (
+    ("comment-marker-in-a-start-tag-before-a-relative-href",
+     b'<a title="<!--" href="/x">x</a>-->y', "example.net",
+     ["https://example.com/x"]),
+)
+for label, html, domain, expected in SCAN_CASES:
+    member = link_extraction.links_member(
+        *link_extraction.extract_links(html, SCAN_BASE, domain), LINKS_CAP_BYTES)
+    assert member == {"total": len(expected), "urls": expected}, f"{label}: {member}"
+    cases.append({"label": label, "html_hex": html.hex(), "base_url": SCAN_BASE,
+                  "publisher_domain": domain, "expected": member})
 
 write_json(WIST2V / "link-extraction.json",
            {"note": ("WIST-2's extraction procedure over raw HTML bytes. "
@@ -1929,6 +2003,35 @@ for label, html in (
 ):
     TEXT_FIXTURES.append({"label": label, "html_hex": html.hex(),
                           "expected": link_extraction.extract_text(html)})
+
+for label, html, expected in (
+    ("bare-tag-reaching-end-of-input", b"a<b", "a"),
+    ("one-replacement-per-maximal-subpart",
+     bytes.fromhex("61e2824120f0808062"), "a�A ���b"),
+    ("character-references-decode-in-one-pass",
+     b"x&amp;lt;y &#00065; &AMP;", "x&lt;y A &AMP;"),
+    ("comment-opens-inside-a-tag",
+     b'<p title="<!--">x</p>-->y', ""),
+    ("comment-opens-inside-an-a-start-tag",
+     b'<a title="<!--" href="/x">x</a>-->y', ""),
+    ("raw-text-element-opens-inside-a-tag",
+     b'<a title="<script>" href="/x">x</a></script>y', ""),
+    ("quote-in-attribute-name-is-ordinary",
+     b'<p a"b>x</p>y', "x y"),
+    ("raw-text-end-tag-read-by-attribute-rule",
+     b'<script>z</script a"b>x', "x"),
+    ("quoted-value-in-a-tag-holds-a-bare-greater-than",
+     b'<p=">"x>y', "y"),
+    ("hex-reference-takes-lowercase-x-only",
+     b"&#X41;&#x41;", "&#X41;A"),
+    ("numeric-reference-to-a-non-scalar-value-left-as-written",
+     b"a&#xD800;b &#1114112; c", "a&#xD800;b &#1114112; c"),
+    ("non-ascii-digits-leave-the-reference-as-written",
+     "&#\u0666\u0665;&#65;".encode("utf-8"), "&#\u0666\u0665;A"),
+):
+    got = link_extraction.extract_text(html)
+    assert got == expected, f"{label}: {got!r}"
+    TEXT_FIXTURES.append({"label": label, "html_hex": html.hex(), "expected": got})
 
 write_json(WIST2V / "text-extraction.json", {
     "note": ("WIST-2 §12's whole-document text extraction over raw HTML "
@@ -2092,8 +2195,9 @@ def page_binding_vectors():
     probe("retired key fails without a following Declaration", "rotated", KID3, priv3, "WIST2-E04", "2026-08-09T15:00:00Z")
     return dict(note="WIST-2 §3.2 named-entry verification over signed ordinary Declaration chains. "
                 "Sealing positions are supplied inputs, without Epoch inclusion or recovery proofs. "
-                "Empty Delta lists isolate signature/source selection; these are not publication or "
-                "Page-size fixtures. Future nbf values distinguish Pages from Delta filtering.",
+                "Empty ID lists isolate signature/source selection; these are not publication or "
+                "Page-size fixtures. Every binding's nbf lies after every generated_at: the nbf/exp window "
+                "of the binding check, which a Label or Catalog meets, does not apply to a Page.",
                 histories=histories, probes=probes)
 
 
@@ -4119,8 +4223,13 @@ def log_instant_s(value: str) -> int:
 
 def label_vectors():
     cases = []
+    example_declaration = json.loads((EXAMPLES / "publisher.json").read_text())
+    with_collection_keys = dict(example_declaration["publisher"], collections=[
+        {"name": "journal", "scope": [{"url": "https://example.com/journal/", "match": "prefix"}],
+         "keys": [jwk(pub3_raw, "2026-08-01T00:00:00Z")]}])
+    declarations = {"collection_keys": sign_envelope("publisher", with_collection_keys, KID1)}
 
-    def add(name, body=None, *, expected="accepted", signer=priv, key_id=KID1, mutate=None):
+    def add(name, body=None, *, expected="accepted", signer=priv, key_id=KID1, mutate=None, declaration=None):
         body = dict(label) if body is None else body
         doc = sign_envelope_with(signer, "label", body, key_id)
         if mutate:
@@ -4133,10 +4242,13 @@ def label_vectors():
             author_signature = False
         code = {"accepted": None, "fields": "WIST2-E06", "clock": "WIST2-E06", "self": "WIST2-E06",
                 "signature": "WIST1-E01", "binding": "WIST1-E02"}[expected]
-        cases.append(dict(name=name, envelope=doc, expected=expected, code=code,
-                          author_signature=author_signature,
-                          label_id=("sha256:" + sha256_hex(rfc8785.dumps(doc["label"])))
-                          if expected == "accepted" else None))
+        case = dict(name=name, envelope=doc, expected=expected, code=code,
+                    author_signature=author_signature,
+                    label_id=("sha256:" + sha256_hex(rfc8785.dumps(doc["label"])))
+                    if expected == "accepted" else None)
+        if declaration is not None:
+            case["declaration"] = declaration
+        cases.append(case)
 
     add("valid Label")
     add("valid Label with a value", dict(label, value=750000))
@@ -4194,17 +4306,23 @@ def label_vectors():
     add("expiry before assertion", dict(label, expires_at="2026-08-01T12:30:00Z"), expected="fields")
     add("expiry on a leap second", dict(label, expires_at="2026-12-31T23:59:60Z"), expected="fields")
     add("expiry without a zone", dict(label, expires_at="2026-09-02T12:30:00"), expected="fields")
-    add("Delta binding on a URL subject", dict(label, delta=disputed_label_id))
-    add("Delta binding with an expiry", dict(label, delta=disputed_label_id, expires_at="2026-09-02T12:30:00Z"))
-    add("Delta binding on a Canonical Host subject", dict(label, subject="reduced.example.org", delta=disputed_label_id),
+    add("Item binding on a URL subject", dict(label, delta=example_item_id))
+    add("Item binding with an expiry", dict(label, delta=example_item_id, expires_at="2026-09-02T12:30:00Z"))
+    add("Item binding on a Canonical Host subject", dict(label, subject="reduced.example.org", delta=example_item_id),
         expected="fields")
-    add("Delta binding not a Delta ID", dict(label, delta="sha256:xyz"), expected="fields")
-    add("Delta binding uppercase hex", dict(label, delta=disputed_label_id.upper().replace("SHA256", "sha256")),
+    add("Item binding not an Item ID", dict(label, delta="sha256:xyz"), expected="fields")
+    add("Item binding uppercase hex", dict(label, delta=example_item_id.upper().replace("SHA256", "sha256")),
         expected="fields")
     add("signature over other bytes", expected="signature",
         mutate=lambda doc: doc["label"].update(asserted_at="2026-08-02T12:31:00Z"))
     add("signed by the recovery key", signer=priv2, key_id=KID2, expected="binding")
     add("signed under an unknown identifier", key_id=KID5, expected="binding")
+    add("asserted_at at the signing key's nbf", dict(label, asserted_at="2026-08-02T12:00:00Z"))
+    add("asserted_at one second before the signing key's nbf", dict(label, asserted_at="2026-08-02T11:59:59Z"),
+        expected="binding")
+    add("signed by a Collection's key", signer=priv3, key_id=KID3, expected="binding",
+        declaration="collection_keys")
+    add("signed by a key of keys beside a Collection's key", declaration="collection_keys")
 
     def sealed(asserted_at, height, entry_index, value=None, retracted=False, expires_at=None, delta=None):
         inner = dict(label, asserted_at=asserted_at)
@@ -4253,18 +4371,19 @@ def label_vectors():
         current_case("an expired Label is still the current one",
                      [sealed("2026-08-02T12:30:00Z", 1, 0, expires_at="2026-08-03T00:00:00Z"),
                       sealed("2026-08-02T12:00:00Z", 2, 0)], 0),
-        current_case("a bound Label carries its Delta",
-                     [sealed("2026-08-02T12:30:00Z", 1, 0, delta=disputed_label_id)], 0),
+        current_case("a bound Label carries its Item ID",
+                     [sealed("2026-08-02T12:30:00Z", 1, 0, delta=example_item_id)], 0),
     ]
+    later_item_id = items.item_id(dict(example_item, observed_at="2026-08-03T12:00:00Z"))
     binding = []
-    for name, anchor, delta, applies in (
-        ("bound to the live anchor", disputed_label_id, disputed_label_id, True),
-        ("bound to an earlier anchor", "sha256:" + sha256_hex(b"a later publication"), disputed_label_id, False),
-        ("unbound applies to any anchor", "sha256:" + sha256_hex(b"a later publication"), None, True),
-        ("bound with no live record", None, disputed_label_id, False),
+    for name, record_item, delta, applies in (
+        ("bound to the Item the record carries", example_item_id, example_item_id, True),
+        ("bound to an Item the record no longer carries", later_item_id, example_item_id, False),
+        ("unbound applies to any Item of the record", later_item_id, None, True),
+        ("bound with no live record", None, example_item_id, False),
         ("unbound with no live record", None, None, False),
     ):
-        binding.append({"name": name, "delta": delta, "record_anchor": anchor, "applies": applies})
+        binding.append({"name": name, "delta": delta, "record_item": record_item, "applies": applies})
     return dict(
         note=("WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases "
               "over the example Declaration, every case validated at clock under clock_skew_seconds: "
@@ -4272,13 +4391,20 @@ def label_vectors():
               "WIST2-E06, clock being an asserted_at beyond the inclusive allowance clock + "
               "clock_skew_seconds (WIST-1 section 3.4's rule read over asserted_at: the validator's "
               "clock before sealing, the committing Epoch's sealed_at once sealed); signature and "
-              "binding keep WIST-1 codes. current_cases "
+              "binding keep WIST-1 codes. The key check is WIST-1 section 5.1's binding check for a "
+              "Catalog over `keys` alone, with asserted_at in the place of generated_at: binding "
+              "(WIST1-E02) where no usable entry of `keys` named by sig.key_id has a window holding "
+              "asserted_at, a Collection's keys taking no part; signature (WIST1-E01) where none of "
+              "those verifies. A case naming `declaration` is judged under that entry of "
+              "`declarations` instead of the example Declaration. Every asserted_at a key window "
+              "is compared with is a whole second. current_cases "
               "replay sealed Labels of one (labeler, subject, name) and give the current Label at the "
               "end and the WIST-3 section 7 tuple the state carries, null where the current Label is "
               "retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a "
-              "Label's delta against the subject record's anchor Delta: a bound Label applies only "
-              "while the record stands on that Delta."),
-        declaration=json.loads((EXAMPLES / "publisher.json").read_text()),
+              "Label's delta, an Item ID, against the Item the subject URL's record carries "
+              "(record_item, null where no record stands): a bound Label applies only while the record "
+              "carries that Item."),
+        declaration=example_declaration, declarations=declarations,
         url_cap_bytes=2048, clock="2026-08-03T12:00:00Z", clock_skew_seconds=600,
         cases=cases, current_cases=current, binding_cases=binding)
 
@@ -5416,11 +5542,11 @@ for value in timestamp_invalid:
     timestamp_cases.append({"value": value, "unix_seconds": None})
 
 timestamp_fields = []
-for stem, path in (
-    ("feed", ["feed", "generated_at"]),
-    ("registry-update", ["update", "effective_at"]),
+for stem, example, path in (
+    ("feed", "label-feed", ["feed", "generated_at"]),
+    ("registry-update", "registry-update", ["update", "effective_at"]),
 ):
-    timestamp_fields.append({"schema": stem + ".schema.json", "document": json.loads((EXAMPLES / (stem + ".json")).read_text()), "path": path})
+    timestamp_fields.append({"schema": stem + ".schema.json", "document": json.loads((EXAMPLES / (example + ".json")).read_text()), "path": path})
 timestamp_probe = "2017-01-01T00:00:00Z"
 for entry, path in (
     (["parameter", "record_seal_epochs", timestamp_probe, 2], [2]),
@@ -5453,7 +5579,6 @@ write_json(ROOT / "vectors/wist3/timestamps.json", {
 
 
 def declaration_refresh_vectors():
-    import copy
     domain = "localhost"
     now = "2026-08-09T14:00:00Z"
     seeds = [bytes([n]) * 32 for n in (1, 7, 11)]
@@ -5476,104 +5601,151 @@ def declaration_refresh_vectors():
     original = declaration([binding(0)])
     rotated = declaration([binding(1)], original)
     third = declaration([binding(1), binding(2)], rotated, 1)
+    tree_file = rfc8785.dumps({"items": []})
 
-    def delta_object(path, key, identifier=None, previous=None, **changes):
-        body = copy.deepcopy(delta)
-        body.update(publisher=domain, url=f"https://{domain}/{path}", observed_at=now)
-        if previous:
-            body.update(prev="sha256:" + sha256_hex(rfc8785.dumps(previous["delta"])),
-                        change_type="update", observed_at="2026-08-09T14:00:01Z")
+    def catalog(key, identifier=None, **changes):
+        body = dict(wist_version="1.0.0", publisher=domain, collection="default", generated_at=now, size=0,
+                    root="sha256:" + sha256_hex(b""), tree="sha256:" + sha256_hex(tree_file))
         body.update(changes)
-        return signed("delta", body, key, identifier)
+        return signed("catalog", body, key, identifier)
+
+    def label(key, path):
+        return signed("label", dict(wist_version="1.0.0", labeler=domain, subject=f"https://example.org/{path}",
+                                    name="wist:spam", asserted_at=now), key)
+
+    def label_id(doc):
+        return "sha256:" + sha256_hex(rfc8785.dumps(doc["label"]))
+
+    def label_feed(key, labels, next_url=None):
+        return signed("feed", dict(wist_version="1.0.0", domain=domain, generated_at=now,
+                                   deltas=[label_id(doc) for doc in labels], next=next_url), key)
+
+    page_url = f"https://{domain}/.well-known/wist/label-feed/0.json"
+
+    def pull(declared, served_catalog, labels=(), feed_key=0, budget=None, page_key=None):
+        labels = list(labels)
+        out = dict(declaration=declared, catalog=served_catalog,
+                   label_feed=label_feed(feed_key, labels, page_url if page_key is not None else None),
+                   labels=labels, budget=budget)
+        if page_key is not None:
+            out["page"] = signed("feed", dict(wist_version="1.0.0", domain=domain,
+                generated_at="2026-08-09T12:30:00Z", deltas=[], next=None), page_key)
+        return out
+
+    def outcome(catalog_outcome, labels=(), *, label_walk="pulled", suspended=False, page=None,
+                requests=True):
+        out = {}
+        if requests:
+            out["declaration_requests"] = 1
+        out.update(declaration="accepted", catalog=catalog_outcome, label_walk=label_walk,
+                   labels_accepted=[label_id(doc) for doc in labels], suspended=suspended)
+        if page is not None:
+            out["page"] = page
+        return out
+
+    def stopped(code):
+        return dict(declaration_requests=1, declaration="stopped", code=code, catalog="not_pulled",
+                    label_walk="not_pulled", labels_accepted=[], suspended=False)
 
     cases = []
-    def add(name, objects, responses, *, initial=original, feed_key=0, listed=None,
-            errors=(), accepted=None, suspended=False, content_budget=None, cached=False):
-        ids = ["sha256:" + sha256_hex(rfc8785.dumps(doc["delta"])) for doc in objects]
-        feed = signed("feed", dict(wist_version="1.0.0", domain=domain, generated_at=now,
-            deltas=ids if listed is None else [ids[i] for i in listed], next=None), feed_key)
-        cases.append(dict(name=name, cached=cached, initial=initial, responses=responses,
-            feed=feed, deltas=[dict(id=id, envelope=doc) for id, doc in zip(ids, objects)],
-            content_budget=content_budget,
-            expected=dict(accepted=[ids[i] for i in (range(len(ids)) if accepted is None else accepted)],
-                rejected=[[ids[i], code] for i, code in errors], suspended=suspended,
-                declaration_requests=1 + len(responses))))
 
-    add("unlisted key rotation", [delta_object("a", 1)], [rotated])
+    def add(name, pulls, expected, sealed=None):
+        case = dict(name=name)
+        if sealed is not None:
+            case["sealed"] = [dict(at=f"2026-08-09T{12 + i}:00:00Z", envelope=doc) for i, doc in enumerate(sealed)]
+        case.update(pulls=pulls, expected=expected)
+        assert len(pulls) == len(expected)
+        cases.append(case)
+
+    first = label(0, "a")
+    add("each pull fetches the Declaration once, whatever it held before",
+        [pull(original, catalog(0), [first]), pull(original, catalog(0), [first])],
+        [outcome("accepted", [first]), outcome("idempotent")])
+    add("a Catalog under a key the served Declaration does not list is WIST1-E02 and retries nothing; the next "
+        "pull under the rotated Declaration accepts it",
+        [pull(original, catalog(1)), pull(rotated, catalog(1), feed_key=1)],
+        [outcome("WIST1-E02"), outcome("accepted")])
     future = declaration([binding(0), binding(1, at="2026-08-10T00:00:00Z")])
-    add("future binding replacement", [delta_object("a", 1)],
-        [declaration([binding(1)], future)], initial=future)
+    add("a binding whose window opens after the Catalog's generated_at, then replaced",
+        [pull(future, catalog(1)), pull(declaration([binding(1)], future), catalog(1), feed_key=1)],
+        [outcome("WIST1-E02"), outcome("accepted")])
     expired = declaration([binding(0), dict(binding(1), exp=nbf_at("2026-08-09T12:00:00Z"))])
-    add("expired binding replacement", [delta_object("a", 1)],
-        [declaration([binding(1)], expired)], initial=expired)
+    add("a binding whose window closed before the Catalog's generated_at, then replaced",
+        [pull(expired, catalog(1)), pull(declaration([binding(1)], expired), catalog(1), feed_key=1)],
+        [outcome("WIST1-E02"), outcome("accepted")])
     excluded_key = jwk(bytes([1]) + bytes(31), "2026-08-09T00:00:00Z")
     excluded = declaration([binding(0), excluded_key])
-    add("excluded binding replacement", [delta_object("a", 1)],
-        [declaration([binding(1)], excluded)], initial=excluded)
-    for name, response in (("unchanged", original), ("unavailable", None),
-                           ("invalid signature", dict(rotated, sig=original["sig"]))):
-        add(name + " refresh", [delta_object("a", 1)], [response],
-            errors=[(0, "WIST1-E02")], accepted=[])
-    tampered = delta_object("a", 1)
+    add("an excluded public key named by the Catalog, then replaced",
+        [pull(excluded, catalog(0, kid_of(bytes([1]) + bytes(31)))),
+         pull(declaration([binding(1)], excluded), catalog(1), feed_key=1)],
+        [outcome("WIST1-E02"), outcome("accepted")])
+    add("an unchanged Declaration at the next pull: the Catalog is WIST1-E02 again",
+        [pull(original, catalog(1)), pull(original, catalog(1))],
+        [outcome("WIST1-E02"), outcome("WIST1-E02")])
+    add("an unavailable Declaration outside first contact stops the pull with WIST2-E01",
+        [pull(original, catalog(0)), pull(None, catalog(0))],
+        [outcome("accepted"), stopped("WIST2-E01")])
+    add("a Declaration that fails its acceptance checks outside first contact stops the pull with WIST2-E01",
+        [pull(original, catalog(0)), pull(dict(rotated, sig=original["sig"]), catalog(0))],
+        [outcome("accepted"), stopped("WIST2-E01")])
+    add("an unavailable Declaration at first contact stops the pull with WIST2-E04",
+        [pull(None, catalog(0))], [stopped("WIST2-E04")])
+    tampered = catalog(0)
     tampered["sig"]["value"] = b64u(bytes(64))
-    add("remaining signature failure", [tampered], [rotated], errors=[(0, "WIST1-E01")], accepted=[])
-    malformed = delta_object("a", 1, observed_at="invalid")
-    add("fields do not trigger retry", [malformed], [], errors=[(0, "WIST1-E14")], accepted=[])
-    foreign = delta_object("a", 1, publisher="example.com")
-    add("foreign Publisher does not trigger retry", [foreign], [], errors=[(0, "WIST2-E03")], accepted=[])
-    add("separate Delta attempts", [delta_object("a", 1), delta_object("b", 2)], [rotated, third])
-    add("Feed attempt independent from Delta", [delta_object("a", 2)], [rotated, third], feed_key=1)
-    ancestor = delta_object("a", 2)
-    leaf = delta_object("a", 1, previous=ancestor)
-    add("retrieved predecessor has separate attempt", [ancestor, leaf], [rotated, third], listed=[1])
-    add("revalidated ID shares attempt", [ancestor, leaf],
-        [rotated, declaration([binding(2)], rotated, 1)], listed=[1],
-        errors=[(1, "WIST1-E02")], accepted=[0])
-    add("initial discovery outside exhausted content budget", [], [], content_budget=0, suspended=True)
-    add("periodic discovery outside exhausted content budget", [], [], content_budget=0, suspended=True, cached=True)
-    add("Delta retry at content budget boundary", [delta_object("a", 1)], [rotated],
-        content_budget="feed and deltas", suspended=True, accepted=[])
-    add("Feed retry at content budget boundary", [delta_object("a", 1)], [rotated], feed_key=1,
-        content_budget="feed", suspended=True, accepted=[])
-    add("failed Delta retry at content budget boundary", [delta_object("a", 1)], [original],
-        content_budget="feed and deltas", errors=[(0, "WIST1-E02")], accepted=[])
-    page_cases = [
-        ("Page first contact needs inclusion", original, 0, 0, [], [original], True, None),
-        ("Page refresh cannot supply unsealed authority", original, 0, 1, [original], [rotated], True, None),
-        ("Page unchanged refresh", original, 0, 1, [original], [original], True, None),
-        ("Page unavailable refresh", original, 0, 1, [original], [None], True, None),
-        ("Page invalid refresh", original, 0, 1, [original], [dict(rotated, sig=original["sig"])], True, None),
-        ("Page shares the live Feed attempt", original, 1, 1, [original], [rotated], True, None),
-        ("Page retry at content budget boundary", original, 0, 1, [original], [rotated], True, "feed and page"),
-        ("Page retired source needs no retry", rotated, 1, 0, [original, rotated], [], False, None),
-        ("Page first-next source needs no retry", rotated, 1, 1, [original, rotated], [], False, None),
-        ("Page later source remains ineligible", third, 2, 2, [original, rotated, third], [third], True, None),
-        ("Feed and Delta retries remain independent across a Page walk", original, 1, 0, [original], [rotated, third], False, None),
-    ]
-    for name, initial, feed_key, page_key, sealed, responses, fails, budget in page_cases:
-        delta_key = 2 if len(responses) == 2 else feed_key
-        add(name, [delta_object("page-live", delta_key)], responses, initial=initial,
-            feed_key=feed_key, accepted=[] if fails else [0], content_budget=budget)
-        case = cases[-1]
-        body = dict(case["feed"]["feed"], next=f"https://{domain}/.well-known/wist/feed/0.json")
-        case["feed"] = signed("feed", body, feed_key)
-        case["page"] = signed("feed", dict(wist_version="1.0.0", domain=domain,
-            generated_at="2026-08-09T12:30:00Z", deltas=[], next=None), page_key)
-        case["sealed"] = [dict(at=f"2026-08-09T{12 + i}:00:00Z", envelope=doc)
-                          for i, doc in enumerate(sealed)]
-        case["expected"]["noise"] = "WIST2-E04" if fails else None
-    return dict(note="WIST-1 section 5.1 and WIST-2 section 5. Signed ordinary-rotation transport "
-        "sequences; initial is the first publisher.json response and optionally already cached. "
-        "responses lists failure-triggered Declaration responses; null is HTTP unavailability. "
-        "Serve feed and each Delta unchanged, with examples/payload.json for every commitment. "
-        "Budget strings mean the exact JCS byte lengths of the named served objects, with no "
-        "Declaration bytes. An absent numeric limit means a sufficient content budget. "
-        "Declaration request counts include initial or periodic discovery. Optional sealed entries "
-        "supply the authenticated-prefix context held fixed during a Page walk; they do not prove "
-        "Epoch inclusion. Optional empty Pages isolate authentication, not Page cardinality or publication. "
-        "Resume and recovery "
-        "settlement, complete HTTP resource bounds, sealing and durability require separate integration.",
-        domain=domain, now="2026-08-09T14:01:00Z", payload=payload, cases=cases)
+    add("a signature failure under a listed key is WIST1-E01", [pull(original, tampered)], [outcome("WIST1-E01")])
+    add("a field failure is WIST1-E14", [pull(original, catalog(0, generated_at="invalid"))],
+        [outcome("WIST1-E14")])
+    add("a Catalog naming another Publisher is WIST2-E04", [pull(original, catalog(0, publisher="example.com"))],
+        [outcome("WIST2-E04")])
+    add("first contact under an exhausted budget: the Declaration is fetched and the walk suspends at the "
+        "Catalog", [pull(original, catalog(0), [first], budget=[])],
+        [outcome("suspended", label_walk="not_pulled", suspended=True)])
+    add("a later pull under an exhausted budget: the Declaration is fetched and the walk suspends at the "
+        "Catalog", [pull(original, catalog(0), [first]), pull(original, catalog(0), [first], budget=[])],
+        [outcome("accepted", [first]), outcome("suspended", label_walk="not_pulled", suspended=True)])
+    add("a budget of exactly the Catalog and its tree file: the Label walk cannot begin and waits, and the "
+        "pull does not suspend", [pull(original, catalog(0), [first], budget=["catalog", "tree"])],
+        [outcome("accepted", label_walk="waits")])
+    add("a budget that leaves the Label file short: the Label walk suspends",
+        [pull(original, catalog(0), [first], budget=["catalog", "tree", "label_feed"])],
+        [outcome("accepted", label_walk="suspended", suspended=True)])
+    add("a budget of exactly every object: nothing suspends",
+        [pull(original, catalog(0), [first], budget=["catalog", "tree", "label_feed", "labels"])],
+        [outcome("accepted", [first])])
+    for name, sealed, declared, feed_key, page_key, verdict in (
+            ("a Page at first contact: no sealed Declaration supplies authority", [], original, 0, 0, "WIST2-E04"),
+            ("a fetched Declaration listing the Page's key supplies no Page authority", [original], rotated, 1, 1,
+             "WIST2-E04"),
+            ("a Page under the retired key verifies under the Declaration current at its generated_at",
+             [original, rotated], rotated, 1, 0, "current"),
+            ("a Page under the incoming key verifies under the first following Declaration",
+             [original, rotated], rotated, 1, 1, "next"),
+            ("a Page under a key of a later Declaration than the first following one",
+             [original, rotated, third], third, 2, 2, "WIST2-E04")):
+        live = label(feed_key, "page-live")
+        verifies = verdict != "WIST2-E04"
+        add(name, [pull(declared, catalog(feed_key), [live], feed_key=feed_key, page_key=page_key)],
+            [outcome("accepted", [live] if verifies else [], page=verdict, requests=verifies)], sealed)
+        if not verifies:
+            del cases[-1]["expected"][0]["labels_accepted"]
+    return dict(note="WIST-2 sections 5.1, 5.2, 5.5 and 3.2. Each case is a sequence of pulls of one Publisher "
+        "by one Aggregator that starts with no state; each pull fetches publisher.json once and serves "
+        "`declaration` (null: unavailable), whose acceptance is judged under WIST-1 section 5.2 against the "
+        "Declaration last accepted. The Declaration names the default Collection alone, whose catalog.json "
+        "serves `catalog`; its tree is one file, {\"items\":[]}, served under its SHA-256. The pull then fetches "
+        "label_feed, then each Label it lists that is not seen, from `labels`, and, where label_feed names a "
+        "Page, `page`, verified under the sources of section 3.2 read from `sealed` (supplied sealing instants; "
+        "they prove no Epoch inclusion). `budget` lists the objects whose JCS octets sum to the pull's content "
+        "budget (catalog, tree, label_feed, labels: every Label listed), null for an unbounded one; no "
+        "Declaration octets debit it. expected per pull: declaration_requests (the request that opens the pull; "
+        "omitted where a Page fails, since WIST-2 does not say whether a Page that fails verification triggers "
+        "a second request), declaration (accepted or stopped, with code WIST2-E04 at first contact and WIST2-E01 "
+        "after it), catalog (accepted, idempotent, suspended, not_pulled, or the code it is refused with; a "
+        "refused Catalog retries nothing), label_walk (pulled; waits, where no budget is left when it would "
+        "begin; suspended; not_pulled, after a pull stopped at its Declaration or suspended), labels_accepted, "
+        "suspended, and page (current, next or WIST2-E04). Where a Page fails, whether the IDs of the live "
+        "label-feed.json proceed is not stated and labels_accepted is omitted.",
+        domain=domain, clock="2026-08-09T14:01:00Z", cases=cases)
 
 
 write_json(ROOT / "vectors/wist2/declaration-refresh.json", declaration_refresh_vectors())
@@ -5596,13 +5768,9 @@ def feed_field_vectors():
         except (KeyError, TypeError, ValueError, InvalidSignature):
             author_signature = False
         cases.append(dict(name=name, envelope=doc, expected=expected, live=live,
-                          author_signature=author_signature,
-                          code={"fields": "WIST2-E01", "domain": "WIST2-E04",
-                                "signature": "WIST2-E04", "accepted": None}[expected],
-                          rejection_noise=expected in ("domain", "signature"),
-                          declaration_retries=int(expected == "signature")))
+                          author_signature=author_signature, usable=expected == "accepted"))
 
-    add("valid empty Feed")
+    add("valid empty Label Feed")
     for value in ("0000-02-29T00:00:00Z", "9999-12-31T23:59:59Z"):
         add("timestamp boundary " + value, dict(base, generated_at=value))
     add("unbounded release components", dict(base, wist_version="1." + "9" * 80 + "." + "8" * 80))
@@ -5624,8 +5792,8 @@ def feed_field_vectors():
             "2026-08-09t14:00:00z", "2026-08-09T14:00:00Z\n", "10000-01-01T00:00:00Z")]
     invalid += [("wist_version", value) for value in (
         "01.0.0", "1.00.0", "1.0.00", "١.0.0", "1.0.0\n", "1.0.0-beta", "1.0.0+build", "1.0", "1..0")]
-    invalid += [("next", value) for value in (7, [], "http://localhost/.well-known/wist/feed/0.json",
-                 "https://localhost/.well-known/wist/feed/0.json#part")]
+    invalid += [("next", value) for value in (7, [], "http://localhost/.well-known/wist/label-feed/0.json",
+                 "https://localhost/.well-known/wist/label-feed/0.json#part")]
     invalid += [("deltas", value) for value in ("wrong", [None], ["sha256:" + "A" * 64],
                 ["sha256:" + "0" * 64 + "\n"], ["sha256:" + "0" * 64] * 2)]
     for index, (field, value) in enumerate(invalid):
@@ -5636,7 +5804,7 @@ def feed_field_vectors():
             mutate=lambda doc: doc["sig"].update(value=b64u(bytes(64))))
     for count in (1000, 1001):
         ids = ["sha256:" + hashlib.sha256(str(i).encode()).hexdigest() for i in range(count)]
-        add(f"Delta count {count}", dict(base, deltas=ids),
+        add(f"ID count {count}", dict(base, deltas=ids),
             expected="accepted" if count == 1000 else "fields", live=count > 1000)
     for field in ("key_id", "alg", "value"):
         add("missing signature " + field, expected="fields", mutate=lambda doc, f=field: doc["sig"].pop(f))
@@ -5649,9 +5817,9 @@ def feed_field_vectors():
             mutate=lambda doc, f=field, v=value: doc["sig"].update({f: v}))
     add("scalar key identifier boundary", mutate=lambda doc: doc["sig"].update(key_id="é" * 64), expected="signature")
     add("unknown Envelope member", expected="fields", mutate=lambda doc: doc.update(extra=True))
-    add("unknown Feed member", dict(base, extra=True), expected="fields")
+    add("unknown feed member", dict(base, extra=True), expected="fields")
     add("unknown signature member", expected="fields", mutate=lambda doc: doc["sig"].update(extra=True))
-    add("missing Feed", expected="fields", mutate=lambda doc: doc.pop("feed"))
+    add("missing feed", expected="fields", mutate=lambda doc: doc.pop("feed"))
     add("missing signature", expected="fields", mutate=lambda doc: doc.pop("sig"))
     add("foreign domain", dict(base, domain="other.example"), expected="domain")
     add("foreign domain and bad signature", dict(base, domain="other.example"), expected="domain",
@@ -5659,10 +5827,14 @@ def feed_field_vectors():
     add("bad signature", expected="signature", mutate=lambda doc: doc["sig"].update(value=b64u(bytes(64))))
     source = sign_envelope("publisher", dict(wist_version="1.0.0", domain="localhost", seq=0,
         keys=[jwk(pub_raw, "2026-08-09T00:00:00Z")]), KID1)
-    return dict(description="Feed Envelope field and identity precedence under WIST-2 section 5. "
-                "Serve each live candidate unchanged after the supplied Declaration, re-serving that "
-                "Declaration on retry. Field checks also apply to Pages; these supplied-context probes "
-                "establish no Page publication, history partitioning or Feed regression state.",
+    return dict(description="Label Feed Envelope checks under WIST-2 section 3.2, applied in order: the "
+                "Feed schema with its formats and canonicalizability, a domain equal to the requested host, "
+                "then the signature under the supplied Declaration's Key Set. expected names the first check "
+                "the object fails, or accepted; usable is true only for accepted. The section assigns no "
+                "error code to a failure of these checks and does not say whether it counts as noise or "
+                "triggers a second Declaration request, so no case states either. The same checks apply to "
+                "a Page; these supplied-context probes establish no Page publication, history partitioning "
+                "or regression state.",
                 host="localhost", declaration=source, cases=cases)
 
 
@@ -5672,79 +5844,90 @@ write_json(ROOT / "vectors/wist2/feed-fields.json", feed_field_vectors())
 def feed_next_vectors():
     host = "localhost"
     prefix = f"https://{host}/.well-known/wist/"
-    fresh = "sha256:" + hashlib.sha256(b"feed-next unseen Delta").hexdigest()
+    fresh = "sha256:" + hashlib.sha256(b"feed-next unseen Label").hexdigest()
     retained = "2026-08-09T14:00:00Z"
     base = dict(wist_version="1.0.0", domain=host, generated_at=retained, deltas=[fresh], next=None)
-    codes = {"fields": "WIST2-E01", "domain": "WIST2-E04", "signature": "WIST2-E04",
-             "regression": "WIST2-E05", "unread": None, "end": None, "target": "WIST2-E01",
-             "followed": None}
+    codes = {"regression": "WIST2-E05", "unread": None, "end": None, "target": "WIST2-E01", "followed": None}
     cases = []
 
-    def add(name, next_value, expected, body=None, *, live=True, seen=(), mutate=None):
+    def add(name, next_value, expected, body=None, *, live=True, seen=(), mutate=None, answer=200):
         body = dict(base if body is None else body, next=next_value)
         doc = sign_envelope("feed", body, KID1)
         if mutate:
             mutate(doc)
-        cases.append(dict(name=name, envelope=doc, live=live, seen=list(seen), expected=expected,
-                          code=codes[expected],
-                          next_read=expected in ("end", "target", "followed"),
-                          fetch=next_value if expected == "followed" else None,
-                          deltas_admitted=expected in ("unread", "end", "target", "followed"),
-                          declaration_retries=int(expected == "signature")))
+        case = dict(name=name, envelope=doc, live=live, seen=list(seen), expected=expected)
+        if answer != 200:
+            case["answer"] = answer
+        if expected in codes:
+            case["code"] = codes[expected]
+        case.update(next_read=expected in ("end", "target", "followed"),
+                    fetch=next_value if expected == "followed" else None,
+                    ids_proceed=expected in ("unread", "end", "target", "followed"))
+        cases.append(case)
 
+    page_0 = prefix + "label-feed/0.json"
     add("null next ends the walk", None, "end")
-    add("Page 0 target", prefix + "feed/0.json", "followed")
-    add("query preserved", prefix + "feed/0.json?v=2&x=%2F", "followed")
-    add("empty query preserved", prefix + "feed/0.json?", "followed")
-    add("encoded separator inside the layout", prefix + "feed/a%2Fb.json", "followed")
-    add("uppercase escape of a reserved octet", prefix + "feed/%E2%82%AC.json", "followed")
-    add("regressed Page with valid target", prefix + "feed/0.json", "followed",
+    add("Page 0 target", page_0, "followed")
+    add("query preserved", page_0 + "?v=2&x=%2F", "followed")
+    add("empty query preserved", page_0 + "?", "followed")
+    add("encoded separator inside the layout", prefix + "label-feed/a%2Fb.json", "followed")
+    add("uppercase escape of a reserved octet", prefix + "label-feed/%E2%82%AC.json", "followed")
+    add("regressed Page with valid target", page_0, "followed",
         dict(base, generated_at="2026-08-09T13:00:00Z"), live=False)
-    bad = "https://www.localhost/.well-known/wist/feed/0.json"
+    bad = "https://www.localhost/.well-known/wist/label-feed/0.json"
     for name, value in (
             ("scope host", bad),
-            ("foreign host", "https://other.example/.well-known/wist/feed/0.json"),
-            ("uppercase host", "https://LOCALHOST/.well-known/wist/feed/0.json"),
-            ("explicit default port", "https://localhost:443/.well-known/wist/feed/0.json"),
-            ("other port", "https://localhost:8443/.well-known/wist/feed/0.json"),
-            ("userinfo", "https://user@localhost/.well-known/wist/feed/0.json"),
+            ("foreign host", "https://other.example/.well-known/wist/label-feed/0.json"),
+            ("uppercase host", "https://LOCALHOST/.well-known/wist/label-feed/0.json"),
+            ("explicit default port", "https://localhost:443/.well-known/wist/label-feed/0.json"),
+            ("other port", "https://localhost:8443/.well-known/wist/label-feed/0.json"),
+            ("userinfo", "https://user@localhost/.well-known/wist/label-feed/0.json"),
             ("no host", "https://"),
             ("empty path", "https://localhost"),
             ("layout root without slash", prefix[:-1]),
-            ("prefix elsewhere in the path", "https://localhost/x/.well-known/wist/feed/0.json"),
-            ("doubled slash before the prefix", "https://localhost//.well-known/wist/feed/0.json"),
-            ("sibling layout", "https://localhost/.well-known/wistx/feed/0.json"),
-            ("dot segment", prefix + "feed/../publisher.json"),
+            ("prefix elsewhere in the path", "https://localhost/x/.well-known/wist/label-feed/0.json"),
+            ("doubled slash before the prefix", "https://localhost//.well-known/wist/label-feed/0.json"),
+            ("sibling layout", "https://localhost/.well-known/wistx/label-feed/0.json"),
+            ("dot segment", prefix + "label-feed/../publisher.json"),
             ("encoded dot segment", prefix + "%2E%2E/secret.json"),
-            ("encoded separator in prefix", "https://localhost/.well-known/wist%2Ffeed/0.json"),
-            ("lowercase escape hex", prefix + "feed/%e2%82%ac.json"),
-            ("encoded unreserved octet", prefix + "feed/%7Ea.json"),
-            ("lowercase escape hex in the query", prefix + "feed/0.json?x=%2f"),
-            ("control octet", prefix + "feed/0.json\n")):
+            ("encoded separator in prefix", "https://localhost/.well-known/wist%2Flabel-feed/0.json"),
+            ("lowercase escape hex", prefix + "label-feed/%e2%82%ac.json"),
+            ("encoded unreserved octet", prefix + "label-feed/%7Ea.json"),
+            ("lowercase escape hex in the query", page_0 + "?x=%2f"),
+            ("control octet", page_0 + "\n")):
         add(name, value, "target")
     for name, value in (("non string", 7), ("array", []),
-                        ("http scheme", "http://localhost/.well-known/wist/feed/0.json"),
-                        ("uppercase scheme", "HTTPS://localhost/.well-known/wist/feed/0.json"),
-                        ("fragment", prefix + "feed/0.json#0"), ("empty string", "")):
+                        ("http scheme", "http://localhost/.well-known/wist/label-feed/0.json"),
+                        ("uppercase scheme", "HTTPS://localhost/.well-known/wist/label-feed/0.json"),
+                        ("fragment", page_0 + "#0"), ("empty string", "")):
         add(name, value, "fields")
-    add("ingested Feed with bad target", bad, "unread", seen=[fresh])
-    add("empty Feed with bad target", bad, "unread", dict(base, deltas=[]))
-    add("ingested Feed with valid target", prefix + "feed/0.json", "unread", seen=[fresh])
+    add("ingested Label Feed with bad target", bad, "unread", seen=[fresh])
+    add("empty Label Feed with bad target", bad, "unread", dict(base, deltas=[]))
+    add("ingested Label Feed with valid target", page_0, "unread", seen=[fresh])
+    add("answer 304 to the ingested Label Feed it validates", page_0, "unread", seen=[fresh], answer=304)
     add("bad signature with bad target", bad, "signature",
         mutate=lambda doc: doc["sig"].update(value=b64u(bytes(64))))
     add("foreign domain with bad target", bad, "domain", dict(base, domain="other.example"))
-    add("regressed live Feed with bad target", bad, "regression",
+    add("regressed live Label Feed with bad target", bad, "regression",
         dict(base, generated_at="2026-08-09T13:00:00Z"))
     add("regressed Page with bad target", bad, "target",
         dict(base, generated_at="2026-08-09T13:00:00Z"), live=False)
     source = sign_envelope("publisher", dict(wist_version="1.0.0", domain=host, seq=0,
         subdomain_scope=["www.localhost"],
         keys=[jwk(pub_raw, "2026-08-09T00:00:00Z")]), KID1)
-    return dict(description="Feed and Page next targets under WIST-2 section 3.2. Each case is the "
-                "object the walk reached, live or sealed, after the supplied Declaration; seen lists "
-                "the Delta IDs already seen and retained_generated_at the durable live-Feed "
-                "observation. fetch is the exact URL a following Aggregator requests; a target "
-                "failure keeps the object's Deltas and fetches nothing.",
+    return dict(description="Label Feed and Page next targets under WIST-2 section 3.2. Each case is the "
+                "object the Label walk reached, the live label-feed.json (live true) or a sealed Page, after "
+                "the supplied Declaration; seen lists the Label and Dispute IDs already seen (section 5.5) "
+                "and retained_generated_at the durable live observation. expected is the first of: fields, "
+                "domain or signature (the object is not usable; the section assigns these no code, and no "
+                "case carries one), regression (a live object below the retained generated_at, WIST2-E05: "
+                "the Label Feed is discarded with every Page and ID its walk would read), unread (every ID "
+                "listed is seen, so next is not read), end (next is null), target (a read next failing the "
+                "target rule, WIST2-E01: nothing is fetched there) and followed. code is present where the "
+                "section assigns one. fetch is the exact URL a following Aggregator requests; ids_proceed "
+                "states whether the object's unseen IDs proceed under section 5.5. A case with answer 304 "
+                "is the answer to a conditional request whose validator is that of the object given, which "
+                "the case's seen marks ingested: an answer 304 lists no new ID.",
                 host=host, retained_generated_at=retained, declaration=source, cases=cases)
 
 
@@ -5758,7 +5941,7 @@ def feed_regression_vectors():
     later = "2026-08-09T14:00:01Z"
     final = "9999-12-31T23:59:59Z"
 
-    def observation(name, at, retained, code=None, *, domain="localhost", bad_signature=False,
+    def observation(name, at, retained, disposition="usable", *, domain="localhost", bad_signature=False,
                     extra=False):
         body = dict(wist_version="1.0.0", domain=domain, generated_at=at, deltas=[], next=None)
         if extra:
@@ -5772,42 +5955,48 @@ def feed_regression_vectors():
             retained_s = calendar.timegm(time.strptime(civil, "%Y-%m-%dT%H:%M:%SZ"))
             if retained.startswith("0000"):
                 retained_s -= 146097 * 86400
-        return dict(name=name, envelope=doc, retained=retained, retained_s=retained_s, code=code,
-                    noise="WIST2-E04" if code == "WIST2-E04" else
-                    "WIST2-E02" if code is None else None,
-                    declaration_retries=int(bad_signature and not extra and domain == "localhost"))
+        event = dict(name=name, envelope=doc, retained=retained, retained_s=retained_s, disposition=disposition)
+        if disposition == "regressed":
+            event["code"] = "WIST2-E05"
+        return event
 
     cases = [dict(name="nondecreasing observations", observations=[
         observation("first", base, base),
         observation("equal", base, base),
-        observation("older", early, base, "WIST2-E05"),
+        observation("older", early, base, "regressed"),
         observation("newer", later, later),
-        observation("previous maximum", base, later, "WIST2-E05"),
+        observation("previous maximum", base, later, "regressed"),
         observation("equal maximum", later, later)]),
         dict(name="only authenticated fields establish a baseline", observations=[
-            observation("invalid fields", final, None, "WIST2-E01", extra=True),
-            observation("invalid signature", final, None, "WIST2-E04", bad_signature=True),
-            observation("foreign domain", final, None, "WIST2-E04", domain="other.example"),
+            observation("invalid fields", final, None, "fields", extra=True),
+            observation("invalid signature", final, None, "signature", bad_signature=True),
+            observation("foreign domain", final, None, "domain", domain="other.example"),
             observation("first authenticated", base, base),
-            observation("invalid newer signature", final, base, "WIST2-E04", bad_signature=True),
+            observation("invalid newer signature", final, base, "signature", bad_signature=True),
             observation("newer authenticated", later, later)]),
-        dict(name="regression diagnostic follows authentication", observations=[
+        dict(name="regression follows authentication", observations=[
             observation("baseline", base, base),
-            observation("older invalid fields and signature", early, base, "WIST2-E01",
+            observation("older invalid fields and signature", early, base, "fields",
                         extra=True, bad_signature=True),
-            observation("older foreign domain and signature", early, base, "WIST2-E04",
+            observation("older foreign domain and signature", early, base, "domain",
                         domain="other.example", bad_signature=True),
-            observation("older bad signature", early, base, "WIST2-E04", bad_signature=True),
-            observation("older authenticated", early, base, "WIST2-E05")]),
+            observation("older bad signature", early, base, "signature", bad_signature=True),
+            observation("older authenticated", early, base, "regressed")]),
         dict(name="full range without a validator clock bound", observations=[
             observation("year zero", "0000-01-01T00:00:00Z", "0000-01-01T00:00:00Z"),
             observation("final representable second", final, final),
-            observation("clock contemporary regression", base, final, "WIST2-E05"),
+            observation("clock contemporary regression", base, final, "regressed"),
             observation("equal final second", final, final)])]
-    return dict(description="WIST-2 section 3.2 ordered live Feed observations. Start each case "
-                "without retained state and reopen durable state between observations. Serve the "
-                "supplied Declaration on discovery and retries. Empty Feeds isolate observation "
-                "state; Pages, downstream failures and Declaration transitions require integration.",
+    return dict(description="WIST-2 section 3.2 ordered observations of the live label-feed.json. Start "
+                "each case without retained state and reopen durable state between observations. "
+                "disposition is fields, domain or signature for the first check the object fails (it is not "
+                "usable and the retained value does not change; the section assigns no code to these "
+                "failures, and no observation carries one), regressed for an authenticated object whose "
+                "generated_at is below the retained value (code WIST2-E05: the Label Feed is discarded with "
+                "every Page and ID its walk would read; the Collections of the pull, pulled before it under "
+                "section 5.1, keep their outcomes), or usable. retained is the value after the observation. "
+                "Empty Label Feeds isolate observation state; Pages, downstream failures and Declaration "
+                "transitions require integration.",
                 host="localhost", declaration=source, cases=cases)
 
 
@@ -6083,15 +6272,18 @@ def fetch_bounds_vectors():
                "summary_cap_bytes": 4096}
 
     def bound(obj, params):
-        if obj in ("declaration", "feed", "page", "mirrors"):
+        if obj in ("declaration", "label_feed", "page", "mirrors", "change_list"):
             return 1 << 20
-        if obj in ("delta", "label"):
+        if obj == "catalog":
+            return 16384
+        if obj in ("label", "dispute"):
             return 16384 + 2 * params["url_cap_bytes"]
         return params["extract_cap_bytes"] + params["links_cap_bytes"] + params["summary_cap_bytes"] + 4096
 
     object_bounds = []
     for name, params in (("defaults", defaults), ("amended", amended)):
-        for obj in ("declaration", "feed", "page", "mirrors", "delta", "label", "payload"):
+        for obj in ("declaration", "catalog", "change_list", "label_feed", "page", "mirrors", "label", "dispute",
+                    "payload"):
             object_bounds.append({"label": f"{obj} under the {name}", "object": obj, "parameters": params,
                                   "bound": bound(obj, params)})
 
@@ -6099,11 +6291,11 @@ def fetch_bounds_vectors():
         if budget == 0 or work_bytes == 0 or work_objects == 0:
             outcome, debited = "suspended", 0
         else:
-            limit = min(object_bound, budget, work_bytes)
-            if size <= limit:
+            allowance = min(budget, work_bytes)
+            if size <= min(allowance, object_bound):
                 outcome, debited = "fetched", size
-            elif limit < object_bound:
-                outcome, debited = "suspended", limit
+            elif allowance < object_bound + 1:
+                outcome, debited = "suspended", allowance
             else:
                 outcome, debited = "failed", 0
         return {"label": label, "object_bound": object_bound, "budget_remaining": budget,
@@ -6119,26 +6311,84 @@ def fetch_bounds_vectors():
         work("budget spent", 0, 50000, 5, 10),
         work("above its own bound", 100000, 50000, 5, 30000),
         work("above its own bound and the remaining budget", 5000, 50000, 5, 30000),
+        work("above its own bound under a remaining budget equal to it", 20480, 50000, 5, 30000),
+        work("above its own bound under a remaining budget one octet above it", 20481, 50000, 5, 30000),
+        work("above its own bound under a per pull octet limit equal to it", 100000, 20480, 5, 30000),
     ]
-    def label_feed(label, feed_walk, budget, pages, pulled, suspended):
-        return {"label": label, "feed_walk": feed_walk, "budget_remaining": budget, "label_feed_pages": pages,
-                "label_feed_pulled": pulled, "suspended": suspended}
+    def label_feed(label, declaration, collections, budget, pages, pulled, suspended):
+        return {"label": label, "declaration": declaration, "collections": collections, "budget_remaining": budget,
+                "label_feed_pages": pages, "label_feed_pulled": pulled, "suspended": suspended}
 
     label_feed_cases = [
-        label_feed("Feed pull failed", "failed", 100000, 1, False, False),
-        label_feed("Feed walk suspended", "suspended", 0, 1, False, True),
-        label_feed("Feed walk completed and budget spent", "completed", 0, 1, False, False),
-        label_feed("Feed walk completed and the budget covers the live Label Feed only", "completed", 1, 2,
-                   True, True),
-        label_feed("Feed walk completed and the budget covers every Page", "completed", 100000, 2, True, False),
+        label_feed("pull stopped at its Declaration", "stopped", [], 100000, 1, False, False),
+        label_feed("a Collection pull suspended", "accepted", ["accepted", "suspended"], 0, 1, False, True),
+        label_feed("every Collection pull ended and the budget spent", "accepted", ["accepted"], 0, 1, False, False),
+        label_feed("a refused Catalog and an unfetched one", "accepted", ["refused", "fetch_failed"], 100000, 1,
+                   True, False),
+        label_feed("every Catalog refused", "accepted", ["refused", "refused"], 100000, 1, True, False),
+        label_feed("every Collection pull ended and the budget covers the live Label Feed only", "accepted",
+                   ["accepted"], 1, 2, True, True),
+        label_feed("every Collection pull ended and the budget covers every Page", "accepted", ["idempotent"],
+                   100000, 2, True, False),
     ]
-    well_known = "/.well-known/wist/feed.json"
+
+    def resolve(declaration, collections, labels_admitted, suspended):
+        if declaration == "stopped_first_contact":
+            return "WIST2-E04"
+        if declaration == "stopped":
+            return "WIST2-E01"
+        productive = (declaration == "discovered" or labels_admitted > 0 or any(
+            c["catalog"] == "accepted" or c.get("items_admitted", 0) > 0 for c in collections))
+        return None if productive or suspended else "WIST2-E02"
+
+    def resolution(label, declaration, collections, labels_admitted=0, suspended=False):
+        out = resolve(declaration, collections, labels_admitted, suspended)
+        recorded = [code for c in collections for code in c.get("codes", [])]
+        return {"label": label, "declaration": declaration, "collections": collections,
+                "labels_admitted": labels_admitted, "suspended": suspended, "codes_recorded": recorded,
+                "resolution": out, "noise": out in ("WIST2-E02", "WIST2-E04")}
+
+    discarded_refused = {"catalog": "refused", "chain": "discarded", "codes": ["WIST2-E08", "WIST2-E07"]}
+    accepted = {"catalog": "accepted", "items_admitted": 1}
+    idle = {"catalog": "idempotent", "items_admitted": 0}
+    resolution_cases = [
+        resolution("a discarded chain followed by a refused walk", "accepted", [discarded_refused]),
+        resolution("a discarded chain followed by a refused walk, a Declaration discovered", "discovered",
+                   [discarded_refused]),
+        resolution("a discarded chain followed by a refused walk, another Catalog accepted", "accepted",
+                   [discarded_refused, accepted]),
+        resolution("a discarded chain followed by a refused walk, a Label admitted", "accepted",
+                   [discarded_refused], labels_admitted=1),
+        resolution("Labels or disputes admitted alone", "accepted", [idle], labels_admitted=2),
+        resolution("an idempotent re-serve admitting nothing", "accepted", [idle]),
+        resolution("an idempotent re-serve admitting an Item", "accepted", [{"catalog": "idempotent",
+                                                                             "items_admitted": 1}]),
+        resolution("a catalog.json that cannot be fetched", "accepted",
+                   [{"catalog": "fetch_failed", "codes": ["WIST2-E01"]}]),
+        resolution("a catalog.json that cannot be fetched, another Catalog accepted", "accepted",
+                   [{"catalog": "fetch_failed", "codes": ["WIST2-E01"]}, accepted]),
+        resolution("a Catalog refused with WIST2-E04 alone", "accepted",
+                   [{"catalog": "refused", "codes": ["WIST2-E04"]}]),
+        resolution("a Catalog refused with WIST2-E04, another Catalog accepted", "accepted",
+                   [{"catalog": "refused", "codes": ["WIST2-E04"]}, accepted]),
+        resolution("a Catalog refused with WIST2-E05 alone", "accepted",
+                   [{"catalog": "refused", "codes": ["WIST2-E05"]}]),
+        resolution("a Catalog refused with WIST2-E05, a Label admitted", "accepted",
+                   [{"catalog": "refused", "codes": ["WIST2-E05"]}], labels_admitted=1),
+        resolution("a pull that suspends before accepting or admitting anything", "accepted",
+                   [{"catalog": "suspended"}], suspended=True),
+        resolution("a pull that suspends after accepting a Catalog", "accepted",
+                   [accepted, {"catalog": "suspended"}], suspended=True),
+        resolution("a pull stopped at its Declaration outside first contact", "stopped", []),
+        resolution("a first-contact pull stopped at its Declaration", "stopped_first_contact", []),
+    ]
+    well_known = "/.well-known/wist/collections/default/catalog.json"
     redirect_cases = [{
         "label": "a scope grant and a scope removal inside one pull",
         "requested_host": "example.com",
         "steps": [
             {"redirect_to": "https://www.example.com" + well_known, "allowed": False},
-            {"redirect_to": "https://example.com/feed-moved.json", "allowed": True},
+            {"redirect_to": "https://example.com/catalog-moved.json", "allowed": True},
             {"declaration": {"domain": "example.com", "subdomain_scope": ["www.example.com"]}},
             {"redirect_to": "https://www.example.com" + well_known, "allowed": True},
             {"redirect_to": "https://cdn.example.com" + well_known, "allowed": False},
@@ -6154,14 +6404,26 @@ def fetch_bounds_vectors():
                  "null; loopback_opt_in is the single-machine opt-in. resolutions decide a name from every "
                  "address it resolves to. object_bounds are the octets an Aggregator reads at most, under the "
                  "parameter map given. work_cases replay one fetch under the remaining daily budget and a "
-                 "per-pull limit: fetched debits the object, suspended debits the octets read up to the bound, "
-                 "failed is an object above its own bound. redirect_cases replay redirects and accepted "
+                 "per-pull limit, the bound met first deciding: where the lesser of the two is smaller than the "
+                 "object's own bound plus one octet, an object of more octets is suspended and debits that "
+                 "allowance; otherwise an object above its own bound is failed and debits nothing; fetched "
+                 "debits the object. redirect_cases replay redirects and accepted "
                  "Declarations in order for one requested Canonical Host. label_feed_cases decide whether a "
-                 "pull reaches the Label Feed after its Feed walk and whether it ends suspended: budget_remaining "
-                 "counts whole Label Feed pages the budget still covers, label_feed_pages the pages the walk "
-                 "would read."),
+                 "pull reaches the Label Feed once the pull of every Collection has ended, whatever their "
+                 "outcomes (accepted, idempotent, refused, fetch_failed, or suspended, which suspends the pull), "
+                 "and whether it ends suspended: declaration is accepted or stopped, budget_remaining counts "
+                 "whole Label Feed pages the budget still covers, label_feed_pages the pages the walk would "
+                 "read. resolution_cases resolve a pull under section 5.4 from what it did: declaration is "
+                 "discovered, accepted (fetched and accepted, discovering nothing), stopped or "
+                 "stopped_first_contact; each Collection gives its catalog outcome, the chain where one was "
+                 "discarded, the codes it records and the Items it admitted; labels_admitted counts Labels and "
+                 "disputes admitted; suspended states that the pull suspended. resolution is WIST2-E02 for a "
+                 "pull that discovers no Declaration, accepts no Catalog and admits no Item, Label or dispute, "
+                 "unless it stopped at its Declaration (WIST2-E01, or WIST2-E04 at first contact) or suspended; "
+                 "noise is true for WIST2-E02 and WIST2-E04 alone."),
         "destinations": destinations, "resolutions": resolutions, "object_bounds": object_bounds,
-        "work_cases": work_cases, "redirect_cases": redirect_cases, "label_feed_cases": label_feed_cases})
+        "work_cases": work_cases, "redirect_cases": redirect_cases, "label_feed_cases": label_feed_cases,
+        "resolution_cases": resolution_cases})
 
 
 write_json(ROOT / "vectors" / "wist2" / "fetch-bounds.json", fetch_bounds_vectors())

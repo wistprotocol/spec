@@ -221,7 +221,7 @@ class History:
         self.events.append(event)
 
     def pull(self, offset, declaration, collections, publisher="example.com", withhold=(), tamper=(),
-             omit=(), parameters=None):
+             omit=(), parameters=None, not_modified=(), limit_objects=None):
         served = {}
         for name, catalog_name in collections.items():
             made = self.catalogs[catalog_name]
@@ -236,9 +236,14 @@ class History:
             served[name] = {"catalog": catalog_name,
                             "tree_files": sorted(d for d in made.files if d not in omit),
                             "payloads": dict(sorted(payloads.items()))}
-        self.events.append({"event": "pull", "at": stamp(self.at(offset)), "publisher": publisher,
-                            "parameters": {**self.map, **(parameters or {})}, "declaration": declaration,
-                            "collections": served})
+            if name in not_modified:
+                served[name]["answer"] = 304
+        event = {"event": "pull", "at": stamp(self.at(offset)), "publisher": publisher,
+                 "parameters": {**self.map, **(parameters or {})}, "declaration": declaration,
+                 "collections": served}
+        if limit_objects is not None:
+            event["limit_objects"] = limit_objects
+        self.events.append(event)
 
 
 def run(history, check=None):
@@ -270,7 +275,8 @@ def run(history, check=None):
                                 "tree_files": {d: history.tree_files[d].encode() for d in s["tree_files"]},
                                 "payloads": s["payloads"]}
             envelope = history.declarations[event["declaration"]] if event["declaration"] else None
-            out = aggregator.pull(event["publisher"], event["at"], envelope, served, event["parameters"])
+            out = aggregator.pull(event["publisher"], event["at"], envelope, served, event["parameters"],
+                                  event.get("limit_objects"))
             out["declaration"]["sources"] = [names[h] for h in out["declaration"]["sources"]]
             for result in out["catalogs"]:
                 if "sources" in result:
@@ -368,7 +374,7 @@ def waiting_vectors():
 
     def first(v):
         assert v.outcome(1, "journal") == ("accepted", None)
-        assert v.outcome(1, "store") == ("unavailable", None)
+        assert v.outcome(1, "store") == ("unavailable", ["WIST2-E01"])
         assert v.sealed(2) == ["J1"] + [i["url"] for i in items.in_list_order([a, b])]
         assert v.expected[2]["state"]["urls"] == []
 
@@ -1119,7 +1125,7 @@ def waiting_vectors():
 
     def later_catalog(v):
         assert v.urls(1)[moved_u]["collection"] == "store"
-        assert v.outcome(2, "store") == ("unavailable", None)
+        assert v.outcome(2, "store") == ("unavailable", ["WIST2-E01"])
         assert v.urls(2)[moved_u]["collection"] == "store" and v.urls(2)[moved_u]["place"] == [1, 1, 0]
         assert v.sealed(3) == ["S1", "J1", moved_u] and v.expected[3]["sealed"][2]["collection"] == "journal"
         assert v.left(3) == []
@@ -2533,6 +2539,155 @@ def pull_vectors():
 
     histories.append(run(h, resumed))
 
+    h = History("a per-pull limit in objects that interrupts the Items of a Catalog",
+                "G names journal, then store. J1 lists three Items of kind page in one tree file. Pull 1 runs under a "
+                "per-pull limit of three objects: catalog.json, the tree file and the Payload of the first Item. "
+                "Fetching the second Payload would cross the limit, so the walk suspends there: J1 is accepted, its "
+                "first Item admitted, the two others not yet judged, and store is not pulled. Height 1 seals J1 and "
+                "the first Item. At pull 2, under no limit, J1 is served again, an idempotent re-serve, and the two "
+                "remaining Items are judged and admitted; store serves no catalog.json (WIST2-E01).")
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    limited = [page(J + f"l{i}") for i in range(3)]
+    h.cat("J1", limited, h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"}, limit_objects=3)
+    h.epoch()
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+
+    def items_interrupted(v):
+        first = v.catalog(1, "journal")
+        assert first["outcome"] == "accepted" and first["suspended"] is True and len(first["items"]) == 1
+        assert v.expected[1]["suspended"] is True and "noise" not in v.expected[1]
+        assert [c["collection"] for c in v.expected[1]["catalogs"]] == ["journal"]
+        assert len(v.sealed(2)) == 2 and v.sealed(2)[0] == "J1"
+        second = v.catalog(3, "journal")
+        assert second["outcome"] == "idempotent" and "suspended" not in second
+        assert len(second["items"]) == 2 and all(i["outcome"] == "admitted" for i in second["items"])
+        assert v.outcome(3, "store") == ("unavailable", ["WIST2-E01"])
+
+    histories.append(run(h, items_interrupted))
+
+    h = History("a per-pull limit in objects that suspends a pull before it accepts anything",
+                "Pull 1 runs under a per-pull limit of one object: catalog.json of journal is read, and the walk "
+                "suspends before J1's tree file. J1 is neither accepted nor refused, store is not pulled, and the "
+                "pull, which accepted and admitted nothing, is not noise. Pull 2, under no limit, fetches J1 again "
+                "and accepts it.")
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    h.cat("J1", [page(J + "s0")], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"}, limit_objects=1)
+    h.pull(10 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+
+    def suspended_first(v):
+        first = v.catalog(1, "journal")
+        assert first["outcome"] == "suspended" and first["tree_files_fetched"] == []
+        assert v.expected[1]["suspended"] is True and "noise" not in v.expected[1]
+        assert v.outcome(2, "journal")[0] == "accepted"
+
+    histories.append(run(h, suspended_first))
+
+    h = History("a list obtained for a Catalog refused for dropping a held record's URL is held",
+                "J1 lists a and b, sealed with both Items at height 1. J2 lists b alone: at pull 2 its walk fetches "
+                "its tree file and obtains its list, and J2 is refused whole with WIST2-E07, the list dropping a's "
+                "record. The Aggregator holds that list, so at pull 3, J2 served again with no tree file, nothing is "
+                "fetched for its list and J2 is refused again for the same record.")
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    pa, pb = page(J + "h0"), page(J + "h1")
+    h.cat("J1", [pa, pb], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+    dropping = h.cat("J2", [pb], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J2"})
+    h.pull(10 * MINUTE, "G", {"journal": "J2"}, omit=tuple(dropping.files))
+
+    def held_after_drop(v):
+        first = v.catalog(3, "journal")
+        assert first["outcome"] == "refused" and first["dropped"] == [J + "h0"] and first["tree_files_fetched"]
+        second = v.catalog(4, "journal")
+        assert second["outcome"] == "refused" and second["dropped"] == [J + "h0"]
+        assert second["tree_files_fetched"] == []
+
+    histories.append(run(h, held_after_drop))
+
+    h = History("the remaining Items of a suspended pull are judged only where the same Catalog is met again",
+                "J1 lists three Items in one tree file. Pull 1, under a per-pull limit of three objects, accepts J1 "
+                "and suspends at the second Item's Payload. The Publisher then serves J2, whose tree file it does "
+                "not serve: pull 2 refuses J2 with WIST2-E07 and judges none of J1's remaining Items. Pull 3 meets "
+                "J1 again, an idempotent re-serve, and judges them.")
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    rest = [page(J + f"q{i}") for i in range(3)]
+    h.cat("J1", rest, h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"}, limit_objects=3)
+    unserved = h.cat("J2", rest + [page(J + "q3")], h.at(8 * MINUTE), "journal")
+    h.pull(10 * MINUTE, "G", {"journal": "J2"}, omit=tuple(unserved.files))
+    h.pull(15 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+
+    def judged_on_return(v):
+        assert v.catalog(1, "journal")["suspended"] is True and len(v.items(1, "journal")) == 1
+        assert v.outcome(2, "journal") == ("refused", ["WIST2-E07"]) and v.items(2, "journal") == {}
+        assert v.outcome(3, "journal")[0] == "idempotent" and len(v.items(3, "journal")) == 2
+
+    histories.append(run(h, judged_on_return))
+
+    h = History("pull resolution with a catalog.json not fetched and a misaddressed or regressed Catalog",
+                "At pull 1 journal accepts J1 and store serves no catalog.json (WIST2-E01): not noise. At pull 2 "
+                "neither Collection serves catalog.json: two failed fetches, and the pull, which accepts and admits "
+                "nothing, is noise. At pull 3 store serves J1, a journal Catalog (WIST2-E04), and journal serves no "
+                "catalog.json: noise, since nothing is accepted. At pull 4 store serves J1 again and journal accepts "
+                "J2: the WIST2-E04 refusal adds no noise of its own. At pull 5 journal serves J0, older than J2 "
+                "(WIST2-E05), and store serves nothing: noise.")
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    h.cat("J0", [page(J + "r0")], h.at(2 * MINUTE), "journal")
+    h.cat("J1", [page(J + "r0")], h.at(4 * MINUTE), "journal")
+    h.cat("J2", [page(J + "r0"), page(J + "r1")], h.at(14 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.pull(10 * MINUTE, "G", {})
+    h.pull(15 * MINUTE, "G", {"store": "J1"})
+    h.pull(20 * MINUTE, "G", {"journal": "J2", "store": "J1"})
+    h.pull(25 * MINUTE, "G", {"journal": "J0"})
+    h.epoch()
+
+    def resolution(v):
+        assert v.outcome(1, "store") == ("unavailable", ["WIST2-E01"]) and "noise" not in v.expected[1]
+        assert v.outcome(2, "journal") == ("unavailable", ["WIST2-E01"]) and v.expected[2]["noise"] is True
+        assert v.outcome(3, "store") == ("refused", ["WIST2-E04"]) and v.expected[3]["noise"] is True
+        assert v.outcome(4, "store") == ("refused", ["WIST2-E04"]) and "noise" not in v.expected[4]
+        assert v.outcome(4, "journal")[0] == "accepted"
+        assert v.outcome(5, "journal") == ("refused", ["WIST2-E05"]) and v.expected[5]["noise"] is True
+
+    histories.append(run(h, resolution))
+
+    h = History("an answer 304 for catalog.json is judged as the Catalog its validator names",
+                "J1 lists a and b. At pull 1 b's Payload is unavailable (WIST2-E03). Pull 2 sends J1's validator and "
+                "receives an answer 304, judged as an answer 200 carrying J1: an idempotent re-serve, and b, whose "
+                "Payload is now served, is admitted. K1, a store Catalog with one bucket unavailable, is refused at "
+                "pull 1 (WIST2-E07); pull 2's answer 304 to K1's validator is judged as K1 and walked again, every "
+                "file now served, and K1 is accepted.")
+    h.declare("G", "owner", G)
+    h.epoch("G")
+    store_items = [page(S + f"k{i}") for i in range(4)]
+    k1 = h.cat("K1", store_items, h.at(4 * MINUTE), "store", "store", capacity=2)
+    k1_buckets = sorted(d for d, octets in k1.files.items() if octets.startswith(b'{"items"'))
+    h.cat("J1", [page(J + "m0"), page(J + "m1")], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1", "store": "K1"}, withhold=(J + "m1",), omit=(k1_buckets[0],))
+    h.pull(10 * MINUTE, "G", {"journal": "J1", "store": "K1"}, not_modified=("journal", "store"))
+    h.epoch()
+
+    def not_modified(v):
+        assert v.items(1, "journal")[J + "m1"]["outcome"] == "not_admitted"
+        assert v.outcome(1, "store") == ("refused", ["WIST2-E07"])
+        assert v.outcome(2, "journal")[0] == "idempotent"
+        assert v.items(2, "journal")[J + "m1"]["outcome"] == "admitted"
+        assert v.outcome(2, "store")[0] == "accepted"
+
+    histories.append(run(h, not_modified))
+
     only_new = successor(G, collections=[collection("journal", [prefix(J + "new/")], [key("journal")]), STORE])
     wide_again = successor(only_new, collections=[JOURNAL, STORE])
     h = History("a withdrawn Item that a later list names",
@@ -2742,7 +2897,15 @@ NOTE_COMMON = (
     "the pull (`parameters`), which its Declaration, Catalog, Item and Payload checks and a settlement it performs "
     "read, the Declaration served (null for a failed fetch) and, per Collection name, the Catalog served at "
     "catalog.json, the tree files served (by name, from `tree_files`) and the Payloads served, keyed by the digits "
-    "of their Item ID. A Collection absent from `collections` has no catalog.json and a file absent from a pull is "
+    "of their Item ID, with `answer` 304 where the pull sent that Catalog's validator and received an answer 304, "
+    "judged as an answer 200 carrying it (WIST-2 section 5.1). `limit_objects`, where present, is a per-pull limit "
+    "in objects (WIST-2 section 5.2): each catalog.json, tree file and Payload the pull fetches counts as one, a "
+    "held file or Payload and the Declaration none, and the fetch that would exceed it is not made: the pull "
+    "suspends there, pulls no later Collection and carries `suspended`, true. The Collection being read gives "
+    "the outcome `suspended` where its catalog.json or its walk is interrupted, with `tree_files_fetched`, the "
+    "Catalog being neither accepted nor refused, and `suspended`, true, beside an accepted or idempotent outcome "
+    "where its Items are: the Items not yet judged are not listed and are judged only at a later pull that meets "
+    "that Catalog again as an idempotent re-serve. A Collection absent from `collections` has no catalog.json and a file absent from a pull is "
     "unavailable; there is no HTTP, these maps stand for the Publisher's site, and the octets of catalog.json are "
     "not modelled (its read bound is carried by vectors/wist1/catalog-fields.json). max_inclusion_epochs and "
     "record_seal_epochs are constant within each history. Every Canonical Host is its own capacity unit unless the "
@@ -2759,8 +2922,9 @@ NOTE_COMMON = (
     "sources, the Declaration in effect before the recovery and the recovery Declaration that owns the window or "
     "was discovered, inside an open window or for a recovery rotation discovered and not yet sealed, and otherwise "
     "the current Declaration) and `window`, whether the pull is inside an open window. A pull result carries `noise`, "
-    "true, where the pull accepts no Declaration and no Catalog and admits no Item (WIST-2 section 4), and no "
-    "`noise` otherwise. "
+    "true, where the pull discovers no Declaration (WIST-1 section 5.2), accepts no Catalog, admits no Item and "
+    "does not suspend (WIST-2 section 5.4), and no `noise` otherwise; no history carries a Label Feed, and a pull "
+    "stopped at its Declaration outside first contact carries none. "
     "From the pull that discovers a recovery rotation, a pull queues what it accepts as a pull inside the window "
     "does, per Collection name and signing key, its order read against the floor, against the queued Catalog "
     "of the same name and key and, before the window opens, against the waiting Catalog where the same key signed "
@@ -2774,12 +2938,14 @@ NOTE_COMMON = (
     "event, and later pulls are pulls outside a window. `collections_pulled` lists the Collections in reading order. Per Collection "
     "pulled: a fetched Catalog is read first against the Catalog conditions other than the order; one that meets "
     "one is refused with its codes, replaces nothing and retries nothing, and only one that meets none is read "
-    "for the order and for an idempotent re-serve. `outcome` (`unavailable`, `accepted`, `idempotent` for an "
+    "for the order and for an idempotent re-serve. `outcome` (`unavailable`, with `codes` [WIST2-E01], for a "
+    "catalog.json that cannot be fetched, `suspended`, `accepted`, `idempotent` for an "
     "idempotent re-serve, a Catalog with the "
     "Catalog ID of the last accepted Catalog or of the latest Catalog, or of the queued Catalog of its name and key "
     "inside a window, or `refused` with `codes`, those of every condition met, among which WIST-1 section 7 leaves "
     "the choice, and for WIST2-E07 a `reason` and, for a list that drops a held record's URL, `dropped`, the URL of "
-    "every such record; an Item the list holds for the URL counts whether or not it is refused alone), `catalog` "
+    "every such record, whose list is then held, so a later pull of the same Catalog fetches no tree file for it; "
+    "an Item the list holds for the URL counts whether or not it is refused alone), `catalog` "
     "(its Catalog ID), `sources` under which it passed the Catalog conditions, `tree_files_fetched` (the files the "
     "walk requested because the Aggregator did not hold them, served or not, in ascending order; a file whose "
     "SHA-256 matches its name is then held), `base` (a base against the floor), `key` (the test key named by the "

@@ -6,7 +6,8 @@
 
 A Publisher controls every input to an Aggregator's fetcher: the host
 it names, the redirects it serves, the addresses its names resolve to,
-the octets it streams and the depth of its Feed. WIST-2 bounded two of
+the octets it streams and the size of its tree of files and of its Label
+Feed. WIST-2 bounded two of
 these — the redirect chain (§8) and a domain's daily octets (§5) — and
 left the rest to the fetcher: a Declaration could aim a request at a
 loopback, private or cloud-metadata address, the request-forgery class
@@ -30,11 +31,18 @@ or how long one Ping's pull runs.
   addresses classified by the IPv4 address they embed. A single-machine
   deployment may admit loopback under the opt-in that admits plain HTTP.
 - **Responses are bounded before their fields are.** A Declaration,
-  Feed, Page, Mirror list or change list (ADR-0053) is read to 1 MiB;
-  a Delta file to 16 KiB plus twice `url_cap_bytes`; a Payload to the
-  sum of the content caps plus 4 KiB. The parameterized bounds follow the caps in force at the
-  request, so an amendment moves them; the fixed terms cover the fields
-  no cap reaches.
+  Label Feed, Page, Mirror list or change list (ADR-0053) is read to
+  1 MiB; `catalog.json` to 16 KiB
+  ([ADR-0052](0052-items-and-catalogs.md)); a Label or dispute file to
+  16 KiB plus twice `url_cap_bytes`; a Payload to the sum of the content
+  caps plus 4 KiB. The parameterized bounds follow the caps in force at
+  the request, so an amendment moves them; the fixed terms cover the
+  fields no cap reaches. A tree file's own bound is the
+  `tree_file_cap_bytes` in force for the request (ADR-0052): it is read
+  to that bound plus one octet, and one above it refuses its Catalog and
+  debits nothing, unless what remains of the budget or a per-pull octet
+  limit is met first, in which case the octets read are debited and the
+  walk suspends.
 - **A pull may be shorter than a day's budget.** An Aggregator may
   suspend a walk under a per-pull limit of its own and resume it as a
   budget suspension; an object crossing the remaining budget or the
@@ -71,4 +79,6 @@ or how long one Ping's pull runs.
   unfetchable under WIST-2 §5's existing dispositions.
 - `vectors/wist2/fetch-bounds.json` carries address classes, resolver
   answers, response bounds under two parameter maps, pull-work
-  dispositions and a redirect sequence across two Declarations.
+  dispositions and a redirect sequence across two Declarations; its
+  bound for a Delta file and its Label Feed cases, ordered after a Feed
+  walk, describe objects WIST-2 no longer defines.

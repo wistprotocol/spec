@@ -1,5 +1,5 @@
 {
-  "note": "ADR-0052 Files: the files a Publisher must serve for one Collection at `clock`, besides catalog.json. `served` lists the Catalogs the Publisher served, oldest first, each with `served_at`, the instant on the Publisher's clock at which it replaced its predecessor, and `files`, the paths of the tree files reached from its `tree` and of the Payloads of its Items of kind page; the last is the served Catalog. `stop` lists files the Publisher must stop serving. `expected` lists, in ascending octet order, every file the served Catalog names, and every other file for which `clock` is earlier than the instant at which the last Catalog that named it was replaced plus replaced_file_seconds, 86 400 seconds, the suite's value that no Log amends; files in `stop` are removed from the list. `expected` states the duty to serve: for a replaced file it holds at every instant earlier than the end of replaced_file_seconds, so one second before that end and not at it. From that instant the Publisher may stop serving the file and no rule obliges it to, so a file absent from `expected` may still be served; the fixture asserts nothing about files the Publisher serves beyond those due. The sequences are supplied as served, with tree files split at two Items per bucket, and are not derived from publications. A file in `stop` is removed whether or not the served Catalog names it.",
+  "note": "ADR-0052 Files: the files a Publisher must serve for one Collection at `clock`, besides catalog.json. `served` lists the Catalogs the Publisher served, oldest first, each with `served_at`, the instant on the Publisher's clock at which it replaced its predecessor, and `files`, the paths of the tree files reached from its `tree` and of the Payloads of its Items of kind page; the last is the served Catalog. `stop` lists files the Publisher must stop serving. `expected` lists, in ascending octet order, every file the served Catalog names, and every other file for which `clock` is earlier than the instant at which the last Catalog that named it was replaced plus replaced_file_seconds, 86 400 seconds, the suite's value that no Log amends; files in `stop` are removed from the list. `expected` states the duty to serve: for a replaced file it holds at every instant earlier than the end of replaced_file_seconds, so one second before that end and not at it. From that instant the Publisher may stop serving the file and no rule obliges it to, so a file absent from `expected` may still be served; the fixture asserts nothing about files the Publisher serves beyond those due. The sequences are supplied as served, with tree files split at two Items per bucket, and are not derived from publications. A file in `stop` is removed whether or not the served Catalog names it. `withdrawn`, where present, lists Item IDs that a payload_withdrawal sealed at a height the Publisher has reached names (WIST-2 section 3.1): the Payload file of each, payloads/ followed by the digits of its Item ID and .json, is removed whatever Catalog names it and whatever interval it is inside, and no other file is.",
   "cases": [
     {
       "name": "files of a replaced Catalog 86399 seconds after the replacement",
@@ -401,6 +401,150 @@
         "/.well-known/wist/collections/journal/payloads/69d56122a2bf5ffab20cf0e2847f579563ad2370c9a2cac7811b62b645dcc604.json",
         "/.well-known/wist/collections/journal/payloads/7af0332371a69fc30449f95e98e113b3a7153137e2a5650aad2ccc484077a2d3.json",
         "/.well-known/wist/collections/journal/payloads/8158756858861806b63de871367d2d416fdbbb93866e5448e9f939f174111974.json",
+        "/.well-known/wist/collections/journal/payloads/8688e8bdc391403046c884f3cfd2f3d0ac63a56b0fa9e36217c7b116e7174559.json",
+        "/.well-known/wist/collections/journal/payloads/a21c4f0e0a5a6ea2cf514dc890697e1a2ac19d8b15da4709420affd238ba61d9.json",
+        "/.well-known/wist/collections/journal/payloads/a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e.json",
+        "/.well-known/wist/collections/journal/payloads/af097d10d474c2bfb3b031eca21e7f2b423210a615b5103233a717d2e3e226b7.json",
+        "/.well-known/wist/collections/journal/payloads/f7ea60a3b422ef35f0d021d6a8311647316f0b151ae99ad3097568141da1ec76.json",
+        "/.well-known/wist/collections/journal/tree/1fdaff1d96d6a809fc16c51b8507fca10d9b352d0b0584bd3ca1ccf19b707bcb",
+        "/.well-known/wist/collections/journal/tree/22a988d14d5ea4a5f4456edb093d11d0f56d054985dccf681f6aae32f8e3854e",
+        "/.well-known/wist/collections/journal/tree/4445c8104563b7d009b8564cca2627078d8bdde8f4a236ee390dd004da73b485",
+        "/.well-known/wist/collections/journal/tree/514daa7951c55bae802bf051a1fdbe18935981b220443351f3d2967601b6f17b",
+        "/.well-known/wist/collections/journal/tree/5de31a00c111ef65348fd9973715049b09ab30e0ef82d977443c7e9aade06267",
+        "/.well-known/wist/collections/journal/tree/6c07aabdac4461b2c96390e11c7e9f5089eb71222e49a8e2f6ee1787e742a015",
+        "/.well-known/wist/collections/journal/tree/d90d3175c89e02054c7932e68429d7f77d3e96c6ba1c0368c5a4f1e5874f16de",
+        "/.well-known/wist/collections/journal/tree/eb518cb8ef850c97b8a049813d7c2eb1fe54a0071ba2fe3edf3ffb6d9ce18bb3",
+        "/.well-known/wist/collections/journal/tree/f59758ee04afc93e54fd51e19ad1a1435e15bc8b65a32df69fa40b3f9b4061b5"
+      ]
+    },
+    {
+      "name": "a withdrawn Payload that the served Catalog names",
+      "why": "A payload_withdrawal naming a's Item ID is sealed: the Publisher stops serving a's Payload, which the served C2 names, while the tree files that list a stay due.",
+      "served": [
+        {
+          "catalog": "sha256:c1683b5cba8f56f35427a0deeac75c624a05f46fa99632105172796b82ccb353",
+          "served_at": "2026-10-01T00:00:00Z",
+          "files": [
+            "/.well-known/wist/collections/journal/payloads/60912b881d826b7a0c7e19163998db5259f27114c6d0fb3c6341479bccfaae29.json",
+            "/.well-known/wist/collections/journal/payloads/69d56122a2bf5ffab20cf0e2847f579563ad2370c9a2cac7811b62b645dcc604.json",
+            "/.well-known/wist/collections/journal/payloads/7af0332371a69fc30449f95e98e113b3a7153137e2a5650aad2ccc484077a2d3.json",
+            "/.well-known/wist/collections/journal/payloads/8158756858861806b63de871367d2d416fdbbb93866e5448e9f939f174111974.json",
+            "/.well-known/wist/collections/journal/payloads/a21c4f0e0a5a6ea2cf514dc890697e1a2ac19d8b15da4709420affd238ba61d9.json",
+            "/.well-known/wist/collections/journal/payloads/a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e.json",
+            "/.well-known/wist/collections/journal/payloads/af097d10d474c2bfb3b031eca21e7f2b423210a615b5103233a717d2e3e226b7.json",
+            "/.well-known/wist/collections/journal/payloads/f7ea60a3b422ef35f0d021d6a8311647316f0b151ae99ad3097568141da1ec76.json",
+            "/.well-known/wist/collections/journal/tree/22a988d14d5ea4a5f4456edb093d11d0f56d054985dccf681f6aae32f8e3854e",
+            "/.well-known/wist/collections/journal/tree/4445c8104563b7d009b8564cca2627078d8bdde8f4a236ee390dd004da73b485",
+            "/.well-known/wist/collections/journal/tree/514daa7951c55bae802bf051a1fdbe18935981b220443351f3d2967601b6f17b",
+            "/.well-known/wist/collections/journal/tree/5de31a00c111ef65348fd9973715049b09ab30e0ef82d977443c7e9aade06267",
+            "/.well-known/wist/collections/journal/tree/6c07aabdac4461b2c96390e11c7e9f5089eb71222e49a8e2f6ee1787e742a015",
+            "/.well-known/wist/collections/journal/tree/d90d3175c89e02054c7932e68429d7f77d3e96c6ba1c0368c5a4f1e5874f16de",
+            "/.well-known/wist/collections/journal/tree/eb518cb8ef850c97b8a049813d7c2eb1fe54a0071ba2fe3edf3ffb6d9ce18bb3"
+          ]
+        },
+        {
+          "catalog": "sha256:c439c55e70aa08a4c4c95ceae8af59255078f1d352555dc3d0fb973b78285211",
+          "served_at": "2026-10-01T01:00:00Z",
+          "files": [
+            "/.well-known/wist/collections/journal/payloads/60912b881d826b7a0c7e19163998db5259f27114c6d0fb3c6341479bccfaae29.json",
+            "/.well-known/wist/collections/journal/payloads/69d56122a2bf5ffab20cf0e2847f579563ad2370c9a2cac7811b62b645dcc604.json",
+            "/.well-known/wist/collections/journal/payloads/7af0332371a69fc30449f95e98e113b3a7153137e2a5650aad2ccc484077a2d3.json",
+            "/.well-known/wist/collections/journal/payloads/8688e8bdc391403046c884f3cfd2f3d0ac63a56b0fa9e36217c7b116e7174559.json",
+            "/.well-known/wist/collections/journal/payloads/a21c4f0e0a5a6ea2cf514dc890697e1a2ac19d8b15da4709420affd238ba61d9.json",
+            "/.well-known/wist/collections/journal/payloads/a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e.json",
+            "/.well-known/wist/collections/journal/payloads/af097d10d474c2bfb3b031eca21e7f2b423210a615b5103233a717d2e3e226b7.json",
+            "/.well-known/wist/collections/journal/payloads/f7ea60a3b422ef35f0d021d6a8311647316f0b151ae99ad3097568141da1ec76.json",
+            "/.well-known/wist/collections/journal/tree/1fdaff1d96d6a809fc16c51b8507fca10d9b352d0b0584bd3ca1ccf19b707bcb",
+            "/.well-known/wist/collections/journal/tree/4445c8104563b7d009b8564cca2627078d8bdde8f4a236ee390dd004da73b485",
+            "/.well-known/wist/collections/journal/tree/514daa7951c55bae802bf051a1fdbe18935981b220443351f3d2967601b6f17b",
+            "/.well-known/wist/collections/journal/tree/5de31a00c111ef65348fd9973715049b09ab30e0ef82d977443c7e9aade06267",
+            "/.well-known/wist/collections/journal/tree/d90d3175c89e02054c7932e68429d7f77d3e96c6ba1c0368c5a4f1e5874f16de",
+            "/.well-known/wist/collections/journal/tree/eb518cb8ef850c97b8a049813d7c2eb1fe54a0071ba2fe3edf3ffb6d9ce18bb3",
+            "/.well-known/wist/collections/journal/tree/f59758ee04afc93e54fd51e19ad1a1435e15bc8b65a32df69fa40b3f9b4061b5"
+          ]
+        }
+      ],
+      "stop": [],
+      "clock": "2026-10-01T01:01:40Z",
+      "withdrawn": [
+        "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e"
+      ],
+      "expected": [
+        "/.well-known/wist/collections/journal/payloads/60912b881d826b7a0c7e19163998db5259f27114c6d0fb3c6341479bccfaae29.json",
+        "/.well-known/wist/collections/journal/payloads/69d56122a2bf5ffab20cf0e2847f579563ad2370c9a2cac7811b62b645dcc604.json",
+        "/.well-known/wist/collections/journal/payloads/7af0332371a69fc30449f95e98e113b3a7153137e2a5650aad2ccc484077a2d3.json",
+        "/.well-known/wist/collections/journal/payloads/8158756858861806b63de871367d2d416fdbbb93866e5448e9f939f174111974.json",
+        "/.well-known/wist/collections/journal/payloads/8688e8bdc391403046c884f3cfd2f3d0ac63a56b0fa9e36217c7b116e7174559.json",
+        "/.well-known/wist/collections/journal/payloads/a21c4f0e0a5a6ea2cf514dc890697e1a2ac19d8b15da4709420affd238ba61d9.json",
+        "/.well-known/wist/collections/journal/payloads/af097d10d474c2bfb3b031eca21e7f2b423210a615b5103233a717d2e3e226b7.json",
+        "/.well-known/wist/collections/journal/payloads/f7ea60a3b422ef35f0d021d6a8311647316f0b151ae99ad3097568141da1ec76.json",
+        "/.well-known/wist/collections/journal/tree/1fdaff1d96d6a809fc16c51b8507fca10d9b352d0b0584bd3ca1ccf19b707bcb",
+        "/.well-known/wist/collections/journal/tree/22a988d14d5ea4a5f4456edb093d11d0f56d054985dccf681f6aae32f8e3854e",
+        "/.well-known/wist/collections/journal/tree/4445c8104563b7d009b8564cca2627078d8bdde8f4a236ee390dd004da73b485",
+        "/.well-known/wist/collections/journal/tree/514daa7951c55bae802bf051a1fdbe18935981b220443351f3d2967601b6f17b",
+        "/.well-known/wist/collections/journal/tree/5de31a00c111ef65348fd9973715049b09ab30e0ef82d977443c7e9aade06267",
+        "/.well-known/wist/collections/journal/tree/6c07aabdac4461b2c96390e11c7e9f5089eb71222e49a8e2f6ee1787e742a015",
+        "/.well-known/wist/collections/journal/tree/d90d3175c89e02054c7932e68429d7f77d3e96c6ba1c0368c5a4f1e5874f16de",
+        "/.well-known/wist/collections/journal/tree/eb518cb8ef850c97b8a049813d7c2eb1fe54a0071ba2fe3edf3ffb6d9ce18bb3",
+        "/.well-known/wist/collections/journal/tree/f59758ee04afc93e54fd51e19ad1a1435e15bc8b65a32df69fa40b3f9b4061b5"
+      ]
+    },
+    {
+      "name": "a withdrawn Payload inside the interval of a replaced Catalog",
+      "why": "A payload_withdrawal naming the Item ID of b as C1 listed it is sealed: inside the interval that would keep it due, the Payload of b is no longer served; C1's tree files are.",
+      "served": [
+        {
+          "catalog": "sha256:c1683b5cba8f56f35427a0deeac75c624a05f46fa99632105172796b82ccb353",
+          "served_at": "2026-10-01T00:00:00Z",
+          "files": [
+            "/.well-known/wist/collections/journal/payloads/60912b881d826b7a0c7e19163998db5259f27114c6d0fb3c6341479bccfaae29.json",
+            "/.well-known/wist/collections/journal/payloads/69d56122a2bf5ffab20cf0e2847f579563ad2370c9a2cac7811b62b645dcc604.json",
+            "/.well-known/wist/collections/journal/payloads/7af0332371a69fc30449f95e98e113b3a7153137e2a5650aad2ccc484077a2d3.json",
+            "/.well-known/wist/collections/journal/payloads/8158756858861806b63de871367d2d416fdbbb93866e5448e9f939f174111974.json",
+            "/.well-known/wist/collections/journal/payloads/a21c4f0e0a5a6ea2cf514dc890697e1a2ac19d8b15da4709420affd238ba61d9.json",
+            "/.well-known/wist/collections/journal/payloads/a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e.json",
+            "/.well-known/wist/collections/journal/payloads/af097d10d474c2bfb3b031eca21e7f2b423210a615b5103233a717d2e3e226b7.json",
+            "/.well-known/wist/collections/journal/payloads/f7ea60a3b422ef35f0d021d6a8311647316f0b151ae99ad3097568141da1ec76.json",
+            "/.well-known/wist/collections/journal/tree/22a988d14d5ea4a5f4456edb093d11d0f56d054985dccf681f6aae32f8e3854e",
+            "/.well-known/wist/collections/journal/tree/4445c8104563b7d009b8564cca2627078d8bdde8f4a236ee390dd004da73b485",
+            "/.well-known/wist/collections/journal/tree/514daa7951c55bae802bf051a1fdbe18935981b220443351f3d2967601b6f17b",
+            "/.well-known/wist/collections/journal/tree/5de31a00c111ef65348fd9973715049b09ab30e0ef82d977443c7e9aade06267",
+            "/.well-known/wist/collections/journal/tree/6c07aabdac4461b2c96390e11c7e9f5089eb71222e49a8e2f6ee1787e742a015",
+            "/.well-known/wist/collections/journal/tree/d90d3175c89e02054c7932e68429d7f77d3e96c6ba1c0368c5a4f1e5874f16de",
+            "/.well-known/wist/collections/journal/tree/eb518cb8ef850c97b8a049813d7c2eb1fe54a0071ba2fe3edf3ffb6d9ce18bb3"
+          ]
+        },
+        {
+          "catalog": "sha256:c439c55e70aa08a4c4c95ceae8af59255078f1d352555dc3d0fb973b78285211",
+          "served_at": "2026-10-01T01:00:00Z",
+          "files": [
+            "/.well-known/wist/collections/journal/payloads/60912b881d826b7a0c7e19163998db5259f27114c6d0fb3c6341479bccfaae29.json",
+            "/.well-known/wist/collections/journal/payloads/69d56122a2bf5ffab20cf0e2847f579563ad2370c9a2cac7811b62b645dcc604.json",
+            "/.well-known/wist/collections/journal/payloads/7af0332371a69fc30449f95e98e113b3a7153137e2a5650aad2ccc484077a2d3.json",
+            "/.well-known/wist/collections/journal/payloads/8688e8bdc391403046c884f3cfd2f3d0ac63a56b0fa9e36217c7b116e7174559.json",
+            "/.well-known/wist/collections/journal/payloads/a21c4f0e0a5a6ea2cf514dc890697e1a2ac19d8b15da4709420affd238ba61d9.json",
+            "/.well-known/wist/collections/journal/payloads/a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e.json",
+            "/.well-known/wist/collections/journal/payloads/af097d10d474c2bfb3b031eca21e7f2b423210a615b5103233a717d2e3e226b7.json",
+            "/.well-known/wist/collections/journal/payloads/f7ea60a3b422ef35f0d021d6a8311647316f0b151ae99ad3097568141da1ec76.json",
+            "/.well-known/wist/collections/journal/tree/1fdaff1d96d6a809fc16c51b8507fca10d9b352d0b0584bd3ca1ccf19b707bcb",
+            "/.well-known/wist/collections/journal/tree/4445c8104563b7d009b8564cca2627078d8bdde8f4a236ee390dd004da73b485",
+            "/.well-known/wist/collections/journal/tree/514daa7951c55bae802bf051a1fdbe18935981b220443351f3d2967601b6f17b",
+            "/.well-known/wist/collections/journal/tree/5de31a00c111ef65348fd9973715049b09ab30e0ef82d977443c7e9aade06267",
+            "/.well-known/wist/collections/journal/tree/d90d3175c89e02054c7932e68429d7f77d3e96c6ba1c0368c5a4f1e5874f16de",
+            "/.well-known/wist/collections/journal/tree/eb518cb8ef850c97b8a049813d7c2eb1fe54a0071ba2fe3edf3ffb6d9ce18bb3",
+            "/.well-known/wist/collections/journal/tree/f59758ee04afc93e54fd51e19ad1a1435e15bc8b65a32df69fa40b3f9b4061b5"
+          ]
+        }
+      ],
+      "stop": [],
+      "clock": "2026-10-01T01:01:40Z",
+      "withdrawn": [
+        "sha256:8158756858861806b63de871367d2d416fdbbb93866e5448e9f939f174111974"
+      ],
+      "expected": [
+        "/.well-known/wist/collections/journal/payloads/60912b881d826b7a0c7e19163998db5259f27114c6d0fb3c6341479bccfaae29.json",
+        "/.well-known/wist/collections/journal/payloads/69d56122a2bf5ffab20cf0e2847f579563ad2370c9a2cac7811b62b645dcc604.json",
+        "/.well-known/wist/collections/journal/payloads/7af0332371a69fc30449f95e98e113b3a7153137e2a5650aad2ccc484077a2d3.json",
         "/.well-known/wist/collections/journal/payloads/8688e8bdc391403046c884f3cfd2f3d0ac63a56b0fa9e36217c7b116e7174559.json",
         "/.well-known/wist/collections/journal/payloads/a21c4f0e0a5a6ea2cf514dc890697e1a2ac19d8b15da4709420affd238ba61d9.json",
         "/.well-known/wist/collections/journal/payloads/a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e.json",

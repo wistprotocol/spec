@@ -365,7 +365,11 @@ def html_links(octets, base, domain, params):
         href = first_attr(attrs, b"href")
         if href is None:
             continue
-        candidate = decode_candidate(href.decode("utf-8"))
+        try:
+            text = href.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        candidate = decode_candidate(text)
         if candidate is not None:
             found.append(link_of(candidate, base, domain, params))
     return distinct(found)

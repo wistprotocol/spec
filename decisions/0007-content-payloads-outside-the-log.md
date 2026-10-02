@@ -36,12 +36,14 @@ handle re-serialisation and partially-removed entries during verification.
 
 Signed objects commit to content; they do not carry it.
 
-- A Delta carries a **salted commitment** to its `extract`, `links` and
-  `summary` (HMAC-SHA256 under a per-Delta random salt of at least 128
-  bits), not their bytes.
-- The bytes and the salt travel as **content-addressed payload files
-  alongside** the Epoch, in the same hourly synchronisation, served as
-  static files exactly as Epochs are.
+- An Item carries a **salted commitment** to its `extract`, `links` and
+  `summary` (HMAC-SHA256 under a random salt of at least 128 bits, fresh
+  for every new Item), not their bytes
+  ([ADR-0052](0052-items-and-catalogs.md)).
+- The bytes and the salt travel as **payload files named by the Item
+  ID**: the Publisher serves them beside the Catalog that lists the Item
+  (WIST-2 §3.1), and the Aggregator alongside the Epoch, in the same
+  hourly synchronisation, as static files exactly as Epochs are.
 - Payloads are erasable. A withdrawal is recorded in the Log as a signed
   redaction entry naming its legal basis, following the same due process
   the suite already uses for sanctions: notice, evidence, public and

@@ -156,11 +156,12 @@ class Suspended(Exception):
 
 
 class Site:
-    def __init__(self, held, served, cap, budget=None):
+    def __init__(self, held, served, cap, budget=None, objects=None):
         self.held = held
         self.served = served
         self.cap = cap
         self.budget = budget
+        self.objects = objects
         self.fetched = []
         self.whole = {}
         self.octets = 0
@@ -168,27 +169,30 @@ class Site:
     def get(self, digest):
         if digest in self.held:
             return self.held[digest]
+        if self.objects is not None:
+            if self.objects == 0:
+                raise Suspended()
+            self.objects -= 1
         if digest not in self.fetched:
             self.fetched.append(digest)
         octets = self.served.get(digest)
         if octets is None:
             return None
-        if len(octets) > self.cap:
-            if self.budget is not None and self.octets + len(octets) > self.budget:
-                raise ValueError("a tree file above tree_file_cap_bytes under a smaller budget is open in WIST-2 §5")
-            return octets
-        if self.budget is not None and self.octets + len(octets) > self.budget:
+        allowance = None if self.budget is None else self.budget - self.octets
+        if allowance is not None and allowance <= self.cap and len(octets) > allowance:
             self.octets = self.budget
             raise Suspended()
+        if len(octets) > self.cap:
+            return octets
         self.octets += len(octets)
         if hashlib.sha256(octets).hexdigest() == digest:
             self.whole[digest] = octets
         return octets
 
 
-def walk(catalog, held_tree_files, served_tree_files, budget=None, parameters=None):
+def walk(catalog, held_tree_files, served_tree_files, budget=None, parameters=None, objects=None):
     parameters = {**tree_files.DEFAULT_PARAMETERS, **(parameters or {})}
-    site = Site(held_tree_files, served_tree_files, parameters["tree_file_cap_bytes"], budget)
+    site = Site(held_tree_files, served_tree_files, parameters["tree_file_cap_bytes"], budget, objects)
     out, listed = {}, None
     try:
         listed = tree_files.walk(catalog, site, parameters)
@@ -206,7 +210,7 @@ def _discard(condition, catalog_id, at, read, octets):
             "report": {"code": DISCARDED, "condition": condition, "catalog": catalog_id, "change_list": at}}
 
 
-def read_chain(catalog, held, change_lists, budget=None):
+def read_chain(catalog, held, change_lists, budget=None, objects=None):
     catalog_id = items.catalog_id(catalog)
     for listed in held.values():
         if len(listed) == catalog["size"] and items.root_string(listed) == catalog["root"]:
@@ -218,13 +222,15 @@ def read_chain(catalog, held, change_lists, budget=None):
     read, parsed, octets = [], [], 0
     at = catalog_id
     while True:
+        if objects is not None and len(read) == objects:
+            return {"chain": "suspended", "lists_read": read, "octets": octets}, None
         answer = change_lists.get(name_of(at))
         if answer is None:
             return _discard("fetch", catalog_id, at, read, octets), None
+        if remaining is not None and remaining <= CHANGE_LIST_CAP_BYTES and len(answer) > remaining:
+            return {"chain": "suspended", "lists_read": read, "octets": octets + remaining}, None
         if len(answer) > CHANGE_LIST_CAP_BYTES:
             return _discard("size", catalog_id, at, read, octets), None
-        if remaining is not None and len(answer) > remaining:
-            return {"chain": "suspended", "lists_read": read, "octets": octets + remaining}, None
         if remaining is not None:
             remaining -= len(answer)
         octets += len(answer)
@@ -248,22 +254,26 @@ def read_chain(catalog, held, change_lists, budget=None):
             "list": [items.item_id(i) for i in listed]}, listed
 
 
-def _obtain(catalog, held, change_lists, held_tree_files, served_tree_files, budget, parameters, after_suspension):
+def _obtain(catalog, held, change_lists, held_tree_files, served_tree_files, budget, parameters, after_suspension,
+            objects=None):
     if after_suspension:
         out, listed = read_chain(catalog, held, {}, budget)
         if out["chain"] != "held":
             out, listed = {"chain": "after_suspension", "lists_read": [], "octets": 0}, None
     else:
-        out, listed = read_chain(catalog, held, change_lists, budget)
+        out, listed = read_chain(catalog, held, change_lists, budget, objects)
     whole = {}
     if out["chain"] in ("discarded", "none", "after_suspension"):
         remaining = None if budget is None else budget - out["octets"]
-        out["walk"], whole, listed = walk(catalog, held_tree_files, served_tree_files, remaining, parameters)
+        left = None if objects is None else objects - len(out["lists_read"])
+        out["walk"], whole, listed = walk(catalog, held_tree_files, served_tree_files, remaining, parameters, left)
     return out, whole, listed
 
 
-def obtain(catalog, held, change_lists, held_tree_files, served_tree_files, budget=None, parameters=None):
-    return _obtain(catalog, held, change_lists, held_tree_files, served_tree_files, budget, parameters, False)[0]
+def obtain(catalog, held, change_lists, held_tree_files, served_tree_files, budget=None, parameters=None,
+           objects=None):
+    return _obtain(catalog, held, change_lists, held_tree_files, served_tree_files, budget, parameters, False,
+                   objects)[0]
 
 
 class Aggregator:
@@ -272,9 +282,9 @@ class Aggregator:
         self.tree = dict(tree_files_held or {})
         self.after_suspension = False
 
-    def pull(self, catalog, change_lists, served_tree_files, budget=None, parameters=None):
+    def pull(self, catalog, change_lists, served_tree_files, budget=None, parameters=None, objects=None):
         out, whole, listed = _obtain(catalog, self.held, change_lists, self.tree, served_tree_files, budget,
-                                     parameters, self.after_suspension)
+                                     parameters, self.after_suspension, objects)
         self.tree.update(whole)
         if listed is not None:
             self.held[items.catalog_id(catalog)] = listed

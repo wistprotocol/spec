@@ -1,5 +1,5 @@
 {
-  "description": "WIST-2 section 3.2 ordered live Feed observations. Start each case without retained state and reopen durable state between observations. Serve the supplied Declaration on discovery and retries. Empty Feeds isolate observation state; Pages, downstream failures and Declaration transitions require integration.",
+  "description": "WIST-2 section 3.2 ordered observations of the live label-feed.json. Start each case without retained state and reopen durable state between observations. disposition is fields, domain or signature for the first check the object fails (it is not usable and the retained value does not change; the section assigns no code to these failures, and no observation carries one), regressed for an authenticated object whose generated_at is below the retained value (code WIST2-E05: the Label Feed is discarded with every Page and ID its walk would read; the Collections of the pull, pulled before it under section 5.1, keep their outcomes), or usable. retained is the value after the observation. Empty Label Feeds isolate observation state; Pages, downstream failures and Declaration transitions require integration.",
   "host": "localhost",
   "declaration": {
     "publisher": {
@@ -44,9 +44,7 @@
           },
           "retained": "2026-08-09T14:00:00Z",
           "retained_s": 1786284000,
-          "code": null,
-          "noise": "WIST2-E02",
-          "declaration_retries": 0
+          "disposition": "usable"
         },
         {
           "name": "equal",
@@ -66,9 +64,7 @@
           },
           "retained": "2026-08-09T14:00:00Z",
           "retained_s": 1786284000,
-          "code": null,
-          "noise": "WIST2-E02",
-          "declaration_retries": 0
+          "disposition": "usable"
         },
         {
           "name": "older",
@@ -88,9 +84,8 @@
           },
           "retained": "2026-08-09T14:00:00Z",
           "retained_s": 1786284000,
-          "code": "WIST2-E05",
-          "noise": null,
-          "declaration_retries": 0
+          "disposition": "regressed",
+          "code": "WIST2-E05"
         },
         {
           "name": "newer",
@@ -110,9 +105,7 @@
           },
           "retained": "2026-08-09T14:00:01Z",
           "retained_s": 1786284001,
-          "code": null,
-          "noise": "WIST2-E02",
-          "declaration_retries": 0
+          "disposition": "usable"
         },
         {
           "name": "previous maximum",
@@ -132,9 +125,8 @@
           },
           "retained": "2026-08-09T14:00:01Z",
           "retained_s": 1786284001,
-          "code": "WIST2-E05",
-          "noise": null,
-          "declaration_retries": 0
+          "disposition": "regressed",
+          "code": "WIST2-E05"
         },
         {
           "name": "equal maximum",
@@ -154,9 +146,7 @@
           },
           "retained": "2026-08-09T14:00:01Z",
           "retained_s": 1786284001,
-          "code": null,
-          "noise": "WIST2-E02",
-          "declaration_retries": 0
+          "disposition": "usable"
         }
       ]
     },
@@ -182,9 +172,7 @@
           },
           "retained": null,
           "retained_s": null,
-          "code": "WIST2-E01",
-          "noise": null,
-          "declaration_retries": 0
+          "disposition": "fields"
         },
         {
           "name": "invalid signature",
@@ -204,9 +192,7 @@
           },
           "retained": null,
           "retained_s": null,
-          "code": "WIST2-E04",
-          "noise": "WIST2-E04",
-          "declaration_retries": 1
+          "disposition": "signature"
         },
         {
           "name": "foreign domain",
@@ -226,9 +212,7 @@
           },
           "retained": null,
           "retained_s": null,
-          "code": "WIST2-E04",
-          "noise": "WIST2-E04",
-          "declaration_retries": 0
+          "disposition": "domain"
         },
         {
           "name": "first authenticated",
@@ -248,9 +232,7 @@
           },
           "retained": "2026-08-09T14:00:00Z",
           "retained_s": 1786284000,
-          "code": null,
-          "noise": "WIST2-E02",
-          "declaration_retries": 0
+          "disposition": "usable"
         },
         {
           "name": "invalid newer signature",
@@ -270,9 +252,7 @@
           },
           "retained": "2026-08-09T14:00:00Z",
           "retained_s": 1786284000,
-          "code": "WIST2-E04",
-          "noise": "WIST2-E04",
-          "declaration_retries": 1
+          "disposition": "signature"
         },
         {
           "name": "newer authenticated",
@@ -292,14 +272,12 @@
           },
           "retained": "2026-08-09T14:00:01Z",
           "retained_s": 1786284001,
-          "code": null,
-          "noise": "WIST2-E02",
-          "declaration_retries": 0
+          "disposition": "usable"
         }
       ]
     },
     {
-      "name": "regression diagnostic follows authentication",
+      "name": "regression follows authentication",
       "observations": [
         {
           "name": "baseline",
@@ -319,9 +297,7 @@
           },
           "retained": "2026-08-09T14:00:00Z",
           "retained_s": 1786284000,
-          "code": null,
-          "noise": "WIST2-E02",
-          "declaration_retries": 0
+          "disposition": "usable"
         },
         {
           "name": "older invalid fields and signature",
@@ -342,9 +318,7 @@
           },
           "retained": "2026-08-09T14:00:00Z",
           "retained_s": 1786284000,
-          "code": "WIST2-E01",
-          "noise": null,
-          "declaration_retries": 0
+          "disposition": "fields"
         },
         {
           "name": "older foreign domain and signature",
@@ -364,9 +338,7 @@
           },
           "retained": "2026-08-09T14:00:00Z",
           "retained_s": 1786284000,
-          "code": "WIST2-E04",
-          "noise": "WIST2-E04",
-          "declaration_retries": 0
+          "disposition": "domain"
         },
         {
           "name": "older bad signature",
@@ -386,9 +358,7 @@
           },
           "retained": "2026-08-09T14:00:00Z",
           "retained_s": 1786284000,
-          "code": "WIST2-E04",
-          "noise": "WIST2-E04",
-          "declaration_retries": 1
+          "disposition": "signature"
         },
         {
           "name": "older authenticated",
@@ -408,9 +378,8 @@
           },
           "retained": "2026-08-09T14:00:00Z",
           "retained_s": 1786284000,
-          "code": "WIST2-E05",
-          "noise": null,
-          "declaration_retries": 0
+          "disposition": "regressed",
+          "code": "WIST2-E05"
         }
       ]
     },
@@ -435,9 +404,7 @@
           },
           "retained": "0000-01-01T00:00:00Z",
           "retained_s": -62167219200,
-          "code": null,
-          "noise": "WIST2-E02",
-          "declaration_retries": 0
+          "disposition": "usable"
         },
         {
           "name": "final representable second",
@@ -457,9 +424,7 @@
           },
           "retained": "9999-12-31T23:59:59Z",
           "retained_s": 253402300799,
-          "code": null,
-          "noise": "WIST2-E02",
-          "declaration_retries": 0
+          "disposition": "usable"
         },
         {
           "name": "clock contemporary regression",
@@ -479,9 +444,8 @@
           },
           "retained": "9999-12-31T23:59:59Z",
           "retained_s": 253402300799,
-          "code": "WIST2-E05",
-          "noise": null,
-          "declaration_retries": 0
+          "disposition": "regressed",
+          "code": "WIST2-E05"
         },
         {
           "name": "equal final second",
@@ -501,9 +465,7 @@
           },
           "retained": "9999-12-31T23:59:59Z",
           "retained_s": 253402300799,
-          "code": null,
-          "noise": "WIST2-E02",
-          "declaration_retries": 0
+          "disposition": "usable"
         }
       ]
     }

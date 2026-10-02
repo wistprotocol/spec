@@ -152,16 +152,16 @@
         "feed": {
           "wist_version": "1.0.0",
           "domain": "example.com",
-          "generated_at": "2026-08-02T12:00:00Z",
+          "generated_at": "2026-08-02T12:30:00Z",
           "deltas": [
-            "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+            "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52"
           ],
           "next": null
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "1mmSbHsgs-Vg0PXCDAZh71eFus6HXRJ_OZY9JnVvpxnGZwwIie3h0mzVQalc4ytGYdfDIF2951p6uI1E5F1VBA"
+          "value": "yL7Qs1NXZPNFUsHQOyiIaCoCastFazSligNU1SNK4wSTcCfPGAVMW1iKgKpTsxnhTXSdew7YPd-dmMWJGIdyBw"
         }
       },
       "path": [

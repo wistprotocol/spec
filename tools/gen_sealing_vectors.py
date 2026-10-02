@@ -1127,14 +1127,17 @@ def served_vectors():
 
     cases = []
 
-    def case(name, why, sequence, clock, stop, expect_in, expect_out):
-        got = served_files.must_serve(sequence, stop, stamp(clock))
+    def case(name, why, sequence, clock, stop, expect_in, expect_out, withdrawn=()):
+        got = served_files.must_serve(sequence, stop, stamp(clock), withdrawn)
         for f in expect_in:
             assert f in got, (name, f)
         for f in expect_out:
             assert f not in got, (name, f)
-        cases.append({"name": name, "why": why, "served": sequence, "stop": stop, "clock": stamp(clock),
-                      "expected": got})
+        out = {"name": name, "why": why, "served": sequence, "stop": stop, "clock": stamp(clock)}
+        if withdrawn:
+            out["withdrawn"] = list(withdrawn)
+        out["expected"] = got
+        cases.append(out)
 
     only_1 = sorted(set(named_files(l1)) - set(named_files(l2)), key=str.encode)
     tree_1 = [f for f in only_1 if "/tree/" in f]
@@ -1155,6 +1158,14 @@ def served_vectors():
          t + HOUR + 100, payload_a, only_1, payload_a)
     case("the same clock without a stop set", "The twin of the previous case.", replaced, t + HOUR + 100, [],
          only_1, [])
+    case("a withdrawn Payload that the served Catalog names",
+         "A payload_withdrawal naming a's Item ID is sealed: the Publisher stops serving a's Payload, which the "
+         "served C2 names, while the tree files that list a stay due.", replaced, t + HOUR + 100, [],
+         tree_1 + [f for f in named_files(l2) if "/tree/" in f], payload_a, withdrawn=[items.item_id(base[0])])
+    case("a withdrawn Payload inside the interval of a replaced Catalog",
+         "A payload_withdrawal naming the Item ID of b as C1 listed it is sealed: inside the interval that would "
+         "keep it due, the Payload of b is no longer served; C1's tree files are.", replaced, t + HOUR + 100, [],
+         tree_1, payload_b, withdrawn=[items.item_id(base[1])])
     again = served([(l1, t), (l2, t + HOUR), (l1, t + 2 * HOUR), (l2, t + 3 * HOUR)])
     case("a file named again inside the interval by a later Catalog",
          "C1's files, dropped by C2 at t + 3600, are named again by C3 at t + 7200 and dropped by C4 at t + 10800: "
@@ -1185,7 +1196,10 @@ def served_vectors():
         "and no rule obliges it to, so a file absent from `expected` may still be served; the fixture asserts "
         "nothing about files the Publisher serves beyond those due. The sequences are supplied as served, with "
         "tree files split at two Items per bucket, and are not derived from publications. A file in `stop` is "
-        "removed whether or not the served Catalog names it."),
+        "removed whether or not the served Catalog names it. `withdrawn`, where present, lists Item IDs that a "
+        "payload_withdrawal sealed at a height the Publisher has reached names (WIST-2 section 3.1): the Payload "
+        "file of each, payloads/ followed by the digits of its Item ID and .json, is removed whatever Catalog names "
+        "it and whatever interval it is inside, and no other file is."),
         "cases": cases}
 
 

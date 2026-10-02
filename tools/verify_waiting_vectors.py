@@ -32,13 +32,15 @@ KEY_MEMBERS = {"seed_hex", "x", "kid"}
 HISTORY_MEMBERS = {"name", "why", "declarations", "catalogs", "catalog_ids", "tree_files", "events", "expected"}
 HISTORY_OPTIONAL = {"suffix_list", "registry_updates"}
 PULL_MEMBERS = {"event", "at", "publisher", "parameters", "declaration", "collections"}
+PULL_OPTIONAL = {"limit_objects"}
 SERVED_MEMBERS = {"catalog", "tree_files", "payloads"}
+SERVED_OPTIONAL = {"answer"}
 EPOCH_MEMBERS = {"event", "height", "sealed_at", "parameters", "declarations"}
 EPOCH_OPTIONAL = {"updates", "sealed_later"}
 PULL_EXPECTED = {"settlement", "declaration", "collections_pulled", "catalogs", "state"}
 EPOCH_EXPECTED = {"settlement", "entries", "sealed", "left", "deferred", "records_removed", "state"}
 EPOCH_EXPECTED_OPTIONAL = {"held", "declarations_failed", "declarations_left", "updates_refused"}
-PULL_EXPECTED_OPTIONAL = {"noise"}
+PULL_EXPECTED_OPTIONAL = {"noise", "suspended"}
 STATE_MEMBERS = {"collections", "urls", "queue", "reductions_pending", "records"}
 
 
@@ -438,13 +440,18 @@ def place_key(publisher, place):
     return (place[0], octets(publisher), *place[1:])
 
 
+class LimitReached(Exception):
+    pass
+
+
 class TreeStore:
-    def __init__(self, held, texts, served, fetched):
-        self.held, self.texts, self.served, self.fetched = held, texts, set(served), fetched
+    def __init__(self, held, texts, served, fetched, spend):
+        self.held, self.texts, self.served, self.fetched, self.spend = held, texts, set(served), fetched, spend
 
     def get(self, name):
         if name in self.held:
             return self.held[name]
+        self.spend()
         self.fetched.add(name)
         if name not in self.served:
             return None
@@ -480,6 +487,14 @@ class Replay:
         self.discovered = {}
         self.seq_floor = {}
         self.offset = 0
+        self.objects = None
+        self.stopped = False
+
+    def spend(self):
+        if self.objects is not None:
+            if self.objects <= 0:
+                raise LimitReached()
+            self.objects -= 1
 
     def read_parameters(self, parameters):
         check_parameter_map(parameters)
@@ -654,6 +669,8 @@ class Replay:
         return "removed" not in item and withdrawn(self.log, item_id(item))
 
     def judge_listed(self, identifier, index, domain, publishers, served, parameters):
+        if self.stopped:
+            return None
         entry = self.lists[identifier]
         item = entry["list"][index]
         identity = item_id(item)
@@ -677,6 +694,13 @@ class Replay:
             row["payload"] = "record"
             return row
         held = self.payloads.get(identity)
+        if held is None:
+            try:
+                self.spend()
+            except LimitReached:
+                entry["status"][index] = None
+                self.stopped = True
+                return None
         payload = held if held is not None else served["payloads"].get(identity[len("sha256:"):])
         verdict = None if payload is None else judge_payload(payload, item, parameters)
         if verdict == ACCEPTED:
@@ -695,14 +719,23 @@ class Replay:
         if entry is None:
             raise VerifierError(f"an idempotent re-serve of {identifier}, whose list was never walked")
         pending = [index for index, status in enumerate(entry["status"]) if status != "admitted"]
-        return [self.judge_listed(identifier, index, domain, publishers, served, parameters) for index in pending]
+        rows = [self.judge_listed(identifier, index, domain, publishers, served, parameters) for index in pending]
+        return [row for row in rows if row is not None]
 
     def pull_collection(self, index, position, domain, name, served, sources, queueing, parameters, at):
         row = {"collection": name}
-        if served is None:
-            row["outcome"] = "unavailable"
+        try:
+            self.spend()
+        except LimitReached:
+            self.stopped = True
+            row["outcome"] = "suspended"
             return row
-        members_read(served, SERVED_MEMBERS, where=f"collections.{name}")
+        if served is None:
+            row.update(outcome="unavailable", codes=["WIST2-E01"])
+            return row
+        members_read(served, SERVED_MEMBERS, SERVED_OPTIONAL, where=f"collections.{name}")
+        if served.get("answer", 304) != 304:
+            raise VerifierError(f"collections.{name}: an answer other than 304")
         envelope = self.history["catalogs"][served["catalog"]]
         if not isinstance(envelope, dict) or set(envelope) != {"catalog", "sig"} or not sig_form(envelope["sig"]) \
                 or not catalog_inner_form(envelope["catalog"]):
@@ -733,6 +766,8 @@ class Replay:
         if identifier in {entry["id"] for entry in known if entry is not None}:
             items = self.rejudge(identifier, domain, accepting, served, parameters)
             row.update(outcome="idempotent", tree_files_fetched=[], items=items)
+            if self.stopped:
+                row["suspended"] = True
             return row
         instant = log_seconds(inner["generated_at"])
         if queueing:
@@ -748,13 +783,21 @@ class Replay:
         row["sources"] = [label for label, _ in passing]
         fetched = set()
         try:
-            listed = walk_tree(inner, TreeStore(self.trees, self.history["tree_files"], served["tree_files"], fetched),
-                               parameters)
+            known = self.lists.get(identifier)
+            listed = known["list"] if known is not None else walk_tree(
+                inner, TreeStore(self.trees, self.history["tree_files"], served["tree_files"], fetched, self.spend),
+                parameters)
+        except LimitReached:
+            self.stopped = True
+            row.update(tree_files_fetched=sorted(fetched), outcome="suspended")
+            return row
         except Refused as refusal:
             row.update(tree_files_fetched=sorted(fetched), outcome="refused", codes=["WIST2-E07"],
                        reason=re.sub(r" [0-9a-f]{64}", "", str(refusal)))
             return row
         row["tree_files_fetched"] = sorted(fetched)
+        if identifier not in self.lists:
+            self.lists[identifier] = {"inner": inner, "list": listed, "status": [None] * len(listed)}
         base = is_base(inner, latest)
         if not base:
             present = {item["url"] for item in listed}
@@ -764,9 +807,12 @@ class Replay:
             if dropped:
                 row.update(outcome="refused", codes=["WIST2-E07"], reason=DROPPED_REASON, dropped=dropped)
                 return row
-        self.lists[identifier] = {"inner": inner, "list": listed, "status": [None] * len(listed)}
+        self.lists[identifier]["status"] = [None] * len(listed)
         items = [self.judge_listed(identifier, i, domain, accepting, served, parameters) for i in range(len(listed))]
-        row.update(outcome="accepted", base=base, key=self.key_name(envelope), queued=queueing, items=items)
+        row.update(outcome="accepted", base=base, key=self.key_name(envelope), queued=queueing,
+                   items=[item for item in items if item is not None])
+        if self.stopped:
+            row["suspended"] = True
         place = [index, position(name)]
         if queueing:
             self.enqueue(domain, name, {"id": identifier, "envelope": envelope, "place": place})
@@ -788,7 +834,7 @@ class Replay:
             self.first_place[(domain, name)] = queued["place"]
 
     def pull(self, index, event):
-        members_read(event, PULL_MEMBERS, where="pull")
+        members_read(event, PULL_MEMBERS, PULL_OPTIONAL, where="pull")
         if self.height is None:
             raise VerifierError("a pull before the first Epoch")
         domain, at = event["publisher"], log_seconds(event["at"])
@@ -848,10 +894,18 @@ class Replay:
         names = pulled_collections(state, [source for source, _ in sources])
         out["collections_pulled"] = names
         position = self.positions(self.log, domain, sources[0][1], names)
+        limit = event.get("limit_objects")
+        if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit < 0):
+            raise VerifierError("limit_objects is not a nonnegative integer")
+        self.objects, self.stopped = limit, False
         for name in names:
             out["catalogs"].append(self.pull_collection(index, position, domain, name,
                                                         event["collections"].get(name), sources, queueing,
                                                         parameters, at))
+            if self.stopped:
+                out["suspended"] = True
+                break
+        self.objects = None
         unread = set(event["collections"]) - set(names)
         if unread:
             raise VerifierError(f"served Collections the pull does not read: {sorted(unread)}")
@@ -860,8 +914,9 @@ class Replay:
         productive = declaration["discovered"] or any(
             row["outcome"] == "accepted" or any(item["outcome"] == "admitted" for item in row.get("items", []))
             for row in out["catalogs"])
-        if not productive:
+        if not productive and not self.stopped:
             out["noise"] = True
+        self.stopped = False
         return out
 
     def log_window(self, domain):

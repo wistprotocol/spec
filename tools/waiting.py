@@ -58,15 +58,21 @@ def registrable_domain(host, suffix_rules):
     return ".".join(labels[-(size + 1):])
 
 
+class Suspended(Exception):
+    pass
+
+
 class Site:
-    def __init__(self, held, served):
+    def __init__(self, held, served, take):
         self.held = held
         self.served = served
+        self.take = take
         self.fetched = []
 
     def get(self, digest):
         if digest in self.held:
             return self.held[digest]
+        self.take()
         self.fetched.append(digest)
         return self.served.get(digest)
 
@@ -90,6 +96,15 @@ class Aggregator:
         self.urls = {}
         self.windows = {}
         self.clock = None
+        self.objects_left = None
+        self.suspended = False
+
+    def take(self):
+        if self.objects_left is None:
+            return
+        if self.objects_left == 0:
+            raise Suspended()
+        self.objects_left -= 1
 
     def unit(self, publisher):
         return registrable_domain(publisher, self.suffix_rules)
@@ -293,6 +308,9 @@ class Aggregator:
             url = item["url"]
             if only is not None and url not in only:
                 continue
+            if self.suspended:
+                statuses[url] = {"outcome": "suspended"}
+                continue
             codes = [refusal(items.judge_item, item, catalog, source, parameters) for source in sources]
             identifier = items.item_id(item)
             form = refusal(items.check_item_form, item)
@@ -308,6 +326,12 @@ class Aggregator:
                 status = self.check_payload(item, self.payloads[identifier], parameters) or {
                     "outcome": "admitted", "payload": "held"}
             else:
+                try:
+                    self.take()
+                except Suspended:
+                    self.suspended = True
+                    statuses[url] = {"outcome": "suspended"}
+                    continue
                 payload = served_payloads.get(items.payload_name(item))
                 status = self.check_payload(item, payload, parameters)
                 if status is None:
@@ -339,8 +363,14 @@ class Aggregator:
 
     def pull_collection(self, publisher, name, position, sources, mode, served, parameters):
         out = {"collection": name}
+        try:
+            self.take()
+        except Suspended:
+            self.suspended = True
+            out["outcome"] = "suspended"
+            return out
         if served is None:
-            out["outcome"] = "unavailable"
+            out.update(outcome="unavailable", codes=["WIST2-E01"])
             return out
         envelope = served["catalog"]
         code = refusal(catalogs.check_envelope_form, envelope)
@@ -375,24 +405,33 @@ class Aggregator:
         if order == "idempotent":
             out.update(outcome="idempotent", tree_files_fetched=[],
                        items=self.retry(publisher, catalog_id, passing, served, parameters))
+            if self.suspended:
+                out["suspended"] = True
             return out
         if order == REGRESSED:
             out.update(outcome="refused", codes=[REGRESSED])
             return out
         out["sources"] = [rules.declaration_hash(s) for s in passing]
-        site = Site(self.tree, served.get("tree_files", {}))
+        site = Site(self.tree, served.get("tree_files", {}), self.take)
         try:
-            listed = tree_files.walk(catalog, site, parameters)
+            held = self.lists.get(catalog_id)
+            listed = held["list"] if held is not None else tree_files.walk(catalog, site, parameters)
         except tree_files.TreeRefusal as refused:
             listed, reason = None, str(refused)
+        except Suspended:
+            listed, self.suspended = None, True
         for digest in site.fetched:
             octets = site.served.get(digest)
             if octets is not None and hashlib.sha256(octets).hexdigest() == digest:
                 self.tree[digest] = octets
         out["tree_files_fetched"] = sorted(site.fetched)
+        if self.suspended:
+            out["outcome"] = "suspended"
+            return out
         if listed is None:
             out.update(outcome="refused", codes=[TREE_REFUSED], reason=reason)
             return out
+        self.lists.setdefault(catalog_id, {"envelope": envelope, "list": listed})
         base = self.log.is_base(catalog)
         present = {item["url"] for item in listed}
         dropped = [r["url"] for r in self.log.state()["records"]
@@ -421,9 +460,11 @@ class Aggregator:
         self.admission[catalog_id] = statuses
         out["items"] = self.judge_items(publisher, catalog, listed, passing, served.get("payloads", {}), statuses,
                                         parameters)
+        if self.suspended:
+            out["suspended"] = True
         return out
 
-    def pull(self, publisher, clock, envelope, served, parameters=None):
+    def pull(self, publisher, clock, envelope, served, parameters=None, limit_objects=None):
         if self.height is None:
             raise ValueError("the first event is an Epoch")
         parameters = sealing.check_parameters(parameters if parameters is not None else self.parameters)
@@ -445,15 +486,21 @@ class Aggregator:
         names = narrowing.collection_names(sources)
         out["collections_pulled"] = names
         order = self.place_order(publisher, sources[0] if sources else None, names)
+        self.objects_left, self.suspended = limit_objects, False
         for name in names:
             out["catalogs"].append(self.pull_collection(publisher, name, order[name], sources, mode,
                                                         served.get(name), parameters))
+            if self.suspended:
+                out["suspended"] = True
+                break
+        self.objects_left = None
         if mode != "window":
             self.refresh(publisher, self.height + 1, self.place_order(publisher, sources[0] if sources else None,
                                                                       names))
-        if not (report["discovered"] or any(c["outcome"] == "accepted" for c in out["catalogs"]) or any(
-                i["outcome"] == "admitted" for c in out["catalogs"] for i in c.get("items", []))):
+        if not (report["discovered"] or self.suspended or any(c["outcome"] == "accepted" for c in out["catalogs"])
+                or any(i["outcome"] == "admitted" for c in out["catalogs"] for i in c.get("items", []))):
             out["noise"] = True
+        self.suspended = False
         return out
 
     def reducing_pending(self, publisher, sealed):

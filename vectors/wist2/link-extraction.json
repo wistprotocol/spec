@@ -3,7 +3,7 @@
   "links_cap_bytes": 4096,
   "cases": [
     {
-      "label": "example-delta-page",
+      "label": "example-item-page-links",
       "html_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e0a3c703e5265666572656e63653a203c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f7265666572656e6365223e7265663c2f613e3c2f703e0a3c6120687265663d2268747470733a2f2f737065632e6578616d706c652e6e65742f776973742d31223e74686520737065633c2f613e0a3c6120687265663d222f626c6f672f706f73742d32223e696e7465726e616c2072656c61746976653c2f613e0a3c6120687265663d2268747470733a2f2f7777772e6578616d706c652e636f6d2f61626f7574223e696e7465726e616c20737562646f6d61696e3c2f613e0a3c6120687265663d22687474703a2f2f696e7365637572652e6578616d706c652e696f2f78223e6e6f6e2d68747470732c2064726f707065643c2f613e0a3c6120687265663d226d61696c746f3a736f6d656f6e65406578616d706c652e6f7267223e6e6f7420612055524c20736368656d652c2064726f707065643c2f613e0a3c6120687265663d2268747470733a2f2f4558414d504c452e4f52472f7265666572656e6365223e6475706c6963617465206166746572206e6f726d616c697a6174696f6e3c2f613e0a3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f25376575736572223e6573636170652072656e6f726d616c697a65642c2064697374696e63742055524c3c2f613e0a3c2f626f64793e3c2f68746d6c3e",
       "base_url": "https://example.com/blog/post-1",
       "publisher_domain": "example.com",
@@ -125,6 +125,271 @@
         "total": 1,
         "urls": [
           "https://example.org/kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+        ]
+      }
+    },
+    {
+      "label": "comment-marker-inside-a-start-tag-opens-no-comment",
+      "html_hex": "3c61207469746c653d223c212d2d2220687265663d2268747470733a2f2f6578616d706c652e6f72672f78223e783c2f613e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f79223e2d2d3e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 2,
+        "urls": [
+          "https://example.org/x",
+          "https://example.org/y"
+        ]
+      }
+    },
+    {
+      "label": "comment-marker-inside-another-tag-opens-a-comment",
+      "html_hex": "3c646976207469746c653d223c212d2d223e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f78223e783c2f613e2d2d3e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f79223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/y"
+        ]
+      }
+    },
+    {
+      "label": "comment-close-must-begin-after-the-open",
+      "html_hex": "3c212d2d3e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f78223e2d2d3e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f79223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/y"
+        ]
+      }
+    },
+    {
+      "label": "raw-text-name-needs-a-boundary",
+      "html_hex": "3c736372697074733e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f78223e3c2f736372697074733e3c7363726970742f3e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f79223e3c2f7363726970743e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/x"
+        ]
+      }
+    },
+    {
+      "label": "raw-text-ends-at-end-tag-name-whatever-follows",
+      "html_hex": "3c7363726970743e733c2f736372697074783e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f7a223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/z"
+        ]
+      }
+    },
+    {
+      "label": "whitespace-around-equals-sign",
+      "html_hex": "3c612068726566203d202268747470733a2f2f6578616d706c652e6f72672f61223e3c6120687265663d0a2768747470733a2f2f6578616d706c652e6f72672f62273e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 2,
+        "urls": [
+          "https://example.org/a",
+          "https://example.org/b"
+        ]
+      }
+    },
+    {
+      "label": "a-start-tag-reaching-end-of-input-counts",
+      "html_hex": "3c703e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f656e6422",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/end"
+        ]
+      }
+    },
+    {
+      "label": "unclosed-quoted-value-runs-to-end-of-input",
+      "html_hex": "3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f713e783c2f613e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 0,
+        "urls": []
+      }
+    },
+    {
+      "label": "empty-attribute-name-and-slash-separator",
+      "html_hex": "3c61203d22782220687265663d2268747470733a2f2f6578616d706c652e6f72672f65223e3c612f687265663d2268747470733a2f2f6578616d706c652e6f72672f73223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 2,
+        "urls": [
+          "https://example.org/e",
+          "https://example.org/s"
+        ]
+      }
+    },
+    {
+      "label": "first-href-attribute-wins",
+      "html_hex": "3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f6f6e652220687265663d2268747470733a2f2f6578616d706c652e6f72672f74776f223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/one"
+        ]
+      }
+    },
+    {
+      "label": "ill-formed-utf8-href-is-discarded",
+      "html_hex": "3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672fff223e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f6f6b223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/ok"
+        ]
+      }
+    },
+    {
+      "label": "character-references-decode-in-one-pass",
+      "html_hex": "3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f3f713d26616d703b6c743b223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/?q=&lt;"
+        ]
+      }
+    },
+    {
+      "label": "decimal-reference-with-leading-zeros",
+      "html_hex": "3c6120687265663d222623303030303030303030303130343b747470733a2f2f6578616d706c652e6f72672f7a223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/z"
+        ]
+      }
+    },
+    {
+      "label": "uppercase-named-reference-left-as-written",
+      "html_hex": "3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f3f613d3126414d503b623d32223e3c2f613e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/?a=1&AMP;b=2"
+        ]
+      }
+    },
+    {
+      "label": "decoded-whitespace-is-trimmed",
+      "html_hex": "3c6120687265663d22262333323b68747470733a2f2f6578616d706c652e6f72672f73702623393b223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/sp"
+        ]
+      }
+    },
+    {
+      "label": "quote-in-raw-text-attribute-name-is-ordinary",
+      "html_hex": "3c736372697074206122623e7a3c2f7363726970743e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f64223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/d"
+        ]
+      }
+    },
+    {
+      "label": "quote-in-raw-text-unquoted-value-is-ordinary",
+      "html_hex": "3c7374796c6520783d6122623e7a3c2f7374796c653e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f6432223e22",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/d2"
+        ]
+      }
+    },
+    {
+      "label": "hex-reference-takes-lowercase-x-only",
+      "html_hex": "3c6120687265663d2226235836383b747470733a2f2f6578616d706c652e6f72672f78223e3c6120687265663d2226237836383b747470733a2f2f6578616d706c652e6f72672f79223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/y"
+        ]
+      }
+    },
+    {
+      "label": "numeric-reference-to-a-surrogate-discards-the-candidate",
+      "html_hex": "3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f262378443830303b223e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f6f6b223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/ok"
+        ]
+      }
+    },
+    {
+      "label": "numeric-reference-above-the-last-code-point-discards-the-candidate",
+      "html_hex": "3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f2623313131343131323b223e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f6f6b223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/ok"
+        ]
+      }
+    },
+    {
+      "label": "non-ascii-digits-leave-the-reference-as-written",
+      "html_hex": "3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f2623d9a6d9a53b223e3c6120687265663d2268747470733a2f2f6578616d706c652e6f72672f262336353b223e",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.com",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.org/A"
+        ]
+      }
+    },
+    {
+      "label": "comment-marker-in-a-start-tag-before-a-relative-href",
+      "html_hex": "3c61207469746c653d223c212d2d2220687265663d222f78223e783c2f613e2d2d3e79",
+      "base_url": "https://example.com/blog/post-1",
+      "publisher_domain": "example.net",
+      "expected": {
+        "total": 1,
+        "urls": [
+          "https://example.com/x"
         ]
       }
     }

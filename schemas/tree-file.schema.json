@@ -10,7 +10,7 @@
       "required": ["items"],
       "additionalProperties": false,
       "properties": {
-        "items": {"type": "array", "items": {"$ref": "item.schema.json"}}
+        "items": {"type": "array", "items": {"type": "object", "required": ["url"], "properties": {"url": {"type": "string"}}, "description": "An Item (schemas/item.schema.json); the tree rules read only its string `url`, and the Item conditions judge the rest with the list (WIST-1 §4.2, §7)."}}
       }
     },
     {

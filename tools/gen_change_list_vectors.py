@@ -571,17 +571,21 @@ def chain_vectors():
             seq[k - 1]["id"], seq[k - 1]["list"], seq[k]["id"], seq[k]["list"])
     cases = []
 
-    def pull(target, held, served_lists, budget=None, served_tree=True, held_tree=None, other=None, parameters=None):
+    def pull(target, held, served_lists, budget=None, served_tree=True, held_tree=None, other=None, parameters=None,
+             objects=None, served_files=None):
         held_lists = {s["id"]: s["list"] for s in held}
+        tree_served = served_files if served_files is not None else target["files"] if served_tree else {}
         got = change_lists.obtain(target["catalog"], held_lists, served_lists,
-                                  held_tree or {}, target["files"] if served_tree else {}, budget, parameters)
+                                  held_tree or {}, tree_served, budget, parameters, objects)
         member = {"catalog": target["catalog"], "held": held_lists,
                   "held_other_collection": {s["id"]: s["list"] for s in (other or [])},
                   "budget": budget, "parameters": parameters,
                   "change_lists": {n: (o if isinstance(o, dict) else o.decode("utf-8"))
                                    for n, o in sorted(served_lists.items())},
                   "tree_files_held": texts(held_tree or {}),
-                  "tree_files_served": texts(target["files"]) if served_tree else {}}
+                  "tree_files_served": texts(tree_served)}
+        if objects is not None:
+            member["objects"] = objects
         return member, got
 
     def case(case_name, *pulls):
@@ -715,6 +719,24 @@ def chain_vectors():
             assert got["walk"]["refused"] == "WIST2-E07"
             case("a list of one octet more than change_list_cap_bytes: size, nothing debited, and the walk "
                  "refuses without the tree", (member, got))
+            for budget, label_text in ((5000, "a remaining budget of 5 000 octets"),
+                                       (CAP, "a remaining budget of change_list_cap_bytes octets")):
+                member, got = pull(target, [big_previous], {change_lists.name_of(target["id"]): octets},
+                                   budget=budget, served_tree=False)
+                member["catalog"] = inner
+                member["change_lists"] = {change_lists.name_of(target["id"]): {
+                    "previous": big_previous["id"], "catalog": target["id"], "dropped": [], "items": label}}
+                assert got == {"chain": "suspended", "lists_read": [], "octets": budget}
+                case(f"a list of one octet more than change_list_cap_bytes under {label_text}: the budget is met "
+                     "first, the octets read are debited and the pull suspends", (member, got))
+            member, got = pull(target, [big_previous], {change_lists.name_of(target["id"]): octets},
+                               budget=CAP + 1, served_tree=False)
+            member["catalog"] = inner
+            member["change_lists"] = {change_lists.name_of(target["id"]): {
+                "previous": big_previous["id"], "catalog": target["id"], "dropped": [], "items": label}}
+            assert got["report"]["condition"] == "size" and got["octets"] == 0
+            case("a list of one octet more than change_list_cap_bytes under a remaining budget of one octet more "
+                 "than change_list_cap_bytes: size, nothing debited", (member, got))
 
     first_len, second_len = len(files[name(2)]), len(files[name(1)])
     total = first_len + second_len
@@ -784,10 +806,12 @@ def chain_vectors():
     def carried(case_name, held, steps):
         aggregator = change_lists.Aggregator({s["id"]: s["list"] for s in held})
         members, outcomes = [], []
-        for index, (target, served_lists, served_tree, budget) in enumerate(steps):
-            got = aggregator.pull(target["catalog"], served_lists, target["files"] if served_tree else {}, budget)
+        for index, (target, served_lists, served_tree, budget, *rest) in enumerate(steps):
+            parameters = rest[0] if rest else None
+            got = aggregator.pull(target["catalog"], served_lists, target["files"] if served_tree else {}, budget,
+                                  parameters)
             got["held_after"] = sorted(aggregator.held)
-            member = {"catalog": target["catalog"], "budget": budget, "parameters": None,
+            member = {"catalog": target["catalog"], "budget": budget, "parameters": parameters,
                       "change_lists": {n: o.decode("utf-8") for n, o in sorted(served_lists.items())},
                       "tree_files_served": texts(target["files"]) if served_tree else {}}
             if index == 0:
@@ -841,6 +865,89 @@ def chain_vectors():
     assert got[2]["chain"] == "accepted" and len(got[2]["lists_read"]) == CHAIN_MAX
     assert got[2]["previous"] == repeated["id"]
 
+    first_len = len(files[name(2)])
+    (got,) = case("a per-pull limit of one object: one change list is read and the pull suspends before the second",
+                  pull(seq[2], [seq[0]], files, objects=1))
+    assert got == {"chain": "suspended", "lists_read": [seq[2]["id"]], "octets": first_len}
+    (got,) = case("a per-pull limit of two objects: each change list is one object and the chain of two is read",
+                  pull(seq[2], [seq[0]], files, objects=2))
+    assert got["chain"] == "accepted" and len(got["lists_read"]) == 2
+
+    split_list = lists[1]
+    split_tree, split_files = tree_files.write_tree(split_list, 2)
+    split_inner = {**seq[1]["catalog"], "tree": split_tree}
+    split = {"catalog": split_inner, "id": items.catalog_id(split_inner), "list": split_list, "files": split_files}
+    root_obj = json.loads(split_files[split_tree[len("sha256:"):]])
+    children = [e["file"][len("sha256:"):] for e in root_obj["children"]]
+    assert len(children) >= 2
+    first_child, later = children[0], children[1:]
+    missing_first = {d: o for d, o in split_files.items() if d != first_child}
+    (got,) = case("a walk stops at its first refusal in walk order below the root and fetches no file after it: "
+                  "the first child unavailable", pull(split, [], {}, served_files=missing_first))
+    assert got["walk"]["refused"] == "WIST2-E07"
+    assert got["walk"]["tree_files_fetched"] == sorted([split_tree[len("sha256:"):], first_child])
+    assert not set(later) & set(got["walk"]["tree_files_fetched"])
+    wrong_first = dict(split_files)
+    wrong_first[first_child] = split_files[later[0]]
+    (got,) = case("a walk stops at its first refusal in walk order below the root and fetches no file after it: "
+                  "the first child of another SHA-256", pull(split, [], {}, served_files=wrong_first))
+    assert got["walk"]["tree_files_fetched"] == sorted([split_tree[len("sha256:"):], first_child])
+    (got,) = case("the twin with every file served: the walk reads every child",
+                  pull(split, [], {}))
+    assert got["walk"]["list"] == ids(split_list) and set(later) <= set(got["walk"]["tree_files_fetched"])
+
+    (got,) = case("an Aggregator holding a list but with no object left under a per-pull limit suspends before "
+                  "requesting a change list, which is not fetch", pull(seq[2], [seq[0]], {}, objects=0))
+    assert got == {"chain": "suspended", "lists_read": [], "octets": 0}
+
+    (got,) = case("a root tree file one octet above tree_file_cap_bytes under a remaining budget of 100 octets: the "
+                  "budget is met first and the walk suspends", pull(wide_target, [], {}, 100))
+    assert got["walk"] == {"suspended": True, "tree_files_fetched": [wide_tree[len("sha256:"):]], "octets": 100}
+    (got,) = case("the same root tree file under a remaining budget of tree_file_cap_bytes plus one octet: the walk "
+                  "refuses and nothing is debited", pull(wide_target, [], {}, file_cap + 1))
+    assert got["walk"] == {"refused": "WIST2-E07", "tree_files_fetched": [wide_tree[len("sha256:"):]], "octets": 0}
+
+    depth_items = [removed(f"https://example.com/journal/depth/{i}", OBSERVED) for i in range(400)]
+    by_digit = {}
+    for item in depth_items:
+        key = items.item_key(item["url"]).hex()
+        by_digit.setdefault(key[0], {}).setdefault(key[1], []).append(item)
+    first_digit = min(d for d, sub in by_digit.items() if len(sub) >= 3)
+    later_digit = min(d for d in by_digit if d > first_digit)
+    a_items = [by_digit[first_digit][d][0] for d in sorted(by_digit[first_digit])[:3]]
+    depth_list = items.in_list_order(a_items + [by_digit[later_digit][min(by_digit[later_digit])][0]])
+    depth_tree, depth_files = tree_files.write_tree(depth_list, 2)
+    depth_root = json.loads(depth_files[depth_tree[len("sha256:"):]])
+    assert [e["prefix"] for e in depth_root["children"]] == [first_digit, later_digit]
+    inner_a = depth_root["children"][0]["file"][len("sha256:"):]
+    bucket_b = depth_root["children"][1]["file"][len("sha256:"):]
+    a_obj = json.loads(depth_files[inner_a])
+    assert "children" in a_obj and len(a_obj["children"]) >= 2 and "items" in json.loads(depth_files[bucket_b])
+    a_first = a_obj["children"][0]["file"][len("sha256:"):]
+    depth_inner = {"wist_version": "1.0.0", "publisher": "example.com", "collection": "journal",
+                   "generated_at": at(1), "size": len(depth_list), "root": items.root_string(depth_list),
+                   "tree": depth_tree}
+    depth = {"catalog": depth_inner, "id": items.catalog_id(depth_inner), "list": depth_list, "files": depth_files}
+    (got,) = case("a depth-first walk: the root's first child is an inner file whose first child is unavailable, so "
+                  "the bucket that is the root's second child is never fetched",
+                  pull(depth, [], {}, served_files={d: o for d, o in depth_files.items() if d != a_first}))
+    assert got["walk"]["refused"] == "WIST2-E07"
+    assert got["walk"]["tree_files_fetched"] == sorted([depth_tree[len("sha256:"):], inner_a, a_first])
+    (got,) = case("the twin with every file served: the walk reads the inner file's subtree, then the bucket",
+                  pull(depth, [], {}))
+    assert got["walk"]["list"] == ids(depth_list) and bucket_b in got["walk"]["tree_files_fetched"]
+
+    amended = {"tree_file_cap_bytes": file_cap + 1}
+    got = carried("a walk suspended under one parameter map resumes at a later pull under that pull's map, which "
+                  "refuses the root tree file", [],
+                  [(wide_target, {}, True, 100, amended), (wide_target, {}, True, None)])
+    assert got[0]["walk"] == {"suspended": True, "tree_files_fetched": [wide_tree[len("sha256:"):]], "octets": 100}
+    assert got[1]["walk"]["refused"] == "WIST2-E07"
+    got = carried("the twin whose later pull's map also amends tree_file_cap_bytes to the file's octets: the resumed "
+                  "walk accepts", [], [(wide_target, {}, True, 100, amended), (wide_target, {}, True, None, amended)])
+    assert got[0]["walk"]["suspended"] is True
+    assert got[1]["walk"]["list"] == ids(wide)
+
     held_payload_lists = [lst for c in cases for p in c["pulls"] for lst in
                           list(p.get("held", {}).values()) + list(p.get("held_other_collection", {}).values())]
     return {"note": (
@@ -866,10 +973,11 @@ def chain_vectors():
         "Aggregator that left a chain at a suspension reads no change list: step 1 applies as above, and "
         "otherwise it walks instead of steps 2 to 4: {chain: after_suspension}. Step 4: with no held list, no change list is read and the tree is walked: "
         "{chain: none}. Otherwise lists are read from the one named by the fetched Catalog's ID; for each, in "
-        "order: fetch (absent), size (more than 1 048 576 octets; such an answer debits nothing), then the "
-        "budget (a list of as many octets as the budget leaves is read whole; one of more octets is read to "
-        "that bound, those octets are debited, the list is read for no condition and the pull suspends: "
-        "{chain: suspended}, no report, no walk), then form (as vectors/wist2/change-lists.json, the file named "
+        "order: fetch (absent), then size or the budget, the bound met first as the octets are read deciding: "
+        "where the budget left is smaller than 1 048 577 octets, a list of more octets than it leaves is read to "
+        "that bound, those octets are debited, the list is read for no condition and the pull suspends "
+        "({chain: suspended}, no report, no walk); otherwise a list of more than 1 048 576 octets meets size "
+        "and debits nothing; a list of as many octets as the budget leaves is read whole; then form (as vectors/wist2/change-lists.json, the file named "
         "by the Catalog ID it is fetched under), then whether the list of its previous Catalog is held (which "
         "ends the reading), then chain (16 lists read); otherwise the list named by its previous Catalog is "
         "read next, one to which a list already read leads included. The lists read are applied to the held "
@@ -890,9 +998,14 @@ def chain_vectors():
         "to that bound, debited, and the walk suspends there. walk is {list}, {refused: WIST2-E07} or "
         "{suspended: true}, with tree_files_fetched (the names requested, in ascending order, a file read to "
         "the bound and a failed fetch included) and octets (the octets of the tree files read, a file read to "
-        "the bound counting the octets read; a tree file above tree_file_cap_bytes counts none, what it debits "
-        "being left open by WIST-2 section 5, and no case has one under a budget). An answer above 1 048 576 "
-        "octets met under a smaller budget is open in WIST-2 section 5, and no case combines them. " + LARGE_NOTE + " A compact change list's served tree is not carried, so its walk "
+        "the bound counting the octets read; the bound met first decides as for a change list: under a budget "
+        "left smaller than tree_file_cap_bytes plus one octet a file of more octets than it leaves suspends the "
+        "walk, and otherwise a file above tree_file_cap_bytes refuses it and counts none). The walk is depth-first: "
+        "each child's subtree is read before the next child. A pull with "
+        "`objects` runs under a per-pull limit in objects (WIST-2 section 5.2), in which each change list read is "
+        "one object: where no object is left the pull suspends before requesting the next list, which is not "
+        "fetch, and nothing more is debited; no such pull walks. A walk is a new validation attempt at each pull: a carried pull "
+        "resumes a suspended walk from the files held under its own `parameters`. " + LARGE_NOTE + " A compact change list's served tree is not carried, so its walk "
         "refuses. `payloads` carries the Payload of each Item of kind page that appears as an object, keyed by "
         "the digits of its Item ID; no rule here reads it."),
         "large_item_sets": LARGE, "cases": cases, "payloads": book.of(*held_payload_lists)}

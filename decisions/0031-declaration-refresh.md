@@ -4,58 +4,52 @@
 
 ## Context
 
-WIST-1's “once on that observation” did not define the Delta retry unit or
-whether missing bindings qualified. WIST-2 limited Feed retries per pull
-but left Declaration discovery's relationship to its content budget unclear.
-A rotation can first become visible in a Delta or a retrieved predecessor,
-including when an unchanged Feed still verifies with a cached key.
+A pull reads a Publisher's signed objects under its Declaration. An
+Aggregator that caches a Key Set between pulls meets a rotation first in a
+signed object the cached keys do not verify. Excluding Declaration
+discovery from the ingest budget, or counting it, changes what a Publisher
+with a large history can obtain.
 
 ## Decision
 
-WIST-1 §5.1 delegates live Delta retries to WIST-2 §5, which defines their
-trigger, per-ID/per-pull scope, authenticated retry and budget treatment.
-No object schema changes. The live Feed and sealed Pages share one retry
-per pull, independent of Delta attempts. Page re-verification retains
-WIST-2 §3.2's authenticated current/first-next sources; fetching and accepting
-a Declaration does not establish its Log inclusion.
-Historical replay and sealing retain their authenticated Log sources.
+An Aggregator fetches the Declaration at the start of every pull and reads
+no Key Set from a cache ([ADR-0051](0051-collections-scope-and-keys.md),
+WIST-2 §5.1), so the objects of a pull are judged under the Declaration
+the Publisher serves at that pull. No object schema changes. A Catalog
+that fails its binding check is reported and retries nothing (WIST-1 §7).
+WIST-2 does not determine whether a Label Feed or Page whose signature
+fails triggers a second Declaration request in the same pull
+([CONFORMANCE.md](../CONFORMANCE.md)).
+
+Declaration requests do not debit the ingest budget, and its exhaustion
+does not defer them. Page verification retains WIST-2 §3.2's authenticated
+current/first-next sources; fetching and accepting a Declaration does not
+establish its Log inclusion. Historical replay and sealing retain their
+authenticated Log sources.
 
 ## Alternatives and consequences
 
-Retrying only E01 misses rotations introducing a new identifier or replacing
-an excluded or future binding. One shared retry per pull lets an earlier
-unrelated failure consume a later Delta's opportunity to discover rotation.
-Retrying each validation pass lets predecessor insertion or settlement
-multiply discovery requests for one object. Per-ID attempts permit different
-Deltas to observe successive rotations while bounding each ID's retry work.
-Duplicate or changed Envelopes served for one ID do not create extra attempts.
+A failure-triggered re-fetch beside the fetch that opens every pull would
+return the Declaration the pull already read unless the Publisher changed
+it within the pull, and would double discovery traffic for an authority it
+could rarely add.
 
-Excluding Declaration requests keeps authority repair independent of history
-size and content-budget exhaustion. Including them would require a separate
-rule to defer required verification without counting false failures. The
-content budget consequently does not bound discovery traffic; implementations
-still need resource controls for response size, destinations, concurrency
-and total work. This decision introduces no numeric discovery allowance and
-does not authorize bypassing the protocol's required retrievals or retries.
+Excluding Declaration requests keeps authority repair independent of
+history size and content-budget exhaustion. Including them would require a
+separate rule to defer required verification without counting false
+failures. The content budget consequently does not bound discovery
+traffic; implementations still need resource controls for response size,
+destinations, concurrency and total work. This decision introduces no
+numeric discovery allowance and does not authorize bypassing the
+protocol's required retrievals.
 
-An unsuccessful refresh cannot renew cache authority unless it is a valid
-unchanged re-serve. Retrying the original object preserves its signed
-observation and prevents a replacement response from hiding the failure.
-Multiple rotations in one pull can still invalidate an earlier accepted
-Delta at sealing; WIST-1 §5.2's sealing verification remains necessary.
+Letting a fetched unsealed Declaration authorize a Page would bypass the
+current/first-next cutoffs and make Page authority depend on local
+admission. A validator may retain one authenticated prefix through a Label
+walk; discovery then cannot change its Page sources.
 
-Giving every Page a retry would replace the existing one-per-pull limit
-with history-dependent discovery traffic. Letting a refreshed unsealed
-Declaration authorize a Page would bypass the current/first-next cutoffs
-and make Page authority depend on local admission. The shared attempt can
-discover a missing rotation for later inclusion without broadening authority
-during the current walk. A validator may retain one authenticated prefix
-through that walk; discovery then cannot change its Page sources.
-
-`vectors/wist2/declaration-refresh.json` exercises signed discovery, Feed and
-Delta sequences, shared Feed/Page retries, independent Delta retries,
-unsuccessful responses and content-budget boundaries. Page cases distinguish
-admission authority from current/first-next sources using supplied sealing
-positions; they establish no Epoch inclusion or complete Page fields.
-Recovery settlement and crash durability require live integration beyond
-these supplied ordinary-rotation sequences.
+`vectors/wist2/declaration-refresh.json` carries Feed and Delta retry
+sequences, objects this decision no longer covers; its content-budget
+boundaries and its Page cases, which distinguish admission authority from
+current/first-next sources using supplied sealing positions, remain
+applicable. They establish no Epoch inclusion or complete Page fields.

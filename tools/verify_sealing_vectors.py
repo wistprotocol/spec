@@ -645,7 +645,8 @@ def check_served_path(path, collection):
 
 
 def due_files(case):
-    members_read(case, SERVED_CASE_MEMBERS, f"case {case.get('name')!r}", {"why"})
+    members_read(case, SERVED_CASE_MEMBERS | ({"withdrawn"} if "withdrawn" in case else set()),
+                 f"case {case.get('name')!r}", {"why"})
     served = case["served"]
     if not served:
         raise VerifierError("no served Catalog")
@@ -675,6 +676,11 @@ def due_files(case):
         if index == len(served) - 1 or clock < instants[index + 1] + REPLACED_FILE_SECONDS:
             due.add(path)
     due -= set(case["stop"])
+    withdrawn = case.get("withdrawn", [])
+    if not isinstance(withdrawn, list) or not all(isinstance(i, str) and HASH.fullmatch(i) for i in withdrawn):
+        raise VerifierError("withdrawn is not a list of Item IDs")
+    erased = {i[len("sha256:"):] for i in withdrawn}
+    due = {path for path in due if SERVED_PATH.fullmatch(path).group(3) not in erased}
     return sorted(due, key=octets)
 
 

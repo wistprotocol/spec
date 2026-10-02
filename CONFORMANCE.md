@@ -109,34 +109,93 @@ impose no two-label minimum, and WIST-4 §5's `url_cap_bytes` and
 `link_url_cap_bytes` rationale names the two-label shortest URL while a
 one-label host's shorter URL stays nameable.
 
-**Feed field diagnostics** follow WIST-2 §5 and
-[ADR-0032](decisions/0032-feed-field-diagnostics.md). Signed
-`vectors/wist2/feed-fields.json` probes exercise complete schema/format
-validation, release spelling, exact Log timestamps and field/domain/signature
-precedence. The reference checks supplied dispositions independently of the
-generator. Live transport, Page publication/partitioning, Feed regression
-state, supported-major policy and durable selected-source provenance require
+**Label Feed field checks** follow WIST-2 §3.2, which orders the schema,
+domain and signature checks of a Label Feed or Page and assigns their
+failures no code. `vectors/wist2/feed-fields.json` carries 134 signed Label
+Feed Envelopes exercising complete schema/format validation, release
+spelling, exact Log timestamps and the order of the three checks; each case
+names the first check failed and states no code, noise or second
+Declaration request. The reference checks supplied dispositions
+independently of the generator.
+Live transport, Page publication/partitioning, Label Feed regression state,
+supported-major policy and durable selected-source provenance require
 separate validation.
 
-**Feed regression state** follows WIST-2 §3.2 and
+**Label Feed regression state** follows WIST-2 §3.2 and
 [ADR-0033](decisions/0033-feed-regression-state.md).
 `vectors/wist2/feed-regression.json` supplies 21 signed observations covering
-equality, rejection precedence, unauthenticated-baseline exclusion and the full
-timestamp range. The independent reference derives their per-host maximum;
-the empty Feeds do not establish Page retrieval or Delta admission. Durable
+equality, rejection precedence, unauthenticated-baseline exclusion, the
+discard of a regressed Label Feed under `WIST2-E05` and the full timestamp
+range. The independent reference derives their per-host maximum; the empty
+Label Feeds do not establish Page retrieval or Label admission. Durable
 comparison, restart, later failures, Page isolation and preservation through
 Declaration changes require integration validation. A restored backup must
 retain the observations needed for the claimed rollback protection.
 
-**Feed and Page `next` targets.** WIST-2 §3.2's target rule and
+**Label Feed and Page `next` targets.** WIST-2 §3.2's target rule and
 `vectors/wist2/feed-next.json` fix when `next` is read and which spellings
 are fetched. The reference derives each case's disposition from the
 supplied schema, domain, signature, live-regression and seen-set inputs,
 normalizes the target with `tools/link_extraction.py` and requires
-byte-identity plus the requested host's well-known prefix. It fetches
-nothing: that an invalid target is never requested, that a query survives
-retrieval and that the fetched Deltas are admitted after a stopped walk
-require live tests against a serving Publisher.
+byte-identity plus the requested host's well-known prefix, and states a
+code only where §3.2 assigns one (`WIST2-E01` for a target, `WIST2-E05` for
+a regressed live object); an answer 304 to the ingested Label Feed it
+validates lists no new ID. It fetches nothing: that an invalid target is never requested,
+that a query survives retrieval and that the fetched Labels are admitted
+after a stopped walk require live tests against a serving Labeler.
+
+**Undetermined pull behaviors.** WIST-2 does not determine the following,
+and an implementation following its text literally may choose either way:
+
+- The code an Aggregator reports for a Label Feed that fails §3.2's
+  schema, domain or signature check and for a Page that fails its schema or
+  domain check; a Page that verifies under neither source is `WIST2-E04`
+  (§3.2, §7). Whether any of these failures, a Page's `WIST2-E04`
+  included, counts as Ping noise (§4), and whether it triggers a
+  Declaration request beside the one that opens the pull (§5.1). Such an
+  implementation rejects the object and may report any code, or none,
+  where §3.2 assigns none.
+- What an Aggregator records when the live `label-feed.json` cannot be
+  fetched: it may report a failure or treat the Labeler as serving no Label
+  Feed in that pull.
+- When a typed rejection stops being pending at the status endpoint
+  (§7.1): an implementation may keep every rejection it ever recorded, or
+  drop one at a later clean pull, when the rejected object is replaced, or
+  after an age.
+- What counts as an object under a per-pull limit in objects (§5.2): §5.3
+  makes a change list one object, and nothing says whether an answer 304
+  counts, or whether the Declaration, a held tree file or a held Payload
+  does. One implementation may count every request it issues, another every
+  file it receives, another every file it fetches and does not hold.
+  The `vectors/wist2/collection-pull.json` fixture counts each fetched
+  `catalog.json`, tree file and Payload as one object and a held file and
+  the Declaration as none, which the text states only for a change list.
+- What an answer 304 for `label-feed.json` means for an ID previously
+  rejected and not yet seen (§3.2, §5.5): §3.2 says an answer 304 lists no
+  new ID, while §5.5 pulls a rejected ID again at the next pull. An
+  implementation may refetch the Label or dispute of every ID the validated
+  Label Feed lists that is not seen, or fetch nothing until the Label Feed
+  changes.
+- How the height at which a `payload_withdrawal` is sealed maps to the
+  instant at which a Publisher must stop serving the Payload (§3.1): the
+  Publisher reads no Log and the duty is counted on its clock. An
+  implementation may stop at the `sealed_at` of that Epoch in any Log that
+  pulls it, at the instant it learns of the withdrawal, or at the first
+  Catalog it signs after it.
+- What a failed fetch debits other than an object above its own response
+  bound (§5.2): a `404` body, a transfer cut short, a refused destination
+  and a redirect chain longer than §8 allows. An implementation may debit
+  the octets it read or nothing.
+- The order of `urls` in the report of a list that drops a record's URL
+  (§5.1 step 3, §7.1): an implementation may list them in octet order, in
+  record order or in any order.
+- Where a pull resumes among Collections after a suspension (§5.2): an
+  implementation that restarts from the first Collection the sources name
+  may, under a per-pull limit smaller than the first Collections' work,
+  never reach a later Collection, while one that resumes at the suspended
+  Collection reaches each in turn.
+
+No vector carries §11's rule on which representations are HTML.
 
 **Withdrawal acts.** WIST-4 §5.1 and `vectors/wist4/withdrawal.json` fix
 the `payload_withdrawal` contract. The reference checks each act against
@@ -180,10 +239,11 @@ sealing and durable restoration need integrated validation.
 **Labels.** WIST-2 §3.3 and WIST-4 §6 fix the Label object, the Label
 Feed, self-labeling, the registry name form and which Label is current.
 `vectors/wist2/labels.json` carries signed Labels over the example
-Declaration with field, form, cap, self-labeling, expiry, Delta-binding
-and signature dispositions, current-Label replays with the WIST-3 §7
-tuple each leaves at a Snapshot instant, and binding cases against a
-record's anchor Delta; the reference recomputes every disposition, the
+Declaration with field, form, cap, self-labeling, expiry, `delta`-binding
+and signature dispositions, the binding check over `keys` alone with a
+Collection's key taking no part, current-Label replays with the WIST-3 §7
+tuple each leaves at a Snapshot instant, and binding cases against the Item
+the subject URL's record carries; the reference recomputes every disposition, the
 Label IDs and the tuples, and its twins flip the self-labeling scope,
 the registry term set and the tie order. Every case is validated at the
 vector's `clock` under its `clock_skew_seconds`, with `asserted_at` at
@@ -299,12 +359,12 @@ and exercises rotated keys, excluded entries, exact cutoffs, first contact,
 forbidden later sources and absence of a following Declaration.
 Signature-invalid twins and reversed source order check rejection and
 ordering independence; future `nbf` values distinguish Page verification
-from Delta filtering. Sealing positions are
-supplied inputs, not authenticated Epoch evidence. Empty Delta lists isolate
+from the binding-check window. Sealing positions are
+supplied inputs, not authenticated Epoch evidence. Empty ID lists isolate
 key/source selection and establish no Page-size or publication conformance.
 Full role validation still requires authenticated inclusion and recovery
-supersession, live refresh, durable source provenance and immutable Page
-publication.
+supersession, live Declaration fetches, durable source provenance and
+immutable Page publication.
 
 ### Authenticated recovery state
 
@@ -560,8 +620,9 @@ arithmetic checks do not establish live-service behavior.
 | WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json`, `recovery-heads.json` and `declaration-conflicts.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Epoch Declarations. Reject conflicting groups and failed Declaration acceptance atomically; canonical storage order cannot choose a winner or replace a recovery owner. Snapshot state requires the resolution listed above. |
 | WIST-1 §5.1/§5.2 key directory and activation | Consume `key-directory.json`: recompute every thumbprint and fingerprint, apply the entry field rules before uniqueness, admit Catalogs only inside a binding's window, enforce `next_keys` on ordinary rotations, and replay the histories so that a pending identity supplies no authority, activates at its frozen height, at once under a zero delay, and is discarded on reversal (`catalog_probes`). `keyset-at-height.json` resolves the Key Set at each height for Catalogs. Snapshot resumption requires the `pending_declaration` tuple. Live discovery, the DNS record's retrieval and integrated role behavior remain separate obligations. |
 | WIST-1 §5.2 recovery settlement | Consume `recovery-settlement.json`'s Declaration histories, authenticating Declaration acceptance separately from Epoch inclusion, and `catalog-recovery.json`'s settlement of the queue. Preserve the frozen sources, the named recovery chain, queued places and WIST1-E13 status effects. Demonstrate durable queue recovery, applicable quotas, Payload availability and actual survivor sealing; signature eligibility alone does not establish these duties. |
-| WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
-| WIST-2 §§3.3, 5 Labels | Live Label Feed pulls under the ingest budget, `WIST2-E06` reporting with the Label or Dispute ID, sealing as `label` and `dispute` Entries under the inclusion ceiling, the per-domain capacity and the per-Labeler cap, `tier1/labels.parquet`, `tier1/disputes.parquet`, `tier1/labelers.parquet` and the `label` and `dispute` tuples from authenticated Log replay, expiry and Delta binding applied at materialization |
+| WIST-2 §§3, 5, 7 Collection pulls | The Declaration fetched at every pull with an answer 304 judged as the Declaration it validates; the served-file duties of §3.1 over time; `catalog.json` read to 16 384 octets, judged and ordered, a fetch failure retried as `WIST2-E01`; held lists, change lists with each discard condition, the order of `size` and the budget, suspension and the `WIST2-E08` report, and the walk that stops at its first refusal with `WIST2-E07`; the refusal of a list that drops a held record's URL; Item and Payload admission with `WIST2-E03` and the retry at an idempotent re-serve; pull resolution against the quota; the status object's `collections` and rejection members. `catalog-order.json`, `catalog-tree.json`, `change-lists.json`, `change-list-serving.json`, `change-chains.json`, `served-files.json`, `collection-pull.json`, `declaration-pull.json`, `declaration-refresh.json` and `fetch-bounds.json` carry the offline parts, and the harness validates a status object assembled from their reports against its schema. `change-chains.json` carries the bound met first for a change list and for a root tree file, the depth-first walk with its twin and a per-pull limit in objects that leaves no object before a change list; `collection-pull.json` carries the list held after a dropped-record refusal and remaining Items judged only where the same Catalog is met again as an idempotent re-serve; `fetch-bounds.json` carries objects above their own bound at, one octet above and equal to the remaining allowance; the harness checks a bucket element against its `url` alone (`schema:wist2-tree-file-bucket-members`) and refuses a status code outside WIST-1 and WIST-2. Not carried: HTTP, durable suspension state, a status object an Aggregator produces, §5.1 step 3's refusal of a list obtained from change lists, and a concrete pull history for a discarded chain followed by a refused walk or for a pull that admits only Labels, both of which `fetch-bounds.json`'s resolution cases decide from a supplied summary |
+| WIST-2 §3.2 Label Feeds | Label Feed and Page checks, regression state, Page sealing timestamps, the target rule and seen-ID bookkeeping under live pulls; the codes of a Label Feed's field, domain and signature failures are not determined by §3.2 (Undetermined pull behaviors above) |
+| WIST-2 §§3.3, 5 Labels | Live Label Feed pulls under the ingest budget, `WIST2-E06` reporting with the Label or Dispute ID, sealing as `label` and `dispute` Entries under the inclusion ceiling, the per-domain capacity and the per-Labeler cap, `tier1/labels.parquet`, `tier1/disputes.parquet`, `tier1/labelers.parquet` and the `label` and `dispute` tuples from authenticated Log replay, expiry and the `delta` binding to a record's Item applied at materialization |
 | WIST-2 §7 and WIST-4 §5 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day anchor and live quota and ingest-budget application per Registrable Domain under the snapshot in force |
 | WIST-2 §§6, 8 scheduling and redirects | Hints change pull timing without creating a duty; redirect termination and authority restrictions under live pulls |
 | WIST-3 §§5–6 publication | Every Entry below the Checkpoint's tree size durably stored and retrievable at its tile path before that Checkpoint is published; Payload replication before the Epoch; the partial tiles and entry bundle the head's tree size requires served while that head stands, and every full tile, entry bundle and archived Checkpoint retained from genesis |
@@ -599,21 +660,21 @@ status or waive the frozen edition's immutability.
 
 ## Declaration refresh boundaries
 
-WIST-1 §5.1, WIST-2 §5 and draft ADR-0031 define live Delta E01/E02
-refresh, per-requested-ID attempts within a pull and Declaration discovery's
-exclusion from the content budget. `vectors/wist2/declaration-refresh.json`
-carries 30 signed transport sequences. The reference independently checks
-signatures, fields, ordinary replacement authority, retry counts, predecessor
-ordering and content-budget suspension using supplied responses. It includes
-revalidation of an ID after another candidate changes authority. Eleven Page
-cases exercise the shared Feed/Page attempt, unsealed-source exclusion,
-current/first-next selection, unsuccessful responses, independent Delta retries
-and the exact content-budget boundary. Supplied Declaration sealing positions
-hold the Page source prefix fixed; they do not establish Epoch inclusion.
+WIST-1 §5.1, WIST-2 §5.1 and §5.2 and draft ADR-0031 fetch the Declaration
+at the start of every pull and exclude Declaration requests from the content
+budget. `vectors/wist2/declaration-refresh.json` carries 22 signed pull
+sequences: one Declaration request per pull, Catalogs refused under a key
+or window the served Declaration does not grant and accepted at a later
+pull under the rotated one, stopped pulls with `WIST2-E01` and, at first
+contact, `WIST2-E04`, content-budget boundaries with no Declaration octets
+debited, and five Page cases selecting current or first-following sources
+from supplied sealing instants, which hold the Page source prefix fixed
+without establishing Epoch inclusion. `vectors/wist2/declaration-pull.json`
+carries an answer 304 for the Declaration.
 
 These vectors do not establish complete HTTP ingestion, authenticated Page
 source reconstruction, complete Page fields/publication, recovery settlement,
-cache expiry, resumption, durable admission or bounded fetch/work. Integrated
+resumption, durable admission or bounded fetch/work. Integrated
 implementations must exercise those obligations; excluding discovery from the content budget does not bound
 Declaration response sizes or total discovery traffic.
 

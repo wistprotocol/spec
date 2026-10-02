@@ -10,6 +10,66 @@
       "label": "utf8-replacement",
       "html_hex": "6f6e6520ff2074776f",
       "expected": "one \ufffd two"
+    },
+    {
+      "label": "bare-tag-reaching-end-of-input",
+      "html_hex": "613c62",
+      "expected": "a"
+    },
+    {
+      "label": "one-replacement-per-maximal-subpart",
+      "html_hex": "61e2824120f0808062",
+      "expected": "a\ufffdA \ufffd\ufffd\ufffdb"
+    },
+    {
+      "label": "character-references-decode-in-one-pass",
+      "html_hex": "7826616d703b6c743b7920262330303036353b2026414d503b",
+      "expected": "x&lt;y A &AMP;"
+    },
+    {
+      "label": "comment-opens-inside-a-tag",
+      "html_hex": "3c70207469746c653d223c212d2d223e783c2f703e2d2d3e79",
+      "expected": ""
+    },
+    {
+      "label": "comment-opens-inside-an-a-start-tag",
+      "html_hex": "3c61207469746c653d223c212d2d2220687265663d222f78223e783c2f613e2d2d3e79",
+      "expected": ""
+    },
+    {
+      "label": "raw-text-element-opens-inside-a-tag",
+      "html_hex": "3c61207469746c653d223c7363726970743e2220687265663d222f78223e783c2f613e3c2f7363726970743e79",
+      "expected": ""
+    },
+    {
+      "label": "quote-in-attribute-name-is-ordinary",
+      "html_hex": "3c70206122623e783c2f703e79",
+      "expected": "x y"
+    },
+    {
+      "label": "raw-text-end-tag-read-by-attribute-rule",
+      "html_hex": "3c7363726970743e7a3c2f736372697074206122623e78",
+      "expected": "x"
+    },
+    {
+      "label": "quoted-value-in-a-tag-holds-a-bare-greater-than",
+      "html_hex": "3c703d223e22783e79",
+      "expected": "y"
+    },
+    {
+      "label": "hex-reference-takes-lowercase-x-only",
+      "html_hex": "26235834313b26237834313b",
+      "expected": "&#X41;A"
+    },
+    {
+      "label": "numeric-reference-to-a-non-scalar-value-left-as-written",
+      "html_hex": "61262378443830303b62202623313131343131323b2063",
+      "expected": "a&#xD800;b &#1114112; c"
+    },
+    {
+      "label": "non-ascii-digits-leave-the-reference-as-written",
+      "html_hex": "2623d9a6d9a53b262336353b",
+      "expected": "&#\u0666\u0665;A"
     }
   ]
 }

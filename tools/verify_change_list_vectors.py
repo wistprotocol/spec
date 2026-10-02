@@ -239,13 +239,12 @@ class TreeSource:
         if not isinstance(text, str):
             return None
         size = len(text.encode("utf-8", "surrogatepass"))
-        if size > self.cap:
-            if self.remaining is not None:
-                raise VerifierError("a tree file above tree_file_cap_bytes under an ingest budget")
-            return text
-        if self.remaining is not None and size > self.remaining - self.octets:
+        allowance = None if self.remaining is None else self.remaining - self.octets
+        if allowance is not None and allowance < self.cap + 1 and size > allowance:
             self.octets = self.remaining
             raise Suspended()
+        if size > self.cap:
+            return text
         self.octets += size
         if hashlib.sha256(text.encode("utf-8", "surrogatepass")).hexdigest() == name:
             self.held[name] = text
@@ -272,6 +271,8 @@ def walk(catalog, state, pull, remaining):
 
 
 def walked(chain, pull, state, fetched_id, remaining, fields):
+    if pull.get("objects") is not None:
+        raise VerifierError("a walk under a per-pull limit in objects, which no case carries")
     result, table = walk(pull["catalog"], state, pull, remaining)
     if table is not None:
         state["held"][fetched_id] = table
@@ -290,6 +291,9 @@ def read_pull(pull, state, large):
             state["left"] = False
             return {"chain": "held", "lists_read": [], "octets": 0, "list": found["list"]}
     budget = pull["budget"]
+    objects = pull.get("objects")
+    if objects is not None and (isinstance(objects, bool) or not isinstance(objects, int) or objects < 0):
+        raise VerifierError("objects is not a nonnegative integer")
     if state["left"]:
         return walked("after_suspension", pull, state, fetched_id, budget, {"lists_read": [], "octets": 0})
     if not held:
@@ -303,17 +307,19 @@ def read_pull(pull, state, large):
                       {"lists_read": lists_read, "octets": octets, "report": report})
 
     while True:
+        if objects is not None and len(lists_read) == objects:
+            state["left"] = True
+            return {"chain": "suspended", "lists_read": lists_read, "octets": octets}
         value = pull["change_lists"].get(name[len("sha256:"):])
         if value is None:
             return discard("fetch", name)
         answer = change_list_octets(value, large)
-        if budget is not None and len(answer) > budget - octets and len(answer) > CHANGE_LIST_CAP_BYTES:
-            raise VerifierError("an answer above change_list_cap_bytes under a smaller budget")
-        if len(answer) > CHANGE_LIST_CAP_BYTES:
-            return discard("size", name)
-        if budget is not None and len(answer) > budget - octets:
+        allowance = None if budget is None else budget - octets
+        if allowance is not None and allowance < CHANGE_LIST_CAP_BYTES + 1 and len(answer) > allowance:
             state["left"] = True
             return {"chain": "suspended", "lists_read": lists_read, "octets": budget}
+        if len(answer) > CHANGE_LIST_CAP_BYTES:
+            return discard("size", name)
         octets += len(answer)
         lists_read.append(name)
         change_list = change_list_form(answer, name[len("sha256:"):])

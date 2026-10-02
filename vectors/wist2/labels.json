@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration, every case validated at clock under clock_skew_seconds: accepted means the Label validates and its label_id seals; fields, clock and self are WIST2-E06, clock being an asserted_at beyond the inclusive allowance clock + clock_skew_seconds (WIST-1 section 3.4's rule read over asserted_at: the validator's clock before sealing, the committing Epoch's sealed_at once sealed); signature and binding keep WIST-1 codes. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, null where the current Label is retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a Label's delta against the subject record's anchor Delta: a bound Label applies only while the record stands on that Delta.",
+  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration, every case validated at clock under clock_skew_seconds: accepted means the Label validates and its label_id seals; fields, clock and self are WIST2-E06, clock being an asserted_at beyond the inclusive allowance clock + clock_skew_seconds (WIST-1 section 3.4's rule read over asserted_at: the validator's clock before sealing, the committing Epoch's sealed_at once sealed); signature and binding keep WIST-1 codes. The key check is WIST-1 section 5.1's binding check for a Catalog over `keys` alone, with asserted_at in the place of generated_at: binding (WIST1-E02) where no usable entry of `keys` named by sig.key_id has a window holding asserted_at, a Collection's keys taking no part; signature (WIST1-E01) where none of those verifies. A case naming `declaration` is judged under that entry of `declarations` instead of the example Declaration. Every asserted_at a key window is compared with is a whole second. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, null where the current Label is retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a Label's delta, an Item ID, against the Item the subject URL's record carries (record_item, null where no record stands): a bound Label applies only while the record carries that Item.",
   "declaration": {
     "publisher": {
       "wist_version": "1.0.0",
@@ -33,6 +33,63 @@
       "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
       "alg": "Ed25519",
       "value": "i37BwQl2RRi8jzOzJIyexlNbAjQD3V5jtFEW7sU-NqvnSv4RK5kvvxI7IeozfuSGp99G17quTMGb6Yb-SHX-BQ"
+    }
+  },
+  "declarations": {
+    "collection_keys": {
+      "publisher": {
+        "wist_version": "1.0.0",
+        "seq": 0,
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ],
+        "keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+            "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+            "nbf": 1785672000
+          }
+        ],
+        "recovery_keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+            "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
+            "nbf": 1785672000
+          }
+        ],
+        "contact": "mailto:webmaster@example.com",
+        "collections": [
+          {
+            "name": "journal",
+            "scope": [
+              {
+                "url": "https://example.com/journal/",
+                "match": "prefix"
+              }
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+                "nbf": 1785542400
+              }
+            ]
+          }
+        ]
+      },
+      "sig": {
+        "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+        "alg": "Ed25519",
+        "value": "Xrt7hTxSYYrVIVtk1HY9ffZo-F07v6HFDkFeXHMl9XwuFY47ItbkQ3q3jGWI9eWlkNKQSu2OSVxXW4iZ11G6Bg"
+      }
     }
   },
   "url_cap_bytes": 2048,
@@ -1185,7 +1242,7 @@
       "label_id": null
     },
     {
-      "name": "Delta binding on a URL subject",
+      "name": "Item binding on a URL subject",
       "envelope": {
         "label": {
           "wist_version": "1.0.0",
@@ -1193,21 +1250,21 @@
           "subject": "https://reduced.example.org/notice",
           "name": "wist:spam",
           "asserted_at": "2026-08-02T12:30:00Z",
-          "delta": "sha256:f76e6cb85789694942858270d64e655ba1b062374c622d3bd61af0f1a8f0e981"
+          "delta": "sha256:d807cca1e53ef2260d01a6405d2519d2967b437058320bc1b42113b894c8a006"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "W-4ZPpcHx1HAEmVu3B9wUnU0PgbzxZ3hLGVxTMgv4cG9dtF8pfyBYxeLDxVqmcJu-q2-oL8VvNlMqGFhfFDqDw"
+          "value": "Kc8ziBxyPew4XK89l5DI-10vrYalsl63EbHEUxvuhtqfcCnaPPFSMh5_Pw4io4_xWTPtrsOgVmMD3DBoMhn-BQ"
         }
       },
       "expected": "accepted",
       "code": null,
       "author_signature": true,
-      "label_id": "sha256:3978c11fb7135e1d51bfa393b7986b8f2005088f2704bcabab5ad12f3d8fec9f"
+      "label_id": "sha256:f1403b881bd201586748f064350ae13a695f1d751a766a6625726a76253402da"
     },
     {
-      "name": "Delta binding with an expiry",
+      "name": "Item binding with an expiry",
       "envelope": {
         "label": {
           "wist_version": "1.0.0",
@@ -1215,22 +1272,22 @@
           "subject": "https://reduced.example.org/notice",
           "name": "wist:spam",
           "asserted_at": "2026-08-02T12:30:00Z",
-          "delta": "sha256:f76e6cb85789694942858270d64e655ba1b062374c622d3bd61af0f1a8f0e981",
+          "delta": "sha256:d807cca1e53ef2260d01a6405d2519d2967b437058320bc1b42113b894c8a006",
           "expires_at": "2026-09-02T12:30:00Z"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "AITs3Ivad0PUn7khAu2P6CQAakyVaEptuLcY_k2LQIzDD-PpMqYGZHxDbdzbnwFvi5nV0ZX2_kni5PPzGB4rCw"
+          "value": "0cF1CTDwW7eRA0EhNykqppKKmO3SW52hFr3W08EPFAY135I7Bp-u4CehtptcvpU3LEoX2S8ACw9aReySQfVoCA"
         }
       },
       "expected": "accepted",
       "code": null,
       "author_signature": true,
-      "label_id": "sha256:2488e2497d09373b502f579963d37953096d4d85cc69da7f564e5822ee76afd1"
+      "label_id": "sha256:1bfe24fe55bc73ecc2ecb50f16a4a676384b696fc3888768dc01e9ac9e10b967"
     },
     {
-      "name": "Delta binding on a Canonical Host subject",
+      "name": "Item binding on a Canonical Host subject",
       "envelope": {
         "label": {
           "wist_version": "1.0.0",
@@ -1238,12 +1295,12 @@
           "subject": "reduced.example.org",
           "name": "wist:spam",
           "asserted_at": "2026-08-02T12:30:00Z",
-          "delta": "sha256:f76e6cb85789694942858270d64e655ba1b062374c622d3bd61af0f1a8f0e981"
+          "delta": "sha256:d807cca1e53ef2260d01a6405d2519d2967b437058320bc1b42113b894c8a006"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "HPkYBiyg-nwui3NDOaBJR_gFLdjFr284K1GFOpDWsUEOAg9XJ2H9Q0q90jpH3xqH4pZCSCKD_4wQlMh9r5e-Dg"
+          "value": "_QXGQqexbtMRjBaakpGAj1cRDG_uBSFdnyYUEXxn8-f07CBFab1f9P8_LzEWGgDtSuDRwDyqqEa7l_652ZYXDA"
         }
       },
       "expected": "fields",
@@ -1252,7 +1309,7 @@
       "label_id": null
     },
     {
-      "name": "Delta binding not a Delta ID",
+      "name": "Item binding not an Item ID",
       "envelope": {
         "label": {
           "wist_version": "1.0.0",
@@ -1274,7 +1331,7 @@
       "label_id": null
     },
     {
-      "name": "Delta binding uppercase hex",
+      "name": "Item binding uppercase hex",
       "envelope": {
         "label": {
           "wist_version": "1.0.0",
@@ -1282,12 +1339,12 @@
           "subject": "https://reduced.example.org/notice",
           "name": "wist:spam",
           "asserted_at": "2026-08-02T12:30:00Z",
-          "delta": "sha256:F76E6CB85789694942858270D64E655BA1B062374C622D3BD61AF0F1A8F0E981"
+          "delta": "sha256:D807CCA1E53EF2260D01A6405D2519D2967B437058320BC1B42113B894C8A006"
         },
         "sig": {
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "-L7qNDjxcpon21aZE-hPUMLgQQC6n-xpOsXZjBGEnBmaaDNlL7v5RMhFTT5pi94adk3OzN-En_OqHPo_-ngTBw"
+          "value": "ti3qmcwo9_qvyUh9JSY4_Ez1wgDWdmyqTUuP2G3v8Wiol3iKGoiIG-eHLlP_H_nqar4hmdtd1sn_Vo1wDtdgDg"
         }
       },
       "expected": "fields",
@@ -1357,6 +1414,92 @@
       "code": "WIST1-E02",
       "author_signature": true,
       "label_id": null
+    },
+    {
+      "name": "asserted_at at the signing key's nbf",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "3XKD0XAP2csXJnEjCuUgCQufLM9f1JyflAWQU3RsdmXHpfNrwx70csbYnNychFHtXoOsymoN638xT0oW5tjACA"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:ee961ec526601f3f6e1aa8c5ca33660e44e9d069046d90726df0f5fdfbb444c6"
+    },
+    {
+      "name": "asserted_at one second before the signing key's nbf",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T11:59:59Z"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "DOQRPkRWtG4NUhXaTA5vPic8eChFcsRtTmujSRn8bi8YkCloChQMvc8tAo8TQavKd3wbQdjlXAaWqWjMbQIcAA"
+        }
+      },
+      "expected": "binding",
+      "code": "WIST1-E02",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "signed by a Collection's key",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "-dPXwoIcIy3cS4PFOYFBqLFfzL1fjlv3g_2DfZkst6tZNHaUVdRP5EnJwS_desDePvnnhLSSsT4VSkgtJPSqDg"
+        }
+      },
+      "expected": "binding",
+      "code": "WIST1-E02",
+      "author_signature": false,
+      "label_id": null,
+      "declaration": "collection_keys"
+    },
+    {
+      "name": "signed by a key of keys beside a Collection's key",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "ReU9X3byos_LZ7nE8RE8GBL27ZGVsMGy74m8d_K3pUNj7PA1bqaN5Kr6kJ6OGtfanGEnqXwUrYivqXwz87RPAA"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+      "declaration": "collection_keys"
     }
   ],
   "current_cases": [
@@ -1700,7 +1843,7 @@
       "state_tuple": null
     },
     {
-      "name": "a bound Label carries its Delta",
+      "name": "a bound Label carries its Item ID",
       "sealed": [
         {
           "label": {
@@ -1709,15 +1852,15 @@
             "subject": "https://reduced.example.org/notice",
             "name": "wist:spam",
             "asserted_at": "2026-08-02T12:30:00Z",
-            "delta": "sha256:f76e6cb85789694942858270d64e655ba1b062374c622d3bd61af0f1a8f0e981"
+            "delta": "sha256:d807cca1e53ef2260d01a6405d2519d2967b437058320bc1b42113b894c8a006"
           },
-          "label_id": "sha256:3978c11fb7135e1d51bfa393b7986b8f2005088f2704bcabab5ad12f3d8fec9f",
+          "label_id": "sha256:f1403b881bd201586748f064350ae13a695f1d751a766a6625726a76253402da",
           "height": 1,
           "entry_index": 0
         }
       ],
       "sealed_at": "2026-08-03T12:00:00Z",
-      "current": "sha256:3978c11fb7135e1d51bfa393b7986b8f2005088f2704bcabab5ad12f3d8fec9f",
+      "current": "sha256:f1403b881bd201586748f064350ae13a695f1d751a766a6625726a76253402da",
       "state_tuple": [
         "label",
         "example.com",
@@ -1726,41 +1869,41 @@
         null,
         "2026-08-02T12:30:00Z",
         null,
-        "sha256:f76e6cb85789694942858270d64e655ba1b062374c622d3bd61af0f1a8f0e981",
-        "sha256:3978c11fb7135e1d51bfa393b7986b8f2005088f2704bcabab5ad12f3d8fec9f",
+        "sha256:d807cca1e53ef2260d01a6405d2519d2967b437058320bc1b42113b894c8a006",
+        "sha256:f1403b881bd201586748f064350ae13a695f1d751a766a6625726a76253402da",
         1
       ]
     }
   ],
   "binding_cases": [
     {
-      "name": "bound to the live anchor",
-      "delta": "sha256:f76e6cb85789694942858270d64e655ba1b062374c622d3bd61af0f1a8f0e981",
-      "record_anchor": "sha256:f76e6cb85789694942858270d64e655ba1b062374c622d3bd61af0f1a8f0e981",
+      "name": "bound to the Item the record carries",
+      "delta": "sha256:d807cca1e53ef2260d01a6405d2519d2967b437058320bc1b42113b894c8a006",
+      "record_item": "sha256:d807cca1e53ef2260d01a6405d2519d2967b437058320bc1b42113b894c8a006",
       "applies": true
     },
     {
-      "name": "bound to an earlier anchor",
-      "delta": "sha256:f76e6cb85789694942858270d64e655ba1b062374c622d3bd61af0f1a8f0e981",
-      "record_anchor": "sha256:68973e18899c563e7a0e12d0b55b19654e8be0ef355f9e5e921d91c277d2b467",
+      "name": "bound to an Item the record no longer carries",
+      "delta": "sha256:d807cca1e53ef2260d01a6405d2519d2967b437058320bc1b42113b894c8a006",
+      "record_item": "sha256:62e4871e28ad1d066c93a8d5c9afb09864d7dd3c43f637841eb6a36fe652dd8a",
       "applies": false
     },
     {
-      "name": "unbound applies to any anchor",
+      "name": "unbound applies to any Item of the record",
       "delta": null,
-      "record_anchor": "sha256:68973e18899c563e7a0e12d0b55b19654e8be0ef355f9e5e921d91c277d2b467",
+      "record_item": "sha256:62e4871e28ad1d066c93a8d5c9afb09864d7dd3c43f637841eb6a36fe652dd8a",
       "applies": true
     },
     {
       "name": "bound with no live record",
-      "delta": "sha256:f76e6cb85789694942858270d64e655ba1b062374c622d3bd61af0f1a8f0e981",
-      "record_anchor": null,
+      "delta": "sha256:d807cca1e53ef2260d01a6405d2519d2967b437058320bc1b42113b894c8a006",
+      "record_item": null,
       "applies": false
     },
     {
       "name": "unbound with no live record",
       "delta": null,
-      "record_anchor": null,
+      "record_item": null,
       "applies": false
     }
   ]

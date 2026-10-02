@@ -3,7 +3,7 @@
   "$id": "https://wistprotocol.org/schemas/status.schema.json",
   "title": "WIST Publisher Status (WIST-2 §7.1)",
   "type": "object",
-  "required": ["wist_version", "domain", "last_pull_at", "quota_remaining", "state", "rejections"],
+  "required": ["wist_version", "domain", "last_pull_at", "quota_remaining", "state", "collections", "rejections"],
   "additionalProperties": false,
   "properties": {
     "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
@@ -11,6 +11,33 @@
     "last_pull_at": {"type": ["string", "null"], "format": "date-time"},
     "quota_remaining": {"type": "integer", "minimum": 0},
     "state": {"enum": ["new", "active", "refused"]},
+    "collections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "latest", "accepted", "waiting"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?$(?![\\s\\S])"},
+          "latest": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The Catalog ID of the Collection's latest Catalog (WIST-3 §7)."},
+          "accepted": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The Catalog ID of the Collection's last accepted Catalog (WIST-3 §3.3)."},
+          "waiting": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "deferrals", "held"],
+              "additionalProperties": false,
+              "properties": {
+                "id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The Catalog ID of a waiting, held or queued Catalog, or the Item ID of a waiting or held Item."},
+                "url": {"type": "string", "pattern": "^https://[^#]*$", "description": "An Item's URL; absent for a Catalog."},
+                "deferrals": {"type": "array", "uniqueItems": true, "items": {"enum": ["recovery_window", "capacity", "catalog_waiting", "latest_fails_i4"]}, "description": "The deferrals of WIST-3 §3.3 that applied at the Aggregator's last sealed Epoch, in that section's order."},
+                "held": {"type": "boolean", "description": "True where no deferral applied and the hold of a Declaration that reduces authority kept it out of that Epoch (WIST-1 §5.2)."}
+              }
+            }
+          }
+        }
+      }
+    },
     "rejections": {
       "type": "array",
       "items": {
@@ -18,11 +45,18 @@
         "required": ["code", "at"],
         "additionalProperties": false,
         "properties": {
-          "code": {"type": "string", "pattern": "^WIST[1-4]-E[0-9]{2}$"},
+          "code": {"type": "string", "pattern": "^WIST[12]-E[0-9]{2}$"},
           "at": {"type": "string", "format": "date-time"},
-          "delta_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+          "id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The ID of the object the rejection concerns: a Declaration's sha256 over JCS(publisher), a Catalog ID, an Item ID, a Label ID or a Dispute ID; for WIST2-E08, the fetched Catalog's ID."},
+          "collection": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?$(?![\\s\\S])"},
+          "urls": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^https://[^#]*$"}, "description": "An Item's URL, or every record URL a list refused with WIST2-E07 fails to list (WIST-2 §5.1)."},
+          "condition": {"enum": ["fetch", "size", "form", "chain", "result"]},
+          "change_list": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The Catalog ID that names the change list at which a discarded chain's condition was met (WIST-2 §5.3)."},
           "detail": {"type": "string", "maxLength": 256}
-        }
+        },
+        "if": {"properties": {"code": {"const": "WIST2-E08"}}},
+        "then": {"required": ["id", "collection", "condition", "change_list"]},
+        "else": {"not": {"anyOf": [{"required": ["condition"]}, {"required": ["change_list"]}]}}
       }
     }
   }

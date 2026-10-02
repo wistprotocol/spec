@@ -29,7 +29,7 @@ _BROKEN_ESCAPE = re.compile(r"%(?![0-9A-Fa-f]{2})")
 _HOST_LDH = re.compile(r"[a-z0-9-]+(\.[a-z0-9-]+)*\Z")
 
 _CHAR_REF = re.compile(
-    r"&(amp|lt|gt|quot|apos);|&#(\d+);|&#[xX]([0-9A-Fa-f]+);", re.ASCII)
+    r"&(amp|lt|gt|quot|apos);|&#(\d+);|&#x([0-9A-Fa-f]+);", re.ASCII)
 _NAMED_REFS = {"amp": "&", "lt": "<", "gt": ">", "quot": '"', "apos": "'"}
 
 _RAWTEXT_TAGS = (b"script", b"style", b"textarea")
@@ -99,110 +99,90 @@ def _decode_entities(s: str):
 
 
 def _at_tag_boundary(low: bytes, pos: int) -> bool:
-    """True if `pos` is at whitespace, `/`, `>`, or past the end — the set
-    of octets WIST-2 §11 step 3 allows right after a tag name."""
     return pos >= len(low) or low[pos:pos + 1] in (b" ", b"\t", b"\n", b"\f", b"\r", b"/", b">")
 
 
-def _tag_end(html: bytes, pos: int) -> int:
-    """Index of the first unquoted `>` at/after `pos`, or len(html) if none.
-    Quote-aware, so a `>` inside a quoted attribute value does not end the
-    tag — used to find where a raw-text element's start tag closes."""
+_WHITESPACE = (b" ", b"\t", b"\n", b"\f", b"\r")
+
+
+def read_attributes(html: bytes, low: bytes, j: int):
     n = len(html)
-    j = pos
+    attributes = []
     while j < n:
         c = html[j:j + 1]
-        if c in (b'"', b"'"):
-            end_q = html.find(c, j + 1)
-            j = n if end_q == -1 else end_q + 1
-            continue
         if c == b">":
-            return j
-        j += 1
-    return n
+            return attributes, j + 1
+        if c in _WHITESPACE or c == b"/":
+            j += 1
+            continue
+        name_start = j
+        while j < n and html[j:j + 1] not in _WHITESPACE + (b"=", b">", b"/"):
+            j += 1
+        name = low[name_start:j]
+        while j < n and html[j:j + 1] in _WHITESPACE:
+            j += 1
+        value = b""
+        if j < n and html[j:j + 1] == b"=":
+            j += 1
+            while j < n and html[j:j + 1] in _WHITESPACE:
+                j += 1
+            if j < n and html[j:j + 1] in (b'"', b"'"):
+                end_q = html.find(html[j:j + 1], j + 1)
+                value, j = (html[j + 1:], n) if end_q == -1 else (html[j + 1:end_q], end_q + 1)
+            else:
+                value_start = j
+                while j < n and html[j:j + 1] not in _WHITESPACE + (b">",):
+                    j += 1
+                value = html[value_start:j]
+        attributes.append((name, value))
+    return attributes, n
+
+
+def first_attribute(attributes, name: bytes):
+    return next((value for attr, value in attributes if attr == name), None)
+
+
+def _raw_text_tag(low: bytes, i: int):
+    return next((t for t in _RAWTEXT_TAGS
+                 if low.startswith(b"<" + t, i) and _at_tag_boundary(low, i + 1 + len(t))), None)
+
+
+def _raw_text_close(html: bytes, low: bytes, i: int, tag: bytes) -> int:
+    _, start_tag_end = read_attributes(html, low, i + 1 + len(tag))
+    close = low.find(b"</" + tag, start_tag_end)
+    return len(html) if close == -1 else close
+
+
+def _comment_close(low: bytes, i: int) -> int:
+    end = low.find(b"-->", i + 4)
+    return len(low) if end == -1 else end + 3
 
 
 def _iter_hrefs(html: bytes):
-    """WIST-2 §11 steps 1-4: yield each `<a>` element's `href` value, in
-    document order, with character references already decoded.
-
-    Comments and raw-text element content (script/style/textarea) are
-    skipped whole, never scanned for `<a>` or nested comments. Attribute
-    parsing is quote-aware, so a `>` inside a quoted value cannot
-    truncate the tag, and only the first attribute named exactly `href`
-    counts — `data-href` is a different attribute. An element whose
-    `href` carries a non-scalar-value numeric character reference is
-    silently skipped (`_decode_entities` returning None) rather than
-    yielded or allowed to abort the scan.
-    """
     low = html.lower()
     n = len(html)
     i = 0
     while i < n:
         if low.startswith(b"<!--", i):
-            end = low.find(b"-->", i + 4)
-            i = n if end == -1 else end + 3
+            i = _comment_close(low, i)
             continue
-
-        raw_tag = next((t for t in _RAWTEXT_TAGS
-                        if low.startswith(b"<" + t, i)
-                        and _at_tag_boundary(low, i + 1 + len(t))), None)
+        raw_tag = _raw_text_tag(low, i)
         if raw_tag is not None:
-            open_end = _tag_end(html, i + 1 + len(raw_tag))
-            close = low.find(b"</" + raw_tag, open_end)
-            i = n if close == -1 else close
+            i = _raw_text_close(html, low, i, raw_tag)
             continue
-
         if low.startswith(b"<a", i) and _at_tag_boundary(low, i + 2):
-            j = i + 2
-            href_value = None
-            while j < n:
-                c = html[j:j + 1]
-                if c == b">":
-                    j += 1
-                    break
-                if c in (b" ", b"\t", b"\n", b"\f", b"\r", b"/"):
-                    j += 1
-                    continue
-                name_start = j
-                while j < n and html[j:j + 1] not in (
-                        b" ", b"\t", b"\n", b"\f", b"\r", b"=", b">", b"/"):
-                    j += 1
-                name = low[name_start:j]
-                while j < n and html[j:j + 1] in (b" ", b"\t", b"\n", b"\f", b"\r"):
-                    j += 1
-                value = None
-                if j < n and html[j:j + 1] == b"=":
-                    j += 1
-                    while j < n and html[j:j + 1] in (b" ", b"\t", b"\n", b"\f", b"\r"):
-                        j += 1
-                    if j < n and html[j:j + 1] in (b'"', b"'"):
-                        quote = html[j:j + 1]
-                        j += 1
-                        val_start = j
-                        end_q = html.find(quote, j)
-                        if end_q == -1:
-                            value, j = html[val_start:n], n
-                        else:
-                            value, j = html[val_start:end_q], end_q + 1
-                    else:
-                        val_start = j
-                        while j < n and html[j:j + 1] not in (
-                                b" ", b"\t", b"\n", b"\f", b"\r", b">"):
-                            j += 1
-                        value = html[val_start:j]
-                if name == b"href" and href_value is None:
-                    href_value = value if value is not None else b""
-            if href_value is not None:
-                decoded = _decode_entities(href_value.decode("utf-8", errors="replace"))
-                if decoded is not None:
-                    yield decoded
-                # else: a non-scalar-value numeric reference — this <a>
-                # element's href is discarded (per-candidate, WIST-2 §11
-                # step 4), never a reason to abort the rest of the scan.
-            i = j
+            attributes, i = read_attributes(html, low, i + 2)
+            href = first_attribute(attributes, b"href")
+            if href is None:
+                continue
+            try:
+                candidate = href.decode("utf-8")
+            except UnicodeDecodeError:
+                continue
+            decoded = _decode_entities(candidate)
+            if decoded is not None:
+                yield decoded
             continue
-
         i += 1
 
 
@@ -401,13 +381,6 @@ def links_member(urls, total, cap_bytes: int) -> dict:
 
 
 def _decode_text_entities(s: str) -> str:
-    """WIST-2 §12 step 3: the §11 step-4 repertoire, salvage-free.
-
-    Text is not a link candidate: there is nothing to discard fail-closed.
-    A reference that is malformed, over-long, or names a non-scalar code
-    point is left exactly as written — deterministic either way, and never
-    an exception.
-    """
     def repl(m):
         if m.group(1) is not None:
             return _NAMED_REFS[m.group(1)]
@@ -422,47 +395,44 @@ def _decode_text_entities(s: str) -> str:
     return _CHAR_REF.sub(repl, s)
 
 
-def extract_text(html: bytes) -> str:
-    """WIST-2 §12: whole-document text extraction over raw HTML octets.
-
-    Comments, raw-text element content (script/style/textarea) and tags
-    each contribute a single space; a `<` that opens none of these is
-    literal text. Octets decode as UTF-8 with U+FFFD replacement — the
-    declared charset is never consulted, so two Auditors cannot disagree
-    via charset sniffing. Character references decode per §11's pinned
-    repertoire; ASCII whitespace runs collapse to single spaces.
-    """
+def _without_comments_and_raw_text(html: bytes) -> bytes:
     low = html.lower()
     n = len(html)
-    out = []
+    out = bytearray()
     i = 0
     while i < n:
         if low.startswith(b"<!--", i):
-            end = low.find(b"-->", i + 4)
-            i = n if end == -1 else end + 3
-            out.append(b" ")
+            i = _comment_close(low, i)
+            out += b" "
             continue
-        raw_tag = next((t for t in _RAWTEXT_TAGS
-                        if low.startswith(b"<" + t, i)
-                        and _at_tag_boundary(low, i + 1 + len(t))), None)
+        raw_tag = _raw_text_tag(low, i)
         if raw_tag is not None:
-            start_end = _tag_end(html, i)
-            close = low.find(b"</" + raw_tag, start_end)
-            i = n if close == -1 else _tag_end(html, close) + 1
-            out.append(b" ")
+            i = _raw_text_close(html, low, i, raw_tag)
+            out += b" "
             continue
-        c = html[i:i + 1]
-        if c == b"<" and i + 1 < n and (
-                chr(low[i + 1]).isascii() and chr(low[i + 1]).isalpha()
-                or html[i + 1:i + 2] in (b"/", b"!", b"?")):
-            i = _tag_end(html, i) + 1
-            out.append(b" ")
+        out.append(html[i])
+        i += 1
+    return bytes(out)
+
+
+_TAG_OPENERS = frozenset(b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/!?")
+
+
+def extract_text(html: bytes) -> str:
+    source = _without_comments_and_raw_text(html)
+    low = source.lower()
+    n = len(source)
+    out = bytearray()
+    i = 0
+    while i < n:
+        if source[i] == 0x3C and i + 1 < n and source[i + 1] in _TAG_OPENERS:
+            _, i = read_attributes(source, low, i + 1)
+            out += b" "
             continue
-        nxt = html.find(b"<", i + 1) if c == b"<" else html.find(b"<", i)
-        if nxt == -1:
-            nxt = n
-        out.append(html[i:nxt])
-        i = nxt
-    text = b"".join(out).decode("utf-8", errors="replace")
+        out.append(source[i])
+        i += 1
+    # Python's "replace" handler substitutes one U+FFFD per maximal subpart
+    # (Unicode 16.0 §3.9), as WIST-2 §12 step 3 requires.
+    text = bytes(out).decode("utf-8", errors="replace")
     text = _decode_text_entities(text)
     return _ASCII_WHITESPACE_RUN.sub(" ", text).strip(" ")

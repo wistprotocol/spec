@@ -2,14 +2,33 @@
   "wist_version": "1.0.0",
   "domain": "example.com",
   "last_pull_at": "2026-08-02T12:05:00Z",
-  "quota_remaining": 1098,
-  "state": "new",
+  "quota_remaining": 998,
+  "state": "active",
+  "collections": [
+    {
+      "name": "default",
+      "latest": null,
+      "accepted": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "waiting": [
+        {
+          "id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "deferrals": [
+            "capacity"
+          ],
+          "held": false
+        }
+      ]
+    }
+  ],
   "rejections": [
     {
-      "code": "WIST1-E07",
+      "code": "WIST2-E08",
       "at": "2026-08-02T12:05:00Z",
-      "delta_id": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-      "detail": "prev chain violation"
+      "id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "collection": "default",
+      "condition": "fetch",
+      "change_list": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "detail": "the change list leading to the fetched Catalog could not be fetched"
     }
   ]
 }

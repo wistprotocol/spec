@@ -29,7 +29,7 @@ Publisher                 Aggregator                    Mirrors / Consumers
 | Doc | Title | Status |
 |-----|-------|--------|
 | [WIST-1](specs/WIST-1-item-format.md) | Item Format & Identity — Items, the signed Catalog of each Collection, JCS canonicalization, domain-anchored Ed25519 keys, Collections and their Scopes | v1.0.0-draft |
-| [WIST-2](specs/WIST-2-site-publication.md) | Site Publication — `.well-known` layout, feed, ping + pull, unsigned-hint compatibility | v1.0.0-draft |
+| [WIST-2](specs/WIST-2-site-publication.md) | Site Publication — `.well-known` layout, Collection files and change lists, the Label Feed, ping + pull, unsigned-hint compatibility | v1.0.0-draft |
 | [WIST-3](specs/WIST-3-logbook-distribution.md) | Logbook & Distribution — Epochs, Merkle proofs, checkpoints, snapshots and tiers, sync | v1.0.0-draft |
 | [WIST-4](specs/WIST-4-governance.md) | Governance & Parameters — governance acts, constitutional invariants, the Parameter Registry, the Label Registry | v1.0.0-draft |
 
@@ -41,9 +41,11 @@ schemas/     JSON Schema (draft 2020-12) for every normative object
 examples/    one validated example per object type
 vectors/     deterministic test vectors (WIST-1 Items, Catalogs,
              Collections, signatures and Declaration sequencing, WIST-2
-             link extraction, Labels, disputes and label definitions,
-             WIST-3 Merkle, snapshot records and label tables, WIST-4
-             parameter schedules, withdrawals and registrable domains)
+             Catalog order, tree walks, change lists, served files,
+             pulls, fetch bounds, link extraction, Labels, disputes and
+             label definitions, WIST-3 Merkle, snapshot records and label
+             tables, WIST-4 parameter schedules, withdrawals and
+             registrable domains)
 tools/       vector generator and validation harness
 decisions/   ADRs recording the load-bearing design decisions
 ```
@@ -130,6 +132,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0050](decisions/0050-emitted-publications.md) — A publication is emitted from the content's source, and `links` declares the links of the published content
 - [ADR-0051](decisions/0051-collections-scope-and-keys.md) — A Publisher's publications are divided into Collections, each with an enforced Scope and its own keys
 - [ADR-0052](decisions/0052-items-and-catalogs.md) — Publications are Items, and one signed Catalog per Collection commits to all of them (takes effect with the revision of WIST-1 to WIST-4 that states it)
+- [ADR-0053](decisions/0053-change-lists.md) — A change list carries the Items by which a Catalog differs from the one it replaced
 
 ## Licenses
 

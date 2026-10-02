@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 \u00a78 and \u00a75, ADR-0044. destinations classify one address, allowed only when the class is null; loopback_opt_in is the single-machine opt-in. resolutions decide a name from every address it resolves to. object_bounds are the octets an Aggregator reads at most, under the parameter map given. work_cases replay one fetch under the remaining daily budget and a per-pull limit: fetched debits the object, suspended debits the octets read up to the bound, failed is an object above its own bound. redirect_cases replay redirects and accepted Declarations in order for one requested Canonical Host. label_feed_cases decide whether a pull reaches the Label Feed after its Feed walk and whether it ends suspended: budget_remaining counts whole Label Feed pages the budget still covers, label_feed_pages the pages the walk would read.",
+  "note": "WIST-2 \u00a78 and \u00a75, ADR-0044. destinations classify one address, allowed only when the class is null; loopback_opt_in is the single-machine opt-in. resolutions decide a name from every address it resolves to. object_bounds are the octets an Aggregator reads at most, under the parameter map given. work_cases replay one fetch under the remaining daily budget and a per-pull limit, the bound met first deciding: where the lesser of the two is smaller than the object's own bound plus one octet, an object of more octets is suspended and debits that allowance; otherwise an object above its own bound is failed and debits nothing; fetched debits the object. redirect_cases replay redirects and accepted Declarations in order for one requested Canonical Host. label_feed_cases decide whether a pull reaches the Label Feed once the pull of every Collection has ended, whatever their outcomes (accepted, idempotent, refused, fetch_failed, or suspended, which suspends the pull), and whether it ends suspended: declaration is accepted or stopped, budget_remaining counts whole Label Feed pages the budget still covers, label_feed_pages the pages the walk would read. resolution_cases resolve a pull under section 5.4 from what it did: declaration is discovered, accepted (fetched and accepted, discovering nothing), stopped or stopped_first_contact; each Collection gives its catalog outcome, the chain where one was discarded, the codes it records and the Items it admitted; labels_admitted counts Labels and disputes admitted; suspended states that the pull suspended. resolution is WIST2-E02 for a pull that discovers no Declaration, accepts no Catalog and admits no Item, Label or dispute, unless it stopped at its Declaration (WIST2-E01, or WIST2-E04 at first contact) or suspended; noise is true for WIST2-E02 and WIST2-E04 alone.",
   "destinations": [
     {
       "label": "public IPv4",
@@ -305,8 +305,30 @@
       "bound": 1048576
     },
     {
-      "label": "feed under the defaults",
-      "object": "feed",
+      "label": "catalog under the defaults",
+      "object": "catalog",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "summary_cap_bytes": 2048
+      },
+      "bound": 16384
+    },
+    {
+      "label": "change_list under the defaults",
+      "object": "change_list",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "summary_cap_bytes": 2048
+      },
+      "bound": 1048576
+    },
+    {
+      "label": "label_feed under the defaults",
+      "object": "label_feed",
       "parameters": {
         "url_cap_bytes": 2048,
         "extract_cap_bytes": 32768,
@@ -338,8 +360,8 @@
       "bound": 1048576
     },
     {
-      "label": "delta under the defaults",
-      "object": "delta",
+      "label": "label under the defaults",
+      "object": "label",
       "parameters": {
         "url_cap_bytes": 2048,
         "extract_cap_bytes": 32768,
@@ -349,8 +371,8 @@
       "bound": 20480
     },
     {
-      "label": "label under the defaults",
-      "object": "label",
+      "label": "dispute under the defaults",
+      "object": "dispute",
       "parameters": {
         "url_cap_bytes": 2048,
         "extract_cap_bytes": 32768,
@@ -382,8 +404,30 @@
       "bound": 1048576
     },
     {
-      "label": "feed under the amended",
-      "object": "feed",
+      "label": "catalog under the amended",
+      "object": "catalog",
+      "parameters": {
+        "url_cap_bytes": 4096,
+        "extract_cap_bytes": 65536,
+        "links_cap_bytes": 8192,
+        "summary_cap_bytes": 4096
+      },
+      "bound": 16384
+    },
+    {
+      "label": "change_list under the amended",
+      "object": "change_list",
+      "parameters": {
+        "url_cap_bytes": 4096,
+        "extract_cap_bytes": 65536,
+        "links_cap_bytes": 8192,
+        "summary_cap_bytes": 4096
+      },
+      "bound": 1048576
+    },
+    {
+      "label": "label_feed under the amended",
+      "object": "label_feed",
       "parameters": {
         "url_cap_bytes": 4096,
         "extract_cap_bytes": 65536,
@@ -415,8 +459,8 @@
       "bound": 1048576
     },
     {
-      "label": "delta under the amended",
-      "object": "delta",
+      "label": "label under the amended",
+      "object": "label",
       "parameters": {
         "url_cap_bytes": 4096,
         "extract_cap_bytes": 65536,
@@ -426,8 +470,8 @@
       "bound": 24576
     },
     {
-      "label": "label under the amended",
-      "object": "label",
+      "label": "dispute under the amended",
+      "object": "dispute",
       "parameters": {
         "url_cap_bytes": 4096,
         "extract_cap_bytes": 65536,
@@ -528,6 +572,36 @@
       "object_bytes": 30000,
       "outcome": "suspended",
       "debited": 5000
+    },
+    {
+      "label": "above its own bound under a remaining budget equal to it",
+      "object_bound": 20480,
+      "budget_remaining": 20480,
+      "work_bytes_remaining": 50000,
+      "work_objects_remaining": 5,
+      "object_bytes": 30000,
+      "outcome": "suspended",
+      "debited": 20480
+    },
+    {
+      "label": "above its own bound under a remaining budget one octet above it",
+      "object_bound": 20480,
+      "budget_remaining": 20481,
+      "work_bytes_remaining": 50000,
+      "work_objects_remaining": 5,
+      "object_bytes": 30000,
+      "outcome": "failed",
+      "debited": 0
+    },
+    {
+      "label": "above its own bound under a per pull octet limit equal to it",
+      "object_bound": 20480,
+      "budget_remaining": 100000,
+      "work_bytes_remaining": 20480,
+      "work_objects_remaining": 5,
+      "object_bytes": 30000,
+      "outcome": "suspended",
+      "debited": 20480
     }
   ],
   "redirect_cases": [
@@ -536,11 +610,11 @@
       "requested_host": "example.com",
       "steps": [
         {
-          "redirect_to": "https://www.example.com/.well-known/wist/feed.json",
+          "redirect_to": "https://www.example.com/.well-known/wist/collections/default/catalog.json",
           "allowed": false
         },
         {
-          "redirect_to": "https://example.com/feed-moved.json",
+          "redirect_to": "https://example.com/catalog-moved.json",
           "allowed": true
         },
         {
@@ -552,11 +626,11 @@
           }
         },
         {
-          "redirect_to": "https://www.example.com/.well-known/wist/feed.json",
+          "redirect_to": "https://www.example.com/.well-known/wist/collections/default/catalog.json",
           "allowed": true
         },
         {
-          "redirect_to": "https://cdn.example.com/.well-known/wist/feed.json",
+          "redirect_to": "https://cdn.example.com/.well-known/wist/collections/default/catalog.json",
           "allowed": false
         },
         {
@@ -568,15 +642,15 @@
           }
         },
         {
-          "redirect_to": "https://www.example.com/.well-known/wist/feed.json",
+          "redirect_to": "https://www.example.com/.well-known/wist/collections/default/catalog.json",
           "allowed": false
         },
         {
-          "redirect_to": "https://cdn.example.com/.well-known/wist/feed.json",
+          "redirect_to": "https://cdn.example.com/.well-known/wist/collections/default/catalog.json",
           "allowed": true
         },
         {
-          "redirect_to": "http://cdn.example.com/.well-known/wist/feed.json",
+          "redirect_to": "http://cdn.example.com/.well-known/wist/collections/default/catalog.json",
           "allowed": false
         },
         {
@@ -588,44 +662,395 @@
   ],
   "label_feed_cases": [
     {
-      "label": "Feed pull failed",
-      "feed_walk": "failed",
+      "label": "pull stopped at its Declaration",
+      "declaration": "stopped",
+      "collections": [],
       "budget_remaining": 100000,
       "label_feed_pages": 1,
       "label_feed_pulled": false,
       "suspended": false
     },
     {
-      "label": "Feed walk suspended",
-      "feed_walk": "suspended",
+      "label": "a Collection pull suspended",
+      "declaration": "accepted",
+      "collections": [
+        "accepted",
+        "suspended"
+      ],
       "budget_remaining": 0,
       "label_feed_pages": 1,
       "label_feed_pulled": false,
       "suspended": true
     },
     {
-      "label": "Feed walk completed and budget spent",
-      "feed_walk": "completed",
+      "label": "every Collection pull ended and the budget spent",
+      "declaration": "accepted",
+      "collections": [
+        "accepted"
+      ],
       "budget_remaining": 0,
       "label_feed_pages": 1,
       "label_feed_pulled": false,
       "suspended": false
     },
     {
-      "label": "Feed walk completed and the budget covers the live Label Feed only",
-      "feed_walk": "completed",
+      "label": "a refused Catalog and an unfetched one",
+      "declaration": "accepted",
+      "collections": [
+        "refused",
+        "fetch_failed"
+      ],
+      "budget_remaining": 100000,
+      "label_feed_pages": 1,
+      "label_feed_pulled": true,
+      "suspended": false
+    },
+    {
+      "label": "every Catalog refused",
+      "declaration": "accepted",
+      "collections": [
+        "refused",
+        "refused"
+      ],
+      "budget_remaining": 100000,
+      "label_feed_pages": 1,
+      "label_feed_pulled": true,
+      "suspended": false
+    },
+    {
+      "label": "every Collection pull ended and the budget covers the live Label Feed only",
+      "declaration": "accepted",
+      "collections": [
+        "accepted"
+      ],
       "budget_remaining": 1,
       "label_feed_pages": 2,
       "label_feed_pulled": true,
       "suspended": true
     },
     {
-      "label": "Feed walk completed and the budget covers every Page",
-      "feed_walk": "completed",
+      "label": "every Collection pull ended and the budget covers every Page",
+      "declaration": "accepted",
+      "collections": [
+        "idempotent"
+      ],
       "budget_remaining": 100000,
       "label_feed_pages": 2,
       "label_feed_pulled": true,
       "suspended": false
+    }
+  ],
+  "resolution_cases": [
+    {
+      "label": "a discarded chain followed by a refused walk",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "refused",
+          "chain": "discarded",
+          "codes": [
+            "WIST2-E08",
+            "WIST2-E07"
+          ]
+        }
+      ],
+      "labels_admitted": 0,
+      "suspended": false,
+      "codes_recorded": [
+        "WIST2-E08",
+        "WIST2-E07"
+      ],
+      "resolution": "WIST2-E02",
+      "noise": true
+    },
+    {
+      "label": "a discarded chain followed by a refused walk, a Declaration discovered",
+      "declaration": "discovered",
+      "collections": [
+        {
+          "catalog": "refused",
+          "chain": "discarded",
+          "codes": [
+            "WIST2-E08",
+            "WIST2-E07"
+          ]
+        }
+      ],
+      "labels_admitted": 0,
+      "suspended": false,
+      "codes_recorded": [
+        "WIST2-E08",
+        "WIST2-E07"
+      ],
+      "resolution": null,
+      "noise": false
+    },
+    {
+      "label": "a discarded chain followed by a refused walk, another Catalog accepted",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "refused",
+          "chain": "discarded",
+          "codes": [
+            "WIST2-E08",
+            "WIST2-E07"
+          ]
+        },
+        {
+          "catalog": "accepted",
+          "items_admitted": 1
+        }
+      ],
+      "labels_admitted": 0,
+      "suspended": false,
+      "codes_recorded": [
+        "WIST2-E08",
+        "WIST2-E07"
+      ],
+      "resolution": null,
+      "noise": false
+    },
+    {
+      "label": "a discarded chain followed by a refused walk, a Label admitted",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "refused",
+          "chain": "discarded",
+          "codes": [
+            "WIST2-E08",
+            "WIST2-E07"
+          ]
+        }
+      ],
+      "labels_admitted": 1,
+      "suspended": false,
+      "codes_recorded": [
+        "WIST2-E08",
+        "WIST2-E07"
+      ],
+      "resolution": null,
+      "noise": false
+    },
+    {
+      "label": "Labels or disputes admitted alone",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "idempotent",
+          "items_admitted": 0
+        }
+      ],
+      "labels_admitted": 2,
+      "suspended": false,
+      "codes_recorded": [],
+      "resolution": null,
+      "noise": false
+    },
+    {
+      "label": "an idempotent re serve admitting nothing",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "idempotent",
+          "items_admitted": 0
+        }
+      ],
+      "labels_admitted": 0,
+      "suspended": false,
+      "codes_recorded": [],
+      "resolution": "WIST2-E02",
+      "noise": true
+    },
+    {
+      "label": "an idempotent re serve admitting an Item",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "idempotent",
+          "items_admitted": 1
+        }
+      ],
+      "labels_admitted": 0,
+      "suspended": false,
+      "codes_recorded": [],
+      "resolution": null,
+      "noise": false
+    },
+    {
+      "label": "a catalog.json that cannot be fetched",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "fetch_failed",
+          "codes": [
+            "WIST2-E01"
+          ]
+        }
+      ],
+      "labels_admitted": 0,
+      "suspended": false,
+      "codes_recorded": [
+        "WIST2-E01"
+      ],
+      "resolution": "WIST2-E02",
+      "noise": true
+    },
+    {
+      "label": "a catalog.json that cannot be fetched, another Catalog accepted",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "fetch_failed",
+          "codes": [
+            "WIST2-E01"
+          ]
+        },
+        {
+          "catalog": "accepted",
+          "items_admitted": 1
+        }
+      ],
+      "labels_admitted": 0,
+      "suspended": false,
+      "codes_recorded": [
+        "WIST2-E01"
+      ],
+      "resolution": null,
+      "noise": false
+    },
+    {
+      "label": "a Catalog refused with WIST2 E04 alone",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "refused",
+          "codes": [
+            "WIST2-E04"
+          ]
+        }
+      ],
+      "labels_admitted": 0,
+      "suspended": false,
+      "codes_recorded": [
+        "WIST2-E04"
+      ],
+      "resolution": "WIST2-E02",
+      "noise": true
+    },
+    {
+      "label": "a Catalog refused with WIST2 E04, another Catalog accepted",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "refused",
+          "codes": [
+            "WIST2-E04"
+          ]
+        },
+        {
+          "catalog": "accepted",
+          "items_admitted": 1
+        }
+      ],
+      "labels_admitted": 0,
+      "suspended": false,
+      "codes_recorded": [
+        "WIST2-E04"
+      ],
+      "resolution": null,
+      "noise": false
+    },
+    {
+      "label": "a Catalog refused with WIST2 E05 alone",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "refused",
+          "codes": [
+            "WIST2-E05"
+          ]
+        }
+      ],
+      "labels_admitted": 0,
+      "suspended": false,
+      "codes_recorded": [
+        "WIST2-E05"
+      ],
+      "resolution": "WIST2-E02",
+      "noise": true
+    },
+    {
+      "label": "a Catalog refused with WIST2 E05, a Label admitted",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "refused",
+          "codes": [
+            "WIST2-E05"
+          ]
+        }
+      ],
+      "labels_admitted": 1,
+      "suspended": false,
+      "codes_recorded": [
+        "WIST2-E05"
+      ],
+      "resolution": null,
+      "noise": false
+    },
+    {
+      "label": "a pull that suspends before accepting or admitting anything",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "suspended"
+        }
+      ],
+      "labels_admitted": 0,
+      "suspended": true,
+      "codes_recorded": [],
+      "resolution": null,
+      "noise": false
+    },
+    {
+      "label": "a pull that suspends after accepting a Catalog",
+      "declaration": "accepted",
+      "collections": [
+        {
+          "catalog": "accepted",
+          "items_admitted": 1
+        },
+        {
+          "catalog": "suspended"
+        }
+      ],
+      "labels_admitted": 0,
+      "suspended": true,
+      "codes_recorded": [],
+      "resolution": null,
+      "noise": false
+    },
+    {
+      "label": "a pull stopped at its Declaration outside first contact",
+      "declaration": "stopped",
+      "collections": [],
+      "labels_admitted": 0,
+      "suspended": false,
+      "codes_recorded": [],
+      "resolution": "WIST2-E01",
+      "noise": false
+    },
+    {
+      "label": "a first contact pull stopped at its Declaration",
+      "declaration": "stopped_first_contact",
+      "collections": [],
+      "labels_admitted": 0,
+      "suspended": false,
+      "codes_recorded": [],
+      "resolution": "WIST2-E04",
+      "noise": true
     }
   ]
 }

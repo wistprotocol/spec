@@ -3,7 +3,7 @@ import items
 REPLACED_FILE_SECONDS = 86400
 
 
-def must_serve(served, stop, clock):
+def must_serve(served, stop, clock, withdrawn=()):
     if not served:
         return []
     instants = [items.instant(catalog["served_at"]) for catalog in served]
@@ -16,4 +16,6 @@ def must_serve(served, stop, clock):
         last = max(i for i, catalog in enumerate(served) if name in catalog["files"])
         if now < instants[last + 1] + REPLACED_FILE_SECONDS:
             out.add(name)
+    erased = {"payloads/" + item_id[len("sha256:"):] + ".json" for item_id in withdrawn}
+    out = {name for name in out if not any(name.endswith("/" + path) for path in erased)}
     return sorted(out - set(stop), key=str.encode)

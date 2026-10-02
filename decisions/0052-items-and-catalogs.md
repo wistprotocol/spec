@@ -52,7 +52,7 @@ read as of kind `removed`.
 
 | Kind | Members |
 |---|---|
-| `page` | `publisher`, `url`, `observed_at`, `payload` and `meta`, in the forms WIST-1 §3.8, §3.2, §3.4, §3.6 and §3.7 give a Delta's |
+| `page` | `publisher`, `url`, `observed_at`, `payload` and `meta`, in the forms WIST-1 §3.8, §3.2, §3.4, §3.6 and §3.7 give them |
 | `removed` | `publisher`, `url` and `observed_at` in the same forms, and `removed`, the value `true` |
 
 | Value | Definition |
@@ -82,10 +82,11 @@ in the root, and the other Items proceed.
 | `WIST2-E03` | A `publisher` other than the Catalog's |
 
 The `WIST1-E14` conditions are checked first, with the exceptions
-WIST-1 §7 gives a Delta's `url` and `payload.bytes`; among the other
+WIST-1 §7 gives an Item's `url` and `payload.bytes`; among the other
 conditions WIST-1 §7 leaves the choice of diagnostic. `url_cap_bytes`
 and the three caps behind the derived one are read at the instant
-WIST-1 §3.6's size-cap parameter time gives a Delta. `url_cap_bytes`
+WIST-1 §3.6's size-cap parameter time gives the admission of a Catalog
+and the Items of its list. `url_cap_bytes`
 is amended to no value above 32 768, so the `publisher_item` Entry of
 an Item within the `JCS(item)` bound, its proof included, stays below
 the 65 535 octets WIST-3 §3.3 allows an Entry.
@@ -145,7 +146,7 @@ Collection alone. WIST-5 assigns the codes.
 
 A **Catalog** is an Envelope (WIST-1 §4), `{"catalog": …, "sig": …}`,
 stating the complete Item set of one Collection (ADR-0051) at one
-instant. `sig` has the form of a Delta Envelope's. The inner object
+instant. `sig` has the form WIST-1 §4 gives. The inner object
 carries exactly these members.
 
 | Member | Form |
@@ -162,11 +163,11 @@ The Catalog ID is `"sha256:" + hex(SHA-256(JCS(catalog)))`.
 
 A Collection's Catalogs are ordered by `generated_at`, and a Catalog
 replaces another only with a later instant. `generated_at` is bound
-above by the clock rule WIST-1 §3.4 gives `observed_at`, with the
-clock and the parameter time that section selects for a Delta at the
-same stage, so no signer places a Catalog further ahead than
-`clock_skew_seconds`. The binding check of WIST-1 §5.1 reads
-`generated_at` where it reads a Delta's `observed_at`, over the
+above by the clock rule of WIST-1 §3.4, with the clock and the
+parameter time that section selects for a Catalog at each stage, so no
+signer places a Catalog further ahead than `clock_skew_seconds`. The
+binding check of WIST-1 §5.1 reads `generated_at` against each binding's
+window, over the
 candidates ADR-0051 collects for the Collection the Catalog names,
 from the Declaration history of exactly `publisher` (WIST-1 §3.8): a
 Catalog judged under a Declaration of another `domain` has no
@@ -294,7 +295,7 @@ one tree file, a bucket with no Items.
 `catalog_items_max`, `tree_file_cap_bytes` and `tree_depth_max` are not
 amended below the values above, to which a Publisher builds (Catalogs),
 and are read at the instant WIST-1 §3.6's size-cap parameter time gives
-a Delta. `removal_retention_days` is 180 in every Log: no Log amends it
+the admission of a Catalog and the Items of its list. `removal_retention_days` is 180 in every Log: no Log amends it
 and no parameter map carries it, as none does `replaced_file_seconds`,
 so a pull and an Epoch read the same value. `catalog_refresh_seconds` is
 amended to no value below 1 and none above 7 776 000, 90 days: a
@@ -305,9 +306,9 @@ parameter map in force at the Epoch that judges the Catalog (Sealing).
 
 An Aggregator reads at most 16 384 octets of `catalog.json`; a larger
 answer is a failed fetch of the Catalog, as WIST-2 §8 has an object
-above its bound, and is retried as WIST-2 §7 retries a Feed that
-cannot be fetched (`WIST2-E01`). Fetching `catalog.json` counts
-against the ingest budget of WIST-2 §5 as fetching a Feed page does.
+above its bound, and is `WIST2-E01`, retried on the backoff of WIST-2
+§7. Fetching `catalog.json` counts against the ingest budget of WIST-2
+§5.2 as fetching any other file of a pull does.
 The octets of `catalog.json` need only be valid JCS input
 (`WIST1-E05`) and not the JCS serialization, since the Entry carries
 the Envelope they parse to.
@@ -363,7 +364,7 @@ or when its Payload verifies. For an Item of kind `page` that is not
 the record's, the Aggregator fetches the Payload, unless it holds one
 under that Item ID, and verifies it, held or fetched, by WIST-1 §7's
 Payload checks against the Item's `payload`, under the parameter map
-WIST-1 §3.6 selects for a Delta's Payload at admission. Before sealing
+WIST-1 §3.6 selects for the Payloads of a Catalog's Items at admission. Before sealing
 an Item of kind `page`, however it was admitted, the Item of its URL's
 record that waits under a base included, the Aggregator checks its
 Payload under the map in force at the candidate Epoch's `sealed_at`,
@@ -385,9 +386,15 @@ that is not admitted, those refused or no longer admitted at their
 turn included, and fetches again the Payload it does not hold of every
 such Item that no withdrawal names. An idempotent re-serve replaces no
 Catalog, fetches no tree file the Aggregator holds and gives no
-waiting Item another place (Sealing). A pull that accepts no
-Declaration and no Catalog and admits no Item resolves to `WIST2-E02`
-(WIST-2 §4).
+waiting Item another place (Sealing). A pull at which no Declaration
+is discovered, no Catalog is accepted and no Item, Label or dispute is
+admitted resolves to `WIST2-E02` (WIST-2 §4, §5.4), unless it stopped at
+its Declaration outside first contact (`WIST2-E01`) or suspended under
+the ingest budget or a per-pull limit; a first-contact pull stopped at
+its Declaration is `WIST2-E04`, which is noise. A suspended pull is not
+noise because the Aggregator's own allowance, not the Publisher's
+conduct, ended it; the pull that completes the suspended work is judged
+by the same rule.
 
 ### Proofs
 

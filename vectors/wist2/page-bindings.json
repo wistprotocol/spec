@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 \u00a73.2 named-entry verification over signed ordinary Declaration chains. Sealing positions are supplied inputs, without Epoch inclusion or recovery proofs. Empty Delta lists isolate signature/source selection; these are not publication or Page-size fixtures. Future nbf values distinguish Pages from Delta filtering.",
+  "note": "WIST-2 \u00a73.2 named-entry verification over signed ordinary Declaration chains. Sealing positions are supplied inputs, without Epoch inclusion or recovery proofs. Empty ID lists isolate signature/source selection; these are not publication or Page-size fixtures. Every binding's nbf lies after every generated_at: the nbf/exp window of the binding check, which a Label or Catalog meets, does not apply to a Page.",
   "histories": {
     "rotated": [
       {
