@@ -403,27 +403,27 @@ def body_member(entry, outer, member):
 
 
 def epoch_rejections(entries, parameters):
-    seen, counts = set(), {}
+    seen, counts, met = set(), {}, set()
     for named in entries:
         entry = named["entry"]
         if len(jcs(entry)) > ENTRY_OCTETS_MAX:
-            raise EpochRejected(EPOCH_REJECTED, f"Entry {named['name']} above {ENTRY_OCTETS_MAX} octets")
+            met.add(EPOCH_REJECTED)
         if entry["type"] == "publisher_catalog":
             pair = (body_member(entry, "catalog", "publisher"), body_member(entry, "catalog", "collection"))
             if all(isinstance(value, str) for value in pair):
                 if pair in seen:
-                    raise EpochRejected(EPOCH_REJECTED, f"two publisher_catalog Entries of {pair}")
+                    met.add(EPOCH_REJECTED)
                 seen.add(pair)
         if entry["type"] in ("publisher_catalog", "publisher_item"):
             host = body_member(entry, "catalog" if entry["type"] == "publisher_catalog" else "item", "publisher")
             if isinstance(host, str) and canonical_host(host):
                 counts[host] = counts.get(host, 0) + 1
-    for host, count in counts.items():
-        if count > parameters["domain_epoch_entries_max"]:
-            raise EpochRejected(EPOCH_REJECTED, f"{count} Entries of {host} above the per-domain capacity")
+    if any(count > parameters["domain_epoch_entries_max"] for count in counts.values()):
+        met.add(EPOCH_REJECTED)
+    return met
 
 
-def check_order(entries):
+def in_canonical_order(entries):
     ranks = []
     for named in entries:
         members_read(named, NAMED_ENTRY_MEMBERS, f"Entry {named.get('name')!r}")
@@ -432,8 +432,7 @@ def check_order(entries):
         if entry["type"] not in SUPPORTED_TYPES:
             raise VerifierError(f"Entry type {entry['type']!r} is outside this fixture's scope")
         ranks.append((GROUP_ORDER.index(entry["type"]), leaf_hash(entry)))
-    if ranks != sorted(ranks):
-        raise VerifierError("Entries are not in canonical order")
+    return ranks == sorted(ranks)
 
 
 def duties(log, sealed_at):
@@ -455,17 +454,20 @@ def duties(log, sealed_at):
 def apply_epoch(log, epoch):
     height, sealed_at, parameters = epoch["height"], log_seconds(epoch["sealed_at"]), epoch["parameters"]
     entries = epoch["entries"]
-    check_order(entries)
+    met = set() if in_canonical_order(entries) else {EPOCH_REJECTED}
+    met |= epoch_rejections(entries, parameters)
     before = copy.deepcopy(log)
     removed, verdicts = [], {}
+    declarations = [e for e in entries if e["entry"]["type"] == "publisher_declaration"]
     try:
-        epoch_rejections(entries, parameters)
-        apply_declarations(log, [e for e in entries if e["entry"]["type"] == "publisher_declaration"],
+        apply_declarations(log, sorted(declarations, key=lambda e: leaf_hash(e["entry"])),
                            height, sealed_at, parameters, removed)
     except EpochRejected as rejection:
+        met.add(rejection.code)
+    if met:
         log.clear()
         log.update(before)
-        return {"height": height, "status": "rejected", "code": rejection.code}
+        return {"height": height, "status": "rejected", "codes": sorted(met)}
     judges = {
         "publisher_catalog": lambda b: judge_catalog_entry(log, b, height, sealed_at, parameters, removed),
         "publisher_item": lambda b: judge_item_entry(log, b, height, sealed_at, parameters, removed),
@@ -634,7 +636,7 @@ def family_multilog(data, report):
             for entry in c["logs"]:
                 members_read(entry, LOG_MEMBERS, f"{c['name']} Log {entry.get('name')!r}")
                 log, produced = replay(entry["epochs"], data["keys"]["log"])
-                results = [{k: v for k, v in result.items() if k in ("height", "status", "code", "entries")}
+                results = [{k: v for k, v in result.items() if k in ("height", "status", "codes", "entries")}
                            for result in produced]
                 compare_epochs(report, f"{c['name']} Log {entry['name']}", entry["results"], results)
                 states[entry["name"]] = log_state(log, c["publisher"], c["url"])

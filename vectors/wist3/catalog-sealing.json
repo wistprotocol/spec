@@ -1,5 +1,5 @@
 {
-  "note": "ADR-0052 Sealing: State and Judgment, the base (An Aggregator that was away), the recovery window as C2 and I2 read it, withdrawn Payloads as I7 reads them and the serving duty of a record's Payload (What a record carries), replayed from sealed Entries. Each history replays `epochs` in order. An Epoch is simplified to its height, sealed_at, the parameter map in force at it (`parameters`, complete) and its Entries, each {type, body} with a `name` beside it; there are no Checkpoints and no Merkle tree of the Log. Entries are listed in canonical order (WIST-3 section 3.3: grouped publisher_declaration, registry_update, publisher_catalog, publisher_item, then by ascending SHA-256(0x00 || JCS(entry))), and the Entry index is the position in that list. Declarations apply as vectors/wist1/collection-narrowing.json applies them (WIST-1 section 5.2 and ADR-0051's narrowing), then registry_update Entries, then publisher_catalog and then publisher_item Entries in ascending Entry index. The only registry_update carried is a payload_withdrawal (WIST-3 section 6.2, WIST-4 section 5.1) whose details.delta_id is an Item ID, signed by the test-only Log key, which the replay does not authenticate. Its details contract (WIST-4 section 5.1) is judged once the Epoch's Items have applied: delta_id names an Item of kind page, since no other has a Payload, that a valid publisher_item Entry sealed at or below the act's Epoch against a Catalog whose publisher is the act's subject; an act that breaks it is ignored (`failed` [contract], WIST4-E04) and blocks nothing. I7 reads the delta_id of each act that meets it, and the earliest such act of an Item ID gives the height every rule reads; `entries` gives each registry_update its disposition beside those of the Catalogs and Items. Each Catalog is judged by C1 to C4 and each Item by I1 to I7 with the Epoch's sealed_at as the clock, the Epoch's parameter map, and the Declaration in force once the Epoch's transitions have applied. The Publisher of a Catalog Entry is catalog.publisher and that of an Item Entry the named Catalog's publisher, whatever item.publisher spells: I2, I4, I5 and I7 read that Publisher's window, Declaration and records. A Catalog of a Publisher with no Declaration in force fails C1 with WIST1-E02. C2 to C4 are read only for a Catalog of the form C1 requires, and I2 and I4 to I7 only where I1 and I3 hold; `failed` lists every condition read that fails. Two publisher_catalog Entries with the same strings as publisher and collection reject the Epoch; an Entry in which either is not a string is compared with none. I7 fails for an Item of kind page that is its URL's record's Item or whose Item ID a withdrawal sealed in an Epoch below the Item's names, and for an Item of kind removed without a record; the record is that of the Publisher and URL whatever Collection it carries, and no history reaches a record of another Collection, since disjoint Scopes and narrowing leave none that an Item passing I5 could meet. A valid Catalog whose name has a floor and whose generated_at is more than removal_retention_days, the constant 180, times 86 400 seconds after it is a base and removes every record of its Publisher in its Collection before the Epoch's Items apply; no parameter map carries removal_retention_days, catalog_refresh_seconds is from 1 to 7 776 000 and url_cap_bytes at most 32 768 in every map; `parameter_cases` gives maps and whether a replay accepts or refuses them. `expected` gives per Epoch `status` (`accepted`, or `rejected` with `code` WIST3-E03, the state then unchanged); for an accepted Epoch, per publisher_catalog and publisher_item Entry its `disposition` (`valid`, or `ignored` with the conditions `failed` and the `codes` among which WIST-1 section 7 leaves the choice), `records_removed` in the order removed with the cause (`narrowing`, `base`, `removed_item`), and `state` after the Epoch: per Publisher the current Declaration, pending head and open window end; per Publisher and Collection name the latest Catalog's ID, the floor, its sealing height and whether it applied as a base; per Publisher and URL the record (the Item, its Collection, and the Catalog ID and generated_at of the Catalog proved against) and the removal states a valid removed Item left (that Item's ID, Catalog ID and generated_at), which a record removed by narrowing or a base does not leave; lists in ascending octet order of publisher, then collection or url. Histories that carry `payload_duties` give after each Epoch every Payload the Aggregator must serve (WIST-3 section 6.1): per Item of kind page, with its publisher and url, `until` null while the Item is its URL's record, and otherwise the latest end of an availability window (payload_window_days of 86 400 seconds, read from the map of the Epoch that sealed the Item, counted from that Epoch's sealed_at) among the Epochs that sealed it; the Epoch at which an Item, narrowing or a base replaced or removed the record gives no window, and a duty is listed while the Epoch's sealed_at is earlier than `until`; it is null again while the Item is the record again, and a withdrawal ends it for good; ordered by publisher, url, then Item ID. Every ignored Entry or rejected Epoch fails one rule beside a twin that passes it, except where a rule cannot fail alone: a Catalog sealed again fails C3 and C4, and an Item of a Collection the Declaration no longer names fails I4 and I5. The per-domain capacity counts publisher_catalog and publisher_item Entries, valid or ignored, per Canonical Host, since no Public Suffix List snapshot is in force, and a body whose publisher is not a Canonical Host counts toward none; no fixture carries label or dispute Entries or a registry_update other than a payload_withdrawal, and recovery_window_days and declaration_activation_epochs are constant within a history. Payloads, tree files and the rules of Waiting, the queue and settlement are not exercised. Keys derive from the stated test-only seeds. `payloads` maps the Item ID of every Item of kind page the file carries to the Payload its `payload` commits to ({wist_version, salt, content}, WIST-1 section 3.6); they are carried so the commitments can be recomputed, and the replay reads none of them.",
+  "note": "ADR-0052 Sealing: State and Judgment, the base (An Aggregator that was away), the recovery window as C2 and I2 read it, withdrawn Payloads as I7 reads them and the serving duty of a record's Payload (What a record carries), replayed from sealed Entries. Each history replays `epochs` in order. An Epoch is simplified to its height, sealed_at, the parameter map in force at it (`parameters`, complete) and its Entries, each {type, body} with a `name` beside it; there are no Checkpoints and no Merkle tree of the Log. Entries are listed in the order the Epoch stores them, and the Entry index is the position in that list; an Epoch not in canonical order (WIST-3 section 3.3: grouped publisher_declaration, registry_update, publisher_catalog, publisher_item, then by ascending SHA-256(0x00 || JCS(entry))) is rejected. Declarations apply as vectors/wist1/collection-narrowing.json applies them (WIST-1 section 5.2 and ADR-0051's narrowing), then registry_update Entries, then publisher_catalog and then publisher_item Entries in ascending Entry index. The only registry_update carried is a payload_withdrawal (WIST-3 section 6.2, WIST-4 section 5.1) whose details.delta_id is an Item ID, signed by the test-only Log key, which the replay does not authenticate. Its details contract (WIST-4 section 5.1) is judged once the Epoch's Items have applied: delta_id names an Item of kind page, since no other has a Payload, that a valid publisher_item Entry sealed at or below the act's Epoch against a Catalog whose publisher is the act's subject; an act that breaks it is ignored (`failed` [contract], WIST4-E04) and blocks nothing. I7 reads the delta_id of each act that meets it, and the earliest such act of an Item ID gives the height every rule reads; `entries` gives each registry_update its disposition beside those of the Catalogs and Items. Each Catalog is judged by C1 to C4 and each Item by I1 to I7 with the Epoch's sealed_at as the clock, the Epoch's parameter map, and the Declaration in force once the Epoch's transitions have applied. The Publisher of a Catalog Entry is catalog.publisher and that of an Item Entry the named Catalog's publisher, whatever item.publisher spells: I2, I4, I5 and I7 read that Publisher's window, Declaration and records. A Catalog of a Publisher with no Declaration in force fails C1 with WIST1-E02. C2 to C4 are read only for a Catalog of the form C1 requires, and I2 and I4 to I7 only where I1 and I3 hold; `failed` lists every condition read that fails. Two publisher_catalog Entries with the same strings as publisher and collection reject the Epoch; an Entry in which either is not a string is compared with none. I7 fails for an Item of kind page that is its URL's record's Item or whose Item ID a withdrawal sealed in an Epoch below the Item's names, and for an Item of kind removed without a record; the record is that of the Publisher and URL whatever Collection it carries, and no history reaches a record of another Collection, since disjoint Scopes and narrowing leave none that an Item passing I5 could meet. A valid Catalog whose name has a floor and whose generated_at is more than removal_retention_days, the constant 180, times 86 400 seconds after it is a base and removes every record of its Publisher in its Collection before the Epoch's Items apply; no parameter map carries removal_retention_days, catalog_refresh_seconds is from 1 to 7 776 000 and url_cap_bytes at most 32 768 in every map; `parameter_cases` gives maps and whether a replay accepts or refuses them. `expected` gives per Epoch `status` (`accepted`, or `rejected` with `codes`, the ascending codes of every whole-Epoch rejection the Epoch meets, WIST3-E03 or the code WIST-1 section 5.2 gives a rejected Declaration, of which a validator reports any; the state then unchanged); for an accepted Epoch, per publisher_catalog and publisher_item Entry its `disposition` (`valid`, or `ignored` with the conditions `failed` and the `codes` among which WIST-1 section 7 leaves the choice), `records_removed` in the order removed with the cause (`narrowing`, `base`, `removed_item`), and `state` after the Epoch: per Publisher the current Declaration, pending head and open window end; per Publisher and Collection name the latest Catalog's ID, the floor, its sealing height and whether it applied as a base; per Publisher and URL the record (the Item, its Collection, and the Catalog ID and generated_at of the Catalog proved against) and the removal states a valid removed Item left (that Item's ID, Catalog ID and generated_at), which a record removed by narrowing or a base does not leave; lists in ascending octet order of publisher, then collection or url. Histories that carry `payload_duties` give after each Epoch every Payload the Aggregator must serve (WIST-3 section 6.1): per Item of kind page, with its publisher and url, `until` null while the Item is its URL's record, and otherwise the latest end of an availability window (payload_window_days of 86 400 seconds, read from the map of the Epoch that sealed the Item, counted from that Epoch's sealed_at) among the Epochs that sealed it; the Epoch at which an Item, narrowing or a base replaced or removed the record gives no window, and a duty is listed while the Epoch's sealed_at is earlier than `until`; it is null again while the Item is the record again, and a withdrawal ends it for good; ordered by publisher, url, then Item ID. Every ignored Entry or rejected Epoch fails one rule beside a twin that passes it, except where a rule cannot fail alone: a Catalog sealed again fails C3 and C4, and an Item of a Collection the Declaration no longer names fails I4 and I5; an Epoch meeting a Declaration rejection and WIST3-E03 stands beside a twin meeting each alone. The per-domain capacity counts publisher_catalog and publisher_item Entries, valid or ignored, per Canonical Host, since no Public Suffix List snapshot is in force, and a body whose publisher is not a Canonical Host counts toward none; no fixture carries label or dispute Entries or a registry_update other than a payload_withdrawal, and recovery_window_days and declaration_activation_epochs are constant within a history. Payloads, tree files and the rules of Waiting, the queue and settlement are not exercised. Keys derive from the stated test-only seeds. `payloads` maps the Item ID of every Item of kind page the file carries to the Payload its `payload` commits to ({wist_version, salt, content}, WIST-1 section 3.6); they are carried so the commitments can be recomputed, and the replay reads none of them.",
   "keys": {
     "owner": {
       "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
@@ -10905,7 +10905,9 @@
         {
           "height": 2,
           "status": "rejected",
-          "code": "WIST3-E03",
+          "codes": [
+            "WIST3-E03"
+          ],
           "state": {
             "declarations": [
               {
@@ -10953,7 +10955,9 @@
         {
           "height": 3,
           "status": "rejected",
-          "code": "WIST3-E03",
+          "codes": [
+            "WIST3-E03"
+          ],
           "state": {
             "declarations": [
               {
@@ -11775,7 +11779,9 @@
         {
           "height": 2,
           "status": "rejected",
-          "code": "WIST3-E03",
+          "codes": [
+            "WIST3-E03"
+          ],
           "state": {
             "declarations": [
               {
@@ -20582,7 +20588,9 @@
         {
           "height": 0,
           "status": "rejected",
-          "code": "WIST3-E03",
+          "codes": [
+            "WIST3-E03"
+          ],
           "payload_duties": [],
           "state": {
             "declarations": [],
@@ -20608,6 +20616,2306 @@
             ],
             "catalogs": [],
             "records": [],
+            "removals": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "Entries of one type out of Entry hash order",
+      "why": "Height 2 lists the Item Entries of b and c in descending SHA-256(0x00 || JCS(entry)), against the canonical order: the Epoch is rejected (WIST3-E03) and the state stays that of height 1. Height 3 lists the same Entries in canonical order: accepted, both valid.",
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "G",
+              "entry": {
+                "type": "publisher_declaration",
+                "body": {
+                  "publisher": {
+                    "wist_version": "1.0.0",
+                    "seq": 0,
+                    "domain": "example.com",
+                    "subdomain_scope": [
+                      "www.example.com"
+                    ],
+                    "keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                        "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "recovery_keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                        "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "collections": [
+                      {
+                        "name": "journal",
+                        "scope": [
+                          {
+                            "url": "https://example.com/journal/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                            "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      },
+                      {
+                        "name": "store",
+                        "scope": [
+                          {
+                            "url": "https://example.com/store/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                            "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "sig": {
+                    "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "alg": "Ed25519",
+                    "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-01T00:59:00Z",
+                    "size": 3,
+                    "root": "sha256:f0f08f74c97bfc37db56e3192a3425bb40a0f8d0b64326fb28cee1c9ee4dfad5",
+                    "tree": "sha256:ef4161cb86503e4f4332d7408edcb69fca44cf15d2606b821dd985e365d5c195"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "RyEV6lGDTRt8dUZbA_4f4ql0vPzK1n1foSGvPXOOPnGlDJZ9rw1eO4Qo-vHiDofrFhFDzfapVBNYQ3pyagjgDw"
+                  }
+                }
+              }
+            },
+            {
+              "name": "a@J1",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/a",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                  "proof": {
+                    "index": 0,
+                    "tree_size": 3,
+                    "path": [
+                      "5afb7fd719d184ff055afbe3434dff4de89118f6860d452ca1d97c94da179b63",
+                      "b1296ef63942e1b533dcf2d8b60f38ebafa78486b32777613263d53fae6444e6"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "b@J1",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/b",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:f18ad1f410a8603f7a2039200b1c3acdf361155810ffc0fd5daaea28f0e7a050",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                  "proof": {
+                    "index": 1,
+                    "tree_size": 3,
+                    "path": [
+                      "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+                      "b1296ef63942e1b533dcf2d8b60f38ebafa78486b32777613263d53fae6444e6"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "name": "c@J1",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/c",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:7d3c7cb8cb5764ebff11eeb29ac5ac25807350268a44c2a279429968db808a5d",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                  "proof": {
+                    "index": 2,
+                    "tree_size": 3,
+                    "path": [
+                      "0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "c@J1",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/c",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:7d3c7cb8cb5764ebff11eeb29ac5ac25807350268a44c2a279429968db808a5d",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                  "proof": {
+                    "index": 2,
+                    "tree_size": 3,
+                    "path": [
+                      "0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "name": "b@J1",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/b",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:f18ad1f410a8603f7a2039200b1c3acdf361155810ffc0fd5daaea28f0e7a050",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                  "proof": {
+                    "index": 1,
+                    "tree_size": 3,
+                    "path": [
+                      "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+                      "b1296ef63942e1b533dcf2d8b60f38ebafa78486b32777613263d53fae6444e6"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "expected": [
+        {
+          "height": 0,
+          "status": "accepted",
+          "entries": [],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [],
+            "records": [],
+            "removals": []
+          }
+        },
+        {
+          "height": 1,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1",
+              "disposition": "valid"
+            },
+            {
+              "name": "a@J1",
+              "disposition": "valid"
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/a",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 2,
+          "status": "rejected",
+          "codes": [
+            "WIST3-E03"
+          ],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/a",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 3,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "c@J1",
+              "disposition": "valid"
+            },
+            {
+              "name": "b@J1",
+              "disposition": "valid"
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/a",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                "generated_at": "2026-10-01T00:59:00Z"
+              },
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/b",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/b",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:f18ad1f410a8603f7a2039200b1c3acdf361155810ffc0fd5daaea28f0e7a050",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                "generated_at": "2026-10-01T00:59:00Z"
+              },
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/c",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/c",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:7d3c7cb8cb5764ebff11eeb29ac5ac25807350268a44c2a279429968db808a5d",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:ae1cd96e54ecbc15234811636aa65ed2de4c686027b3fb1cbb1d5ab302302824",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "Entry types out of group order",
+      "why": "Height 1 lists the Catalog J1 before D, a Declaration of example.com, then a against J1: the Epoch is rejected (WIST3-E03) and the state stays that of height 0. Height 2 lists the same Entries in canonical order: accepted. Height 3 lists c against J2 before J2: rejected, the state staying that of height 2. Height 4 lists the same two Entries in canonical order: accepted, both valid.",
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "G",
+              "entry": {
+                "type": "publisher_declaration",
+                "body": {
+                  "publisher": {
+                    "wist_version": "1.0.0",
+                    "seq": 0,
+                    "domain": "example.com",
+                    "subdomain_scope": [
+                      "www.example.com"
+                    ],
+                    "keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                        "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "recovery_keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                        "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "collections": [
+                      {
+                        "name": "journal",
+                        "scope": [
+                          {
+                            "url": "https://example.com/journal/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                            "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      },
+                      {
+                        "name": "store",
+                        "scope": [
+                          {
+                            "url": "https://example.com/store/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                            "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "sig": {
+                    "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "alg": "Ed25519",
+                    "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-01T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "82Pqvh0D71mGU-Xo_Nd93ulm3rCjM03pL-6i634vkcO5I9AaeXyhzqXi6KQ-fJOOvbsGl8D9fCfHTAcLHLtaCg"
+                  }
+                }
+              }
+            },
+            {
+              "name": "D",
+              "entry": {
+                "type": "publisher_declaration",
+                "body": {
+                  "publisher": {
+                    "wist_version": "1.0.0",
+                    "seq": 1,
+                    "domain": "example.com",
+                    "subdomain_scope": [
+                      "www.example.com"
+                    ],
+                    "keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                        "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "recovery_keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                        "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "collections": [
+                      {
+                        "name": "journal",
+                        "scope": [
+                          {
+                            "url": "https://example.com/journal/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                            "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      },
+                      {
+                        "name": "store",
+                        "scope": [
+                          {
+                            "url": "https://example.com/store/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                            "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      }
+                    ],
+                    "prev_declaration": "sha256:dd855d2fe4fc678a6cc9e3a68aa476eee5fe62ed19b778b3488d90548f23016c"
+                  },
+                  "sig": {
+                    "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "alg": "Ed25519",
+                    "value": "GMw80-cJ70l06EYrqSkp5yUxfVFru_bfLjJkBnxlwDMsZh5lCD6qo8CbB9GWsTp3mEhlCC52F-3ox0j6XhSwDw"
+                  }
+                }
+              }
+            },
+            {
+              "name": "a@J1",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/a",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                  "proof": {
+                    "index": 0,
+                    "tree_size": 2,
+                    "path": [
+                      "5afb7fd719d184ff055afbe3434dff4de89118f6860d452ca1d97c94da179b63"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "D",
+              "entry": {
+                "type": "publisher_declaration",
+                "body": {
+                  "publisher": {
+                    "wist_version": "1.0.0",
+                    "seq": 1,
+                    "domain": "example.com",
+                    "subdomain_scope": [
+                      "www.example.com"
+                    ],
+                    "keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                        "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "recovery_keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                        "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "collections": [
+                      {
+                        "name": "journal",
+                        "scope": [
+                          {
+                            "url": "https://example.com/journal/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                            "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      },
+                      {
+                        "name": "store",
+                        "scope": [
+                          {
+                            "url": "https://example.com/store/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                            "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      }
+                    ],
+                    "prev_declaration": "sha256:dd855d2fe4fc678a6cc9e3a68aa476eee5fe62ed19b778b3488d90548f23016c"
+                  },
+                  "sig": {
+                    "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "alg": "Ed25519",
+                    "value": "GMw80-cJ70l06EYrqSkp5yUxfVFru_bfLjJkBnxlwDMsZh5lCD6qo8CbB9GWsTp3mEhlCC52F-3ox0j6XhSwDw"
+                  }
+                }
+              }
+            },
+            {
+              "name": "J1",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-01T00:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "82Pqvh0D71mGU-Xo_Nd93ulm3rCjM03pL-6i634vkcO5I9AaeXyhzqXi6KQ-fJOOvbsGl8D9fCfHTAcLHLtaCg"
+                  }
+                }
+              }
+            },
+            {
+              "name": "a@J1",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/a",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                  "proof": {
+                    "index": 0,
+                    "tree_size": 2,
+                    "path": [
+                      "5afb7fd719d184ff055afbe3434dff4de89118f6860d452ca1d97c94da179b63"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "c@J2",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/c",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:7d3c7cb8cb5764ebff11eeb29ac5ac25807350268a44c2a279429968db808a5d",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:1ed45d9036cf63cbe21bac4e3ce2f5124cd032a634143b329bfeb740f6d97511",
+                  "proof": {
+                    "index": 2,
+                    "tree_size": 3,
+                    "path": [
+                      "0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "name": "J2",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-01T02:59:00Z",
+                    "size": 3,
+                    "root": "sha256:f0f08f74c97bfc37db56e3192a3425bb40a0f8d0b64326fb28cee1c9ee4dfad5",
+                    "tree": "sha256:ef4161cb86503e4f4332d7408edcb69fca44cf15d2606b821dd985e365d5c195"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "FlQI5mZMjF9oBVxorf8Qyf-YFpkvh1Nx8G2OD3f5T1UmafOjzMVV6-REg5WPmPgQCHh2f0Ny5pp970fxfMGbBg"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-01T04:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J2",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-01T02:59:00Z",
+                    "size": 3,
+                    "root": "sha256:f0f08f74c97bfc37db56e3192a3425bb40a0f8d0b64326fb28cee1c9ee4dfad5",
+                    "tree": "sha256:ef4161cb86503e4f4332d7408edcb69fca44cf15d2606b821dd985e365d5c195"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "FlQI5mZMjF9oBVxorf8Qyf-YFpkvh1Nx8G2OD3f5T1UmafOjzMVV6-REg5WPmPgQCHh2f0Ny5pp970fxfMGbBg"
+                  }
+                }
+              }
+            },
+            {
+              "name": "c@J2",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/c",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:7d3c7cb8cb5764ebff11eeb29ac5ac25807350268a44c2a279429968db808a5d",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:1ed45d9036cf63cbe21bac4e3ce2f5124cd032a634143b329bfeb740f6d97511",
+                  "proof": {
+                    "index": 2,
+                    "tree_size": 3,
+                    "path": [
+                      "0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "expected": [
+        {
+          "height": 0,
+          "status": "accepted",
+          "entries": [],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [],
+            "records": [],
+            "removals": []
+          }
+        },
+        {
+          "height": 1,
+          "status": "rejected",
+          "codes": [
+            "WIST3-E03"
+          ],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [],
+            "records": [],
+            "removals": []
+          }
+        },
+        {
+          "height": 2,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1",
+              "disposition": "valid"
+            },
+            {
+              "name": "a@J1",
+              "disposition": "valid"
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "D",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 2,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/a",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 3,
+          "status": "rejected",
+          "codes": [
+            "WIST3-E03"
+          ],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "D",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 2,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/a",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 4,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J2",
+              "disposition": "valid"
+            },
+            {
+              "name": "c@J2",
+              "disposition": "valid"
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "D",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:1ed45d9036cf63cbe21bac4e3ce2f5124cd032a634143b329bfeb740f6d97511",
+                "floor": "2026-10-01T02:59:00Z",
+                "sealing_height": 4,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/a",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:1a3e04d994fe3de79d181ca3690bf9d06c3d8d39f2d456fb8dcef6bf21acc69a",
+                "generated_at": "2026-10-01T00:59:00Z"
+              },
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/c",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/c",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:7d3c7cb8cb5764ebff11eeb29ac5ac25807350268a44c2a279429968db808a5d",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:1ed45d9036cf63cbe21bac4e3ce2f5124cd032a634143b329bfeb740f6d97511",
+                "generated_at": "2026-10-01T02:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "a Declaration rejection and a second whole-Epoch rejection in one Epoch",
+      "why": "G' is a Declaration of example.com of seq 0 other than G, which WIST-1 section 5.2 rejects once G is accepted (WIST1-E08). Height 2 carries G' and two journal Catalogs, J2 and J3, with b against J2: the Epoch meets both rejections and `codes` lists WIST1-E08 and WIST3-E03. Height 3 carries G', J2 and b, rejected with WIST1-E08 alone; height 4 carries J2, J3 and b, rejected with WIST3-E03 alone; the state after each stays that of height 1. Height 5 carries J2 and b: accepted.",
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "G",
+              "entry": {
+                "type": "publisher_declaration",
+                "body": {
+                  "publisher": {
+                    "wist_version": "1.0.0",
+                    "seq": 0,
+                    "domain": "example.com",
+                    "subdomain_scope": [
+                      "www.example.com"
+                    ],
+                    "keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                        "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "recovery_keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                        "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "collections": [
+                      {
+                        "name": "journal",
+                        "scope": [
+                          {
+                            "url": "https://example.com/journal/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                            "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      },
+                      {
+                        "name": "store",
+                        "scope": [
+                          {
+                            "url": "https://example.com/store/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                            "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "sig": {
+                    "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "alg": "Ed25519",
+                    "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J1",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-01T00:59:00Z",
+                    "size": 1,
+                    "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+                    "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "B7SGkWAhD5YIb1VMokqS0iO3lWUIai6TVmQRvLKafiekh4_x9vRDIxtKBmWHBCcwVSpfxkIogh4ejlw1Prs-DQ"
+                  }
+                }
+              }
+            },
+            {
+              "name": "a@J1",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/a",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:7003c835ca0750c868ba8697357a541b052db2c2ef8a615a6145b34ddee7748b",
+                  "proof": {
+                    "index": 0,
+                    "tree_size": 1,
+                    "path": []
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "G'",
+              "entry": {
+                "type": "publisher_declaration",
+                "body": {
+                  "publisher": {
+                    "wist_version": "1.0.0",
+                    "seq": 0,
+                    "domain": "example.com",
+                    "subdomain_scope": [
+                      "www.example.com"
+                    ],
+                    "keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                        "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "recovery_keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                        "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "collections": [
+                      {
+                        "name": "journal",
+                        "scope": [
+                          {
+                            "url": "https://example.com/journal/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                            "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "sig": {
+                    "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "alg": "Ed25519",
+                    "value": "cID0NemmV0EbT3q-I-5LqVNjR29lLwyOiaChn1FJVMRtThaA4cf1Dqq5UR1o0Q9xoG_8ZdtJDxBgvgXPzpZSDA"
+                  }
+                }
+              }
+            },
+            {
+              "name": "J2",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-01T01:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "VwdpmEr5jFvdCxNWB9ypflk48e-5LnKnVW1KXfanMVeTjHjlNN1t5sMT6NP5x3P2HTCEM5iQOLjBtXqDvhSbAA"
+                  }
+                }
+              }
+            },
+            {
+              "name": "J3",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-01T01:59:01Z",
+                    "size": 2,
+                    "root": "sha256:f34b49dd34272cebc22d506ead6e06eeb5072ab98d57fca8ce52e40a04b200e6",
+                    "tree": "sha256:a44634a93d96d7eef9d304ae28a34f29fa9cdc7333f83a210b44ec591e4a7f1b"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "4h5PpuIdS7P-Ny_9-ZyzRuCYJiJIGaNyubFKQM5EIw2V-TnRTCvZJjuAN18-I3akIiGhu3MwwDGrBMBXgJ4JBg"
+                  }
+                }
+              }
+            },
+            {
+              "name": "b@J2",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/b",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:f18ad1f410a8603f7a2039200b1c3acdf361155810ffc0fd5daaea28f0e7a050",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:eda358b119df26321510a93c78c63f7d4f99abb0831876f737f0fe937a340e5e",
+                  "proof": {
+                    "index": 1,
+                    "tree_size": 2,
+                    "path": [
+                      "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "G'",
+              "entry": {
+                "type": "publisher_declaration",
+                "body": {
+                  "publisher": {
+                    "wist_version": "1.0.0",
+                    "seq": 0,
+                    "domain": "example.com",
+                    "subdomain_scope": [
+                      "www.example.com"
+                    ],
+                    "keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                        "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "recovery_keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                        "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "collections": [
+                      {
+                        "name": "journal",
+                        "scope": [
+                          {
+                            "url": "https://example.com/journal/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                            "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "sig": {
+                    "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "alg": "Ed25519",
+                    "value": "cID0NemmV0EbT3q-I-5LqVNjR29lLwyOiaChn1FJVMRtThaA4cf1Dqq5UR1o0Q9xoG_8ZdtJDxBgvgXPzpZSDA"
+                  }
+                }
+              }
+            },
+            {
+              "name": "J2",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-01T01:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "VwdpmEr5jFvdCxNWB9ypflk48e-5LnKnVW1KXfanMVeTjHjlNN1t5sMT6NP5x3P2HTCEM5iQOLjBtXqDvhSbAA"
+                  }
+                }
+              }
+            },
+            {
+              "name": "b@J2",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/b",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:f18ad1f410a8603f7a2039200b1c3acdf361155810ffc0fd5daaea28f0e7a050",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:eda358b119df26321510a93c78c63f7d4f99abb0831876f737f0fe937a340e5e",
+                  "proof": {
+                    "index": 1,
+                    "tree_size": 2,
+                    "path": [
+                      "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-01T04:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J2",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-01T01:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "VwdpmEr5jFvdCxNWB9ypflk48e-5LnKnVW1KXfanMVeTjHjlNN1t5sMT6NP5x3P2HTCEM5iQOLjBtXqDvhSbAA"
+                  }
+                }
+              }
+            },
+            {
+              "name": "J3",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-01T01:59:01Z",
+                    "size": 2,
+                    "root": "sha256:f34b49dd34272cebc22d506ead6e06eeb5072ab98d57fca8ce52e40a04b200e6",
+                    "tree": "sha256:a44634a93d96d7eef9d304ae28a34f29fa9cdc7333f83a210b44ec591e4a7f1b"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "4h5PpuIdS7P-Ny_9-ZyzRuCYJiJIGaNyubFKQM5EIw2V-TnRTCvZJjuAN18-I3akIiGhu3MwwDGrBMBXgJ4JBg"
+                  }
+                }
+              }
+            },
+            {
+              "name": "b@J2",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/b",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:f18ad1f410a8603f7a2039200b1c3acdf361155810ffc0fd5daaea28f0e7a050",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:eda358b119df26321510a93c78c63f7d4f99abb0831876f737f0fe937a340e5e",
+                  "proof": {
+                    "index": 1,
+                    "tree_size": 2,
+                    "path": [
+                      "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 5,
+          "sealed_at": "2026-10-01T05:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "entries": [
+            {
+              "name": "J2",
+              "entry": {
+                "type": "publisher_catalog",
+                "body": {
+                  "catalog": {
+                    "wist_version": "1.0.0",
+                    "publisher": "example.com",
+                    "collection": "journal",
+                    "generated_at": "2026-10-01T01:59:00Z",
+                    "size": 2,
+                    "root": "sha256:0c898d5e29551d6e98a1097f4e8e33f2303c157bbf5877075e2769cd7c4ed77e",
+                    "tree": "sha256:0fa609e1b36cdb62eb656754d48587fa52983bda53b6341b9549287792a720cc"
+                  },
+                  "sig": {
+                    "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "alg": "Ed25519",
+                    "value": "VwdpmEr5jFvdCxNWB9ypflk48e-5LnKnVW1KXfanMVeTjHjlNN1t5sMT6NP5x3P2HTCEM5iQOLjBtXqDvhSbAA"
+                  }
+                }
+              }
+            },
+            {
+              "name": "b@J2",
+              "entry": {
+                "type": "publisher_item",
+                "body": {
+                  "item": {
+                    "publisher": "example.com",
+                    "url": "https://example.com/journal/b",
+                    "observed_at": "2026-09-30T10:00:00Z",
+                    "payload": {
+                      "commitment": "hmac-sha256:f18ad1f410a8603f7a2039200b1c3acdf361155810ffc0fd5daaea28f0e7a050",
+                      "alg": "HMAC-SHA256",
+                      "bytes": 140
+                    },
+                    "meta": {
+                      "lang": "en"
+                    }
+                  },
+                  "collection": "journal",
+                  "catalog": "sha256:eda358b119df26321510a93c78c63f7d4f99abb0831876f737f0fe937a340e5e",
+                  "proof": {
+                    "index": 1,
+                    "tree_size": 2,
+                    "path": [
+                      "22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "expected": [
+        {
+          "height": 0,
+          "status": "accepted",
+          "entries": [],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [],
+            "records": [],
+            "removals": []
+          }
+        },
+        {
+          "height": 1,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J1",
+              "disposition": "valid"
+            },
+            {
+              "name": "a@J1",
+              "disposition": "valid"
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:7003c835ca0750c868ba8697357a541b052db2c2ef8a615a6145b34ddee7748b",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/a",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:7003c835ca0750c868ba8697357a541b052db2c2ef8a615a6145b34ddee7748b",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 2,
+          "status": "rejected",
+          "codes": [
+            "WIST1-E08",
+            "WIST3-E03"
+          ],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:7003c835ca0750c868ba8697357a541b052db2c2ef8a615a6145b34ddee7748b",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/a",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:7003c835ca0750c868ba8697357a541b052db2c2ef8a615a6145b34ddee7748b",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 3,
+          "status": "rejected",
+          "codes": [
+            "WIST1-E08"
+          ],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:7003c835ca0750c868ba8697357a541b052db2c2ef8a615a6145b34ddee7748b",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/a",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:7003c835ca0750c868ba8697357a541b052db2c2ef8a615a6145b34ddee7748b",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 4,
+          "status": "rejected",
+          "codes": [
+            "WIST3-E03"
+          ],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:7003c835ca0750c868ba8697357a541b052db2c2ef8a615a6145b34ddee7748b",
+                "floor": "2026-10-01T00:59:00Z",
+                "sealing_height": 1,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/a",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:7003c835ca0750c868ba8697357a541b052db2c2ef8a615a6145b34ddee7748b",
+                "generated_at": "2026-10-01T00:59:00Z"
+              }
+            ],
+            "removals": []
+          }
+        },
+        {
+          "height": 5,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "J2",
+              "disposition": "valid"
+            },
+            {
+              "name": "b@J2",
+              "disposition": "valid"
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [
+              {
+                "publisher": "example.com",
+                "collection": "journal",
+                "catalog": "sha256:eda358b119df26321510a93c78c63f7d4f99abb0831876f737f0fe937a340e5e",
+                "floor": "2026-10-01T01:59:00Z",
+                "sealing_height": 5,
+                "base": false
+              }
+            ],
+            "records": [
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/a",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/a",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:7003c835ca0750c868ba8697357a541b052db2c2ef8a615a6145b34ddee7748b",
+                "generated_at": "2026-10-01T00:59:00Z"
+              },
+              {
+                "publisher": "example.com",
+                "url": "https://example.com/journal/b",
+                "item": {
+                  "publisher": "example.com",
+                  "url": "https://example.com/journal/b",
+                  "observed_at": "2026-09-30T10:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:f18ad1f410a8603f7a2039200b1c3acdf361155810ffc0fd5daaea28f0e7a050",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 140
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "collection": "journal",
+                "catalog": "sha256:eda358b119df26321510a93c78c63f7d4f99abb0831876f737f0fe937a340e5e",
+                "generated_at": "2026-10-01T01:59:00Z"
+              }
+            ],
             "removals": []
           }
         }

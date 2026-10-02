@@ -635,10 +635,10 @@ combination of several Logs. `vectors/wist3/catalog-sealing.json`,
 carry them over signed histories (`tools/VERIFICATION.md`).
 
 Not carried by any vector: an Epoch rejected with `WIST3-E03` for an
-unknown Entry type, for Entries out of canonical order or for a Label ID
-a lower Entry carries (the per-Labeler cap and the per-domain capacity
-are carried); and an Epoch that meets two whole-Epoch rejections, for
-which §3.3 lets a validator report either code.
+unknown Entry type or for a Label ID a lower Entry carries (the
+per-Labeler cap, the per-domain capacity and Entries out of canonical
+order are carried, as is an Epoch meeting both a Declaration rejection
+and `WIST3-E03`).
 `vectors/wist3/catalog-waiting.json` carries Labels and a dispute taking
 places at one pull after its Catalogs and URLs, in the order the pull
 accepts them, their eligibility Epoch, inclusion ceiling and `capacity`

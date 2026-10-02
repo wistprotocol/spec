@@ -288,36 +288,38 @@ class Sealing:
                                "generated_at": catalog["generated_at"]}
         removed.append({"publisher": slot[0], "url": slot[1], "cause": "removed_item"})
 
-    def rejection_code(self, entries, parameters):
+    def rejections(self, entries, parameters):
+        found = []
+        if list(entries) != canonical_order(entries):
+            found.append((EPOCH_REJECTED, "Entries not in canonical order"))
         pairs = [catalog_strings(e["body"]) for e in entries if e["type"] == "publisher_catalog"]
         pairs = [p for p in pairs if p is not None]
         if len(set(pairs)) != len(pairs):
-            return EPOCH_REJECTED, "two publisher_catalog Entries of one publisher and collection"
+            found.append((EPOCH_REJECTED, "two publisher_catalog Entries of one publisher and collection"))
         if any(n > parameters["domain_epoch_entries_max"] for n in capacity_counts(entries).values()):
-            return EPOCH_REJECTED, "above the per-domain Epoch capacity"
+            found.append((EPOCH_REJECTED, "above the per-domain Epoch capacity"))
         labeled = capacity_counts([e for e in entries if e["type"] in LABEL_MEMBERS])
         if any(n > parameters["labeler_epoch_entries_max"] for n in labeled.values()):
-            return EPOCH_REJECTED, "above the per-Labeler Epoch cap"
-        return None
+            found.append((EPOCH_REJECTED, "above the per-Labeler Epoch cap"))
+        return found
 
     def epoch(self, epoch):
         height, sealed_at, parameters = epoch["height"], epoch["sealed_at"], check_parameters(epoch["parameters"])
         entries = epoch["entries"]
         if any(e["type"] not in REPLAYED_TYPES for e in entries):
             raise ValueError("an Entry type this replay does not carry")
-        if list(entries) != canonical_order(entries):
-            raise ValueError("Entries not in canonical order")
-        rejected = self.rejection_code(entries, parameters)
-        if rejected is not None:
-            return {"height": height, "status": "rejected", "code": rejected[0], "reason": rejected[1]}
+        found = self.rejections(entries, parameters)
         saved = copy.deepcopy(self.__dict__)
         self.sealed_at = sealed_at
         removed, dispositions = [], {}
         try:
-            self.apply_declarations(entries, height, sealed_at, parameters, removed)
+            self.apply_declarations(canonical_order(entries), height, sealed_at, parameters, removed)
         except narrowing.HistoryRejected as rejection:
+            found.append((rejection.code, rejection.reason))
+        if found:
             self.__dict__ = saved
-            return {"height": height, "status": "rejected", "code": rejection.code, "reason": rejection.reason}
+            return {"height": height, "status": "rejected", "codes": sorted({code for code, _ in found}),
+                    "reason": "; ".join(reason for _, reason in found)}
         acts = {index: withdrawal_act(entry) for index, entry in enumerate(entries) if entry["type"] == "registry_update"}
         for index, entry in enumerate(entries):
             if entry["type"] != "publisher_catalog":

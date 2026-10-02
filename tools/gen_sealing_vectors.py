@@ -198,6 +198,9 @@ def build_epochs(spec):
     for height, epoch in enumerate(spec):
         named = sorted(epoch.get("entries", []),
                        key=lambda pair: (sealing.ENTRY_GROUPS.index(pair[1]["type"]), sealing.entry_leaf(pair[1])))
+        if epoch.get("stated_order"):
+            assert named != epoch["entries"], ("a stated order that is canonical", height)
+            named = epoch["entries"]
         epochs.append({"height": height, "sealed_at": stamp(epoch.get("sealed_at", T0 + height * HOUR)),
                        "parameters": {**DEFAULT_MAP, **epoch.get("parameters", {})},
                        "entries": [{"name": name, "entry": entry} for name, entry in named]})
@@ -225,8 +228,8 @@ def run(epochs, expect, rejected, label, duties=False):
         assert (result["status"] == "rejected") == (epoch["height"] in rejected), (label, epoch["height"], result)
         entry = {"height": result["height"], "status": result["status"]}
         if result["status"] == "rejected":
-            assert result["code"] == rejected[epoch["height"]], (label, result)
-            entry["code"] = result["code"]
+            assert result["codes"] == rejected[epoch["height"]], (label, result)
+            entry["codes"] = result["codes"]
         else:
             entry["entries"] = []
             for named, got in zip(epoch["entries"], result["entries"]):
@@ -269,6 +272,8 @@ def urls_of(results, height):
 
 
 E06 = "WIST3-E06"
+E03 = "WIST3-E03"
+E08 = "WIST1-E08"
 
 
 def sealing_vectors():
@@ -599,7 +604,7 @@ def sealing_vectors():
          {"entries": [("J2", cat("journal", d2)), ("J5", cat("journal", d5)), ("b@J2", item(d2, J + "b"))]},
          {"entries": [("J2", cat("journal", d2)), ("S", cat("store", ds)), ("b@J2", item(d2, J + "b"))]}],
         {"J1": "valid", "a@J1": "valid", "J2": "valid", "J3": "valid", "J5": (E06, ["C3"]), "S": "valid",
-         "b@J2": "valid"}, rejected={2: "WIST3-E03", 3: "WIST3-E03"}, check=duplicate_check))
+         "b@J2": "valid"}, rejected={2: [E03], 3: [E03]}, check=duplicate_check))
 
     c1 = Cat([pa, pb, pc, pd], at(1))
     blog_catalog = Cat([], at(1), publisher=BLOG)
@@ -622,7 +627,7 @@ def sealing_vectors():
                       ("d not a host", not_host)], "parameters": lowered}],
         {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "blog": "valid", "c@J1": "valid", "d@J1": "valid",
          "a@J1 again": (E06, ["I7"]), "b@J1 again": (E06, ["I7"]), "d not a host": ("WIST1-E14", ["I1"])},
-        rejected={2: "WIST3-E03"}))
+        rejected={2: [E03]}))
 
     w1 = Cat([pa, pb, pc], at(1))
     w2 = Cat([pa, pb, pc, pd], at(2))
@@ -880,8 +885,66 @@ def sealing_vectors():
         [{"entries": [("G", decl("owner", G)), ("J first", cat("journal", first_twin)),
                       ("J second", cat("journal", second_twin))], "sealed_at": T0 - 30},
          {"entries": [("G", decl("owner", G))]}],
-        {"J first": "valid", "J second": "valid"}, rejected={0: "WIST3-E03"}, duties=True,
+        {"J first": "valid", "J second": "valid"}, rejected={0: [E03]}, duties=True,
         check=lambda results: results[0]["state"]["declarations"] == [] and results[0]["payload_duties"] == []))
+
+    o1 = Cat([pa, pb, pc], at(1))
+    bc = [("b@J1", item(o1, J + "b")), ("c@J1", item(o1, J + "c"))]
+    descending = sorted(bc, key=lambda pair: sealing.entry_leaf(pair[1]), reverse=True)
+
+    def unchanged_check(kept):
+        def check(results):
+            for height, reference in kept.items():
+                assert results[height]["state"] == results[reference]["state"], height
+        return check
+
+    histories.append(history(
+        "Entries of one type out of Entry hash order",
+        "Height 2 lists the Item Entries of b and c in descending SHA-256(0x00 || JCS(entry)), against the "
+        "canonical order: the Epoch is rejected (WIST3-E03) and the state stays that of height 1. Height 3 lists "
+        "the same Entries in canonical order: accepted, both valid.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", o1)), ("a@J1", item(o1, J + "a"))]},
+         {"entries": descending, "stated_order": True},
+         {"entries": bc}],
+        {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "c@J1": "valid"},
+        rejected={2: [E03]}, check=unchanged_check({2: 1})))
+
+    g1, g2 = Cat([pa, pb], at(1)), Cat([pa, pb, pc], at(3))
+    renewed = successor(G)
+    histories.append(history(
+        "Entry types out of group order",
+        "Height 1 lists the Catalog J1 before D, a Declaration of example.com, then a against J1: the Epoch is "
+        "rejected (WIST3-E03) and the state stays that of height 0. Height 2 lists the same Entries in canonical "
+        "order: accepted. Height 3 lists c against J2 before J2: rejected, the state staying that of height 2. "
+        "Height 4 lists the same two Entries in canonical order: accepted, both valid.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", g1)), ("D", decl("owner", renewed)), ("a@J1", item(g1, J + "a"))],
+          "stated_order": True},
+         {"entries": [("J1", cat("journal", g1)), ("D", decl("owner", renewed)), ("a@J1", item(g1, J + "a"))]},
+         {"entries": [("c@J2", item(g2, J + "c")), ("J2", cat("journal", g2))], "stated_order": True},
+         {"entries": [("c@J2", item(g2, J + "c")), ("J2", cat("journal", g2))]}],
+        {"J1": "valid", "a@J1": "valid", "J2": "valid", "c@J2": "valid"},
+        rejected={1: [E03], 3: [E03]}, check=unchanged_check({1: 0, 3: 2})))
+
+    m1, m2, m3 = Cat([pa], at(1)), Cat([pa, pb], at(2)), Cat([pa, pc], at(2) + 1)
+    other_first = dict(G, collections=[JOURNAL])
+    histories.append(history(
+        "a Declaration rejection and a second whole-Epoch rejection in one Epoch",
+        "G' is a Declaration of example.com of seq 0 other than G, which WIST-1 section 5.2 rejects once G is "
+        "accepted (WIST1-E08). Height 2 carries G' and two journal Catalogs, J2 and J3, with b against J2: the "
+        "Epoch meets both rejections and `codes` lists WIST1-E08 and WIST3-E03. Height 3 carries G', J2 and b, "
+        "rejected with WIST1-E08 alone; height 4 carries J2, J3 and b, rejected with WIST3-E03 alone; the state "
+        "after each stays that of height 1. Height 5 carries J2 and b: accepted.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", m1)), ("a@J1", item(m1, J + "a"))]},
+         {"entries": [("G'", decl("owner", other_first)), ("J2", cat("journal", m2)), ("J3", cat("journal", m3)),
+                      ("b@J2", item(m2, J + "b"))]},
+         {"entries": [("G'", decl("owner", other_first)), ("J2", cat("journal", m2)), ("b@J2", item(m2, J + "b"))]},
+         {"entries": [("J2", cat("journal", m2)), ("J3", cat("journal", m3)), ("b@J2", item(m2, J + "b"))]},
+         {"entries": [("J2", cat("journal", m2)), ("b@J2", item(m2, J + "b"))]}],
+        {"J1": "valid", "a@J1": "valid", "J2": "valid", "J3": "valid", "b@J2": "valid"},
+        rejected={2: [E08, E03], 3: [E08], 4: [E03]}, check=unchanged_check({2: 1, 3: 1, 4: 1})))
 
     parameter_cases = []
     for name, changes in (("catalog_refresh_seconds at 7 776 000", {"catalog_refresh_seconds": 7776000}),
@@ -913,9 +976,10 @@ def sealing_vectors():
         "record carries), replayed from sealed Entries. Each history replays `epochs` in order. An Epoch is "
         "simplified to its height, sealed_at, the parameter map in force at it (`parameters`, complete) and its "
         "Entries, each {type, body} with a `name` beside it; there are no Checkpoints and no Merkle tree of the "
-        "Log. Entries are listed in canonical order (WIST-3 section 3.3: grouped publisher_declaration, "
-        "registry_update, publisher_catalog, publisher_item, then by ascending SHA-256(0x00 || JCS(entry))), and "
-        "the Entry index is the position in that list. Declarations apply as vectors/wist1/collection-narrowing.json "
+        "Log. Entries are listed in the order the Epoch stores them, and the Entry index is the position in that "
+        "list; an Epoch not in canonical order (WIST-3 section 3.3: grouped publisher_declaration, "
+        "registry_update, publisher_catalog, publisher_item, then by ascending SHA-256(0x00 || JCS(entry))) is "
+        "rejected. Declarations apply as vectors/wist1/collection-narrowing.json "
         "applies them (WIST-1 section 5.2 and ADR-0051's narrowing), then registry_update Entries, then "
         "publisher_catalog and then publisher_item Entries in ascending Entry index. The only registry_update "
         "carried is a payload_withdrawal (WIST-3 section 6.2, WIST-4 section 5.1) whose details.delta_id is an "
@@ -942,8 +1006,9 @@ def sealing_vectors():
         "record of its Publisher in its Collection before the Epoch's Items apply; no parameter map carries "
         "removal_retention_days, catalog_refresh_seconds is from 1 to 7 776 000 and url_cap_bytes at most 32 768 in "
         "every map; `parameter_cases` gives maps and whether a replay accepts or refuses them. "
-        "`expected` gives per Epoch `status` (`accepted`, or `rejected` with `code` WIST3-E03, the state then "
-        "unchanged); for an accepted Epoch, per publisher_catalog and publisher_item Entry its `disposition` "
+        "`expected` gives per Epoch `status` (`accepted`, or `rejected` with `codes`, the ascending codes of every "
+        "whole-Epoch rejection the Epoch meets, WIST3-E03 or the code WIST-1 section 5.2 gives a rejected "
+        "Declaration, of which a validator reports any; the state then unchanged); for an accepted Epoch, per publisher_catalog and publisher_item Entry its `disposition` "
         "(`valid`, or `ignored` with the conditions `failed` and the `codes` among which WIST-1 section 7 leaves "
         "the choice), `records_removed` in the order removed with the cause (`narrowing`, `base`, "
         "`removed_item`), and `state` after the Epoch: per Publisher the current Declaration, pending head and "
@@ -961,7 +1026,8 @@ def sealing_vectors():
         "record again, and a withdrawal ends it for good; ordered by publisher, url, then Item ID. Every ignored "
         "Entry or rejected Epoch fails "
         "one rule beside a twin that passes it, except where a rule cannot fail alone: a Catalog sealed again "
-        "fails C3 and C4, and an Item of a Collection the Declaration no longer names fails I4 and I5. The "
+        "fails C3 and C4, and an Item of a Collection the Declaration no longer names fails I4 and I5; an Epoch "
+        "meeting a Declaration rejection and WIST3-E03 stands beside a twin meeting each alone. The "
         "per-domain capacity counts publisher_catalog and publisher_item Entries, valid or ignored, per Canonical "
         "Host, since no Public Suffix List snapshot is in force, and a body whose publisher is not a Canonical "
         "Host counts toward none; no fixture carries label or dispute Entries or a registry_update other than a "
