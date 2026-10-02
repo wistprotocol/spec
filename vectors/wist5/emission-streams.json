@@ -3019,6 +3019,147 @@
       }
     },
     {
+      "label": "member number at the tie below the finite range",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "shop.example.com"
+        ],
+        "collections": [
+          {
+            "name": "journal",
+            "scope": [
+              {
+                "url": "https://example.com/journal/",
+                "match": "prefix"
+              },
+              {
+                "url": "https://example.com/",
+                "match": "exact"
+              }
+            ]
+          },
+          {
+            "name": "store",
+            "scope": [
+              {
+                "url": "https://shop.example.com/",
+                "match": "prefix"
+              }
+            ]
+          }
+        ]
+      },
+      "collection": "journal",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "published": [],
+      "stream": "{\"wist_emission\":\"1\",\"publisher\":\"example.com\",\"collection\":\"journal\",\"mode\":\"complete\"}\n{\"url\":\"https://example.com/journal/a\",\"lang\":\"en\",\"modified\":\"2026-09-01T10:00:00Z\",\"title\":179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497792,\"links\":[\"https://example.org/paper\"],\"text\":\"A note citing a paper.\"}\n{\"end\":true,\"count\":1}\n",
+      "expected": {
+        "refusal": "stream-form",
+        "line": 2
+      }
+    },
+    {
+      "label": "member number one below the tie",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "shop.example.com"
+        ],
+        "collections": [
+          {
+            "name": "journal",
+            "scope": [
+              {
+                "url": "https://example.com/journal/",
+                "match": "prefix"
+              },
+              {
+                "url": "https://example.com/",
+                "match": "exact"
+              }
+            ]
+          },
+          {
+            "name": "store",
+            "scope": [
+              {
+                "url": "https://shop.example.com/",
+                "match": "prefix"
+              }
+            ]
+          }
+        ]
+      },
+      "collection": "journal",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "published": [],
+      "stream": "{\"wist_emission\":\"1\",\"publisher\":\"example.com\",\"collection\":\"journal\",\"mode\":\"complete\"}\n{\"url\":\"https://example.com/journal/a\",\"lang\":\"en\",\"modified\":\"2026-09-01T10:00:00Z\",\"title\":179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791,\"links\":[\"https://example.org/paper\"],\"text\":\"A note citing a paper.\"}\n{\"end\":true,\"count\":1}\n",
+      "expected": {
+        "refusal": "emission-form",
+        "line": 2
+      }
+    },
+    {
+      "label": "member number a long fraction above the tie",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "shop.example.com"
+        ],
+        "collections": [
+          {
+            "name": "journal",
+            "scope": [
+              {
+                "url": "https://example.com/journal/",
+                "match": "prefix"
+              },
+              {
+                "url": "https://example.com/",
+                "match": "exact"
+              }
+            ]
+          },
+          {
+            "name": "store",
+            "scope": [
+              {
+                "url": "https://shop.example.com/",
+                "match": "prefix"
+              }
+            ]
+          }
+        ]
+      },
+      "collection": "journal",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "published": [],
+      "stream": "{\"wist_emission\":\"1\",\"publisher\":\"example.com\",\"collection\":\"journal\",\"mode\":\"complete\"}\n{\"url\":\"https://example.com/journal/a\",\"lang\":\"en\",\"modified\":\"2026-09-01T10:00:00Z\",\"title\":1.7976931348623158079372897141e308,\"links\":[\"https://example.org/paper\"],\"text\":\"A note citing a paper.\"}\n{\"end\":true,\"count\":1}\n",
+      "expected": {
+        "refusal": "stream-form",
+        "line": 2
+      }
+    },
+    {
       "label": "array in array too deep",
       "publisher": {
         "domain": "example.com",

@@ -83,7 +83,11 @@ with another member set than the header's, a line between the first and
 the last that carries the header's member set or the trailer's, and a
 trailer whose `end` is not `true` differ from the form. `count` is
 written in decimal digits alone, without sign, fraction, exponent or
-leading zero, and is at most 9007199254740991.
+leading zero, and is at most 9007199254740991. A number that is not
+finite when rounded to the nearest IEEE 754 binary64 value, ties to
+even, differs from the form wherever it
+appears; a finite number in a member of another type is a fault of that
+member.
 
 | Line | Members |
 |---|---|
@@ -103,8 +107,10 @@ with `domain` octet by octet.
 The part that reads a stream refuses it whole, and publishes nothing
 from it, on the first of these it meets, reading the lines in order
 and, within a line, the conditions in the order of the table; a
-missing trailer and a wrong `count` are met after the last line.
-WIST-5 assigns the codes.
+missing trailer and a wrong `count` are met after the last line. The
+names below are the codes WIST-5 registers: a refusal is reported inside
+the Publisher and reaches no Aggregator, so it takes no `WISTn-Enn`
+form.
 
 | Refusal | Condition |
 |---|---|

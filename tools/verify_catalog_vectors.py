@@ -695,6 +695,17 @@ def next_instant(case):
     return {"generated_at": log_timestamp(instant)}
 
 
+def sign_list(case, publisher):
+    chosen = next_instant({"clock": case["clock"], "served": case["served"]["generated_at"],
+                           "clock_skew_seconds": case["clock_skew_seconds"]})
+    if "refused" in chosen:
+        return chosen
+    derived = derive_list(dict(case, generated_at=chosen["generated_at"]), publisher)
+    if "refused" in derived:
+        return derived
+    return {"generated_at": chosen["generated_at"], **derived}
+
+
 def due(case):
     if case["catalog_refresh_seconds"] != SUITE_CATALOG_REFRESH_SECONDS:
         raise VerifierError("the part that signs reads catalog_refresh_seconds at its suite value")
@@ -908,6 +919,9 @@ def family_item_lists(data, report):
     for case in data["cases"]:
         report.run(case["name"], lambda c=case: report.equal(
             c["name"], c["expected"], derive_list(c, publishers[c["declaration"]])))
+    for case in data["signing_cases"]:
+        report.run(case["name"], lambda c=case: report.equal(
+            c["name"], c["expected"], sign_list(c, publishers[c["declaration"]])))
 
 
 SIGNED = {"keys", "declarations"}
@@ -935,7 +949,9 @@ FAMILIES = [
         "cases": {"name", "declaration", "clock", "parameters", "catalog", "tree_files", "expected"}}),
     ("item-lists", "wist2/item-lists.json", family_item_lists, SIGNED, {
         "cases": {"name", "declaration", "collection", "generated_at", "wist_version", "parameters", "served",
-                  "publications", "removals", "salts", "expected"}}),
+                  "publications", "removals", "salts", "expected"},
+        "signing_cases": {"name", "declaration", "collection", "clock", "clock_skew_seconds", "wist_version",
+                          "parameters", "served", "publications", "removals", "salts", "expected"}}),
 ]
 
 

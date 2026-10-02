@@ -1528,6 +1528,41 @@ def item_list_vectors():
     case("publication whose modified equals generated_at", [a], [pub_a, publication(c_url, generated)],
          [a[0], fresh(publication(c_url, generated))])
 
+    signing_cases = []
+
+    def signing(name, clock, served_at, served_pairs, publications, expected):
+        served, payloads = served_of(served_pairs)
+        salts = [{"url": p["url"], "salt": salt_for("fresh " + p["url"])} for p in publications]
+        salt_map = {s["url"]: s["salt"] for s in salts}
+        publisher = declarations["collections"]["publisher"]
+        got = catalogs.sign_list(clock, served_at, 600, served, payloads, publications, publisher, "journal",
+                                 salt_map, "1.0.0", parameters)
+        if "refused" in got:
+            assert got == {"refused": expected}, (name, got)
+        else:
+            assert got["generated_at"] == expected, (name, got)
+            assert got == {"generated_at": expected,
+                           **items.derive_list(served, payloads, publications, publisher, "journal", expected,
+                                               salt_map, "1.0.0", parameters)}, name
+        signing_cases.append({"name": name, "declaration": "collections", "collection": "journal", "clock": clock,
+                              "clock_skew_seconds": 600, "wist_version": "1.0.0", "parameters": parameters,
+                              "served": {"generated_at": served_at, "list": served, "payloads": payloads},
+                              "publications": publications, "removals": [], "salts": salts, "expected": got})
+
+    beyond, inside = "2026-10-01T12:10:00Z", "2026-10-01T12:09:59Z"
+    twice = [a, (removed(a_url, "2026-09-15T00:00:00Z"), None)]
+    signing("served instant at the allowance and a served list holding two Items of one URL: catalog-instant "
+            "comes first", generated, beyond, twice, [pub_a], "catalog-instant")
+    signing("served instant one second short of the allowance and a served list holding two Items of one URL",
+            generated, inside, twice, [pub_a], "served-list")
+    ahead = publication(c_url, "2026-10-01T12:10:02Z")
+    signing("served instant at the allowance and a publication whose modified is later than the next instant: "
+            "catalog-instant comes first", generated, beyond, [a], [pub_a, ahead], "catalog-instant")
+    signing("served instant one second short of the allowance and a publication whose modified is later than the "
+            "next instant", generated, inside, [a], [pub_a, ahead], "item-instant")
+    signing("served instant ahead of the clock within the allowance: the list derived at the served instant plus "
+            "one second", generated, "2026-10-01T12:05:00Z", [a, c], [later_a], "2026-10-01T12:05:01Z")
+
     return {"note": (
         "ADR-0052 From publications to Items, for the Collection `collection` under the Declaration named by "
         "`declaration`. Inputs: the served list `served.list` with `served.payloads` (the Payload of each served "
@@ -1563,8 +1598,15 @@ def item_list_vectors():
         "observed_at later than generated_at, in which case nothing is published. A list longer than "
         "catalog_items_max, 16 777 216 Items, is refused with catalog-size; no case reaches it. `narrowed` is "
         "`collections` with the journal's Scope narrowed to the prefix entry https://example.com/journal/a/. "
+        "`signing_cases` compose the instant with the derivation, WIST-5 section 6.3: the Catalog's generated_at is "
+        "chosen from `clock` and `served.generated_at`, the served Catalog's, as vectors/wist2/catalog-order.json's "
+        "`next_cases` choose it under `clock_skew_seconds`, and the list is then derived at that instant from the "
+        "other inputs as in `cases`. The refusals apply in the order catalog-instant, served-list, item-instant, "
+        "catalog-size, the first met deciding; catalog-instant is met before the list is derived, so it decides "
+        "even when the served list holds two Items of one url or a publication's modified is later than the "
+        "refused instant.`expected` is {\"refused\": code} or {generated_at, list, payloads}. "
         + DECLARATIONS_NOTE + " " + KEYS_NOTE),
-        "keys": KEYS_MEMBER, "declarations": declarations, "cases": cases}
+        "keys": KEYS_MEMBER, "declarations": declarations, "cases": cases, "signing_cases": signing_cases}
 
 
 write_json(WIST1 / "item-fields.json", item_field_vectors())

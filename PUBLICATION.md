@@ -44,7 +44,7 @@ current rules. Keep known conformance failures visible until resolved.
 Final consolidation requires all of the following:
 
 - Implemented Publisher, Aggregator and Consumer roles validated end to end
-  against the applicable WIST-1 through WIST-4 conformance checklists,
+  against the applicable WIST-1 through WIST-5 conformance checklists,
   including a Publisher acting as a Labeler: live pulls of Catalogs, with
   their lists, change lists and Payloads, and of Label Feeds, admission,
   sealing, Snapshot production and Consumer verification and ranking.

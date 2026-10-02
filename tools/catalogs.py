@@ -126,6 +126,18 @@ def next_generated_at(clock, served, clock_skew_seconds):
     return log_timestamp(instant)
 
 
+def sign_list(clock, served_generated_at, clock_skew_seconds, served, served_payloads, publications, publisher,
+              collection_name, salts, wist_version, parameters=None, removals=()):
+    generated_at = next_generated_at(clock, served_generated_at, clock_skew_seconds)
+    if generated_at is None:
+        return {"refused": "catalog-instant"}
+    derived = items.derive_list(served, served_payloads, publications, publisher, collection_name, generated_at,
+                                salts, wist_version, parameters, removals=removals)
+    if "refused" in derived:
+        return derived
+    return {"generated_at": generated_at, **derived}
+
+
 def catalog_due(clock, served):
     if served is None:
         return True

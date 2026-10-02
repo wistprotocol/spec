@@ -139,8 +139,10 @@ a served list that holds two Items of one URL (`served-list`), a new
 list that holds an Item whose `observed_at` is later than the
 Catalog's `generated_at` (`item-instant`), or a new list longer than
 `catalog_items_max` (`catalog-size`), with the first of the three, in
-that order, that it meets. Each refusal stops the Catalog of its
-Collection alone. WIST-5 assigns the codes.
+that order, that it meets. `catalog-instant` (Catalogs) precedes the
+three, since the instant is an input of the derivation. Each refusal
+stops the Catalog of its Collection alone. WIST-5 registers the four
+names as its codes.
 
 ### Catalogs
 
@@ -210,7 +212,7 @@ to the whole second, and the served instant plus one second. When
 that instant is more than `clock_skew_seconds` beyond its clock, cut
 to the whole second, the part that signs refuses with
 `catalog-instant` and signs nothing, since its clock is wrong or no
-Aggregator accepted the served Catalog. WIST-5 assigns the code.
+Aggregator accepted the served Catalog.
 
 A Catalog of each Collection the Publisher serves is due, whether or
 not the list changed, once the clock of the part that signs, cut to
@@ -222,7 +224,8 @@ when it runs. A Catalog whose `generated_at` is more than
 Log whose floor is the replaced one's instant (An Aggregator that was
 away). The part that reads a stream or signs reads every parameter,
 `clock_skew_seconds`, `removal_retention_days` and
-`catalog_refresh_seconds` included, at its suite value (WIST-4 §5),
+`catalog_refresh_seconds` included, at its suite value (WIST-4 §5;
+WIST-3 §7 for `removal_retention_days`),
 whatever a Log has amended, since a Publisher reads no Log's
 parameters.
 

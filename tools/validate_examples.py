@@ -359,6 +359,7 @@ INNER_KEY = {
     "item.json": None,  # unsigned: the Catalog's root commits to it (WIST-1 §4)
     "publisher-item.json": None,  # unsigned: the Entry body a Checkpoint commits to (WIST-3 §3.3)
     "tree-file.json": None,  # unsigned JCS octets, named by their SHA-256 (WIST-1 §4)
+    "emission.json": None,  # unsigned: a stream line never leaves the Publisher (WIST-5 §1)
 }
 
 def load_test_pubkey():
@@ -6116,6 +6117,9 @@ TIMESTAMP_FIELDS = {
         "Catalog that lists the Item (WIST1-E06), and a removed Item's to later `generated_at` "
         "values under `removal_retention_days`"
        for path in ("$defs/observed_at", "oneOf[0]/properties/observed_at", "oneOf[1]/properties/observed_at")},
+    ("emission.schema.json", "oneOf[1]/properties/modified"):
+        "Publisher-supplied and never compared to an Epoch: it becomes a new Item's `observed_at` "
+        "(WIST-5 §6.2), which the part that signs compares to the Catalog's `generated_at`",
     ("label.schema.json", "properties/label/properties/asserted_at"):
         "Publisher-supplied and read exactly as an Item's `observed_at` (WIST-2 §3.3): compared "
         "to the same Labeler's other Labels of the subject and name, and to the validator's own "
@@ -6220,7 +6224,7 @@ def _timestamp_anchoring():
                 f"{schema_name}: {spath} is compared against an Epoch `sealed_at` but carries "
                 f"pattern {pattern!r}, not the whole-second-plus-Z form that field carries")
         else:
-            publisher_field = (schema_name in ("item.schema.json", "publisher.schema.json",
+            publisher_field = (schema_name in ("item.schema.json", "emission.schema.json", "publisher.schema.json",
                                                "label.schema.json", "dispute.schema.json",
                                                "label-definition.schema.json")
                                or spath.endswith(("oneOf[6]/prefixItems[5]", "oneOf[6]/prefixItems[6]/oneOf[0]",

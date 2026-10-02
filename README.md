@@ -32,11 +32,12 @@ Publisher                 Aggregator                    Mirrors / Consumers
 | [WIST-2](specs/WIST-2-site-publication.md) | Site Publication — `.well-known` layout, Collection files and change lists, the Label Feed, ping + pull, unsigned-hint compatibility | v1.0.0-draft |
 | [WIST-3](specs/WIST-3-logbook-distribution.md) | Logbook & Distribution — Epochs, Merkle proofs, checkpoints, snapshots and tiers, sync | v1.0.0-draft |
 | [WIST-4](specs/WIST-4-governance.md) | Governance & Parameters — governance acts, constitutional invariants, the Parameter Registry, the Label Registry | v1.0.0-draft |
+| [WIST-5](specs/WIST-5-emissions.md) | Emissions — the stream a content system writes, the publication each Emission yields, how a Publisher derives and signs its Catalogs, the marked-page profile | v1.0.0-draft |
 
 ## Repository layout
 
 ```
-specs/       the four protocol documents
+specs/       the five protocol documents
 schemas/     JSON Schema (draft 2020-12) for every normative object
 examples/    one validated example per object type
 vectors/     deterministic test vectors (WIST-1 Items, Catalogs,
@@ -45,7 +46,8 @@ vectors/     deterministic test vectors (WIST-1 Items, Catalogs,
              pulls, fetch bounds, link extraction, Labels, disputes and
              label definitions, WIST-3 Merkle, snapshot records and label
              tables, WIST-4 parameter schedules, withdrawals and
-             registrable domains)
+             registrable domains, WIST-5 Emission streams, derivation
+             and marked pages)
 tools/       vector generator and validation harness
 decisions/   ADRs recording the load-bearing design decisions
 ```

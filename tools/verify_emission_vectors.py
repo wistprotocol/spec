@@ -94,7 +94,7 @@ class LineParser:
                 self.i += len(word)
                 return val
         m = NUMBER.match(self.s, self.i)
-        if not m or abs(Decimal(m.group())) >= DOUBLE_OVERFLOW:
+        if not m or Decimal(m.group()).copy_abs() >= DOUBLE_OVERFLOW:
             raise Malformed
         self.i = m.end()
         return Num(m.group())
