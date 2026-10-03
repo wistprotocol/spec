@@ -140,9 +140,16 @@ list that holds an Item whose `observed_at` is later than the
 Catalog's `generated_at` (`item-instant`), or a new list longer than
 `catalog_items_max` (`catalog-size`), with the first of the three, in
 that order, that it meets. `catalog-instant` (Catalogs) precedes the
-three, since the instant is an input of the derivation. Each refusal
-stops the Catalog of its Collection alone. WIST-5 registers the four
-names as its codes.
+three, since the instant is an input of the derivation, and
+`collection` precedes all four: the part that signs signs no Catalog
+of a Collection the served Declaration does not name, whatever files
+the Publisher still serves for it. Every Log in which that Declaration
+is in force refuses such a Catalog with `WIST1-E03`, so a Catalog
+listing the Collection's served Items as removed, the alternative,
+would be signed for no Log to accept; the records end by the
+Declaration (ADR-0051) and the files by the interval of a replaced
+file. Each refusal stops the Catalog of its Collection alone. WIST-5
+registers the five names as its codes.
 
 ### Catalogs
 
@@ -214,7 +221,7 @@ to the whole second, the part that signs refuses with
 `catalog-instant` and signs nothing, since its clock is wrong or no
 Aggregator accepted the served Catalog.
 
-A Catalog of each Collection the Publisher serves is due, whether or
+A Catalog of each Collection the served Declaration names is due, whether or
 not the list changed, once the clock of the part that signs, cut to
 the whole second, is at or after the served Catalog's `generated_at`
 plus `catalog_refresh_seconds`, and at any clock for a Collection
@@ -1074,7 +1081,9 @@ it; C4 and the base under a `catalog_refresh_seconds` of 7 776 000, a
 weekly signer whose unchanged Catalog of week 13 passes C4 and is no
 base, and an amendment to 7 776 001, ignored; an amendment of
 `url_cap_bytes` to 32 769, ignored; a served list that holds two Items
-of one URL, refused with `served-list`; a refresh with no new stream
+of one URL, refused with `served-list`; a Collection the served
+Declaration does not name, refused with `collection` ahead of
+`catalog-instant`; a refresh with no new stream
 after the served Declaration narrowed a Scope, which lists the
 publications outside it as removed; the last accepted Catalog served
 again with a signature that does not verify, and after a Declaration

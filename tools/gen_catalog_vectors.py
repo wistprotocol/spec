@@ -1522,6 +1522,8 @@ def item_list_vectors():
          [a, (removed(a_url, "2026-09-15T00:00:00Z"), None)], [pub_a], [], signs=False, refused="served-list")
     case("served list holding two Items of one URL and no publication for it: no Catalog is signed",
          [a, (removed(a_url, "2026-09-15T00:00:00Z"), None)], [], [], signs=False, refused="served-list")
+    case("Collection the served Declaration does not name, with a served page Item and its publication: no Catalog "
+         "is signed", [a], [pub_a], [], signs=False, label="implicit", refused="collection")
     future = publication(c_url, "2026-10-01T12:00:01Z")
     case("publication whose modified is later than generated_at: no Catalog is signed", [a], [pub_a, future], [],
          signs=False)
@@ -1530,11 +1532,11 @@ def item_list_vectors():
 
     signing_cases = []
 
-    def signing(name, clock, served_at, served_pairs, publications, expected):
+    def signing(name, clock, served_at, served_pairs, publications, expected, label="collections"):
         served, payloads = served_of(served_pairs)
         salts = [{"url": p["url"], "salt": salt_for("fresh " + p["url"])} for p in publications]
         salt_map = {s["url"]: s["salt"] for s in salts}
-        publisher = declarations["collections"]["publisher"]
+        publisher = declarations[label]["publisher"]
         got = catalogs.sign_list(clock, served_at, 600, served, payloads, publications, publisher, "journal",
                                  salt_map, "1.0.0", parameters)
         if "refused" in got:
@@ -1544,7 +1546,7 @@ def item_list_vectors():
             assert got == {"generated_at": expected,
                            **items.derive_list(served, payloads, publications, publisher, "journal", expected,
                                                salt_map, "1.0.0", parameters)}, name
-        signing_cases.append({"name": name, "declaration": "collections", "collection": "journal", "clock": clock,
+        signing_cases.append({"name": name, "declaration": label, "collection": "journal", "clock": clock,
                               "clock_skew_seconds": 600, "wist_version": "1.0.0", "parameters": parameters,
                               "served": {"generated_at": served_at, "list": served, "payloads": payloads},
                               "publications": publications, "removals": [], "salts": salts, "expected": got})
@@ -1553,6 +1555,8 @@ def item_list_vectors():
     twice = [a, (removed(a_url, "2026-09-15T00:00:00Z"), None)]
     signing("served instant at the allowance and a served list holding two Items of one URL: catalog-instant "
             "comes first", generated, beyond, twice, [pub_a], "catalog-instant")
+    signing("served instant at the allowance and a Collection the served Declaration does not name: collection "
+            "comes first", generated, beyond, [a], [pub_a], "collection", label="implicit")
     signing("served instant one second short of the allowance and a served list holding two Items of one URL",
             generated, inside, twice, [pub_a], "served-list")
     ahead = publication(c_url, "2026-10-01T12:10:02Z")
@@ -1572,7 +1576,8 @@ def item_list_vectors():
         "links_cap_bytes, link_url_cap_bytes and summary_cap_bytes those Payload checks read, at their suite "
         "values, since the part that signs reads no Log's parameters) and `salts`, the salt a new Item for that url "
         "takes. removal_retention_days is the constant 180 and is read from no parameter map. A served list that holds "
-        "two Items of one url is refused, {\"refused\": \"served-list\"}, and nothing is signed. The part that "
+        "two Items of one url is refused, {\"refused\": \"served-list\"}, and nothing is signed; a Collection the "
+        "Declaration does not name is refused before it, {\"refused\": \"collection\"}. The part that "
         "signs first takes out of the publications those the Scope of the Collection under the Declaration named by "
         "`declaration`, the Declaration the Publisher serves, does not cover; a served Item outside that Scope then "
         "has no publication and the served rows below decide it. A served Item whose "
@@ -1601,8 +1606,8 @@ def item_list_vectors():
         "`signing_cases` compose the instant with the derivation, WIST-5 section 6.3: the Catalog's generated_at is "
         "chosen from `clock` and `served.generated_at`, the served Catalog's, as vectors/wist2/catalog-order.json's "
         "`next_cases` choose it under `clock_skew_seconds`, and the list is then derived at that instant from the "
-        "other inputs as in `cases`. The refusals apply in the order catalog-instant, served-list, item-instant, "
-        "catalog-size, the first met deciding; catalog-instant is met before the list is derived, so it decides "
+        "other inputs as in `cases`. The refusals apply in the order collection, catalog-instant, served-list, "
+        "item-instant, catalog-size, the first met deciding; catalog-instant is met before the list is derived, so it decides "
         "even when the served list holds two Items of one url or a publication's modified is later than the "
         "refused instant.`expected` is {\"refused\": code} or {generated_at, list, payloads}. "
         + DECLARATIONS_NOTE + " " + KEYS_NOTE),

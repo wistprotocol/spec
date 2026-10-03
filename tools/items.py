@@ -484,6 +484,8 @@ def derive_list(served, served_payloads, publications, publisher, collection_nam
                 wist_version, parameters=None, removals=()):
     parameters = dict(DEFAULT_PARAMETERS)
     now = instant(generated_at)
+    if rules.collection_named(publisher, collection_name) is None:
+        return {"refused": "collection"}
     if len({item["url"] for item in served}) != len(served):
         return {"refused": "served-list"}
     by_url = {p["url"]: p for p in publications}

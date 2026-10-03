@@ -249,6 +249,13 @@ Publisher MUST run it at least once in every `catalog_refresh_seconds`,
 so that each Catalog is signed less than twice that interval after the
 one before (WIST-3 §3.2).
 
+No Catalog is due or signed for a Collection the served Declaration
+does not name, whatever files the Publisher still serves for it: the
+part that signs refuses with `collection` (§6.3). Every Log in which
+that Declaration is in force refuses such a Catalog with `WIST1-E03`
+(WIST-3 §3.3), and the files served for the Collection end by WIST-2
+§3.1.
+
 The `generated_at` of a Catalog is the later of the clock of the part
 that signs, cut to the whole second, and the served Catalog's
 `generated_at` plus one second; for a Collection with no served Catalog
@@ -295,13 +302,15 @@ on the first of these it meets, in the order of the table.
 
 | Code | Condition |
 |---|---|
+| `collection` | The served Declaration does not name the Collection |
 | `catalog-instant` | The `generated_at` of §6.1 is more than `clock_skew_seconds` (600) beyond the clock, cut to the whole second |
 | `served-list` | The list of the served Catalog holds two Items of one URL |
 | `item-instant` | The new list holds an Item whose `observed_at` is later than the Catalog's `generated_at` |
 | `catalog-size` | The new list holds more than `catalog_items_max` (16 777 216) Items |
 
-`catalog-instant` is first because the instant is an input of the
-derivation. Each refusal stops the Catalog of its Collection alone: the
+`collection` is first because no Catalog of that Collection can be
+accepted, and `catalog-instant` precedes the rest because the instant is
+an input of the derivation. Each refusal stops the Catalog of its Collection alone: the
 served Catalog stays served, the published publications stay as they
 were, and the Catalogs of the Publisher's other Collections proceed.
 
@@ -360,7 +369,7 @@ with an Aggregator, so they carry no `WISTn-Enn` form.
 | Code | Raised by | Effect |
 |---|---|---|
 | `stream-form`, `header`, `emission-form`, `url`, `duplicate`, `scope`, `cap` | The part that reads a stream (§3.3) | The stream is refused whole; no publication changes |
-| `catalog-instant`, `served-list`, `item-instant`, `catalog-size` | The part that signs (§6.3) | No Catalog of the Collection is signed |
+| `collection`, `catalog-instant`, `served-list`, `item-instant`, `catalog-size` | The part that signs (§6.3) | No Catalog of the Collection is signed |
 
 ## 9. Security Considerations
 
@@ -441,7 +450,7 @@ with an Aggregator, so they carry no `WISTn-Enn` form.
 | `vectors/wist5/emission-streams.json` | Streams with each refusal of §3.3, its line and the order among refusals; caps with twins at the bound; application of complete and incremental streams and the plan (§5) |
 | `vectors/wist5/emission-derivation.json` | `extract` and `links` of `html` and of `text` (§4) |
 | `vectors/wist5/marked-pages.json` | The marker, the region, `title`, `abstract` and `lang` of §7, and the publication each emitted page yields |
-| `vectors/wist2/item-lists.json` | The list derivation of §6.2 with `served-list`, `item-instant` and `catalog-size`, and the order of §6.3 |
+| `vectors/wist2/item-lists.json` | The list derivation of §6.2 with `collection`, `served-list`, `item-instant` and `catalog-size`, and the order of §6.3 |
 | `vectors/wist2/catalog-order.json` | The `generated_at`, the due Catalog and `catalog-instant` (§6.1) |
 
 ## References

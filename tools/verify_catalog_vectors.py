@@ -279,6 +279,12 @@ def merkle_root(leaves):
     return level[0]
 
 
+def names_collection(publisher, collection):
+    if "collections" not in publisher:
+        return collection == "default"
+    return collection_named(publisher, collection) is not None
+
+
 def covered(publisher, collection, url):
     if "collections" not in publisher:
         return collection == "default" and url_host(url) in authority(publisher)
@@ -639,6 +645,8 @@ def derive_list(case, publisher):
     salts = {s["url"]: s["salt"] for s in case["salts"]}
     if len({p["url"] for p in case["publications"]}) != len(case["publications"]):
         raise VerifierError("a URL repeats among the publications")
+    if not names_collection(publisher, collection):
+        return {"refused": "collection"}
     served = {item["url"]: item for item in case["served"]["list"]}
     if len(served) != len(case["served"]["list"]):
         return {"refused": "served-list"}
@@ -696,6 +704,8 @@ def next_instant(case):
 
 
 def sign_list(case, publisher):
+    if not names_collection(publisher, case["collection"]):
+        return {"refused": "collection"}
     chosen = next_instant({"clock": case["clock"], "served": case["served"]["generated_at"],
                            "clock_skew_seconds": case["clock_skew_seconds"]})
     if "refused" in chosen:

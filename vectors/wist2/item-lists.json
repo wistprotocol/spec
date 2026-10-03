@@ -1,5 +1,5 @@
 {
-  "note": "ADR-0052 From publications to Items, for the Collection `collection` under the Declaration named by `declaration`. Inputs: the served list `served.list` with `served.payloads` (the Payload of each served page Item, keyed by Item ID), the publications a stream's application leaves ({url, lang, modified, content}, ADR-0050), `removals`, the URLs the removals of an incremental stream name, the Catalog's `generated_at` and `wist_version`, `parameters` (the size caps url_cap_bytes, extract_cap_bytes, links_cap_bytes, link_url_cap_bytes and summary_cap_bytes those Payload checks read, at their suite values, since the part that signs reads no Log's parameters) and `salts`, the salt a new Item for that url takes. removal_retention_days is the constant 180 and is read from no parameter map. A served list that holds two Items of one url is refused, {\"refused\": \"served-list\"}, and nothing is signed. The part that signs first takes out of the publications those the Scope of the Collection under the Declaration named by `declaration`, the Declaration the Publisher serves, does not cover; a served Item outside that Scope then has no publication and the served rows below decide it. A served Item whose publisher is not the Publisher's domain is read as a page Item whose Payload is not held. The first row a served Item, publication or removed URL meets decides: a publication whose url has a served page Item with meta.lang equal to its lang and a held Payload that passes WIST-1 section 7's Payload checks against the Item's payload (the Payload's form and version spelling, WIST1-E14; a supported major, WIST1-E15; the caps under `parameters`, WIST1-E04; JCS(content) exactly payload.bytes octets and HMAC-SHA256(salt, JCS(content)) equal to payload.commitment, WIST1-E10; the links rules of WIST-1 section 3.6, WIST1-E12) and whose JCS(content) equals its content yields that Item and Payload unchanged; any other publication yields a new page Item {publisher: the Publisher's domain, url, observed_at: modified, payload: {commitment: hmac-sha256: + hex(HMAC-SHA256(salt, JCS(content))), alg: HMAC-SHA256, bytes: octets of JCS(content)}, meta: {lang}} and the Payload {wist_version: the Catalog's wist_version, salt, content}; a served page Item whose url has no publication yields {publisher: the Publisher's domain, url, observed_at: generated_at, removed: true}; a served removed Item whose url has no publication is kept unchanged while generated_at is earlier than its observed_at plus 180 days of 86 400 seconds, compared as exact instants, and yields nothing from then on; a url of `removals` with no publication and no served Item yields {publisher: the Publisher's domain, url, observed_at: generated_at, removed: true}, whether or not the Collection's Scope covers it. A served page Item whose Payload is absent from served.payloads does not meet the second row. The Publisher's domain is the Declaration's `domain`. `expected` is {list (ascending octet order of key), payloads (keyed by Item ID)}, or {\"refused\": \"item-instant\"} when an Item of the new list has an observed_at later than generated_at, in which case nothing is published. A list longer than catalog_items_max, 16 777 216 Items, is refused with catalog-size; no case reaches it. `narrowed` is `collections` with the journal's Scope narrowed to the prefix entry https://example.com/journal/a/. `signing_cases` compose the instant with the derivation, WIST-5 section 6.3: the Catalog's generated_at is chosen from `clock` and `served.generated_at`, the served Catalog's, as vectors/wist2/catalog-order.json's `next_cases` choose it under `clock_skew_seconds`, and the list is then derived at that instant from the other inputs as in `cases`. The refusals apply in the order catalog-instant, served-list, item-instant, catalog-size, the first met deciding; catalog-instant is met before the list is derived, so it decides even when the served list holds two Items of one url or a publication's modified is later than the refused instant.`expected` is {\"refused\": code} or {generated_at, list, payloads}. `declarations` holds the signed Declarations the cases name by label: `collections` carries the Collections journal (prefix entries https://example.com/journal/ and https://blog.example.com/journal/, key journal with exp) and store (prefix https://example.com/store/, exact https://example.com/cart, key store); `implicit` carries none, so its only Collection is the implicit default, whose Scope is every URL on example.com, www.example.com and blog.example.com. Both list the owner key in `keys` and the recovery key in `recovery_keys`. Keys derive from the stated test-only seeds.",
+  "note": "ADR-0052 From publications to Items, for the Collection `collection` under the Declaration named by `declaration`. Inputs: the served list `served.list` with `served.payloads` (the Payload of each served page Item, keyed by Item ID), the publications a stream's application leaves ({url, lang, modified, content}, ADR-0050), `removals`, the URLs the removals of an incremental stream name, the Catalog's `generated_at` and `wist_version`, `parameters` (the size caps url_cap_bytes, extract_cap_bytes, links_cap_bytes, link_url_cap_bytes and summary_cap_bytes those Payload checks read, at their suite values, since the part that signs reads no Log's parameters) and `salts`, the salt a new Item for that url takes. removal_retention_days is the constant 180 and is read from no parameter map. A served list that holds two Items of one url is refused, {\"refused\": \"served-list\"}, and nothing is signed; a Collection the Declaration does not name is refused before it, {\"refused\": \"collection\"}. The part that signs first takes out of the publications those the Scope of the Collection under the Declaration named by `declaration`, the Declaration the Publisher serves, does not cover; a served Item outside that Scope then has no publication and the served rows below decide it. A served Item whose publisher is not the Publisher's domain is read as a page Item whose Payload is not held. The first row a served Item, publication or removed URL meets decides: a publication whose url has a served page Item with meta.lang equal to its lang and a held Payload that passes WIST-1 section 7's Payload checks against the Item's payload (the Payload's form and version spelling, WIST1-E14; a supported major, WIST1-E15; the caps under `parameters`, WIST1-E04; JCS(content) exactly payload.bytes octets and HMAC-SHA256(salt, JCS(content)) equal to payload.commitment, WIST1-E10; the links rules of WIST-1 section 3.6, WIST1-E12) and whose JCS(content) equals its content yields that Item and Payload unchanged; any other publication yields a new page Item {publisher: the Publisher's domain, url, observed_at: modified, payload: {commitment: hmac-sha256: + hex(HMAC-SHA256(salt, JCS(content))), alg: HMAC-SHA256, bytes: octets of JCS(content)}, meta: {lang}} and the Payload {wist_version: the Catalog's wist_version, salt, content}; a served page Item whose url has no publication yields {publisher: the Publisher's domain, url, observed_at: generated_at, removed: true}; a served removed Item whose url has no publication is kept unchanged while generated_at is earlier than its observed_at plus 180 days of 86 400 seconds, compared as exact instants, and yields nothing from then on; a url of `removals` with no publication and no served Item yields {publisher: the Publisher's domain, url, observed_at: generated_at, removed: true}, whether or not the Collection's Scope covers it. A served page Item whose Payload is absent from served.payloads does not meet the second row. The Publisher's domain is the Declaration's `domain`. `expected` is {list (ascending octet order of key), payloads (keyed by Item ID)}, or {\"refused\": \"item-instant\"} when an Item of the new list has an observed_at later than generated_at, in which case nothing is published. A list longer than catalog_items_max, 16 777 216 Items, is refused with catalog-size; no case reaches it. `narrowed` is `collections` with the journal's Scope narrowed to the prefix entry https://example.com/journal/a/. `signing_cases` compose the instant with the derivation, WIST-5 section 6.3: the Catalog's generated_at is chosen from `clock` and `served.generated_at`, the served Catalog's, as vectors/wist2/catalog-order.json's `next_cases` choose it under `clock_skew_seconds`, and the list is then derived at that instant from the other inputs as in `cases`. The refusals apply in the order collection, catalog-instant, served-list, item-instant, catalog-size, the first met deciding; catalog-instant is met before the list is derived, so it decides even when the served list holds two Items of one url or a publication's modified is later than the refused instant.`expected` is {\"refused\": code} or {generated_at, list, payloads}. `declarations` holds the signed Declarations the cases name by label: `collections` carries the Collections journal (prefix entries https://example.com/journal/ and https://blog.example.com/journal/, key journal with exp) and store (prefix https://example.com/store/, exact https://example.com/cart, key store); `implicit` carries none, so its only Collection is the implicit default, whose Scope is every URL on example.com, www.example.com and blog.example.com. Both list the owner key in `keys` and the recovery key in `recovery_keys`. Keys derive from the stated test-only seeds.",
   "keys": {
     "owner": {
       "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
@@ -2821,6 +2821,80 @@
       }
     },
     {
+      "name": "Collection the served Declaration does not name, with a served page Item and its publication: no Catalog is signed",
+      "declaration": "implicit",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "removals": [],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "refused": "collection"
+      }
+    },
+    {
       "name": "publication whose modified is later than generated_at: no Catalog is signed",
       "declaration": "collections",
       "collection": "journal",
@@ -3145,6 +3219,82 @@
       ],
       "expected": {
         "refused": "catalog-instant"
+      }
+    },
+    {
+      "name": "served instant at the allowance and a Collection the served Declaration does not name: collection comes first",
+      "declaration": "implicit",
+      "collection": "journal",
+      "clock": "2026-10-01T12:00:00Z",
+      "clock_skew_seconds": 600,
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "served": {
+        "generated_at": "2026-10-01T12:10:00Z",
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "removals": [],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "refused": "collection"
       }
     },
     {
