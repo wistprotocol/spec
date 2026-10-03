@@ -24,7 +24,9 @@ REPLACED_FILE_SECONDS = 86400
 CATALOG_REFRESH_BOUNDS = (1, 7776000)
 PAYLOAD_WINDOW_DAYS_MIN = 30
 GROUP_ORDER = ["publisher_declaration", "registry_update", "publisher_catalog", "publisher_item", "label", "dispute"]
-SUPPORTED_TYPES = {"publisher_declaration", "registry_update", "publisher_catalog", "publisher_item"}
+UNJUDGED_TYPES = {"label", "dispute"}
+CAPACITY_HOSTS = {"publisher_catalog": ("catalog", "publisher"), "publisher_item": ("item", "publisher"),
+                  "label": ("label", "labeler"), "dispute": ("dispute", "disputant")}
 JUDGED_TYPES = ("registry_update", "publisher_catalog", "publisher_item")
 OUT_OF_PLACE = "WIST3-E06"
 EPOCH_REJECTED = "WIST3-E03"
@@ -388,6 +390,8 @@ def withdrawal_form(log, body):
 
 
 def judge_withdrawal(log, body, height):
+    if not isinstance(body, dict):
+        return ["envelope"], {"WIST4-E11"}
     subject, identifier = withdrawal_form(log, body)
     if subject not in log["sealed_items"].get(identifier, set()):
         return ["contract"], {CONTRACT_BROKEN}
@@ -402,20 +406,27 @@ def body_member(entry, outer, member):
     return body[outer].get(member)
 
 
+def entry_type(entry):
+    if isinstance(entry, dict) and set(entry) == ENTRY_MEMBERS and entry["type"] in GROUP_ORDER:
+        return entry["type"]
+    return None
+
+
 def epoch_rejections(entries, parameters):
     seen, counts, met = set(), {}, set()
     for named in entries:
         entry = named["entry"]
         if len(jcs(entry)) > ENTRY_OCTETS_MAX:
             met.add(EPOCH_REJECTED)
-        if entry["type"] == "publisher_catalog":
+        kind = entry_type(entry)
+        if kind == "publisher_catalog":
             pair = (body_member(entry, "catalog", "publisher"), body_member(entry, "catalog", "collection"))
             if all(isinstance(value, str) for value in pair):
                 if pair in seen:
                     met.add(EPOCH_REJECTED)
                 seen.add(pair)
-        if entry["type"] in ("publisher_catalog", "publisher_item"):
-            host = body_member(entry, "catalog" if entry["type"] == "publisher_catalog" else "item", "publisher")
+        if kind in CAPACITY_HOSTS:
+            host = body_member(entry, *CAPACITY_HOSTS[kind])
             if isinstance(host, str) and canonical_host(host):
                 counts[host] = counts.get(host, 0) + 1
     if any(count > parameters["domain_epoch_entries_max"] for count in counts.values()):
@@ -423,16 +434,21 @@ def epoch_rejections(entries, parameters):
     return met
 
 
-def in_canonical_order(entries):
-    ranks = []
+def form_rejections(entries):
+    ranks, met = [], set()
     for named in entries:
         members_read(named, NAMED_ENTRY_MEMBERS, f"Entry {named.get('name')!r}")
         entry = named["entry"]
-        members_read(entry, ENTRY_MEMBERS, f"Entry {named['name']!r}")
-        if entry["type"] not in SUPPORTED_TYPES:
-            raise VerifierError(f"Entry type {entry['type']!r} is outside this fixture's scope")
-        ranks.append((GROUP_ORDER.index(entry["type"]), leaf_hash(entry)))
-    return ranks == sorted(ranks)
+        kind = entry_type(entry)
+        if kind is None:
+            met.add(EPOCH_REJECTED)
+            continue
+        if kind in UNJUDGED_TYPES and isinstance(entry["body"], dict):
+            raise VerifierError(f"a {kind} Entry whose body is an object is outside this fixture's scope")
+        ranks.append((GROUP_ORDER.index(kind), leaf_hash(entry)))
+    if ranks != sorted(ranks):
+        met.add(EPOCH_REJECTED)
+    return met
 
 
 def duties(log, sealed_at):
@@ -454,11 +470,10 @@ def duties(log, sealed_at):
 def apply_epoch(log, epoch):
     height, sealed_at, parameters = epoch["height"], log_seconds(epoch["sealed_at"]), epoch["parameters"]
     entries = epoch["entries"]
-    met = set() if in_canonical_order(entries) else {EPOCH_REJECTED}
-    met |= epoch_rejections(entries, parameters)
+    met = form_rejections(entries) | epoch_rejections(entries, parameters)
     before = copy.deepcopy(log)
     removed, verdicts = [], {}
-    declarations = [e for e in entries if e["entry"]["type"] == "publisher_declaration"]
+    declarations = [e for e in entries if entry_type(e["entry"]) == "publisher_declaration"]
     try:
         apply_declarations(log, sorted(declarations, key=lambda e: leaf_hash(e["entry"])),
                            height, sealed_at, parameters, removed)
@@ -475,7 +490,7 @@ def apply_epoch(log, epoch):
     }
     for kind in ("publisher_catalog", "publisher_item", "registry_update"):
         for index, named in enumerate(entries):
-            if named["entry"]["type"] == kind:
+            if entry_type(named["entry"]) == kind:
                 verdicts[index] = judges[kind](named["entry"]["body"])
     results = []
     for index, named in enumerate(entries):
@@ -557,7 +572,7 @@ def page_items(epochs_lists):
         for epoch in epochs:
             for named in epoch["entries"]:
                 entry = named["entry"]
-                if entry["type"] == "publisher_item" and isinstance(entry["body"], dict):
+                if entry_type(entry) == "publisher_item" and isinstance(entry["body"], dict):
                     item = entry["body"].get("item")
                     if isinstance(item, dict) and set(item) == PAGE_MEMBERS and isinstance(item["publisher"], str) \
                             and commitment_form(item["payload"]):

@@ -8,7 +8,7 @@ import narrowing
 import tree_files
 
 ENTRY_GROUPS = ("publisher_declaration", "registry_update", "publisher_catalog", "publisher_item", "label", "dispute")
-REPLAYED_TYPES = ENTRY_GROUPS
+ENTRY_MEMBERS = {"type", "body"}
 LABEL_MEMBERS = {"label": "labeler", "dispute": "disputant"}
 OUT_OF_PLACE = "WIST3-E06"
 EPOCH_REJECTED = "WIST3-E03"
@@ -18,6 +18,8 @@ REFRESH_BOUNDS = (1, 7776000)
 TREE_FLOORS = dict(tree_files.DEFAULT_PARAMETERS)
 WITHDRAWAL = "payload_withdrawal"
 CONTRACT_FAILED = "WIST4-E04"
+ENVELOPE_FAILED = "WIST4-E11"
+FIELD_FAILED = "WIST1-E14"
 
 
 def check_parameters(parameters):
@@ -36,8 +38,14 @@ def check_parameters(parameters):
     return parameters
 
 
+def entry_form(entry):
+    return isinstance(entry, dict) and set(entry) == ENTRY_MEMBERS and entry["type"] in ENTRY_GROUPS
+
+
 def withdrawal_act(entry):
-    update = entry["body"].get("update") if isinstance(entry["body"], dict) else None
+    if not isinstance(entry["body"], dict):
+        return None
+    update = entry["body"].get("update")
     if not isinstance(update, dict) or update.get("action") != WITHDRAWAL:
         raise ValueError("a registry_update this replay does not carry")
     return update["details"]["delta_id"], update["subject"]
@@ -142,7 +150,7 @@ class Sealing:
     def apply_declarations(self, entries, height, sealed_at, parameters, removed):
         by_domain = {}
         for entry in entries:
-            if entry["type"] == "publisher_declaration":
+            if entry["type"] == "publisher_declaration" and isinstance(entry["body"], dict):
                 by_domain.setdefault(entry["body"]["publisher"]["domain"], []).append(entry["body"])
         for domain in sorted(set(self.replays) | set(by_domain)):
             replay = self.replays.setdefault(domain, narrowing.Replay(
@@ -290,6 +298,11 @@ class Sealing:
 
     def rejections(self, entries, parameters):
         found = []
+        if not all(entry_form(e) for e in entries):
+            found.append((EPOCH_REJECTED, "an Entry not an object of exactly type and body of an Entry type"))
+            entries = [e for e in entries if entry_form(e)]
+        if any(e["type"] == "publisher_declaration" and not isinstance(e["body"], dict) for e in entries):
+            found.append((FIELD_FAILED, "a publisher_declaration body that is not an object"))
         if list(entries) != canonical_order(entries):
             found.append((EPOCH_REJECTED, "Entries not in canonical order"))
         pairs = [catalog_strings(e["body"]) for e in entries if e["type"] == "publisher_catalog"]
@@ -301,19 +314,17 @@ class Sealing:
         labeled = capacity_counts([e for e in entries if e["type"] in LABEL_MEMBERS])
         if any(n > parameters["labeler_epoch_entries_max"] for n in labeled.values()):
             found.append((EPOCH_REJECTED, "above the per-Labeler Epoch cap"))
-        return found
+        return found, entries
 
     def epoch(self, epoch):
         height, sealed_at, parameters = epoch["height"], epoch["sealed_at"], check_parameters(epoch["parameters"])
         entries = epoch["entries"]
-        if any(e["type"] not in REPLAYED_TYPES for e in entries):
-            raise ValueError("an Entry type this replay does not carry")
-        found = self.rejections(entries, parameters)
+        found, formed = self.rejections(entries, parameters)
         saved = copy.deepcopy(self.__dict__)
         self.sealed_at = sealed_at
         removed, dispositions = [], {}
         try:
-            self.apply_declarations(canonical_order(entries), height, sealed_at, parameters, removed)
+            self.apply_declarations(canonical_order(formed), height, sealed_at, parameters, removed)
         except narrowing.HistoryRejected as rejection:
             found.append((rejection.code, rejection.reason))
         if found:
@@ -335,8 +346,9 @@ class Sealing:
             dispositions[index] = disposition(failed)
             if not failed:
                 self.apply_item(entry["body"], named, height, parameters, removed)
-        for index, (item_id, subject) in sorted(acts.items()):
-            dispositions[index] = disposition(self.apply_withdrawal(item_id, subject, height))
+        for index, act in sorted(acts.items()):
+            dispositions[index] = disposition([("envelope", ENVELOPE_FAILED)] if act is None
+                                              else self.apply_withdrawal(*act, height))
         return {"height": height, "status": "accepted",
                 "entries": [dispositions.get(i) for i in range(len(entries))],
                 "records_removed": removed}

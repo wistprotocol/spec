@@ -3674,10 +3674,11 @@ def _sealed_publisher_item_bodies():
         verdicts = {d["name"]: d for ex in history["expected"] for d in ex.get("entries", [])}
         for epoch in history["epochs"]:
             for named in epoch["entries"]:
-                if named["entry"]["type"] != "publisher_item":
+                entry = named["entry"]
+                if not isinstance(entry, dict) or set(entry) != {"type", "body"} or entry["type"] != "publisher_item":
                     continue
                 verdict = verdicts.get(named["name"], {})
-                (refused if "I1" in verdict.get("failed", []) else bodies).append(named["entry"]["body"])
+                (refused if "I1" in verdict.get("failed", []) else bodies).append(entry["body"])
     return bodies, refused
 
 def _publisher_item_bodies():

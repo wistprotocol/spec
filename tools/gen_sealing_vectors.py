@@ -193,11 +193,16 @@ def at(height, offset=-60):
     return T0 + height * HOUR + offset
 
 
+def place(entry):
+    group = entry.get("type") if isinstance(entry, dict) else None
+    rank = sealing.ENTRY_GROUPS.index(group) if group in sealing.ENTRY_GROUPS else len(sealing.ENTRY_GROUPS)
+    return rank, sealing.entry_leaf(entry)
+
+
 def build_epochs(spec):
     epochs = []
     for height, epoch in enumerate(spec):
-        named = sorted(epoch.get("entries", []),
-                       key=lambda pair: (sealing.ENTRY_GROUPS.index(pair[1]["type"]), sealing.entry_leaf(pair[1])))
+        named = sorted(epoch.get("entries", []), key=lambda pair: place(pair[1]))
         if epoch.get("stated_order"):
             assert named != epoch["entries"], ("a stated order that is canonical", height)
             named = epoch["entries"]
@@ -221,7 +226,9 @@ def run(epochs, expect, rejected, label, duties=False):
     names = {}
     for epoch in epochs:
         for named in epoch["entries"]:
-            if named["entry"]["type"] == "publisher_declaration":
+            entry = named["entry"]
+            if (sealing.entry_form(entry) and entry["type"] == "publisher_declaration"
+                    and isinstance(entry["body"], dict)):
                 names[rules.declaration_hash(named["entry"]["body"]["publisher"])] = named["name"]
     out = []
     for epoch, result in zip(epochs, results):
@@ -255,7 +262,8 @@ def history(name, why, spec, expect, rejected=None, check=None, duties=False):
     epochs = build_epochs(spec)
     for epoch in epochs:
         for named in epoch["entries"]:
-            if named["entry"]["type"] in ("registry_update", "publisher_catalog", "publisher_item"):
+            if sealing.entry_form(named["entry"]) and named["entry"]["type"] in (
+                    "registry_update", "publisher_catalog", "publisher_item"):
                 assert named["name"] in expect, (name, named["name"])
     results, state = run(epochs, expect, rejected or {}, name, duties)
     if check is not None:
@@ -946,6 +954,100 @@ def sealing_vectors():
         {"J1": "valid", "a@J1": "valid", "J2": "valid", "J3": "valid", "b@J2": "valid"},
         rejected={2: [E08, E03], 3: [E08], 4: [E03]}, check=unchanged_check({2: 1, 3: 1, 4: 1})))
 
+    e1 = Cat([pa, pb], at(1))
+
+    def only_a(results):
+        assert urls_of(results, 1) == [J + "a"]
+
+    def only_j1(results):
+        assert [c["catalog"] for c in results[1]["state"]["catalogs"]] == [e1.id]
+        only_a(results)
+    histories.append(history(
+        "publisher_item Entries whose body is not an object",
+        "Height 1 carries J1, a against J1 and two publisher_item Entries whose bodies are the string \"x\" and "
+        "the empty array: each fails I1 (WIST1-E14) and is ignored, the Epoch is accepted and a becomes its URL's "
+        "record.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", e1)), ("a@J1", item(e1, J + "a")),
+                      ("item body x", {"type": "publisher_item", "body": "x"}),
+                      ("item body []", {"type": "publisher_item", "body": []})]}],
+        {"J1": "valid", "a@J1": "valid", "item body x": ("WIST1-E14", ["I1"]),
+         "item body []": ("WIST1-E14", ["I1"])},
+        check=only_a))
+
+    histories.append(history(
+        "publisher_catalog Entries whose body is not an object",
+        "Height 1 carries J1, a against J1 and two publisher_catalog Entries whose bodies are the string \"x\" and "
+        "the empty array: each fails C1 (WIST1-E14) and is ignored, and neither is compared with J1 or with the "
+        "other under the rule of two Catalogs of one Publisher and Collection. The Epoch is accepted: J1 is the "
+        "latest journal Catalog and a its URL's record.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", e1)), ("catalog body x", {"type": "publisher_catalog", "body": "x"}),
+                      ("catalog body []", {"type": "publisher_catalog", "body": []}),
+                      ("a@J1", item(e1, J + "a"))]}],
+        {"J1": "valid", "a@J1": "valid", "catalog body x": ("WIST1-E14", ["C1"]),
+         "catalog body []": ("WIST1-E14", ["C1"])},
+        check=only_j1))
+
+    def withdrawn_a_check(results):
+        assert [d["url"] for d in results[1]["payload_duties"]] == [J + "a", J + "b"]
+        assert [d["url"] for d in results[2]["payload_duties"]] == [J + "b"]
+
+    histories.append(history(
+        "registry_update Entries whose body is not an object",
+        "a and b become records at height 1. Height 2 carries a payload_withdrawal of a, which meets its details "
+        "contract, and two registry_update Entries whose bodies are the string \"x\" and the empty array: each is a "
+        "non-object container (WIST-4 section 5.1), ignored (`failed` [envelope], WIST4-E11). The Epoch is "
+        "accepted and the withdrawal ends a's serving duty.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", e1)), ("a@J1", item(e1, J + "a")), ("b@J1", item(e1, J + "b"))]},
+         {"entries": [("withdrawal of a", withdrawal(pa, T0 + 2 * HOUR)),
+                      ("update body x", {"type": "registry_update", "body": "x"}),
+                      ("update body []", {"type": "registry_update", "body": []})]}],
+        {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "withdrawal of a": "valid",
+         "update body x": ("WIST4-E11", ["envelope"]), "update body []": ("WIST4-E11", ["envelope"])},
+        check=withdrawn_a_check, duties=True))
+
+    histories.append(history(
+        "a publisher_declaration Entry whose body is not an object",
+        "Height 1 carries D, a successor of G, and a publisher_declaration Entry whose body is the string \"x\": "
+        "that Declaration fails its field validation (WIST1-E14) and the Epoch is rejected, the state staying that "
+        "of height 0. Height 2 carries D alone: accepted.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("D", decl("owner", renewed)), ("declaration body x",
+                                                      {"type": "publisher_declaration", "body": "x"})]},
+         {"entries": [("D", decl("owner", renewed))]}],
+        {}, rejected={1: ["WIST1-E14"]}, check=unchanged_check({1: 0})))
+
+    f1 = Cat([pa, pb, pc, pd], at(1))
+    noted = copy.deepcopy(item(f1, J + "b"))
+    noted["note"] = "extra"
+    histories.append(history(
+        "Entries not an object of exactly type and body",
+        "Height 2 carries the Item Entry of b with a third member, note: the Epoch is rejected (WIST3-E03). Height "
+        "3 carries c against J1 and an Entry of type publisher_item without body, and height 4 c against J1 and an "
+        "Entry that is the string \"x\", which has no type group and is listed last: both rejected. The state "
+        "after each stays that of height 1. Height 5 carries b and c against J1 without them: accepted, both "
+        "valid.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", f1)), ("a@J1", item(f1, J + "a"))]},
+         {"entries": [("b@J1 with note", noted)]},
+         {"entries": [("c@J1", item(f1, J + "c")), ("publisher_item without body", {"type": "publisher_item"})]},
+         {"entries": [("c@J1", item(f1, J + "c")), ("the string x", "x")]},
+         {"entries": [("b@J1", item(f1, J + "b")), ("c@J1", item(f1, J + "c"))]}],
+        {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "c@J1": "valid"},
+        rejected={2: [E03], 3: [E03], 4: [E03]}, check=unchanged_check({2: 1, 3: 1, 4: 1})))
+
+    histories.append(history(
+        "a label Entry whose body is not an object",
+        "Height 1 carries J1, a against J1 and a label Entry whose body is the string \"x\". The body fails the "
+        "field check of WIST-2 section 3.3 (WIST2-E06), which rejects no Epoch: the Epoch is accepted and a "
+        "becomes its URL's record. The replay judges no Label, so the Entry has no disposition in `entries`.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", e1)), ("a@J1", item(e1, J + "a")),
+                      ("label body x", {"type": "label", "body": "x"})]}],
+        {"J1": "valid", "a@J1": "valid"}, check=only_a))
+
     parameter_cases = []
     for name, changes in (("catalog_refresh_seconds at 7 776 000", {"catalog_refresh_seconds": 7776000}),
                           ("catalog_refresh_seconds at 7 776 001", {"catalog_refresh_seconds": 7776001}),
@@ -978,11 +1080,15 @@ def sealing_vectors():
         "Entries, each {type, body} with a `name` beside it; there are no Checkpoints and no Merkle tree of the "
         "Log. Entries are listed in the order the Epoch stores them, and the Entry index is the position in that "
         "list; an Epoch not in canonical order (WIST-3 section 3.3: grouped publisher_declaration, "
-        "registry_update, publisher_catalog, publisher_item, then by ascending SHA-256(0x00 || JCS(entry))) is "
-        "rejected. Declarations apply as vectors/wist1/collection-narrowing.json "
+        "registry_update, publisher_catalog, publisher_item, label, then by ascending SHA-256(0x00 || JCS(entry))) is "
+        "rejected. An Entry that is not an object of exactly the members type and body, of a type that section "
+        "lists, rejects its Epoch (WIST3-E03); one without a type group is listed after every group. A body that is not an "
+        "object rejects no Epoch except a publisher_declaration's, which fails field validation (WIST1-E14): a "
+        "publisher_catalog fails C1 and a publisher_item I1 (WIST1-E14), and a registry_update is ignored as a "
+        "non-object container (`failed` [envelope], WIST4-E11). Declarations apply as vectors/wist1/collection-narrowing.json "
         "applies them (WIST-1 section 5.2 and ADR-0051's narrowing), then registry_update Entries, then "
-        "publisher_catalog and then publisher_item Entries in ascending Entry index. The only registry_update "
-        "carried is a payload_withdrawal (WIST-3 section 6.2, WIST-4 section 5.1) whose details.delta_id is an "
+        "publisher_catalog and then publisher_item Entries in ascending Entry index. Every registry_update "
+        "with an object body is a payload_withdrawal (WIST-3 section 6.2, WIST-4 section 5.1) whose details.delta_id is an "
         "Item ID, signed by the test-only Log key, which the replay does not authenticate. Its details contract "
         "(WIST-4 section 5.1) is judged once the Epoch's Items have applied: delta_id names an Item of kind page, "
         "since no other has a Payload, that a valid publisher_item Entry sealed at or below the act's Epoch against a Catalog whose publisher is the act's "
@@ -997,7 +1103,7 @@ def sealing_vectors():
         "C1 with WIST1-E02. C2 to C4 are read only for a Catalog of the form C1 requires, and I2 and I4 to I7 "
         "only where I1 and I3 hold; `failed` lists every condition read that fails. Two publisher_catalog "
         "Entries with the same strings as publisher and collection reject the Epoch; an Entry in which either is "
-        "not a string is compared with none. I7 fails for an Item of kind page that is its URL's record's Item "
+        "not a string, or whose body is not an object, is compared with none. I7 fails for an Item of kind page that is its URL's record's Item "
         "or whose Item ID a withdrawal sealed in an Epoch below the Item's names, and for an Item of kind removed "
         "without a record; the record is that of the Publisher and URL whatever Collection it carries, and no "
         "history reaches a record of another Collection, since disjoint Scopes and narrowing leave none that an "
@@ -1007,8 +1113,8 @@ def sealing_vectors():
         "removal_retention_days, catalog_refresh_seconds is from 1 to 7 776 000 and url_cap_bytes at most 32 768 in "
         "every map; `parameter_cases` gives maps and whether a replay accepts or refuses them. "
         "`expected` gives per Epoch `status` (`accepted`, or `rejected` with `codes`, the ascending codes of every "
-        "whole-Epoch rejection the Epoch meets, WIST3-E03 or the code WIST-1 section 5.2 gives a rejected "
-        "Declaration, of which a validator reports any; the state then unchanged); for an accepted Epoch, per publisher_catalog and publisher_item Entry its `disposition` "
+        "whole-Epoch rejection the Epoch meets, WIST3-E03 or the code WIST-1 sections 5.1 and 5.2 give a "
+        "rejected Declaration, of which a validator reports any; the state then unchanged); for an accepted Epoch, per publisher_catalog and publisher_item Entry its `disposition` "
         "(`valid`, or `ignored` with the conditions `failed` and the `codes` among which WIST-1 section 7 leaves "
         "the choice), `records_removed` in the order removed with the cause (`narrowing`, `base`, "
         "`removed_item`), and `state` after the Epoch: per Publisher the current Declaration, pending head and "
@@ -1030,8 +1136,8 @@ def sealing_vectors():
         "meeting a Declaration rejection and WIST3-E03 stands beside a twin meeting each alone. The "
         "per-domain capacity counts publisher_catalog and publisher_item Entries, valid or ignored, per Canonical "
         "Host, since no Public Suffix List snapshot is in force, and a body whose publisher is not a Canonical "
-        "Host counts toward none; no fixture carries label or dispute Entries or a registry_update other than a "
-        "payload_withdrawal, and recovery_window_days and declaration_activation_epochs are constant within a "
+        "Host counts toward none; the one label Entry carried, whose body is not an object, has no disposition "
+        "and rejects no Epoch; no fixture carries a dispute Entry, and recovery_window_days and declaration_activation_epochs are constant within a "
         "history. Payloads, tree files and the rules of Waiting, the queue and settlement are not exercised. Keys "
         "derive from the stated test-only seeds."),
         "keys": KEYS_MEMBER, "histories": histories, "parameter_cases": parameter_cases}

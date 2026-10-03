@@ -290,7 +290,20 @@ The body of `registry_update` is normative in WIST-4, of `label` and
 `dispute` in WIST-2, and of `publisher_declaration` and `publisher_catalog`
 in WIST-1; this section defines the `publisher_item` body. Validators MUST
 reject Epochs containing unknown Entry types under the current major
-version (`WIST3-E03`).
+version (`WIST3-E03`). An Entry that is not a JSON object with exactly the
+members `type` and `body` is rejected the same way, with its Epoch
+(`WIST3-E03`): the Entry form is the Log's own, and no rule reads a member
+beside the two.
+
+A `body` that is not a JSON object rejects no Epoch by this section. It is
+a field failure of the object its `type` names and takes the consequence
+that object's rules give one: a `publisher_declaration` Entry fails its
+acceptance checks (`WIST1-E14`, WIST-1 §5.1) and rejects the Epoch as any
+failing Declaration does; a `publisher_catalog` Entry fails C1 and a
+`publisher_item` Entry fails I1 (`WIST1-E14`), and a `registry_update`
+Entry is a non-object container under WIST-4 §5.1 (`WIST4-E11`), each
+ignored in an Epoch that stays accepted; a `label` or `dispute` Entry
+fails the field check of WIST-2 §3.3 (`WIST2-E06`).
 
 **An Entry fits one leaf.** An Entry's JCS serialization — its leaf
 data (§4) — MUST NOT exceed 65 535 octets, the largest length the
