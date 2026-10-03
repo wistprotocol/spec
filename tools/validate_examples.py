@@ -8440,12 +8440,26 @@ def _wist3_snapshot_keys():
 check("vectors:wist3-snapshot-keys", _wist3_snapshot_keys)
 
 
+_SNAPSHOT_MANIFEST_SCHEMA = Draft202012Validator(
+    json.loads((ROOT / "schemas/snapshot-manifest.schema.json").read_text()))
+
+
+def _without_nulls(value):
+    if isinstance(value, dict):
+        return {k: _without_nulls(v) for k, v in value.items() if v is not None}
+    if isinstance(value, list):
+        return [_without_nulls(v) for v in value]
+    return value
+
+
 def _index_case_outcome(case):
     """WIST-3 §8 step 2 on the case's first entry, and §6's listing order."""
     entry = case["index"]["index"]["snapshots"][0]
-    manifest = case["manifests"][entry["manifest_url"]]["manifest"]
-    disagrees = [f for f in ("snapshot_date", "tree_size", "content_digest")
-                 if entry[f] != manifest[f]]
+    chosen = case["manifests"][entry["manifest_url"]]
+    schema_errors = [e.message for e in _SNAPSHOT_MANIFEST_SCHEMA.iter_errors(chosen)]
+    manifest = chosen["manifest"]
+    disagrees = [] if schema_errors else [
+        f for f in ("snapshot_date", "tree_size", "content_digest") if entry[f] != manifest[f]]
     keys = []
     for e in case["index"]["index"]["snapshots"]:
         m = case["manifests"][e["manifest_url"]]["manifest"]
@@ -8454,7 +8468,10 @@ def _index_case_outcome(case):
         keys.append((e["snapshot_date"], m["epoch_number"]))
     urls = [e["manifest_url"] for e in case["index"]["index"]["snapshots"]]
     assert len(set(urls)) == len(urls), "two entries name one directory"
-    return {"expected": "WIST3-E04" if disagrees else "accept", "disagrees": disagrees,
+    response = ("re-fetch the Snapshot, from another Mirror if needed" if schema_errors
+                else "re-fetch the index" if disagrees else None)
+    return {"expected": "WIST3-E04" if response else "accept", "disagrees": disagrees,
+            "schema_errors": schema_errors, "response": response,
             "index_ordered": keys == sorted(keys, reverse=True)}
 
 
@@ -8463,7 +8480,6 @@ def _wist3_snapshot_index():
     listing order and the entry-versus-manifest check, each recomputed."""
     v = json.loads((ROOT / "vectors" / "wist3" / "snapshot-index.json").read_text())
     index_schema = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-index.schema.json").read_text()))
-    manifest_schema = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-manifest.schema.json").read_text()))
     genesis = json.loads((ROOT / "examples/log-anchor.json").read_text())["anchor"]["genesis_key"]
     pub = b64u_decode(genesis["public_key"])
     seen = set()
@@ -8473,8 +8489,10 @@ def _wist3_snapshot_index():
         seen.add(where)
         index_schema.validate(case["index"])
         assert _envelope_verifies(pub, case["index"], "index"), f"{where}: the index signature"
+        chosen_url = case["index"]["index"]["snapshots"][0]["manifest_url"]
         for url, manifest in case["manifests"].items():
-            manifest_schema.validate(manifest)
+            if url != chosen_url:
+                _SNAPSHOT_MANIFEST_SCHEMA.validate(manifest)
             assert _envelope_verifies(pub, manifest, "manifest"), f"{where}: the manifest signature at {url}"
             assert all(not f["path"].startswith("/") for f in manifest["manifest"]["files"]) \
                 and not manifest["manifest"]["state"]["path"].startswith("/"), \
@@ -8482,8 +8500,19 @@ def _wist3_snapshot_index():
         outcome = _index_case_outcome(case)
         assert outcome["expected"] == case["expected"], f"{where}: {outcome}, vector says {case['expected']}"
         assert outcome["index_ordered"] == case["index_ordered"], f"{where}: listing order"
-        if case["expected"] != "accept":
-            assert case["response"] == "re-fetch the index", f"{where}: the response"
+        assert outcome["response"] == case.get("response"), f"{where}: the response"
+    accepted = next(c for c in v["cases"] if c["expected"] == "accept" and c["index_ordered"])
+    null_cases = [c for c in v["cases"] if _index_case_outcome(c)["schema_errors"]]
+    assert len(null_cases) == 2, "the family lacks its two null-member manifests"
+    for case in null_cases:
+        url = case["index"]["index"]["snapshots"][0]["manifest_url"]
+        served, plain = case["manifests"][url]["manifest"], accepted["manifests"][url]["manifest"]
+        assert served != plain and _without_nulls(served) == plain, \
+            f"{case['name']}: differs from the accepted manifest by more than a null member"
+        assert case["index"]["index"]["snapshots"] == accepted["index"]["index"]["snapshots"] \
+            and {u: m for u, m in case["manifests"].items() if u != url} == \
+            {u: m for u, m in accepted["manifests"].items() if u != url}, \
+            f"{case['name']}: differs from the accepted case outside the chosen manifest"
     outcomes = {(c["expected"], c["index_ordered"]) for c in v["cases"]}
     assert {("accept", True), ("accept", False), ("WIST3-E04", True)} <= outcomes, \
         "the family does not separate the Consumer's outcome from the Aggregator's order"
@@ -8505,6 +8534,12 @@ def _wist3_snapshot_index_twin():
     case = json.loads(json.dumps(next(c for c in v["cases"] if c["expected"] == "accept" and c["index_ordered"])))
     case["index"]["index"]["snapshots"].reverse()
     assert not _index_case_outcome(case)["index_ordered"], "a reversed same-date listing read as ordered"
+    for case in (c for c in v["cases"] if c.get("response") == "re-fetch the Snapshot, from another Mirror if needed"):
+        url = case["index"]["index"]["snapshots"][0]["manifest_url"]
+        lenient = json.loads(json.dumps(case))
+        lenient["manifests"][url] = _without_nulls(lenient["manifests"][url])
+        assert _index_case_outcome(lenient)["expected"] == "accept", \
+            f"{case['name']}: a reader taking null as absent does not accept it"
 
 check("negative:wist3-snapshot-index", _wist3_snapshot_index_twin)
 

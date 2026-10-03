@@ -1,5 +1,5 @@
 {
-  "note": "WIST-3 \u00a76 and \u00a78 step 2: each Snapshot is served under its own immutable directory /snapshots/<snapshot_date>/<epoch_number>/, the Epoch zero-padded to nine digits, and the index lists the Snapshots newest snapshot_date first and, within one date, the higher epoch_number first. A case is one signed index and the signed manifests served at the URLs it names (`manifests`, keyed by manifest_url); the Consumer chooses the first entry and checks its snapshot_date, tree_size and content_digest against the manifest (`expected`: accept, or WIST3-E04 with `response` naming what is re-fetched \u2014 the index, since a served directory is never rewritten and a disagreement means the index read is stale). `index_ordered` is the Aggregator's obligation, judged separately from the Consumer's outcome: the listing order \u00a76 requires, recomputed from the manifests' dates and Epochs. Every index and manifest is signed under the examples' test-agg-k1.",
+  "note": "WIST-3 \u00a76 and \u00a78 step 2: each Snapshot is served under its own immutable directory /snapshots/<snapshot_date>/<epoch_number>/, the Epoch zero-padded to nine digits, and the index lists the Snapshots newest snapshot_date first and, within one date, the higher epoch_number first. A case is one signed index and the signed manifests served at the URLs it names (`manifests`, keyed by manifest_url); the Consumer chooses the first entry and checks its snapshot_date, tree_size and content_digest against the manifest (`expected`: accept, or WIST3-E04 with `response` naming what is re-fetched \u2014 the index, since a served directory is never rewritten and a disagreement means the index read is stale). `index_ordered` is the Aggregator's obligation, judged separately from the Consumer's outcome: the listing order \u00a76 requires, recomputed from the manifests' dates and Epochs. A chosen manifest carrying an optional member as null fails its schema (\u00a78 step 2), WIST3-E04 with the Snapshot re-fetched, from another Mirror if needed (\u00a79). Every index and manifest is signed under the examples' test-agg-k1.",
   "cases": [
     {
       "name": "two Snapshots of one date, higher Epoch first",
@@ -578,6 +578,240 @@
       "expected": "WIST3-E04",
       "index_ordered": true,
       "response": "re-fetch the index"
+    },
+    {
+      "name": "a manifest carrying shards as null",
+      "why": "the chosen entry's manifest is the accepted one plus a signed \"shards\": null; the schema types shards as an object, so the manifest fails its schema rather than reading as unsharded",
+      "index": {
+        "index": {
+          "wist_version": "1.0.0",
+          "updated_at": "2026-08-02T14:05:00Z",
+          "snapshots": [
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000001/manifest.json",
+              "content_digest": "sha256:9122a0c00f22d6f708b0f7231b0ebe3fce945adb46961caac531b659b403e043"
+            },
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000000/manifest.json",
+              "content_digest": "sha256:9122a0c00f22d6f708b0f7231b0ebe3fce945adb46961caac531b659b403e043"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "9IXYRMqPCJG5f2tJWevyRdVL3RlRji0zEYPhxY_LTBDsJ5hxB8n5a_yV1n_F1iE6SlsF4cJ0oqIrwgqznkuMDw"
+        }
+      },
+      "manifests": {
+        "/snapshots/2026-08-02/000000000/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 0,
+            "tree_size": 4,
+            "root_hash": "sha256:3f973034d26336bc62b7b4c203ad53ff31d919ef3f50f45e75922ca1bc895d8b",
+            "content_digest": "sha256:9122a0c00f22d6f708b0f7231b0ebe3fce945adb46961caac531b659b403e043",
+            "state": {
+              "path": "state.json",
+              "sha256": "1d7a798f290a4d4f576962f39539a7f7b3ba5ba0f3506f477679ea91a59f9531",
+              "bytes": 1516,
+              "state_digest": "sha256:29c624f7b96ed3966d2baf3638c310fba7be9145f45ba17e5894c93163b4c446"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "wG7c36Bv_3FCOtyeBdulL_rqYFn44Icq8jiP1O3rfXii8FWTKgpsUG2-rhJaDhFCB5yDgLpP6NcHomGrOhHUBg"
+          }
+        },
+        "/snapshots/2026-08-02/000000001/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 1,
+            "tree_size": 4,
+            "root_hash": "sha256:3f973034d26336bc62b7b4c203ad53ff31d919ef3f50f45e75922ca1bc895d8b",
+            "content_digest": "sha256:9122a0c00f22d6f708b0f7231b0ebe3fce945adb46961caac531b659b403e043",
+            "state": {
+              "path": "state.json",
+              "sha256": "1d7a798f290a4d4f576962f39539a7f7b3ba5ba0f3506f477679ea91a59f9531",
+              "bytes": 1516,
+              "state_digest": "sha256:29c624f7b96ed3966d2baf3638c310fba7be9145f45ba17e5894c93163b4c446"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ],
+            "shards": null
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "TC6YP5FSyxIUmKu_op_UT7YYfjJBXwl7clCCbm2QGTY14jcaT2UBeVxRdMnK99ny_Ft3wV3keNVT8Lb_LUaXAA"
+          }
+        }
+      },
+      "expected": "WIST3-E04",
+      "index_ordered": true,
+      "response": "re-fetch the Snapshot, from another Mirror if needed"
+    },
+    {
+      "name": "a manifest file carrying shard as null",
+      "why": "the chosen entry's unsharded manifest is the accepted one with a signed \"shard\": null on its first file; the schema types shard as a nonnegative integer, so the manifest fails its schema",
+      "index": {
+        "index": {
+          "wist_version": "1.0.0",
+          "updated_at": "2026-08-02T14:05:00Z",
+          "snapshots": [
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000001/manifest.json",
+              "content_digest": "sha256:9122a0c00f22d6f708b0f7231b0ebe3fce945adb46961caac531b659b403e043"
+            },
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000000/manifest.json",
+              "content_digest": "sha256:9122a0c00f22d6f708b0f7231b0ebe3fce945adb46961caac531b659b403e043"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "9IXYRMqPCJG5f2tJWevyRdVL3RlRji0zEYPhxY_LTBDsJ5hxB8n5a_yV1n_F1iE6SlsF4cJ0oqIrwgqznkuMDw"
+        }
+      },
+      "manifests": {
+        "/snapshots/2026-08-02/000000000/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 0,
+            "tree_size": 4,
+            "root_hash": "sha256:3f973034d26336bc62b7b4c203ad53ff31d919ef3f50f45e75922ca1bc895d8b",
+            "content_digest": "sha256:9122a0c00f22d6f708b0f7231b0ebe3fce945adb46961caac531b659b403e043",
+            "state": {
+              "path": "state.json",
+              "sha256": "1d7a798f290a4d4f576962f39539a7f7b3ba5ba0f3506f477679ea91a59f9531",
+              "bytes": 1516,
+              "state_digest": "sha256:29c624f7b96ed3966d2baf3638c310fba7be9145f45ba17e5894c93163b4c446"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "wG7c36Bv_3FCOtyeBdulL_rqYFn44Icq8jiP1O3rfXii8FWTKgpsUG2-rhJaDhFCB5yDgLpP6NcHomGrOhHUBg"
+          }
+        },
+        "/snapshots/2026-08-02/000000001/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 1,
+            "tree_size": 4,
+            "root_hash": "sha256:3f973034d26336bc62b7b4c203ad53ff31d919ef3f50f45e75922ca1bc895d8b",
+            "content_digest": "sha256:9122a0c00f22d6f708b0f7231b0ebe3fce945adb46961caac531b659b403e043",
+            "state": {
+              "path": "state.json",
+              "sha256": "1d7a798f290a4d4f576962f39539a7f7b3ba5ba0f3506f477679ea91a59f9531",
+              "bytes": 1516,
+              "state_digest": "sha256:29c624f7b96ed3966d2baf3638c310fba7be9145f45ba17e5894c93163b4c446"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0,
+                "shard": null
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "LxUxPFbf8gYWkUGzdEHX39v2J3leXhDm9wV_-s5Lk0aVWjsVOhDDfxb5SNBtsy2M5aTsoAIdctraWdJb-2_RAQ"
+          }
+        }
+      },
+      "expected": "WIST3-E04",
+      "index_ordered": true,
+      "response": "re-fetch the Snapshot, from another Mirror if needed"
     }
   ]
 }

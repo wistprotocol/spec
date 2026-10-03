@@ -3520,6 +3520,26 @@ index_case("an entry whose manifest states another snapshot_date",
            [dict(index_entry(later_manifest), snapshot_date="2026-08-03"),
             index_entry(manifest)], "WIST3-E04", True, response="re-fetch the index")
 
+def null_member_manifests(served):
+    return dict(same_date_manifests, **{
+        snapshot_directory(later_manifest) + "manifest.json": sign_envelope("manifest", served, "test-agg-k1")})
+
+index_case("a manifest carrying shards as null",
+           "the chosen entry's manifest is the accepted one plus a signed "
+           "\"shards\": null; the schema types shards as an object, so the "
+           "manifest fails its schema rather than reading as unsharded",
+           [index_entry(later_manifest), index_entry(manifest)], "WIST3-E04", True,
+           manifests=null_member_manifests(dict(later_manifest, shards=None)),
+           response="re-fetch the Snapshot, from another Mirror if needed")
+index_case("a manifest file carrying shard as null",
+           "the chosen entry's unsharded manifest is the accepted one with a "
+           "signed \"shard\": null on its first file; the schema types shard "
+           "as a nonnegative integer, so the manifest fails its schema",
+           [index_entry(later_manifest), index_entry(manifest)], "WIST3-E04", True,
+           manifests=null_member_manifests(dict(later_manifest, files=[
+               dict(later_manifest["files"][0], shard=None), *later_manifest["files"][1:]])),
+           response="re-fetch the Snapshot, from another Mirror if needed")
+
 write_json(WIST3 / "snapshot-index.json", {
     "note": ("WIST-3 §6 and §8 step 2: each Snapshot is served under its own "
              "immutable directory /snapshots/<snapshot_date>/<epoch_number>/, "
@@ -3534,7 +3554,10 @@ write_json(WIST3 / "snapshot-index.json", {
              "is never rewritten and a disagreement means the index read is "
              "stale). `index_ordered` is the Aggregator's obligation, judged "
              "separately from the Consumer's outcome: the listing order §6 "
-             "requires, recomputed from the manifests' dates and Epochs. Every "
+             "requires, recomputed from the manifests' dates and Epochs. A "
+             "chosen manifest carrying an optional member as null fails its "
+             "schema (§8 step 2), WIST3-E04 with the Snapshot re-fetched, from "
+             "another Mirror if needed (§9). Every "
              "index and manifest is signed under the examples' test-agg-k1."),
     "cases": index_cases,
 })
