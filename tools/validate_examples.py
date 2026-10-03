@@ -9021,7 +9021,7 @@ def _label_disposition(doc, declaration, validator, url_cap_bytes, terms, clock,
     if subject.startswith("https://"):
         if link_extraction.normalize_url(subject, subject) != subject:
             return "fields"
-        host = subject[len("https://"):].split("/", 1)[0]
+        host = _url_host(subject)
     else:
         if not _declaration_host_format(subject):
             return "fields"
@@ -9209,7 +9209,7 @@ def _dispute_disposition(doc, declaration, validator, sealed, clock, clock_skew_
     if label is None:
         return "unsealed"
     subject = label["subject"]
-    host = subject[len("https://"):].split("/", 1)[0] if subject.startswith("https://") else subject
+    host = _url_host(subject) if subject.startswith("https://") else subject
     if host != publisher["domain"] and host not in publisher.get("subdomain_scope", []):
         return "authority"
     key = next((k for k in publisher["keys"] if k["kid"] == doc["sig"]["key_id"]), None)
@@ -9247,6 +9247,9 @@ def _dispute_vectors():
                for c in v["cases"]), "no fractional excess"
     assert any(c["expected"] == "accepted" and c["envelope"]["dispute"]["log"] != "log.example" for c in v["cases"]), \
         "no accepted dispute cites another Log"
+    ported = {c["expected"] for c in v["cases"]
+              if re.match(r"https://[^/]+:\d", sealed.get(c["envelope"]["dispute"].get("label"), {}).get("subject", ""))}
+    assert ported == {"accepted", "authority"}, "no disputed subject carries a port on both sides of the scope rule"
     example = json.loads((ROOT / "examples" / "dispute.json").read_text())
     example_sealed = {example["dispute"]["label"]: {"subject": "https://example.com/blog/post-1"}}
     publisher = json.loads((ROOT / "examples" / "publisher.json").read_text())

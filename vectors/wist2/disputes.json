@@ -6,6 +6,24 @@
       "labeler": "example.com",
       "subject": "https://reduced.example.org/notice",
       "height": 1
+    },
+    {
+      "label_id": "sha256:796552322eae47e1d7117a3948c8b87c986ac5e3125401856e39ab3ed7ef8825",
+      "labeler": "example.com",
+      "subject": "https://reduced.example.org:8443/notice",
+      "height": 1
+    },
+    {
+      "label_id": "sha256:58e49d62f110b44b52bebad73b58cb3b6e8bbcd22d1c8398cfb9ff32ad9625e0",
+      "labeler": "example.com",
+      "subject": "https://www.reduced.example.org:8443/notice",
+      "height": 1
+    },
+    {
+      "label_id": "sha256:c6935a9ac5992c6b2608a2dd827ddca02011fba2227c773dae67f42b571957a1",
+      "labeler": "example.com",
+      "subject": "https://other.reduced.example.org:8443/notice",
+      "height": 1
     }
   ],
   "clock": "2026-08-02T14:00:00Z",
@@ -191,6 +209,141 @@
       "expected": "accepted",
       "code": null,
       "dispute_id": "sha256:b05870099579ff4206ef0748f8efbb32109348373108f5a5744b91808cddc285"
+    },
+    {
+      "name": "dispute of a Label on an own URL with a port",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:796552322eae47e1d7117a3948c8b87c986ac5e3125401856e39ab3ed7ef8825",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "XxGn0jeKta8oIjd7B0wUsN7GSn_AODzSemJlOQynwsPO4VREgDksofZB46RBc-_rvyyrUo6EWXKW1SDKd6vPCw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+              "nbf": 1785542400
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "sz-IarGemtLK0iKm81_Ulokwi1_-nIjjIUeeNxiotqQcCmDDGyQ98CDsJoh_I_J8Mqd0YZOPGocOx2vl18AaDg"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "dispute_id": "sha256:77f7f39a3575a5a5def0a7aa2aab2c477da2a604b32c08812d8e12935cf5199b"
+    },
+    {
+      "name": "dispute of a Label on a scoped URL with a port",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:58e49d62f110b44b52bebad73b58cb3b6e8bbcd22d1c8398cfb9ff32ad9625e0",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "mKJq-2DdG9oryGdxzAQWsBoIRECGNMjYSfOdC-XdVwPBAbXPFh21WDg7pxJBUkWER3Qr3CnpIp5YupkDBCb5Cw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+              "nbf": 1785542400
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "sz-IarGemtLK0iKm81_Ulokwi1_-nIjjIUeeNxiotqQcCmDDGyQ98CDsJoh_I_J8Mqd0YZOPGocOx2vl18AaDg"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "dispute_id": "sha256:9e7fe67a21cc603d769fb92217f08d732d8a2f8d9e182673743fcdc6bbadec60"
+    },
+    {
+      "name": "dispute of a Label on a URL with a port outside the declared scope",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:c6935a9ac5992c6b2608a2dd827ddca02011fba2227c773dae67f42b571957a1",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "4Bnpnot6je8qjQE1Qj8KwyWNrjpuBSSuWiYF2OSaiTchan87mRXUuEEzFRJrzGOt21CbMX4hZ6JpEtPlbanADw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+              "nbf": 1785542400
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "sz-IarGemtLK0iKm81_Ulokwi1_-nIjjIUeeNxiotqQcCmDDGyQ98CDsJoh_I_J8Mqd0YZOPGocOx2vl18AaDg"
+        }
+      },
+      "expected": "authority",
+      "code": "WIST2-E06",
+      "dispute_id": null
     },
     {
       "name": "unknown member",

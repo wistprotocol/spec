@@ -4190,6 +4190,11 @@ def label_vectors():
     add("self-label of a scoped host", dict(label, subject="www.example.com"), expected="self")
     add("self-label of an own URL", dict(label, subject="https://example.com/blog/post-1"), expected="self")
     add("self-label of a scoped URL", dict(label, subject="https://blog.example.com/post"), expected="self")
+    add("self-label of an own URL with a port", dict(label, subject="https://example.com:8443/page"),
+        expected="self")
+    add("self-label of a scoped URL with a port", dict(label, subject="https://blog.example.com:8443/post"),
+        expected="self")
+    add("a host outside the declared scope with a port", dict(label, subject="https://sub.example.com:8443/"))
     add("a host outside the declared scope", dict(label, subject="https://sub.example.com/"))
     add("a host with the domain as a prefix", dict(label, subject="https://example.com.sample.net/"))
     add("valid expiry", dict(label, expires_at="2026-09-02T12:30:00Z"))
@@ -4312,6 +4317,12 @@ def dispute_vectors():
         "subdomain_scope": ["www.reduced.example.org"],
         "keys": [jwk(pub3_raw, "2026-08-01T00:00:00Z")]}, KID3)
     sealed_labels = [{"label_id": label_id, "labeler": "example.com", "subject": LABEL_SUBJECT, "height": 1}]
+    ported = {}
+    for host in ("reduced.example.org", "www.reduced.example.org", "other.reduced.example.org"):
+        subject = "https://" + host + ":8443/notice"
+        ported[host] = "sha256:" + sha256_hex(rfc8785.dumps(dict(label, subject=subject)))
+        sealed_labels.append({"label_id": ported[host], "labeler": "example.com", "subject": subject,
+                              "height": 1})
     base = {"wist_version": "1.0.0", "disputant": "reduced.example.org", "label": label_id,
             "log": "log.example", "height": 1, "asserted_at": "2026-08-02T13:00:00Z"}
     cases = []
@@ -4332,6 +4343,10 @@ def dispute_vectors():
     add("dispute with a reason", dict(base, reason="https://reduced.example.org/notice-is-original"))
     add("dispute citing another Log", dict(base, log="mirror.log.example", height=7))
     add("dispute of a Label on a scoped host", dict(base), declaration=disputant_declaration)
+    add("dispute of a Label on an own URL with a port", dict(base, label=ported["reduced.example.org"]))
+    add("dispute of a Label on a scoped URL with a port", dict(base, label=ported["www.reduced.example.org"]))
+    add("dispute of a Label on a URL with a port outside the declared scope",
+        dict(base, label=ported["other.reduced.example.org"]), expected="authority")
     add("unknown member", dict(base, extra=True), expected="fields")
     for field in ("wist_version", "disputant", "label", "log", "height", "asserted_at"):
         body = dict(base)

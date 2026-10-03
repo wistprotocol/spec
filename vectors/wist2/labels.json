@@ -1046,6 +1046,69 @@
       "label_id": null
     },
     {
+      "name": "self-label of an own URL with a port",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://example.com:8443/page",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "IDX_hIzw_wdjXfciPg_qmcJQollDAMB-tDPHiNYKD3d8xS_9m3MU-dlU8ok69VSB7qXja5EvJj77o0DlhJArDg"
+        }
+      },
+      "expected": "self",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "self-label of a scoped URL with a port",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://blog.example.com:8443/post",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "Ij-_qRN4NCEcbpsKcK2qEVryNAgoJhAcRg4pbEesMkSkfCe_FaLHGjfbEoiaAJqdv42t9QfONrnW5pC4E7ZnCg"
+        }
+      },
+      "expected": "self",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "a host outside the declared scope with a port",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://sub.example.com:8443/",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "AcTii-9xxk_A-pUiyuNz2kyzXj3951e_KUSHpJWEVCjknjHPGVjVeikck0ckOofkrVdHtADSBsRbdg-Jh8fGCg"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:49c554f1b136b87ef242a163377d809f200ba6a4664a23e55e3b8ea91e45779d"
+    },
+    {
       "name": "a host outside the declared scope",
       "envelope": {
         "label": {
