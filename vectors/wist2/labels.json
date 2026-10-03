@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration, every case validated at clock under clock_skew_seconds: accepted means the Label validates and its label_id seals; fields, clock and self are WIST2-E06, clock being an asserted_at beyond the inclusive allowance clock + clock_skew_seconds (WIST-1 section 3.4's rule read over asserted_at: the validator's clock before sealing, the committing Epoch's sealed_at once sealed); signature and binding keep WIST-1 codes. The key check is WIST-1 section 5.1's binding check for a Catalog over `keys` alone, with asserted_at in the place of generated_at: binding (WIST1-E02) where no usable entry of `keys` named by sig.key_id has a window holding asserted_at, a Collection's keys taking no part; signature (WIST1-E01) where none of those verifies. A case naming `declaration` is judged under that entry of `declarations` instead of the example Declaration. Every asserted_at a key window is compared with is a whole second. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, null where the current Label is retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a Label's delta, an Item ID, against the Item the subject URL's record carries (record_item, null where no record stands): a bound Label applies only while the record carries that Item.",
+  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration, every case validated at clock under clock_skew_seconds: accepted means the Label validates and its label_id seals; fields, clock and self are WIST2-E06, clock being an asserted_at beyond the inclusive allowance clock + clock_skew_seconds (WIST-1 section 3.4's rule read over asserted_at: the validator's clock before sealing, the committing Epoch's sealed_at once sealed); signature and binding keep WIST-1 codes. The key check is WIST-1 section 5.1's binding check for a Catalog over `keys` alone, with asserted_at in the place of generated_at: binding (WIST1-E02) where no usable entry of `keys` named by sig.key_id has a window holding asserted_at, a Collection's keys taking no part; signature (WIST1-E01) where none of those verifies. A case naming `declaration` is judged under that entry of `declarations` instead of the example Declaration. Every asserted_at a key window is compared with is a whole second. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, null where the current Label is retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a Label's delta, an Item ID, against the Item the subject URL's record carries (record_item, null where no record stands): a bound Label applies only while the record carries that Item. A value is an integer by the number it denotes (WIST-1 section 4): a case naming envelope_json is judged over that JSON text, which denotes the same value as envelope in another spelling, and a value spelled with a zero fraction, an exponent or a negative zero has the Label ID of the plain spelling.",
   "declaration": {
     "publisher": {
       "wist_version": "1.0.0",
@@ -285,6 +285,117 @@
           "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "2cKt_nu1T2R4EcDsPgYIF2kdoJb08dMbn1JMXIej5BOJhZmy__NBTHcjJE_pY_UHMX9MjgyPMnsACIKR-093Ag"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "value with a zero fraction",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "value": 750000.0
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "QfilzqUJ_CMwV7e6cQdeIvjStOWZXkGKZwdAvMpU6CzidHOHwp3ZpKEtmRyqf-LfgkbwFXfNGXuIulrgLvW1BA"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:8821c18bfb0193fdbc03f47dce6223084f0d0e7dee752f2e37ffc6e5b9083830"
+    },
+    {
+      "name": "value in exponent spelling",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "value": 750000.0
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "QfilzqUJ_CMwV7e6cQdeIvjStOWZXkGKZwdAvMpU6CzidHOHwp3ZpKEtmRyqf-LfgkbwFXfNGXuIulrgLvW1BA"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:8821c18bfb0193fdbc03f47dce6223084f0d0e7dee752f2e37ffc6e5b9083830",
+      "envelope_json": "{\"label\": {\"wist_version\": \"1.0.0\", \"labeler\": \"example.com\", \"subject\": \"https://reduced.example.org/notice\", \"name\": \"wist:spam\", \"asserted_at\": \"2026-08-02T12:30:00Z\", \"value\": 7.5e5}, \"sig\": {\"key_id\": \"1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y\", \"alg\": \"Ed25519\", \"value\": \"QfilzqUJ_CMwV7e6cQdeIvjStOWZXkGKZwdAvMpU6CzidHOHwp3ZpKEtmRyqf-LfgkbwFXfNGXuIulrgLvW1BA\"}}"
+    },
+    {
+      "name": "value of negative zero",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "value": -0.0
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "8wYD4fSMd3_yDmLEwG4MTdT45digyHDXeR7ajsRjmToPs2MqiuBK5YzgnZKNk-z01_4axP_ZEnJY6BK4qkslCg"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:c5e9a2e680d2934888bce874b1809846e2efb3665b3bacb697222fe601328810"
+    },
+    {
+      "name": "value at the ceiling with a zero fraction",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "value": 1000000.0
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "SDlYSUxtkErv3TmZKXWmm8_82tCxcdF2wSotXL3QbXyt1vLeyje4wihNH9BrqaeEteiCcitlc5__PLEfHZ8NAg"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:2dfc2ac01ec3e05a95b056af760021729d6918d6af3493db795a1f417cb10001"
+    },
+    {
+      "name": "value a fraction above the ceiling",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "value": 1000000.5
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "l6IllrX7aicvDaMabGJog86qptDcAmOU1x1YX5st4D-f3lB1_Yf5QWkXs7MpC7CAZ23a2YU8fiZp5MTtPK0jCw"
         }
       },
       "expected": "fields",

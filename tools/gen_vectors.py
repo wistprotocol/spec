@@ -4152,6 +4152,12 @@ def label_vectors():
     add("value above the ceiling", dict(label, value=1000001), expected="fields")
     add("negative value", dict(label, value=-1), expected="fields")
     add("fractional value", dict(label, value=0.5), expected="fields")
+    add("value with a zero fraction", dict(label, value=750000.0))
+    add("value in exponent spelling", dict(label, value=750000.0))
+    cases[-1]["envelope_json"] = json.dumps(cases[-1]["envelope"]).replace('"value": 750000.0', '"value": 7.5e5')
+    add("value of negative zero", dict(label, value=-0.0))
+    add("value at the ceiling with a zero fraction", dict(label, value=1000000.0))
+    add("value a fraction above the ceiling", dict(label, value=1000000.5), expected="fields")
     add("retracted false", dict(label, retracted=False), expected="fields")
     add("unknown member", dict(label, extra=True), expected="fields")
     for field in ("wist_version", "labeler", "subject", "name", "asserted_at"):
@@ -4303,7 +4309,10 @@ def label_vectors():
               "retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a "
               "Label's delta, an Item ID, against the Item the subject URL's record carries "
               "(record_item, null where no record stands): a bound Label applies only while the record "
-              "carries that Item."),
+              "carries that Item. A value is an integer by the number it denotes (WIST-1 section 4): a "
+              "case naming envelope_json is judged over that JSON text, which denotes the same value as "
+              "envelope in another spelling, and a value spelled with a zero fraction, an exponent or a "
+              "negative zero has the Label ID of the plain spelling."),
         declaration=example_declaration, declarations=declarations,
         url_cap_bytes=2048, clock="2026-08-03T12:00:00Z", clock_skew_seconds=600,
         cases=cases, current_cases=current, binding_cases=binding)

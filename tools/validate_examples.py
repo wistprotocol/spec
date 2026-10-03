@@ -9085,7 +9085,11 @@ def _label_vectors():
         assert _declaration_binding_result(None, declaration) == "initial"
     for case in v["cases"]:
         declaration = v["declarations"][case["declaration"]] if "declaration" in case else v["declaration"]
-        got = _label_disposition(case["envelope"], declaration, validator, v["url_cap_bytes"], terms,
+        envelope = case["envelope"]
+        if "envelope_json" in case:
+            envelope = item_rules.strict_loads(case["envelope_json"].encode("utf-8"))
+            assert envelope == case["envelope"] and case["envelope_json"] != json.dumps(case["envelope"])
+        got = _label_disposition(envelope, declaration, validator, v["url_cap_bytes"], terms,
                                  v["clock"], v["clock_skew_seconds"])
         assert got == case["expected"], (case["name"], got, case["expected"])
         assert case["code"] == codes[case["expected"]], case["name"]
@@ -9093,6 +9097,15 @@ def _label_vectors():
         assert case["label_id"] == (label_id if case["expected"] == "accepted" else None), case["name"]
         outcomes.add(case["expected"])
     assert outcomes == set(codes)
+    by_name = {c["name"]: c for c in v["cases"]}
+    for spelled, plain in (("value with a zero fraction", "valid Label with a value"),
+                           ("value in exponent spelling", "valid Label with a value"),
+                           ("value of negative zero", "value at the floor"),
+                           ("value at the ceiling with a zero fraction", "value at the ceiling")):
+        assert by_name[spelled]["label_id"] == by_name[plain]["label_id"] is not None, spelled
+        assert json.dumps(by_name[spelled]["envelope"]["label"]["value"]) != \
+            json.dumps(by_name[plain]["envelope"]["label"]["value"]), spelled
+    assert "7.5e5" in by_name["value in exponent spelling"]["envelope_json"]
     at_bound = [c for c in v["cases"] if c["expected"] == "accepted"
                 and publisher_instant(c["envelope"]["label"]["asserted_at"]) == bound]
     assert len({c["envelope"]["label"]["asserted_at"] for c in at_bound}) >= 2, "no inclusive bound spellings"
