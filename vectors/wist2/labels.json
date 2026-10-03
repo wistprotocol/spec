@@ -1416,6 +1416,94 @@
       "label_id": null
     },
     {
+      "name": "value present as null",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "value": null
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "F9Bmq1fmQk9jIBnHee9DG6o7wvmmCsC2j8ZqIEssH5YRRhLgphbXpN06zm8PN5rnL8j8YfAU2veXsdbMJTsQDg"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "retracted present as null",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "retracted": null
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "IS1KNdzeu5Bkvc8SoV4iMn6oehw8opB7Cqmnk3kG0dvSNIvKCBU9ZP_mFIBe_QIWeFK63p_jfI4pelTQfvt-DQ"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "expires_at present as null",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "expires_at": null
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "q_7djcTZSZL0lTJZJM08RkD3VEs46cKtMcMS95gyu1wb9LHH9hghKo_4ZdwzayhyWCsAUlg2KtO3SG1cP5V6DQ"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "delta present as null",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "delta": null
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "QWW4qi7oYfEd7Vxc7_6MPmPohwcbe2iaNif0CqPjbvDDciEI5yWD8O2Djdw_icJV5jf-rHORwd2bFdAQAqsuBw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
       "name": "signature over other bytes",
       "envelope": {
         "label": {

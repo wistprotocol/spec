@@ -4211,6 +4211,8 @@ def label_vectors():
     add("Item binding not an Item ID", dict(label, delta="sha256:xyz"), expected="fields")
     add("Item binding uppercase hex", dict(label, delta=example_item_id.upper().replace("SHA256", "sha256")),
         expected="fields")
+    for field in ("value", "retracted", "expires_at", "delta"):
+        add(field + " present as null", dict(label, **{field: None}), expected="fields")
     add("signature over other bytes", expected="signature",
         mutate=lambda doc: doc["label"].update(asserted_at="2026-08-02T12:31:00Z"))
     add("signed by the recovery key", signer=priv2, key_id=KID2, expected="binding")
