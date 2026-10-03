@@ -1,5 +1,5 @@
 {
-  "note": "ADR-0053 What a Publisher serves. Change list names are the 64 hexadecimal digits of the Catalog ID (\"sha256:\" + hex(SHA-256(JCS(catalog)))) the list leads to. `write_cases`: `served` is the served Catalog (an inner object) with its Item list, or null for a Collection with no served Catalog; `new` is the Catalog signed with its list. The change list has previous the served Catalog ID, catalog the new Catalog ID, items every Item of the new list under whose key (SHA-256(JCS([\"page\", url]))) the served list holds no Item or an Item of another Item ID, in ascending octet order of key, and dropped the lowercase hexadecimal key of every Item of the served list under whose key the new list holds none, in ascending order; the file is the JCS serialization of that object. None is written for a Collection with no served Catalog or where the file would hold more than change_list_cap_bytes, 1 048 576, octets. `expected` is {written: false} or {written: true, name, octets, sha256 (hex SHA-256 of the file), text (the file, given when it holds at most 65 536 octets)}. `derived`, where present, gives the generated_at at which ADR-0052 From publications to Items derived the new list from the served one: an Item of kind removed observed 180 days of 86 400 seconds before generated_at is no longer listed. `sequence_cases`: `steps` are the Catalogs a Publisher signs in order, each with `served_at`, the instant on the Publisher's clock at which it began to be served; each replaces the one before, which is its previous Catalog, and the first has no served Catalog, so its change list is written as in `write_cases`. `stop_serving` gives each change list the Publisher must stop serving from the instant `at` on (supplied, whatever made it stop); `declaration_stops_at` is the instant at which the Publisher began to serve a Declaration that no longer names the Collection, or null, and no Catalog is served after it. At an instant, the served Catalog is the last step whose served_at is at or before it, and a list stopped is one whose `at` is at or before it. The chain of a Catalog is its change list, then the one leading to that list's previous Catalog, and so on, ending at a Catalog for which no change list was written or whose change list is stopped. When a step begins to be served, every list among the first change_chain_max, 16, of the chain of the Catalog before it (both chains taken with the lists stopped at that instant) that stands in the new Catalog's chain beyond its first 16 is served in an interval from that served_at up to, not including, served_at plus replaced_file_seconds, 86 400 seconds; a list that leaves the first 16 otherwise (the new Catalog has no change list, or a stopped list cuts the chain) has no interval. `expected.written` gives per step the name of the change list written or null. `expected.clocks` gives, at each clock (every served_at and the instants the case adds), `must_serve`: the first 16 lists of the served Catalog's chain and every list inside its interval, less the lists stopped; `must_not_serve`: the lists written so far that are stopped, removed at once whatever interval they are inside; and `may_serve`: every other list written so far. At a clock at or after declaration_stops_at, must_serve is instead the lists that were must_serve at declaration_stops_at, less those stopped at the clock, while the clock is earlier than declaration_stops_at plus 86 400 seconds, and empty from then on. Each set is in ascending order of name. `large_item_sets` describes two sets of Items too large to spell out: each Item is {publisher, observed_at, url: prefix followed by fill copies of the letter x, removed: true} for each [prefix, fill] of `urls`. A string element of an Item list stands for every Item of the large set it names. A change list whose `items` is such a string (compact form) is the JCS serialization of its object with `items` replaced by that set's Items in strictly ascending octet order of key; for any previous, catalog and an empty dropped the file is 1 048 576 octets for `at_cap` and 1 048 577 for `above_cap`. `payloads` carries the Payload of each Item of kind page that appears as an object, keyed by the digits of its Item ID; no rule here reads it.",
+  "note": "ADR-0053 What a Publisher serves. Change list names are the 64 hexadecimal digits of the Catalog ID (\"sha256:\" + hex(SHA-256(JCS(catalog)))) the list leads to. `write_cases`: `served` is the served Catalog (an inner object) with its Item list, or null for a Collection with no served Catalog; `new` is the Catalog signed with its list. The change list has previous the served Catalog ID, catalog the new Catalog ID, items every Item of the new list under whose key (SHA-256(JCS([\"page\", url]))) the served list holds no Item or an Item of another Item ID, in ascending octet order of key, and dropped the lowercase hexadecimal key of every Item of the served list under whose key the new list holds none, in ascending order; the file is the JCS serialization of that object. None is written for a Collection with no served Catalog, for a new Catalog whose Catalog ID is the served Catalog's, or where the file would hold more than change_list_cap_bytes, 1 048 576, octets. `expected` is {written: false} or {written: true, name, octets, sha256 (hex SHA-256 of the file), text (the file, given when it holds at most 65 536 octets)}. `derived`, where present, gives the generated_at at which ADR-0052 From publications to Items derived the new list from the served one: an Item of kind removed observed 180 days of 86 400 seconds before generated_at is no longer listed. `sequence_cases`: `steps` are the Catalogs a Publisher signs in order, each with `served_at`, the instant on the Publisher's clock at which it began to be served; each replaces the one before, which is its previous Catalog, and the first has no served Catalog, so its change list is written as in `write_cases`. `stop_serving` gives each change list the Publisher must stop serving from the instant `at` on (supplied, whatever made it stop); `declaration_stops_at` is the instant at which the Publisher began to serve a Declaration that no longer names the Collection, or null, and no Catalog is served after it. At an instant, the served Catalog is the last step whose served_at is at or before it, and a list stopped is one whose `at` is at or before it. The chain of a Catalog is its change list, then the one leading to that list's previous Catalog, and so on, ending at a Catalog for which no change list was written or whose change list is stopped. When a step begins to be served, every list among the first change_chain_max, 16, of the chain of the Catalog before it (both chains taken with the lists stopped at that instant) that stands in the new Catalog's chain beyond its first 16 is served in an interval from that served_at up to, not including, served_at plus replaced_file_seconds, 86 400 seconds; a list that leaves the first 16 otherwise (the new Catalog has no change list, or a stopped list cuts the chain) has no interval. `expected.written` gives per step the name of the change list written or null. `expected.clocks` gives, at each clock (every served_at and the instants the case adds), `must_serve`: the first 16 lists of the served Catalog's chain and every list inside its interval, less the lists stopped; `must_not_serve`: the lists written so far that are stopped, removed at once whatever interval they are inside; and `may_serve`: every other list written so far. At a clock at or after declaration_stops_at, must_serve is instead the lists that were must_serve at declaration_stops_at, less those stopped at the clock, while the clock is earlier than declaration_stops_at plus 86 400 seconds, and empty from then on. Each set is in ascending order of name. `large_item_sets` describes two sets of Items too large to spell out: each Item is {publisher, observed_at, url: prefix followed by fill copies of the letter x, removed: true} for each [prefix, fill] of `urls`. A string element of an Item list stands for every Item of the large set it names. A change list whose `items` is such a string (compact form) is the JCS serialization of its object with `items` replaced by that set's Items in strictly ascending octet order of key; for any previous, catalog and an empty dropped the file is 1 048 576 octets for `at_cap` and 1 048 577 for `above_cap`. `payloads` carries the Payload of each Item of kind page that appears as an object, keyed by the digits of its Item ID; no rule here reads it.",
   "large_item_sets": {
     "at_cap": {
       "publisher": "example.com",
@@ -1009,6 +1009,128 @@
         "octets": 260,
         "sha256": "ab3992540c5fce3ba46951a79f939782e2e061cc5d304e08dc4d4109fd0685ea",
         "text": "{\"catalog\":\"sha256:187693169933a5c807419eb368d8cd28c1ff8c4b7935e91bd5f4b470d5b2c29d\",\"dropped\":[\"44516050e6d27cac56c58b47b9d45fcd3279349f3a58fa0749c46a2d3fd94f89\"],\"items\":[],\"previous\":\"sha256:fb381bfffbdb4991cd3a2acc6cdc7682a6f0146e17fd1ae3c7d178a9c3ae045d\"}"
+      }
+    },
+    {
+      "name": "a Catalog that has the served Catalog's ID is the served Catalog and has no change list written",
+      "served": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 4,
+          "root": "sha256:8dd489be196ee870792b6568454866abfa96c341d1df575a2a2771f2b4c5d789",
+          "tree": "sha256:ea1a602b19a543a2a35807e42e4aa63a4c3ca918b4f17c39e91382e2b9be3536"
+        },
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/c022",
+            "observed_at": "2026-09-20T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:e9c21dd86d93e41913ed73a4b9af4bf5fed0ec8d01177b0382ed6b6c7d2b4d87",
+              "alg": "HMAC-SHA256",
+              "bytes": 146
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/c020",
+            "observed_at": "2026-09-20T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:d8052c6500a9692dfc51d73d5d9d1a1fd34bceb7cc18240865981635f9314390",
+              "alg": "HMAC-SHA256",
+              "bytes": 146
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/c021",
+            "observed_at": "2026-09-20T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:145070610a650fe26013f992dd6fb320fafa7f06119d1a07a02e408b1cee2ff0",
+              "alg": "HMAC-SHA256",
+              "bytes": 146
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/c023",
+            "observed_at": "2026-09-20T08:00:00Z",
+            "removed": true
+          }
+        ]
+      },
+      "new": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 4,
+          "root": "sha256:8dd489be196ee870792b6568454866abfa96c341d1df575a2a2771f2b4c5d789",
+          "tree": "sha256:ea1a602b19a543a2a35807e42e4aa63a4c3ca918b4f17c39e91382e2b9be3536"
+        },
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/c022",
+            "observed_at": "2026-09-20T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:e9c21dd86d93e41913ed73a4b9af4bf5fed0ec8d01177b0382ed6b6c7d2b4d87",
+              "alg": "HMAC-SHA256",
+              "bytes": 146
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/c020",
+            "observed_at": "2026-09-20T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:d8052c6500a9692dfc51d73d5d9d1a1fd34bceb7cc18240865981635f9314390",
+              "alg": "HMAC-SHA256",
+              "bytes": 146
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/c021",
+            "observed_at": "2026-09-20T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:145070610a650fe26013f992dd6fb320fafa7f06119d1a07a02e408b1cee2ff0",
+              "alg": "HMAC-SHA256",
+              "bytes": 146
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/c023",
+            "observed_at": "2026-09-20T08:00:00Z",
+            "removed": true
+          }
+        ]
+      },
+      "expected": {
+        "written": false
       }
     },
     {

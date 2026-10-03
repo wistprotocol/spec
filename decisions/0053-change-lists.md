@@ -71,7 +71,12 @@ with the served Catalog as its previous Catalog:
 A Catalog whose list is the served one holds both arrays empty. Where
 the file would hold more than `change_list_cap_bytes` octets, none is
 written. A Catalog signed for a Collection with no served Catalog has
-no change list.
+no change list. A Catalog whose Catalog ID is the served Catalog's is
+the served Catalog, not a new one: no change list is written for it,
+and the change list that leads to the served Catalog stays as it is. A
+list written for it would name itself as its previous Catalog at the
+path of the list that led to the served Catalog, and an Aggregator
+reading it would discard the chain there with `chain`.
 
 A change list is written before the Catalog it leads to is served
 (ADR-0052, Files). The **chain** of a Catalog is its change list, then
@@ -324,7 +329,8 @@ that left the list after `removal_retention_days`, stated in
 `dropped`; a dropped Item of kind `page`; the list a Publisher writes
 from a served list and a new one, for a Catalog that repeats the
 served list, for a difference one octet within and one above
-`change_list_cap_bytes`, and for a Collection with no served Catalog;
+`change_list_cap_bytes`, for a Collection with no served Catalog, and
+for a Catalog that has the served Catalog's ID;
 the change lists a Publisher serves at a clock along a sequence of
 Catalogs, at `change_chain_max` and beyond it, inside the interval of
 a list put out of the chain, one second before its end and at it,

@@ -128,7 +128,9 @@ served list under whose key the new list holds none, an Item of kind
 included. A Catalog whose list is the served one has both arrays empty.
 Where the file would hold more than `change_list_cap_bytes` octets, none is
 written. A Catalog signed for a Collection with no served Catalog has no
-change list.
+change list. A Catalog whose Catalog ID is the served Catalog's is the
+served Catalog, not a new one: no change list is written for it, and the
+change list that leads to the served Catalog stays as it is.
 
 The **chain** of a Catalog is its change list, then the change list that
 leads to that list's previous Catalog, and so on. It ends at a Catalog for

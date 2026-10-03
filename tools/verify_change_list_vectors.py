@@ -107,7 +107,7 @@ def apply(table, change_list):
 
 
 def written_change_list(served, new, large):
-    if served is None:
+    if served is None or catalog_id(served["catalog"]) == catalog_id(new["catalog"]):
         return None
     old = keyed(expand(served["list"], large))
     now = keyed(expand(new["list"], large))

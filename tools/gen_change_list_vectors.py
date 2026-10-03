@@ -373,6 +373,8 @@ def serving_vectors():
     write_case("a Catalog signed for a Collection with no served Catalog has no change list", None,
                entry(served_list, 0), False)
     write_case("a dropped Item of kind page", served, entry([a, b, gone], 1), True)
+    write_case("a Catalog that has the served Catalog's ID is the served Catalog and has no change list written",
+               served, entry(served_list, 0), False)
 
     retention_end = seconds(OBSERVED) + items.REMOVAL_RETENTION_DAYS * DAY
     for offset, dropped in ((0, True), (-1, False)):
@@ -526,8 +528,8 @@ def serving_vectors():
         "served list holds no Item or an Item of another Item ID, in ascending octet order of key, and dropped "
         "the lowercase hexadecimal key of every Item of the served list under whose key the new list holds "
         "none, in ascending order; the file is the JCS serialization of that object. None is written for a "
-        "Collection with no served Catalog or where the file would hold more than change_list_cap_bytes, "
-        "1 048 576, octets. `expected` is {written: false} or {written: true, name, octets, sha256 (hex "
+        "Collection with no served Catalog, for a new Catalog whose Catalog ID is the served Catalog's, or where "
+        "the file would hold more than change_list_cap_bytes, 1 048 576, octets. `expected` is {written: false} or {written: true, name, octets, sha256 (hex "
         "SHA-256 of the file), text (the file, given when it holds at most 65 536 octets)}. `derived`, where "
         "present, gives the generated_at at which ADR-0052 From publications to Items derived the new list from "
         "the served one: an Item of kind removed observed 180 days of 86 400 seconds before generated_at is "

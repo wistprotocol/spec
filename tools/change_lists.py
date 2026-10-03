@@ -90,7 +90,7 @@ def difference(served, new):
 
 
 def write(served_catalog_id, served_list, new_catalog_id, new_list):
-    if served_catalog_id is None:
+    if served_catalog_id is None or served_catalog_id == new_catalog_id:
         return None
     dropped, changed = difference(served_list, new_list)
     octets = items.jcs({"previous": served_catalog_id, "catalog": new_catalog_id, "dropped": dropped, "items": changed})
