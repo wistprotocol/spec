@@ -1240,6 +1240,52 @@
       "dispute_id": null
     },
     {
+      "name": "reason present as null",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z",
+          "reason": null
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "L5AsJEeNYI9BomS_fO-E45-o7lADqyec7jH1sRQQox4Cc-jMxdcOtCOxpBht5AfSY-FEVwOtvy5AybvymdPAAw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+              "nbf": 1785542400
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "sz-IarGemtLK0iKm81_Ulokwi1_-nIjjIUeeNxiotqQcCmDDGyQ98CDsJoh_I_J8Mqd0YZOPGocOx2vl18AaDg"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
       "name": "signature over other bytes",
       "envelope": {
         "dispute": {

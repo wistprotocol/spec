@@ -4380,6 +4380,7 @@ def dispute_vectors():
     add("dispute by a third party", dict(base, disputant=LABELER_HOST), signer=priv4, key_id=KID4,
         declaration=labeler_declaration, expected="authority")
     add("disputant other than the authenticated domain", dict(base, disputant="example.com"), expected="fields")
+    add("reason present as null", dict(base, reason=None), expected="fields")
     add("signature over other bytes", expected="signature",
         mutate=lambda doc: doc["dispute"].update(asserted_at="2026-08-02T13:00:01Z"))
     add("signed under an unknown identifier", key_id=KID5, expected="binding")
