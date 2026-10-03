@@ -690,7 +690,7 @@ check("negative:wist2-link-extraction", _link_extraction_twin)
 
 def _text_extraction_vector():
     """WIST-2 §12's text extraction: every fixture must be reproduced from
-    its inputs by the recommended derivation."""
+    its inputs by the section's procedure."""
     import link_extraction
     vec = json.loads((ROOT / "vectors" / "wist2" / "text-extraction.json").read_text())
     assert len(vec["extraction"]) >= 2

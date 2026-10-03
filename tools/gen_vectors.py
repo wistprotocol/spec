@@ -1975,7 +1975,7 @@ print("wist2 link-extraction vector:", [c["label"] for c in cases])
 # ---------------------------------------------- WIST-2 §12: text extraction
 # Extraction fixtures exercise the scan (comments, raw-text elements, tags
 # as boundaries, quote-aware `>`, bare `<`, character references, whitespace
-# collapse) of the recommended derivation.
+# collapse) of WIST-2 §12.
 TEXT_FIXTURES = []
 for label, html in (
     ("scan-hardening",
@@ -2024,7 +2024,7 @@ for label, html, expected in (
 write_json(WIST2V / "text-extraction.json", {
     "note": ("WIST-2 §12's whole-document text extraction over raw HTML "
              "octets. html_hex decodes to the exact input; expected is the "
-             "text the recommended derivation produces."),
+             "text the section's procedure yields."),
     "extraction": TEXT_FIXTURES,
 })
 print("wist2 text-extraction vector:", [c["label"] for c in TEXT_FIXTURES])

@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 \u00a712's whole-document text extraction over raw HTML octets. html_hex decodes to the exact input; expected is the text the recommended derivation produces.",
+  "note": "WIST-2 \u00a712's whole-document text extraction over raw HTML octets. html_hex decodes to the exact input; expected is the text the section's procedure yields.",
   "extraction": [
     {
       "label": "scan-hardening",
