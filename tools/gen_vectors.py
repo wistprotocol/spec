@@ -5312,16 +5312,20 @@ def canonical_fixture_host(name):
 
 
 def suffix_rules(text: str):
-    """WIST-4 §3.1: every rule line of both sections, labels in Canonical Host form."""
+    """WIST-4 §3.1: every rule line of both sections, labels in Canonical Host
+    form. A label is taken as rejected by Canonical Host processing when it is
+    empty or holds a character that is neither alphanumeric nor a hyphen, which
+    is exact for the fixtures."""
     rules = []
     for line in text.split("\n"):
-        stripped = line.strip()
-        if not stripped or stripped.startswith("//"):
+        rule = re.split("[\t\x0b\x0c\r ]", line, maxsplit=1)[0]
+        if not rule or rule.startswith("//"):
             continue
-        rule = stripped.split()[0]
         exception = rule.startswith("!")
-        labels = tuple(host_label(label) for label in rule.lstrip("!").split("."))
-        rules.append((labels, exception))
+        spelled = (rule[1:] if exception else rule).split(".")
+        if any(label != "*" and not (label and all(c.isalnum() or c == "-" for c in label)) for label in spelled):
+            continue
+        rules.append((tuple(host_label(label) for label in spelled), exception))
     return rules
 
 
@@ -5368,8 +5372,31 @@ def official_suffix_cases(rules):
 def registrable_domain_vectors():
     first_text = suffix_list_text()
     second_text = suffix_list_text(["hosts.sample.net"])
+    kept = ["space", "tab", "vertical-tab", "form-feed", "carriage-return"]
+    dropped = ["leading-space", "leading-tab", "no-break-space", "next-line", "line-separator",
+               "file-separator", "ideographic-space"]
+    lines_text = "\n".join([
+        "// Rule lines that tell apart the readings of a line and of its whitespace.",
+        "// ===BEGIN ICANN DOMAINS===",
+        "com", "net", "org",
+        "// ===END ICANN DOMAINS===",
+        "// ===BEGIN PRIVATE DOMAINS===",
+        "space.example.com trailing text",
+        "tab.example.com\ttrailing",
+        "vertical-tab.example.com\x0btrailing",
+        "form-feed.example.com\x0ctrailing",
+        "carriage-return.example.com\r",
+        " leading-space.example.com",
+        "\tleading-tab.example.com",
+        "no-break-space.example.com\u00a0trailing",
+        "next-line.example.com\u0085next-line.example.org",
+        "line-separator.example.com\u2028line-separator.example.org",
+        "file-separator.example.com\x1ctrailing",
+        "ideographic-space.example.com\u3000trailing",
+        "// ===END PRIVATE DOMAINS===",
+    ]) + "\n"
     lists = []
-    for name, text in (("first", first_text), ("second", second_text)):
+    for name, text in (("first", first_text), ("second", second_text), ("lines", lines_text)):
         octets = text.encode("utf-8")
         lists.append({"name": name, "text": text, "sha256": "sha256:" + sha256_hex(octets), "bytes": len(octets)})
     by_name = {l["name"]: l for l in lists}
@@ -5381,7 +5408,20 @@ def registrable_domain_vectors():
         registrable, own = registrable_domain(host, rules[list_name])
         return {"label": label, "list": list_name, "host": host, "registrable": registrable, "public_suffix": own}
 
-    domain_cases = [
+    def line_case(label, host, expected):
+        case = domain_case(label, host, "lines")
+        assert case["registrable"] == expected, label
+        return case
+
+    line_cases = [line_case("rule ended by " + name.replace("-", " "), "b.a." + name + ".example.com",
+                            "a." + name + ".example.com") for name in kept]
+    line_cases += [line_case("no rule from a line with " + name.replace("-", " "), "b.a." + name + ".example.com",
+                             "example.com") for name in dropped]
+    line_cases += [
+        line_case("no line ends at next line", "b.a.next-line.example.org", "example.org"),
+        line_case("no line ends at line separator", "b.a.line-separator.example.org", "example.org"),
+    ]
+    domain_cases = line_cases + [
         domain_case("shared registrable domain", "a.example.com", "first"),
         domain_case("shared registrable domain sibling", "b.example.com", "first"),
         domain_case("deeper shared host", "x.a.example.com", "first"),
@@ -5542,7 +5582,10 @@ def registrable_domain_vectors():
                  "per Registrable Domain in order, each Ping under the snapshot in force at its own height where "
                  "one is given; an act carrying consumer names a file no source holds, which fails its contract "
                  "at the Aggregator and stops a Consumer with WIST3-E01; state_tuples are the WIST-3 §7 "
-                 "suffix_list tuple at a tree_size."),
+                 "suffix_list tuple at a tree_size. The snapshot named lines tells the readings of a rule "
+                 "line apart: a rule ends at U+0009, U+000B, U+000C, U+000D or U+0020 and a line at U+000A "
+                 "alone, a line that begins with whitespace carries no rule, and a rule holding another "
+                 "space or line-break character has a label Canonical Host processing rejects and is ignored."),
         "log_key": {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)},
         "lists": lists, "official_cases": official_suffix_cases(rules["first"]), "domain_cases": domain_cases,
         "act_cases": acts, "in_force": in_force, "capacity_cases": capacity_cases, "quota_cases": quota_cases,

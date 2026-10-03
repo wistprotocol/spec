@@ -49,6 +49,15 @@ boundary.
   is advised to pin its first snapshot in Epoch 0. A Snapshot's
   `suffix_list` tuple carries the snapshot in force so a resuming
   Consumer accounts the next Epoch as a replaying one does.
+- **A snapshot's lines and rules are read one way.** Lines are the
+  texts U+000A separates, and a line's rule is the text before its first
+  U+0009, U+000B, U+000C, U+000D or U+0020. No other character ends a
+  rule or a line: one a library counts as a space or a line break stays
+  in the rule, whose label Canonical Host processing then rejects, so
+  the rule is ignored. A line that begins with whitespace has the empty
+  rule and carries none. Two parties whose libraries disagree on what
+  whitespace is would otherwise derive different Registrable Domains
+  from the same octets, and different capacity verdicts with them.
 - **Identity, signing and scope stay per Canonical Host.** A Publisher
   is still its hostname with its own Declaration, chain, scope and
   status endpoint; hosts sharing a unit share nothing else.
@@ -81,6 +90,16 @@ boundary.
   capacity per registrable domain.** Leaves the budget, the one bound
   that protects the Aggregator's own fetch costs, open to the same free
   hostnames; the three bounds are keyed alike.
+- **Whitespace as Unicode defines it, or as a language's library
+  splits it.** The sets differ between libraries and between Unicode
+  versions (U+0085, U+00A0, U+2028 and U+001C to U+001F are each
+  whitespace to some and not to others), so the rule a line carries
+  would depend on the implementation. The fixed set is the ASCII
+  whitespace the Public Suffix List's files use.
+- **Trimming a line before reading its rule.** The Public Suffix List's
+  format reads a line up to its first whitespace and its files indent
+  no rule, so trimming changes no published list and adds a second
+  reading of an indented line.
 
 ## Consequences
 

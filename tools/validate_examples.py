@@ -8613,16 +8613,20 @@ def _psl_canonical_host(name):
 
 def _psl_rules(text):
     """WIST-4 §3.1: the rule lines of both sections as {rule: is_exception}, labels
-    in Canonical Host form; a second copy of the reading, structured as a map."""
+    in Canonical Host form; a second copy of the reading, structured as a map.
+    Lines end at U+000A alone and a rule at the first of the five whitespace
+    characters; a rule with an empty label or a character Canonical Host
+    processing rejects (anything but letters, digits and hyphens here) is ignored."""
     rules = {}
-    for line in text.splitlines():
-        body = line.strip()
-        if not body or body.startswith("//"):
+    for line in text.split("\n"):
+        token = re.match("[^\t\x0b\x0c\r ]*", line).group(0)
+        if token == "" or token.startswith("//"):
             continue
-        token = body.split()[0]
-        exception = token[:1] == "!"
-        rule = ".".join(_psl_host_label(l) for l in token.lstrip("!").split("."))
-        rules[rule] = exception
+        exception = token[0] == "!"
+        labels = token[1 if exception else 0:].split(".")
+        if "" in labels or any(not (c.isalnum() or c == "-") for l in labels if l != "*" for c in l):
+            continue
+        rules[".".join(_psl_host_label(l) for l in labels)] = exception
     return rules
 
 def _psl_registrable(host, rules):
@@ -8681,6 +8685,13 @@ def _dc4_registrable_domain():
     assert any(c["host"] and c["input"] != c["host"] for c in v["official_cases"]), "no case exercises canonicalization"
     for case in v["domain_cases"]:
         assert (case["registrable"], case["public_suffix"]) == _psl_registrable(case["host"], rules[case["list"]]), case["label"]
+    lines = lists["lines"]["text"]
+    assert set(_psl_rules(lines)) == {"com", "net", "org"} | {
+        name + ".example.com" for name in ("space", "tab", "vertical-tab", "form-feed", "carriage-return")}
+    trimmed = {line.strip().split()[0] for line in lines.splitlines() if line.strip()}
+    assert {"leading-space.example.com", "no-break-space.example.com", "next-line.example.org",
+            "file-separator.example.com"} <= trimmed, "the lines no longer tell a trimming reader apart"
+    assert sum(c["list"] == "lines" for c in v["domain_cases"]) >= 14
     shared = [c for c in v["domain_cases"] if c["list"] == "first" and c["registrable"] == "example.com"]
     assert len({c["host"] for c in shared}) >= 3, "no shared-quota hosts"
     private = [c for c in v["domain_cases"] if c["host"].endswith(".github.io")]

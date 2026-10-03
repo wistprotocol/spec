@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a73.1, WIST-2 \u00a74, WIST-3 \u00a73.2 and \u00a77. lists are Public Suffix List snapshots as octets (text is the exact UTF-8 file). official_cases transcribe the Public Suffix List project's checkPublicSuffix cases over the first snapshot: host is the input's Canonical Host (null where it has none), expected the project's answer and registrable the Registrable Domain, the host itself where the list leaves none. domain_cases read a host under a named snapshot or under none. act_cases replay in Epoch order under the Log key: a suffix_list_update is in force from the Epoch after its sealing Epoch (in_force lists the snapshot in force at each height). capacity_cases count publisher_catalog, publisher_item, label and dispute Entries (a Catalog's or Item's publisher, a Label's labeler, a dispute's disputant; one that is not a Canonical Host counts toward no domain) per Registrable Domain under the snapshot in force at the Epoch; quota_cases apply quota_base to the noise Pings of one UTC day per Registrable Domain in order, each Ping under the snapshot in force at its own height where one is given; an act carrying consumer names a file no source holds, which fails its contract at the Aggregator and stops a Consumer with WIST3-E01; state_tuples are the WIST-3 \u00a77 suffix_list tuple at a tree_size.",
+  "note": "WIST-4 \u00a73.1, WIST-2 \u00a74, WIST-3 \u00a73.2 and \u00a77. lists are Public Suffix List snapshots as octets (text is the exact UTF-8 file). official_cases transcribe the Public Suffix List project's checkPublicSuffix cases over the first snapshot: host is the input's Canonical Host (null where it has none), expected the project's answer and registrable the Registrable Domain, the host itself where the list leaves none. domain_cases read a host under a named snapshot or under none. act_cases replay in Epoch order under the Log key: a suffix_list_update is in force from the Epoch after its sealing Epoch (in_force lists the snapshot in force at each height). capacity_cases count publisher_catalog, publisher_item, label and dispute Entries (a Catalog's or Item's publisher, a Label's labeler, a dispute's disputant; one that is not a Canonical Host counts toward no domain) per Registrable Domain under the snapshot in force at the Epoch; quota_cases apply quota_base to the noise Pings of one UTC day per Registrable Domain in order, each Ping under the snapshot in force at its own height where one is given; an act carrying consumer names a file no source holds, which fails its contract at the Aggregator and stops a Consumer with WIST3-E01; state_tuples are the WIST-3 \u00a77 suffix_list tuple at a tree_size. The snapshot named lines tells the readings of a rule line apart: a rule ends at U+0009, U+000B, U+000C, U+000D or U+0020 and a line at U+000A alone, a line that begins with whitespace carries no rule, and a rule holding another space or line-break character has a label Canonical Host processing rejects and is ignored.",
   "log_key": {
     "key_id": "test-agg-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
@@ -16,6 +16,12 @@
       "text": "// Fixture excerpt of the Public Suffix List, https://publicsuffix.org/list/public_suffix_list.dat\n// (Mozilla Foundation, MPL-2.0): rules copied verbatim, section markers preserved, most rules omitted.\n\n// ===BEGIN ICANN DOMAINS===\n\nac\nbiz\n*.ck\n!www.ck\ncn\ncom.cn\n\u516c\u53f8.cn\ncom\ndev\nio\njp\nac.jp\nkyoto.jp\nide.kyoto.jp\n*.kobe.jp\n!city.kobe.jp\n*.mm\nnet\norg\nus\nak.us\nk12.ak.us\n\u4e2d\u56fd\n\n// ===END ICANN DOMAINS===\n// ===BEGIN PRIVATE DOMAINS===\n\nuk.com\npages.dev\ngithub.io\nhosts.sample.net\n\n// ===END PRIVATE DOMAINS===\n",
       "sha256": "sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31",
       "bytes": 513
+    },
+    {
+      "name": "lines",
+      "text": "// Rule lines that tell apart the readings of a line and of its whitespace.\n// ===BEGIN ICANN DOMAINS===\ncom\nnet\norg\n// ===END ICANN DOMAINS===\n// ===BEGIN PRIVATE DOMAINS===\nspace.example.com trailing text\ntab.example.com\ttrailing\nvertical-tab.example.com\u000btrailing\nform-feed.example.com\ftrailing\ncarriage-return.example.com\r\n leading-space.example.com\n\tleading-tab.example.com\nno-break-space.example.com\u00a0trailing\nnext-line.example.com\u0085next-line.example.org\nline-separator.example.com\u2028line-separator.example.org\nfile-separator.example.com\u001ctrailing\nideographic-space.example.com\u3000trailing\n// ===END PRIVATE DOMAINS===\n",
+      "sha256": "sha256:ed842365d2af06653a03639a9ca096719a9ec2e0377dec61cbaa87bf5d29df99",
+      "bytes": 622
     }
   ],
   "official_cases": [
@@ -560,6 +566,104 @@
     }
   ],
   "domain_cases": [
+    {
+      "label": "rule ended by space",
+      "list": "lines",
+      "host": "b.a.space.example.com",
+      "registrable": "a.space.example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "rule ended by tab",
+      "list": "lines",
+      "host": "b.a.tab.example.com",
+      "registrable": "a.tab.example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "rule ended by vertical tab",
+      "list": "lines",
+      "host": "b.a.vertical-tab.example.com",
+      "registrable": "a.vertical-tab.example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "rule ended by form feed",
+      "list": "lines",
+      "host": "b.a.form-feed.example.com",
+      "registrable": "a.form-feed.example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "rule ended by carriage return",
+      "list": "lines",
+      "host": "b.a.carriage-return.example.com",
+      "registrable": "a.carriage-return.example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "no rule from a line with leading space",
+      "list": "lines",
+      "host": "b.a.leading-space.example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "no rule from a line with leading tab",
+      "list": "lines",
+      "host": "b.a.leading-tab.example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "no rule from a line with no break space",
+      "list": "lines",
+      "host": "b.a.no-break-space.example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "no rule from a line with next line",
+      "list": "lines",
+      "host": "b.a.next-line.example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "no rule from a line with line separator",
+      "list": "lines",
+      "host": "b.a.line-separator.example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "no rule from a line with file separator",
+      "list": "lines",
+      "host": "b.a.file-separator.example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "no rule from a line with ideographic space",
+      "list": "lines",
+      "host": "b.a.ideographic-space.example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "no line ends at next line",
+      "list": "lines",
+      "host": "b.a.next-line.example.org",
+      "registrable": "example.org",
+      "public_suffix": false
+    },
+    {
+      "label": "no line ends at line separator",
+      "list": "lines",
+      "host": "b.a.line-separator.example.org",
+      "registrable": "example.org",
+      "public_suffix": false
+    },
     {
       "label": "shared registrable domain",
       "list": "first",

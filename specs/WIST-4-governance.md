@@ -134,10 +134,13 @@ a free quota. Where the name of the snapshot in force is needed by a
 Consumer resuming from a Snapshot, WIST-3 §7's `suffix_list` tuple
 carries it.
 
-**The algorithm.** A snapshot is a UTF-8 text. Each line's rule is the
-text before its first whitespace; a line that is empty, or begins with
-`//`, carries no rule. Every rule line of the file applies, in the
-ICANN section and the private section alike. A rule is an optional
+**The algorithm.** A snapshot is a UTF-8 text, and its lines are the
+texts U+000A separates. Each line's rule is the text before its first
+whitespace character, which is U+0009, U+000B, U+000C, U+000D or U+0020
+and no other; a line whose rule is empty, or begins with `//`, carries no
+rule, so a line that begins with whitespace carries none. Every rule line
+of the file applies, in the ICANN section and the private section alike.
+A rule is an optional
 leading `!`, the exception marker, followed by labels separated by `.`;
 a label is `*`, the wildcard, or a hostname label, which is converted
 to Canonical Host form by WIST-1 §2's processing before any comparison,
