@@ -846,7 +846,44 @@ def catalog_order_vectors():
         got = catalogs.pull_order(fetched, fetched_for, previous, latest)
         assert got == expected, (name, got)
         pull_cases.append({"name": name, "fetched_for": fetched_for, "last_accepted": previous, "latest": latest,
-                           "fetched": fetched, "expected": expected})
+                           "window": None, "signed_by": None, "fetched": fetched, "expected": expected})
+
+    queued = at("2026-10-01T13:00:00Z", other_list)
+
+    def window(opened, queue=(), waiting=None):
+        return {"opened": opened, "queued": [{"catalog": c, "key": k} for c, k in queue],
+                "waiting": None if waiting is None else {"catalog": last, "key": waiting}}
+
+    for name, state, fetched, signer, expected in (
+            ("inside a recovery window, the last accepted Catalog that does not wait, later than the floor: no "
+             "idempotent re-serve", window(True), copy.deepcopy(last), "key-1", "accepted"),
+            ("inside a recovery window, the last accepted Catalog that does not wait, not later than the queued "
+             "Catalog of its key", window(True, [(queued, "key-1")]), copy.deepcopy(last), "key-1", "WIST2-E05"),
+            ("inside a recovery window, the last accepted Catalog that does not wait, earlier than a Catalog queued "
+             "under another key", window(True, [(queued, "key-2")]), copy.deepcopy(last), "key-1", "accepted"),
+            ("inside a recovery window, the Catalog ID of a queued Catalog signed by another key: no idempotent "
+             "re-serve", window(True, [(queued, "key-1")]), copy.deepcopy(queued), "key-2", "accepted"),
+            ("inside a recovery window, the Catalog ID and key of a queued Catalog: an idempotent re-serve",
+             window(True, [(queued, "key-1")]), copy.deepcopy(queued), "key-1", "idempotent"),
+            ("from the discovery of a recovery rotation, the Catalog ID and key of the waiting Catalog: an "
+             "idempotent re-serve", window(False, waiting="key-1"), copy.deepcopy(last), "key-1", "idempotent"),
+            ("from the discovery of a recovery rotation, the Catalog ID of the waiting Catalog signed by another "
+             "key: no idempotent re-serve", window(False, waiting="key-1"), copy.deepcopy(last), "key-2",
+             "accepted"),
+            ("from the discovery of a recovery rotation, another Catalog ID at the instant of the waiting Catalog "
+             "under its key", window(False, waiting="key-1"), at(GENERATED_AT, other_list), "key-1", "WIST2-E05"),
+            ("from the discovery of a recovery rotation, another Catalog ID at the instant of the waiting Catalog "
+             "under another key", window(False, waiting="key-1"), at(GENERATED_AT, other_list), "key-2",
+             "accepted"),
+            ("inside a recovery window, the latest Catalog's Catalog ID under a key that signed nothing held: an "
+             "idempotent re-serve", window(True, [(queued, "key-1")]), copy.deepcopy(older), "key-3",
+             "idempotent"),
+            ("inside a recovery window, another Catalog ID at the floor", window(True), at("2026-09-30T12:00:00Z"),
+             "key-1", "WIST2-E05")):
+        got = catalogs.pull_order(fetched, fetched_for, last, older, state, signer)
+        assert got == expected, (name, got)
+        pull_cases.append({"name": name, "fetched_for": fetched_for, "last_accepted": last, "latest": older,
+                           "window": state, "signed_by": signer, "fetched": fetched, "expected": expected})
 
     next_cases = []
     for name, clock, served, expected in (
@@ -905,7 +942,18 @@ def catalog_order_vectors():
         "fetched.publisher or fetched.collection differs from `fetched_for`; `idempotent` when its Catalog ID "
         "(sha256: + hex(SHA-256(JCS(catalog)))) equals the last accepted one's or the latest one's, replacing "
         "nothing; WIST2-E05 when its generated_at is at or before the last accepted one's and it is no idempotent "
-        "re-serve; `accepted` otherwise, the Catalog then replacing the last accepted one. "
+        "re-serve; `accepted` otherwise, the Catalog then replacing the last accepted one. `window` is null "
+        "outside WIST-1 section 5.2's recovery window and from the discovery of a recovery rotation until its "
+        "settlement holds {opened, queued, waiting}: `opened` whether the window has opened, `queued` the Catalogs "
+        "queued under the Collection's name, each with the public key that signed it, and `waiting` null or the "
+        "Catalog that waits for the Collection, the last accepted one, with its key; `signed_by` is the public key "
+        "that signed `fetched`, keys being compared as the labels given. Inside a window, after the WIST2-E04 rule: "
+        "`idempotent` when the Catalog ID is the latest Catalog's, whatever the key, or when the Catalog ID and "
+        "`signed_by` are those of a queued Catalog or, before the window opens, of the waiting Catalog; otherwise "
+        "WIST2-E05 when generated_at is at or before the floor (the latest Catalog's generated_at) or at or before "
+        "that of a queued Catalog or, before the window opens, the waiting Catalog signed by the same key; "
+        "`accepted` otherwise, the Catalog then being queued under its key. The last accepted Catalog is no "
+        "idempotent re-serve inside a window unless it is the waiting Catalog under the same key. "
         "Only these rules are judged, and each rejected case fails exactly one of them. next_cases give the "
         "generated_at a Publisher signs for a Collection whose served Catalog has generated_at `served` (null when "
         "none is served), at clock `clock` (a Publisher timestamp, WIST-1 section 3.4): the later of the clock cut "
@@ -1007,13 +1055,16 @@ def catalog_tree_vectors():
     one_each = listed_from([urls_with(d, 1, taken)[0] for d in tree_files.HEX_DIGITS])
     cases = []
 
-    def case(name, catalog, files, expected_ok, parameters=None):
+    def case(name, catalog, files, expected_ok, parameters=None, fetched=None):
         parameters = {**TREE_PARAMETERS, **(parameters or {})}
         got = tree_files.walk_disposition(catalog, files, parameters)
+        outcome = {k: v for k, v in got.items() if k != "fetched"}
         if expected_ok is None:
-            assert got == {"refused": "WIST2-E07"}, (name, got)
+            assert outcome == {"refused": "WIST2-E07"}, (name, got)
         else:
-            assert got == {"list": [items.item_id(i) for i in expected_ok]}, (name, got)
+            assert outcome == {"list": [items.item_id(i) for i in expected_ok]}, (name, got)
+        if fetched is not None:
+            assert got["fetched"] == [emit_node(node, {}) for node in fetched], (name, got)
         cases.append({"name": name, "catalog": catalog, "parameters": parameters, "tree_files": texts(files),
                       "expected": got})
 
@@ -1215,6 +1266,12 @@ def catalog_tree_vectors():
     catalog, files = tree_catalog(counted(copy.deepcopy(nested), (1, -1)), nested_list)
     case("inner file counts not adding up to the count naming the file, the root's sum unchanged", catalog, files,
          None)
+    miscounted = copy.deepcopy(nested)
+    first, second = (entry["node"] for entry in miscounted["children"])
+    counted(second, (1, 0))
+    catalog, files = tree_catalog(miscounted, nested_list)
+    case("second inner file whose counts add up to one more than the count naming it, read before its children",
+         catalog, files, None, fetched=[miscounted, first, *(e["node"] for e in first["children"]), second])
 
     b_single = listed_from(urls_with("b", 1, taken))
     c_items = listed_from(urls_with("c", 1, taken))
@@ -1272,7 +1329,12 @@ def catalog_tree_vectors():
         "ADR-0052 tree files. Each case walks the tree of `catalog` (an inner object; size, root and tree are read) "
         "with `parameters` (tree_file_cap_bytes, tree_depth_max) over `tree_files`, a map from the 64-digit hex "
         "SHA-256 naming each served file to the file's octets as UTF-8 text; a name absent from the map is an "
-        "unavailable file. `expected` is {\"list\": [Item IDs in walk order]} or {\"refused\": \"WIST2-E07\"}. "
+        "unavailable file. `expected` is {\"list\": [Item IDs in walk order]} or {\"refused\": \"WIST2-E07\"}, each "
+        "with `fetched`, the names of the files the walk requests, in the order requested, an unavailable one "
+        "included; the walk holds no file before it starts and requests no file it already read. Every rule that "
+        "reads only one file and the entry naming it is judged when that file is read, before any file it names "
+        "is requested, and the walk requests no file after the first rule it fails, so a refusal's last fetched "
+        "file is the one that fails, unless only the size or root of the whole list fails. "
         "The walk starts at the file named by tree, prefix \"\", level 1, counted by size. A file is refused when "
         "unavailable, above tree_file_cap_bytes octets, of another SHA-256 than its name, not valid JCS input "
         "(WIST-1 section 4, which bounds arrays and objects to 64 levels of nesting, the file's object being level "

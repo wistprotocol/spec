@@ -784,6 +784,12 @@ no file after it:
 - the list holds another number of Items than `size`, or its root is not
   `root`.
 
+A condition that reads only one tree file and the entry that names it is
+met when that file is read: for an inner file, its form, the prefixes of
+its entries, their order, the sum of their counts against the count of
+that entry (for the root tree file, `size`) and its level. No file named
+by an inner file that meets such a condition is fetched.
+
 The bounds hold the walk to the root tree file and, for each Item
 counted, at most `tree_depth_max` − 1 files below it. A walk that meets a
 file the Publisher no longer serves fails that fetch. A walk that the
@@ -1070,7 +1076,8 @@ adjacent to the layout it walks.
       lists or by the walk; discards a chain at the first condition of
       §5.3 it meets, reporting `WIST2-E08`, and walks after it; refuses a
       Catalog whose walk fails with `WIST2-E07`, stopping the walk at the
-      first failure (§5.3)
+      first failure and fetching no child of an inner file that fails a
+      rule read from that file alone (§5.3)
 - [ ] Refuses with `WIST2-E07`, naming every such URL, a list that holds
       no Item for the URL of a record its Log holds and the Scope covers,
       unless the Catalog is a base (§5.1)

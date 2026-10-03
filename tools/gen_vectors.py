@@ -11,7 +11,8 @@ from fractions import Fraction
 import rfc8785
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+from jsonschema import Draft202012Validator
 
 import catalogs
 import ed25519_curve
@@ -2908,6 +2909,21 @@ def key_history(name: str, note: str, log_id: str, genesis_key_id: str, genesis_
     return history
 
 
+def anchor_disposition(envelope: dict) -> str:
+    schema = json.loads((ROOT / "schemas" / "log-anchor.schema.json").read_text())
+    if not Draft202012Validator(schema).is_valid(envelope):
+        return "WIST3-E03"
+    genesis = envelope["anchor"]["genesis_key"]
+    if envelope["sig"]["key_id"] != genesis["key_id"]:
+        return "rejected"
+    try:
+        Ed25519PublicKey.from_public_bytes(raw_from_b64u(genesis["public_key"])).verify(
+            raw_from_b64u(envelope["sig"]["value"]), rfc8785.dumps(envelope["anchor"]))
+    except InvalidSignature:
+        return "rejected"
+    return "accepted"
+
+
 def aggregator_key_vectors() -> dict:
     histories = []
 
@@ -3191,6 +3207,28 @@ def aggregator_key_vectors() -> dict:
                  ]},
             ]))
 
+    anchor_priv, anchor_id = agg_key("anchor a"), "test-agg-a1"
+    anchor_base = {"wist_version": "1.0.0", "log_id": "keys-anchor.example.org",
+                   "genesis_key": {"key_id": anchor_id, "alg": "Ed25519",
+                                   "public_key": b64u(raw_public(anchor_priv))},
+                   "created_at": "2026-09-01T00:00:00Z"}
+    anchor_cases = []
+    for name, predecessor, expected in (
+            ("an Anchor without a predecessor", None, "accepted"),
+            ("a successor Anchor naming its predecessor",
+             {"log_id": "keys-rotation.example.org", "final_epoch_number": 3,
+              "final_root_hash": "sha256:" + hashlib.sha256(b"wist predecessor root").hexdigest()},
+             "accepted"),
+            ("a self-signed Anchor carrying predecessor null: no Anchor without a predecessor", "null",
+             "WIST3-E03")):
+        inner = dict(anchor_base)
+        if predecessor is not None:
+            inner["predecessor"] = None if predecessor == "null" else predecessor
+        envelope = sign_envelope_with(anchor_priv, "anchor", inner, anchor_id)
+        got = anchor_disposition(envelope)
+        assert got == expected, (name, got)
+        anchor_cases.append({"name": name, "anchor": envelope, "expected": got})
+
     return {
         "note": "WIST-3 §3.4 and §5, WIST-4 §5.1: Aggregator key acts. A key act "
                 "sealed in Epoch N authenticates under the keys valid at height N-1 "
@@ -3207,8 +3245,16 @@ def aggregator_key_vectors() -> dict:
                 "publishes; `checkpoint_cases` are candidates judged beside it. "
                 "The parameter_change Entries are here only to fix the "
                 "authentication height of a non-key act; their §5 schedule rules are "
-                "exercised by vectors/wist4/parameter-combinations.json.",
+                "exercised by vectors/wist4/parameter-combinations.json. "
+                "`anchor_cases` judge a Log Anchor Envelope: it is validated against "
+                "schemas/log-anchor.schema.json first, one that fails being rejected "
+                "with WIST3-E03 before its signature is verified, and a member present "
+                "with a value the schema does not admit fails it, so `predecessor` null "
+                "is no Anchor without a predecessor; one that passes is `accepted` when "
+                "its sig.key_id names its genesis_key and the signature verifies under "
+                "that key over the JCS of `anchor`. Every case here is self-signed.",
         "histories": histories,
+        "anchor_cases": anchor_cases,
         "same_registry_histories": ["addition below removal", "addition above removal"],
     }
 
@@ -5158,6 +5204,11 @@ def withdrawal_vectors():
             details={"delta_id": s1, "legal_basis": "second order", "jurisdiction": "BR"}),
     ]
     acts.append(unverified(acts[0], "the accepted update again under a signature that does not verify", 6))
+    malformed = json.loads(acts[0]["envelope_json"])
+    malformed["sig"]["value"] = malformed["sig"]["value"][:-2]
+    acts.append({**acts[0], "label": "the accepted update again under a sig value that is not 64 octets of "
+                 "canonical base64url", "height": 6, "code": "WIST4-E11",
+                 "envelope_json": json.dumps(malformed, ensure_ascii=True)})
     withdrawn = replay(acts, {})
     for case in acts:
         update = json.loads(case["envelope_json"])["update"]
@@ -5277,9 +5328,11 @@ def withdrawal_vectors():
                  "Entry sealed the Item its details.delta_id names, of kind page, at or below the act's Epoch, "
                  "against a Catalog whose publisher is the act's subject (WIST4-E04 otherwise); the earliest "
                  "accepted withdrawal's Epoch governs and a later withdrawal of the same Item changes nothing. "
-                 "An act_case carrying the Registry Update ID (WIST-4 section 2, over the update alone) of an "
-                 "earlier accepted act_case is idempotent: neither authenticated nor judged, code null, "
-                 "withdrawn_height the earliest height. "
+                 "Field validation comes first: an act_case that fails the JSON/JCS eligibility or the field "
+                 "validation of WIST-4 section 5.1 carries that failure's code whether or not its Registry Update "
+                 "ID (WIST-4 section 2, over the update alone) was accepted earlier. One that passes them and "
+                 "carries the ID of an earlier accepted act_case is idempotent: neither authenticated nor judged, "
+                 "code null, withdrawn_height the earliest height. "
                  "sealed_items is the Log's every valid publisher_item Entry in Log order, each with its kind, "
                  "sealing height and the Collection, Catalog ID and generated_at of the Catalog it was proved "
                  "against; the Catalog's publisher is the Item's. Registry Updates precede Items in an Epoch's "

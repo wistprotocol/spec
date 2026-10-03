@@ -1818,9 +1818,9 @@ of the Collection's last accepted Catalog or of its latest Catalog
 (WIST-3 §3.3, §7): it replaces nothing and is no regression. From the
 discovery of a recovery rotation until the settlement of its window
 (§5.2), the key counts as well: a fetched Catalog is then an idempotent
-re-serve when its Catalog ID and the public key that signed it are those of
-a Catalog queued under its name or of the Catalog that waits for its
-Collection, or when its Catalog ID is the latest Catalog's. What a pull
+re-serve only when its Catalog ID and the public key that signed it are
+those of a Catalog queued under its name or of the Catalog that waits for
+its Collection, or when its Catalog ID is the latest Catalog's. What a pull
 does on an idempotent re-serve is WIST-2 §5's.
 
 **Inclusion Proof.** A proof of another form than §4.3's is `WIST1-E14`,

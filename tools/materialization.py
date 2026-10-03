@@ -31,7 +31,12 @@ def materialized(records, declared, withdrawn):
         chosen = preferred(host, host in declared, list(held))
         if chosen is not None:
             out.append(content_tuple(chosen, url, held[chosen]["item"], held[chosen]["generated_at"]))
-    return sorted(out, key=lambda t: (t["url"].encode(), t["publisher"].encode()))
+    return sorted(out, key=lambda t: (t["publisher"].encode(), t["url"].encode()))
+
+
+def link_rows(tuples, payloads):
+    return [{"source_url": t["url"], "target_url": target, "position": position}
+            for t in tuples for position, target in enumerate(payloads[t["item_id"]]["content"]["links"]["urls"])]
 
 
 def content_digest(tuples):

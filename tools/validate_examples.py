@@ -1857,6 +1857,13 @@ def _materialization_preference(host, self_declared, candidates, *, farthest=Fal
 def _record_vector():
     return json.loads((ROOT / "vectors" / "wist3" / "record-materialization.json").read_text())
 
+_RECORD_PAYLOADS = {}
+
+def _record_payloads():
+    if not _RECORD_PAYLOADS:
+        _RECORD_PAYLOADS.update(_record_vector()["payloads"])
+    return _RECORD_PAYLOADS
+
 def _url_host(url):
     return re.match(r"https://([^/:?#]+)", url).group(1)
 
@@ -1922,9 +1929,17 @@ def _record_outcome(state, height, **variant):
     records = [{"publisher": p, "url": u, "item": r["item_id"], "collection": r["collection"],
                 "catalog": r["catalog"], "generated_at": r["generated_at"]} for (p, u), r in state["records"].items()]
     removals = [{"publisher": p, "url": u, **r} for (p, u), r in state["removals"].items()]
-    materialized.sort(key=lambda row: (row["url"].encode(), row["publisher"].encode()))
+    if variant.get("url_first_order"):
+        materialized.sort(key=lambda row: (row["url"].encode(), row["publisher"].encode()))
+    else:
+        materialized.sort(key=order)
+    links = [{"source_url": row["url"], "target_url": target, "position": position}
+             for row in materialized
+             for position, target in enumerate(_record_payloads()[row["item_id"]]["content"]["links"]["urls"])]
+    if variant.get("links_by_target"):
+        links.sort(key=lambda row: (row["source_url"].encode(), row["target_url"].encode()))
     return {"height": height, "records": sorted(records, key=order), "removals": sorted(removals, key=order),
-            "materialized": materialized, "content_digest": _content_digest(materialized)}
+            "materialized": materialized, "links": links, "content_digest": _content_digest(materialized)}
 
 def _record_resumed(tuples, **variant):
     state = _record_empty()
@@ -2023,7 +2038,8 @@ def _dc3_record_materialization_twin():
     v = _record_vector()
     for variant in ("narrowing_leaves_removal", "withdrawal_removes", "base_clears_removals",
                     "removal_survives_record", "ignore_withdrawals", "ignore_self_declaration",
-                    "resume_without_withdrawals", "resume_from_content_tuples"):
+                    "resume_without_withdrawals", "resume_from_content_tuples", "url_first_order",
+                    "links_by_target"):
         moved = False
         for case in v["cases"]:
             try:
@@ -2882,6 +2898,8 @@ NON_CONTENT_VALUES = {
     ("vectors/wist3/aggregator-keys.json", "public_key"):
         "an Ed25519 Aggregator key, in a Log Anchor or an aggregator_key_add (WIST-3 §3.4)",
     ("vectors/wist3/aggregator-keys.json", "value"): "an Ed25519 signature",
+    ("vectors/wist3/aggregator-keys.json", "final_root_hash"):
+        "the final root a successor Anchor names, over Entries that carry no page content",
     ("vectors/wist3/aggregator-keys.json", "leaf_hashes"):
         "leaf hashes over Entries, which carry governance acts and no page content",
     ("vectors/wist3/aggregator-keys.json", "expected_state"):
@@ -3198,6 +3216,7 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/catalog-tree.json", "root"): "an Item list root (ADR-0052): a Merkle Tree Hash over leaves that carry only a URL hash and an Item hash",
     ("vectors/wist2/catalog-tree.json", "tree"): "a tree file name (ADR-0052): SHA-256 over a file of Items that carry only a salted commitment",
     ("vectors/wist2/catalog-tree.json", "list"): "Item IDs (ADR-0052): SHA-256 over Items that carry only a salted commitment",
+    ("vectors/wist2/catalog-tree.json", "fetched"): "tree file names (ADR-0052): SHA-256 over files of Items that carry only a salted commitment",
     ("vectors/wist2/catalog-items.json", "x"): "an Ed25519 public key",
     ("vectors/wist2/catalog-items.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist2/catalog-items.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
@@ -7411,6 +7430,27 @@ def _dc4_withdrawal():
     assert any(c["code"] is None and _withdrawal_judged(c, validator, log_key, key_id, meets, judged_every_time)[0]
                == "WIST4-E11" for c in v["act_cases"]), \
         "no occurrence of an accepted Registry Update ID that would fail authentication shows idempotence"
+    seen_ids, field_failed_repeat = set(), False
+    for c in v["act_cases"]:
+        doc = json.loads(c["envelope_json"])
+        identifier = _registry_update_id(doc["update"])
+        field_failed_repeat |= (identifier in seen_ids and c["code"] == "WIST4-E11"
+                                and _registry_update_eligibility(c["envelope_json"], validator)[1] is None)
+        if c["code"] is None:
+            seen_ids.add(identifier)
+    assert field_failed_repeat, "no occurrence of an accepted Registry Update ID fails field validation"
+
+    def idempotence_first(case, ids):
+        doc = json.loads(case["envelope_json"])
+        if isinstance(doc.get("update"), dict) and _registry_update_id(doc["update"]) in ids:
+            return None, doc["update"]
+        return _withdrawal_judged(case, validator, log_key, key_id, meets, ids)
+    try:
+        _withdrawal_replay(v["act_cases"], idempotence_first, {}, "code", "withdrawn_height", {})
+        moved = False
+    except AssertionError:
+        moved = True
+    assert moved, "reading idempotence before field validation reproduces every act_case"
     assert tuples == ordered(v["state_tuples"]), "the replay does not leave the vector's withdrawal tuples"
     last = max(d["height"] for d in history)
     records, removals = holdings(last)
@@ -7926,6 +7966,30 @@ def _wist3_aggregator_keys():
     assert (index_of(first, "aggregator_key_add") < index_of(first, "aggregator_key_remove")) \
         != (index_of(second, "aggregator_key_add") < index_of(second, "aggregator_key_remove")), \
         "both histories place the addition on the same side of the removal"
+
+    def anchor_outcome(envelope, null_as_absent=False):
+        if null_as_absent and envelope["anchor"].get("predecessor", 0) is None:
+            envelope = dict(envelope, anchor={k: x for k, x in envelope["anchor"].items() if k != "predecessor"})
+        if not anchor_schema.is_valid(envelope):
+            return "WIST3-E03"
+        genesis = envelope["anchor"]["genesis_key"]
+        verified = envelope["sig"]["key_id"] == genesis["key_id"] and _envelope_verifies(
+            b64u_decode(genesis["public_key"]), envelope, "anchor")
+        return "accepted" if verified else "rejected"
+
+    stated_anchors = [(c["name"], c["expected"]) for c in v["anchor_cases"]]
+    assert [(c["name"], anchor_outcome(c["anchor"])) for c in v["anchor_cases"]] == stated_anchors, \
+        "an Anchor case's outcome differs from the schema-first judgment"
+    assert [(c["name"], anchor_outcome(c["anchor"], True)) for c in v["anchor_cases"]] != stated_anchors, \
+        "reading predecessor null as an absent member reproduces every Anchor outcome"
+    null_cases = [c for c in v["anchor_cases"] if c["anchor"]["anchor"].get("predecessor", 0) is None]
+    assert null_cases and all(c["expected"] == "WIST3-E03" for c in null_cases)
+    assert all(c["anchor"]["sig"]["key_id"] == c["anchor"]["anchor"]["genesis_key"]["key_id"]
+               and _envelope_verifies(b64u_decode(c["anchor"]["anchor"]["genesis_key"]["public_key"]),
+                                      c["anchor"], "anchor") for c in null_cases), \
+        "a predecessor-null Anchor is not correctly self-signed, so its rejection is not the schema's alone"
+    assert any(c["expected"] == "accepted" and "predecessor" not in c["anchor"]["anchor"]
+               for c in v["anchor_cases"]), "no accepted Anchor without the predecessor member"
 
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
     assert "A key act sealed in Epoch N is authenticated under the keys valid at height N−1." in prose

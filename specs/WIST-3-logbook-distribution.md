@@ -590,9 +590,13 @@ inner object is `anchor` (schema:
 served at `/log/anchor.json`. It declares `wist_version`, the `log_id` (the
 Log's hostname identity, and the origin line of its Checkpoints, §5), the `genesis_key` — an object carrying that key's
 `key_id`, `alg` and raw base64url `public_key` — and `created_at`, the
-instant the Log was established. The Anchor is self-signed: its `sig.key_id`
-MUST name its own `genesis_key`, and a Consumer MUST reject an Anchor whose
-signature does not verify under the very key it declares.
+instant the Log was established. A party MUST validate an Anchor against
+its schema before it verifies the signature, and MUST reject one that
+fails it with `WIST3-E03`. A member present with a value the schema does
+not admit fails it: an Anchor carrying `"predecessor": null` is rejected,
+and is not an Anchor without a predecessor. The Anchor is self-signed: its
+`sig.key_id` MUST name its own `genesis_key`, and a Consumer MUST reject
+an Anchor whose signature does not verify under the very key it declares.
 
 The Anchor is the Log's out-of-band trust
 root: a Consumer MUST obtain it through a channel it trusts (bundled with
@@ -684,7 +688,8 @@ Of two additions of one `key_id`, or of one note key ID, in one Epoch,
 the one at the lower Entry index is thus accepted and the other fails.
 Two removals in one Epoch of a `key_id` valid at N−1 are both accepted,
 and the second changes nothing. An occurrence of an already accepted
-key act's ID is idempotent under WIST-4 §5.1 and is not evaluated. The
+key act's ID that passes WIST-4 §5.1's field validation is idempotent
+under it and is not evaluated. The
 Aggregator MUST NOT seal a key-act failure. A Consumer replaying the
 Log ignores one as `WIST4-E04` under WIST-4 §5.1: it changes no key
 registry state, and the containing Epoch stays valid. Authentication
@@ -1660,7 +1665,13 @@ to the rule — the Declaration Entry, its height, the records, the
 withdrawals, the domains — is in the Log, so any two replayers agree.
 
 **Materialization rule.** The **materialized records** at `tree_size` are
-the records the rule above materializes. An Item of kind `removed`,
+the records the rule above materializes, ordered by Publisher domain and
+then by URL, each compared as the octets of its UTF-8 string. The rows of
+the link graph (above) are ordered by their source records, in that
+order, and then by ascending `position`. Wherever this suite serializes
+or enumerates either list, the rows of a tier file included, it does so
+in that order; `content_digest` (below) sorts its own serializations and
+does not read it. An Item of kind `removed`,
 narrowing and a base remove a record, and with it its content, from
 every Snapshot produced at or above the height that removes it. A
 `payload_withdrawal` (§6.2) excludes its Item's content from every
@@ -1703,8 +1714,8 @@ party missing a Payload that was never withdrawn cannot rebuild, and MUST
 report that rather than emit a Snapshot silently missing a record.
 
 **Verifying a rebuild.** Snapshot files are not byte-reproducible: SQLite
-and Parquet outputs vary with library version, page size, insertion order,
-and compression settings, and none of that is a property of the state being
+and Parquet outputs vary with library version, page size and compression
+settings, and none of that is a property of the state being
 described. This specification therefore does not require byte equality
 between independent builds. It requires **semantic equivalence**, verified
 by the manifest's `content_digest`:
@@ -2200,7 +2211,7 @@ Logs reconciled, and nothing here extends it to concurrent Logs.
 |---------|--------------------------------------------------------------|
 | WIST3-E01 | A Checkpoint, tile, entry bundle or Public Suffix List snapshot missing at a source (§5, §6). Fetch it from another — a Mirror, the Aggregator or, for a head Checkpoint, a trusted Witness's monitoring endpoint; integrity never depends on the source. A Consumer holding a Checkpoint whose Entries no source serves keeps this code and applies nothing above its verified head (§5). |
 | WIST3-E02 | Chain divergence: a Consistency Proof that fails between two Checkpoints of the Log, or from the empty tree to a Checkpoint stating tree size 0 with a root other than §4's — that one Checkpoint is the whole evidence — two Checkpoints that equivocate under §5, or a Snapshot manifest whose `tree_size` or `root_hash` is not what Checkpoint `epoch_number` states (§7, §8). Hard failure: preserve the Checkpoints — and, for a failed Consistency Proof, the tiles that reproduce the larger root — as an evidence bundle (§5), MUST NOT apply the data. |
-| WIST3-E03 | Invalid object: a Checkpoint that fails §5's parsing or signature rules, states a `sealed_at` not later than its predecessor's or off the grid (§3.1), or sits at an archive path not its own (§6); a tile or entry bundle over its format size, malformed (§6) or not reproducing the tree its Checkpoint states (§3.1, §6); an Epoch over the size cap (§6, WIST-4 §5), carrying an Entry over 65 535 octets or of an unknown type, out of canonical Entry order, with two `publisher_catalog` Entries of one `publisher` and `collection` (§3.3), over the per-domain capacity or the per-Labeler cap, or sealing a Label ID a lower Entry carries (§3.2); a suffix-list file whose octets do not hash to its name (§6); or a Payload that does not reproduce its Item's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another source if needed, before concluding misbehavior; an Epoch the Aggregator sealed over a bound is misbehavior no source repairs. |
+| WIST3-E03 | Invalid object: a Log Anchor that fails its schema (§3.4); a Checkpoint that fails §5's parsing or signature rules, states a `sealed_at` not later than its predecessor's or off the grid (§3.1), or sits at an archive path not its own (§6); a tile or entry bundle over its format size, malformed (§6) or not reproducing the tree its Checkpoint states (§3.1, §6); an Epoch over the size cap (§6, WIST-4 §5), carrying an Entry over 65 535 octets or of an unknown type, out of canonical Entry order, with two `publisher_catalog` Entries of one `publisher` and `collection` (§3.3), over the per-domain capacity or the per-Labeler cap, or sealing a Label ID a lower Entry carries (§3.2); a suffix-list file whose octets do not hash to its name (§6); or a Payload that does not reproduce its Item's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another source if needed, before concluding misbehavior; an Epoch the Aggregator sealed over a bound is misbehavior no source repairs. |
 | WIST3-E04 | Snapshot mismatch. Three cases, one code, different responses. An index, manifest or state file that fails its schema, a file hash or byte size that disagrees with the manifest, a state file whose `tree_size` is not the manifest's or whose `aggregator_key` tuples do not authenticate from the Anchor (§7), an index, manifest or state file whose signature does not verify under the keys valid at the adopted Checkpoint's height (§3.4, §8), or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `tree_size`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `tree_size`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
 | WIST3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Item: fetch the Payload from another Mirror or from the Publisher (WIST-2 §3.1), and keep applying the Log. A Consumer that sees `WIST3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
 | WIST3-E06 | A `publisher_catalog` or `publisher_item` Entry out of place in the Log: a Catalog that fails C2, C3 or C4, or an Item that fails I2, I3 or I7 (§3.3). The Entry is ignored, changes no state and leaves its Epoch accepted; an Aggregator seals none. |
@@ -2366,7 +2377,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       rule: the self-declared host's own, else the nearest ancestor
       Publisher's, else the least non-ancestor domain in octet order
 - [ ] Produces Snapshots whose manifests satisfy §7, including the
-      materialization rule, the `content_digest`, the state artifact —
+      materialization rule with the order of the materialized records
+      and the link rows in every tier file, the `content_digest`, the
+      state artifact —
       removed Aggregator keys and unmaterialized records included — and
       its `state_digest`, per-shard digests where sharded, and an
       `epoch_number`, `tree_size` and `root_hash` that
@@ -2398,10 +2411,10 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       at or above the withdrawal's height, or withdraws it (§6.2, §7)
 - [ ] Seals no Epoch whose size (§6) exceeds the smallest cap WIST-4 §5
       puts in force for it
-- [ ] Publishes a Log Anchor, admits and removes all later keys in-band,
-      signs each key act under a key valid at the previous height and
-      every other act and the Checkpoint under a key valid at the
-      Epoch's own, and seals no key-act failure (§3.4)
+- [ ] Publishes a Log Anchor that passes its schema, admits and removes
+      all later keys in-band, signs each key act under a key valid at
+      the previous height and every other act and the Checkpoint under a
+      key valid at the Epoch's own, and seals no key-act failure (§3.4)
 - [ ] Seals every Declaration under which a pull read at or below the
       Epoch that seals the first publication that pull accepted (§3.3,
       WIST-1 §5.2)
@@ -2490,8 +2503,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Excludes removed and withdrawn content from every materialization it
       produces, and removes withdrawn content from a local index it has
       already built (§6.2, §7)
-- [ ] Obtains the Anchor out-of-band and resolves signing keys by
-      height: key acts under the keys valid at the previous height,
+- [ ] Obtains the Anchor out-of-band, rejects one that fails its schema
+      before verifying its signature (`WIST3-E03`), and resolves signing
+      keys by height: key acts under the keys valid at the previous height,
       every other act and the Checkpoint under those valid at the
       Epoch's own; ignores key-act failures (`WIST4-E04`) and judges a
       Checkpoint at or below its head under the keys valid at that

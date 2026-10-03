@@ -561,10 +561,13 @@ member; a non-object container; a malformed `wist_version`, `action`,
 and a leap second or a timestamp denoting no instant (WIST-3 §3.1), year
 zero included. E11 takes precedence over E04; field failures take
 precedence over authenticity and semantic diagnostics. Replay identifies
-every Registry Update by its ID (§2): an occurrence of an ID already
-accepted at a lower Epoch, or earlier in the same Epoch, is idempotent —
-it applies nothing and rejects nothing, so only the earliest sealing
-Epoch participates.
+every Registry Update by its ID (§2), which hashes `update` alone. An
+occurrence that fails the JSON/JCS eligibility or the field validation
+above is rejected with that failure's code whether or not its ID was
+accepted earlier, and changes no state either way. An occurrence that
+passes them and carries an ID already accepted at a lower Epoch, or
+earlier in the same Epoch, is idempotent — it applies nothing and rejects
+nothing, so only the earliest sealing Epoch participates.
 
 `wist_version` MUST contain exactly three dot-separated nonnegative ASCII
 decimal components, without leading zeros except `0` itself, prerelease
@@ -718,7 +721,7 @@ MUST NOT reuse them for another meaning.
 | WIST4-E03 | Registry Update rejected under §5, including a prospective schedule that fails a combination rule: a `parameter_change` naming an identifier §5 does not list, a value outside its §5 bound, or an amendment §4's Invariants or §5's unamendable rules forbid. Ignored during replay; the Registry value in force is unchanged. |
 | WIST4-E04 | Registry Update `details` contract violation (§5.1): a REQUIRED `details` member missing or malformed for its `action`, a `subject` outside the shape that action's contract fixes, a bare content digest, or personal data; a `payload_withdrawal` naming no Item its contract admits (§5.1); a `suffix_list_update` whose `bytes` is not the named file's octet count, or, at the Aggregator, naming a file it does not hold (§3.1); or an authenticated key act that is a key-act failure under WIST-3 §3.4 — an `aggregator_key_add` whose `key_id` or note key ID was ever admitted, or an `aggregator_key_remove` of a `key_id` not valid at the previous height. Ignored as WIST4-E03. |
 | WIST4-E06 | Recomputation divergence: a published parameter value, quota or withdrawal state that does not equal the replayer's own §5 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `tree_size` it was computed at, since anyone replaying the Log can check the report. |
-| WIST4-E11 | Registry Update Envelope failure under §5.1: a field failure outside the act's `details` and `subject` contract, including unknown members and malformed `wist_version`, `effective_at` or signature fields; a major version the validator does not implement; or an act not authenticated under a Log key valid at the height WIST-3 §3.4 fixes for it. Ignored as WIST4-E03: no key registry, schedule or withdrawal state changes, and the containing Epoch stays valid. |
+| WIST4-E11 | Registry Update Envelope failure under §5.1: a field failure outside the act's `details` and `subject` contract, including unknown members and malformed `wist_version`, `effective_at` or signature fields, in an occurrence of an already accepted Registry Update ID as in any other; a major version the validator does not implement; or an act not authenticated under a Log key valid at the height WIST-3 §3.4 fixes for it. Ignored as WIST4-E03: no key registry, schedule or withdrawal state changes, and the containing Epoch stays valid. |
 
 ## 8. Security Considerations
 
@@ -841,7 +844,8 @@ enters the Log.
       checks and their precedence, authenticating a key act under the
       keys valid at the previous height, ignores a key-act failure as
       `WIST4-E04`, and treats a repeated Registry Update ID as
-      idempotent (§5.1, WIST-3 §3.4)
+      idempotent only in an occurrence that passes field validation
+      (§5.1, WIST-3 §3.4)
 - [ ] Rejects a `parameter_change` that fails a bound, a combination
       rule, the Epoch-size guarantee or the grace period, preserving the
       accepted schedule (§5, §7)

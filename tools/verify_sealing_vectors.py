@@ -31,6 +31,9 @@ JUDGED_TYPES = ("registry_update", "publisher_catalog", "publisher_item")
 OUT_OF_PLACE = "WIST3-E06"
 EPOCH_REJECTED = "WIST3-E03"
 CONTRACT_BROKEN = "WIST4-E04"
+ENVELOPE_BROKEN = "WIST4-E11"
+REGISTRY_ACTIONS = ("aggregator_key_add", "aggregator_key_remove", "parameter_change", "payload_withdrawal",
+                    "suffix_list_update")
 SERVED_PATH = re.compile(r"/\.well-known/wist/collections/([^/]+)/(?:tree/([0-9a-f]{64})|payloads/([0-9a-f]{64})\.json)")
 
 PROSE = {"note", "why"}
@@ -363,26 +366,30 @@ def judge_item_entry(log, body, height, sealed_at, parameters, removed):
     return failed, codes
 
 
-def withdrawal_form(body):
-    members_read(body, UPDATE_ENVELOPE_MEMBERS, "registry_update body")
+def text_within(value, low, high):
+    return isinstance(value, str) and low <= len(value) <= high
+
+
+def withdrawal_field_code(body):
+    if not isinstance(body, dict) or set(body) != UPDATE_ENVELOPE_MEMBERS:
+        return ENVELOPE_BROKEN
     update, sig = body["update"], body["sig"]
-    members_read(update, UPDATE_MEMBERS, "update")
+    if not isinstance(update, dict) or set(update) != UPDATE_MEMBERS or not sig_form(sig):
+        return ENVELOPE_BROKEN
+    version = VERSION.fullmatch(update["wist_version"]) if isinstance(update["wist_version"], str) else None
+    if version is None or update["action"] not in REGISTRY_ACTIONS or not text_within(update["subject"], 1, 256) \
+            or not isinstance(update["details"], dict) or log_instant(update["effective_at"]) is None:
+        return ENVELOPE_BROKEN
     if update["action"] != "payload_withdrawal":
         raise VerifierError(f"a Registry Update of action {update['action']!r} is outside this fixture's scope")
-    if not isinstance(update["wist_version"], str) or not VERSION.fullmatch(update["wist_version"]) \
-            or int(VERSION.fullmatch(update["wist_version"]).group(1)) != 1:
-        raise VerifierError("a Registry Update of another wist_version is outside this fixture's scope")
-    if log_instant(update["effective_at"]) is None:
-        raise VerifierError("a Registry Update whose effective_at is not a Log timestamp")
     details = update["details"]
-    members_read(details, WITHDRAWAL_DETAILS, "payload_withdrawal details")
-    if not canonical_host(update["subject"]) or not isinstance(details["delta_id"], str) \
-            or not HASH.fullmatch(details["delta_id"]) \
-            or not all(isinstance(details[m], str) for m in ("legal_basis", "jurisdiction")):
-        raise VerifierError("a payload_withdrawal of another form is outside this fixture's scope")
-    if not sig_form(sig):
-        raise VerifierError("a Registry Update whose sig is of another form")
-    return update["subject"], details["delta_id"]
+    if not canonical_host(update["subject"]) or set(details) != WITHDRAWAL_DETAILS \
+            or not isinstance(details["delta_id"], str) or not HASH.fullmatch(details["delta_id"]) \
+            or not text_within(details["legal_basis"], 1, 1024) or not text_within(details["jurisdiction"], 1, 128):
+        return CONTRACT_BROKEN
+    if version.group(1) != "1":
+        return ENVELOPE_BROKEN
+    return None
 
 
 def update_id(update):
@@ -397,9 +404,10 @@ def authenticated(log, envelope):
 
 
 def judge_withdrawal(log, body, height):
-    if not isinstance(body, dict):
-        return ["envelope"], {"WIST4-E11"}
-    subject, identifier = withdrawal_form(body)
+    code = withdrawal_field_code(body)
+    if code is not None:
+        return ["envelope" if code == ENVELOPE_BROKEN else "contract"], {code}
+    subject, identifier = body["update"]["subject"], body["update"]["details"]["delta_id"]
     act = update_id(body["update"])
     if act in log["accepted_updates"]:
         return None
@@ -834,7 +842,18 @@ def materialized(state):
     return tuples
 
 
-def holdings_view(state, height):
+def link_graph(content, payloads):
+    rows = []
+    for record in content:
+        payload = payloads.get(record["item_id"])
+        if payload is None:
+            raise VerifierError(f"no Payload for the materialized Item {record['item_id']}")
+        rows += [{"source_url": record["url"], "target_url": target, "position": index}
+                 for index, target in enumerate(payload["content"]["links"]["urls"])]
+    return rows
+
+
+def holdings_view(state, height, payloads):
     by_key = lambda kv: (octets(kv[0][0]), octets(kv[0][1]))
     records = [{"publisher": p, "url": u, "item": item_id(r["item"]), "collection": r["collection"],
                 "catalog": r["catalog"], "generated_at": r["generated_at"]}
@@ -844,7 +863,7 @@ def holdings_view(state, height):
     digest = "sha256:" + hashlib.sha256(b"".join(sorted(jcs(t) for t in content))).hexdigest()
     content.sort(key=lambda t: (octets(t["publisher"]), octets(t["url"])))
     return {"height": height, "records": records, "removals": removals, "materialized": content,
-            "content_digest": digest}
+            "links": link_graph(content, payloads), "content_digest": digest}
 
 
 def replayed_tuples(state):
@@ -897,7 +916,7 @@ def resumed_holdings(snapshot):
     return state
 
 
-def materialization_case(case, report):
+def materialization_case(case, report, payloads):
     members_read(case, MATERIALIZATION_CASE_MEMBERS, f"case {case.get('name')!r}", {"why"})
     epochs, expected, snapshot = case["epochs"], case["expected"], case["snapshot"]
     if [e.get("height") for e in epochs] != list(range(len(epochs))):
@@ -907,7 +926,7 @@ def materialization_case(case, report):
     state, produced, at_snapshot = new_holdings(), [], None
     for epoch in epochs:
         apply_event_epoch(state, epoch, True)
-        produced.append(holdings_view(state, epoch["height"]))
+        produced.append(holdings_view(state, epoch["height"], payloads))
         if epoch["height"] == snapshot["height"]:
             at_snapshot = replayed_tuples(state), set(state["declared"])
     compare_epochs(report, case["name"], expected, produced)
@@ -922,7 +941,7 @@ def materialization_case(case, report):
     after = []
     for epoch in later:
         apply_event_epoch(resumed, epoch, False)
-        after.append(holdings_view(resumed, epoch["height"]))
+        after.append(holdings_view(resumed, epoch["height"], payloads))
     compare_epochs(report, f"{case['name']} resumed at {snapshot['height']}",
                    [want for want in expected if want["height"] > snapshot["height"]], after)
     return [event["item"] for epoch in epochs for event in epoch["events"] if event["event"] == "record"]
@@ -932,7 +951,7 @@ def family_materialization(data, report):
     items = {}
     for case in data["cases"]:
         def one(c=case):
-            for item in materialization_case(c, report):
+            for item in materialization_case(c, report, data["payloads"]):
                 items[item_id(item)] = item
         report.run(case["name"], one)
     check_payloads(report, data["payloads"], items)

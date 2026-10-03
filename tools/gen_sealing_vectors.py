@@ -106,6 +106,7 @@ def successor(predecessor, **fields):
 
 
 PAYLOADS = {}
+ITEM_PAYLOADS = {}
 PAYLOADS_NOTE = ("`payloads` maps the Item ID of every Item of kind page the file carries to the Payload its "
                  "`payload` commits to ({wist_version, salt, content}, WIST-1 section 3.6); they are carried so the "
                  "commitments can be recomputed, and the replay reads none of them.")
@@ -134,13 +135,14 @@ def salt_for(label):
     return rules.b64u(hashlib.sha256(("salt " + label).encode()).digest()[:16])
 
 
-def page(url, label=None, observed_at=OBSERVED, publisher="example.com"):
+def page(url, label=None, observed_at=OBSERVED, publisher="example.com", links=()):
     label = label or url
     publication = {"url": url, "lang": "en", "modified": observed_at,
-                   "content": {"extract": f"Text of {label}.", "links": {"total": 0, "urls": []},
+                   "content": {"extract": f"Text of {label}.", "links": {"total": len(links), "urls": list(links)},
                                "summary": {"title": f"Title {label}"}}}
     made, payload = items.new_page_item(publisher, publication, salt_for(label))
     PAYLOADS[made["payload"]["commitment"]] = payload
+    ITEM_PAYLOADS[items.item_id(made)] = payload
     return made
 
 
@@ -1066,6 +1068,22 @@ def sealing_vectors():
         {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "withdrawal of a": "valid",
          "withdrawal of a under a signature that does not verify": None}, duties=True))
 
+    short_sig = copy.deepcopy(wa)
+    short_sig["body"]["sig"]["value"] = short_sig["body"]["sig"]["value"][:-2]
+    histories.append(history(
+        "an accepted Registry Update sealed again under a sig value of another form",
+        "a and b become records at height 1 and a payload_withdrawal of a is accepted at height 2. Height 3 "
+        "carries the same update under a sig whose value is two characters short, so not the canonical "
+        "base64url of 64 octets. The Registry Update ID covers the update alone, so it is that of the act "
+        "accepted at height 2, but field validation comes first (WIST-4 section 5.1): the occurrence is ignored "
+        "(`failed` [envelope], WIST4-E11) and changes nothing, the withdrawal's height staying 2.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", e1)), ("a@J1", item(e1, J + "a")), ("b@J1", item(e1, J + "b"))]},
+         {"entries": [("withdrawal of a", wa)]},
+         {"entries": [("withdrawal of a under a sig value of another form", short_sig)]}],
+        {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "withdrawal of a": "valid",
+         "withdrawal of a under a sig value of another form": ("WIST4-E11", ["envelope"])}, duties=True))
+
     histories.append(history(
         "one Registry Update twice in an Epoch, the verifying occurrence first",
         "a and b become records at height 1. Height 2 carries a payload_withdrawal of a and the same update under "
@@ -1205,13 +1223,17 @@ def sealing_vectors():
         "publisher_catalog fails C1 and a publisher_item I1 (WIST1-E14), and a registry_update is ignored as a "
         "non-object container (`failed` [envelope], WIST4-E11). Declarations apply as vectors/wist1/collection-narrowing.json "
         "applies them (WIST-1 section 5.2 and ADR-0051's narrowing), then registry_update Entries, then "
-        "publisher_catalog and then publisher_item Entries in ascending Entry index. Every registry_update "
-        "with an object body is a payload_withdrawal (WIST-3 section 6.2, WIST-4 section 5.1) whose details.delta_id is an "
-        "Item ID, authenticated under the test-only Log key `keys.log`, valid at every height: an act whose sig "
+        "publisher_catalog and then publisher_item Entries in ascending Entry index. A registry_update with an "
+        "object body is first field-validated under WIST-4 section 5.1 against "
+        "schemas/registry-update.schema.json: a failure outside the details and subject contract is ignored "
+        "(`failed` [envelope], WIST4-E11), one inside it (`failed` [contract], WIST4-E04), whether or not its "
+        "Registry Update ID was accepted earlier. Every registry_update that passes is a payload_withdrawal "
+        "(WIST-3 section 6.2, WIST-4 section 5.1), authenticated under the test-only Log key `keys.log`, valid at "
+        "every height: an act whose sig "
         "does not name that key or whose signature does not verify over JCS(update) is ignored (`failed` "
         "[authentication], WIST4-E11). An act whose Registry Update ID (WIST-4 section 2, over the update alone) "
-        "an act accepted at a lower Epoch, or earlier in the same Epoch, carries is idempotent (WIST-4 section "
-        "5.1): it is neither authenticated nor judged, has no disposition in `entries` and changes nothing; an "
+        "an act accepted at a lower Epoch, or earlier in the same Epoch, carries and that passes field validation "
+        "is idempotent (WIST-4 section 5.1): it is neither authenticated nor judged, has no disposition in `entries` and changes nothing; an "
         "ID only ignored before is judged again. An authenticated act's details contract "
         "(WIST-4 section 5.1) is judged once the Epoch's Items have applied: delta_id names an Item of kind page, "
         "since no other has a Payload, that a valid publisher_item Entry sealed at or below the act's Epoch against a Catalog whose publisher is the act's "
@@ -1581,7 +1603,8 @@ def record_summary(state):
     removals = [{"publisher": p, "url": u, **r} for (p, u), r in state["removals"].items()]
     tuples = materialization.materialized(state["records"], state["declared"], state["withdrawn"])
     return {"records": sorted(records, key=record_key), "removals": sorted(removals, key=record_key),
-            "materialized": tuples, "content_digest": materialization.content_digest(tuples)}
+            "materialized": tuples, "links": materialization.link_rows(tuples, ITEM_PAYLOADS),
+            "content_digest": materialization.content_digest(tuples)}
 
 
 def record_materialization_vectors():
@@ -1778,6 +1801,37 @@ def record_materialization_vectors():
                        ("u@K6", item(k6, news))]}],
          3, one_url_check)
 
+    ay, zp, bq = "https://a.example/y", "https://z.a.example/p", "https://b.example/q"
+    pa = {"wist_version": "1.0.0", "seq": 0, "domain": "a.example", "subdomain_scope": ["z.a.example"],
+          "keys": [key("owner")], "recovery_keys": [key("recovery")]}
+    pb = {"wist_version": "1.0.0", "seq": 0, "domain": "b.example", "keys": [key("store2")]}
+    qy = page(ay, "y by a.example", publisher="a.example", links=["https://c.example/2", bq])
+    qp = page(zp, "p by a.example", publisher="a.example", links=["https://d.example/1"])
+    qq = page(bq, "q by b.example", publisher="b.example", links=[ay])
+    ka = Cat([qy, qp], at(1), "default", "a.example")
+    kb = Cat([qq], at(1), "default", "b.example")
+
+    def two_publishers_check(out):
+        assert materialized_at(out, 1) == [("a.example", ay), ("a.example", zp), ("b.example", bq)]
+        assert sorted(materialized_at(out, 1), key=lambda t: t[1].encode()) != materialized_at(out, 1)
+        rows = [(r["source_url"], r["target_url"], r["position"]) for r in out["expected"][1]["links"]]
+        assert rows == [(ay, "https://c.example/2", 0), (ay, bq, 1), (zp, "https://d.example/1", 0), (bq, ay, 0)]
+        assert materialized_at(out, 2) == [("a.example", ay), ("a.example", zp)]
+
+    case("records of two Publishers whose order differs from the order of their URLs, with link rows",
+         "a.example names z.a.example in subdomain_scope. At height 1 a.example seals Items of "
+         "https://a.example/y and https://z.a.example/p and b.example one of https://b.example/q, each the only "
+         "record of its URL and materialized: ordered by Publisher, then URL, b.example's record comes last, "
+         "though its URL sorts between a.example's two. Each Payload declares links: the link rows follow the "
+         "materialized records and then position, a.example/y's targets out of their own octet order. A Snapshot "
+         "is taken at height 1. At height 2 a withdrawal of b.example's Item is sealed: its record stays, is no "
+         "longer materialized, and its link rows leave.",
+         [{"entries": [("A", decl("owner", pa)), ("B", decl("store2", pb))]},
+          {"entries": [("KA", cat("owner", ka)), ("KB", cat("store2", kb)), ("y@KA", item(ka, ay)),
+                       ("p@KA", item(ka, zp)), ("q@KB", item(kb, bq))]},
+          {"entries": [("withdrawal of q@KB", withdrawal(qq, at(2, 0)))]}],
+         1, two_publishers_check)
+
     return {"note": (
         "WIST-3 section 7: the records, removal states and materialized records of one Log. Each case gives per "
         "Epoch its height, sealed_at and `events`, the record events its valid Entries make, in the order the "
@@ -1792,7 +1846,12 @@ def record_materialization_vectors():
         "`url` and leaves that removal state. A record that narrowing or a base removes leaves no removal state, "
         "a removal state stays through narrowing and a base, and a withdrawal removes no record. `expected` "
         "gives after each Epoch the records (the Item ID, Collection, Catalog ID and generated_at), the removal "
-        "states, the materialized records as their content tuples, and the content_digest over them. A record "
+        "states, the materialized records as their content tuples, ordered by Publisher and then by URL, each "
+        "compared as the octets of its UTF-8 string, `links`, the rows of the link graph as {source_url, "
+        "target_url, position}, one per member of the materialized record's Payload's links.urls, position being "
+        "that member's zero-based index, ordered by their source records in the order of `materialized` and then "
+        "by ascending position, and the content_digest over the content tuples. The order of `materialized` and "
+        "of `links` is significant. A record "
         "is materialized when no withdrawal sealed at or below the height names its Item and the one-URL rule "
         "selects its Publisher among the records of its URL that no such withdrawal names: the host's own "
         "Publisher once a publisher_declaration Entry of the host is sealed, else the nearest ancestor of the "

@@ -557,12 +557,17 @@ def judge_body(body, inner):
     return outcome(codes)
 
 
-def walk_tree(inner, files, parameters):
+def walk_tree(inner, files, parameters, requested=None):
     check_floors(parameters)
     listed = []
+    requested = [] if requested is None else requested
+    read = {}
 
     def visit(name, prefix, level, count):
-        text = files.get(name)
+        if name not in read:
+            requested.append(name)
+            read[name] = files.get(name)
+        text = read[name]
         if not isinstance(text, str):
             raise Refused(f"tree file {name} unavailable")
         try:
@@ -725,10 +730,35 @@ def due(case):
     return {"due": cut >= log_time(case["served"])[0] + SUITE_CATALOG_REFRESH_SECONDS}
 
 
+def pull_order_in_window(case, window):
+    fetched, signer, latest = case["fetched"], case["signed_by"], case["latest"]
+    held = list(window["queued"])
+    if window["waiting"] is not None:
+        if window["opened"]:
+            raise VerifierError("nothing waits once the window has opened: what waited is queued")
+        if window["waiting"]["catalog"] != case["last_accepted"]:
+            raise VerifierError("the waiting Catalog is the last accepted one")
+        held.append(window["waiting"])
+    if latest is not None and catalog_id(fetched) == catalog_id(latest):
+        return "idempotent"
+    own = [entry["catalog"] for entry in held if entry["key"] == signer]
+    if any(catalog_id(fetched) == catalog_id(c) for c in own):
+        return "idempotent"
+    bounds = own + ([latest] if latest is not None else [])
+    if any(log_time(fetched["generated_at"]) <= log_time(c["generated_at"]) for c in bounds):
+        return "WIST2-E05"
+    return ACCEPTED
+
+
 def pull_order(case):
     fetched, wanted = case["fetched"], case["fetched_for"]
+    window = case["window"]
+    if window is None and case["signed_by"] is not None:
+        raise VerifierError("the key counts only from the discovery of a recovery rotation")
     if fetched["publisher"] != wanted["publisher"] or fetched["collection"] != wanted["collection"]:
         return "WIST2-E04"
+    if window is not None:
+        return pull_order_in_window(case, window)
     known = [c for c in (case["last_accepted"], case["latest"]) if c is not None]
     if any(catalog_id(fetched) == catalog_id(c) for c in known):
         return "idempotent"
@@ -884,10 +914,13 @@ def family_catalog_order(data, report):
 def family_catalog_tree(data, report):
     for case in data["cases"]:
         def one(c=case):
+            requested = []
             try:
-                actual = {"list": [item_id(item) for item in walk_tree(c["catalog"], c["tree_files"], c["parameters"])]}
+                actual = {"list": [item_id(item) for item in walk_tree(c["catalog"], c["tree_files"], c["parameters"],
+                                                                       requested)]}
             except Refused:
                 actual = {"refused": "WIST2-E07"}
+            actual["fetched"] = requested
             report.equal(c["name"], c["expected"], actual)
         report.run(case["name"], one)
 
@@ -950,7 +983,7 @@ FAMILIES = [
         "id_cases": {"name", "catalog", "catalog_id"},
         "read_cases": {"name", "declaration", "clock", "parameters", "octets", "catalog_json", "expected"}}),
     ("catalog-order", "wist2/catalog-order.json", family_catalog_order, set(), {
-        "pull_cases": {"name", "fetched_for", "last_accepted", "latest", "fetched", "expected"},
+        "pull_cases": {"name", "fetched_for", "last_accepted", "latest", "window", "signed_by", "fetched", "expected"},
         "next_cases": {"name", "clock", "served", "clock_skew_seconds", "expected"},
         "due_cases": {"name", "clock", "served", "catalog_refresh_seconds", "expected"}}),
     ("catalog-tree", "wist2/catalog-tree.json", family_catalog_tree, set(), {

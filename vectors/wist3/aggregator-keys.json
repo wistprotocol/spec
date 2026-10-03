@@ -1,5 +1,5 @@
 {
-  "note": "WIST-3 \u00a73.4 and \u00a75, WIST-4 \u00a75.1: Aggregator key acts. A key act sealed in Epoch N authenticates under the keys valid at height N-1 (the genesis key alone before Epoch 0); every other Registry Update of Epoch N and Checkpoint N authenticate under the keys valid at N. An unauthenticated act is WIST4-E11; an authenticated key act that is a key-act failure is WIST4-E04, ignored, with the Epoch kept. Each history is a separate Log with its own Anchor and cumulative tree; `epochs` are in Log order, `entries` in canonical Entry order (\u00a73.3), `acts` carries one disposition per Entry index, `expected_state` the WIST-3 \u00a77 aggregator_key tuples a Consumer holds after the Epoch, and `valid_at` the key_ids valid at each listed height. `checkpoint` is the Checkpoint the Aggregator publishes; `checkpoint_cases` are candidates judged beside it. The parameter_change Entries are here only to fix the authentication height of a non-key act; their \u00a75 schedule rules are exercised by vectors/wist4/parameter-combinations.json.",
+  "note": "WIST-3 \u00a73.4 and \u00a75, WIST-4 \u00a75.1: Aggregator key acts. A key act sealed in Epoch N authenticates under the keys valid at height N-1 (the genesis key alone before Epoch 0); every other Registry Update of Epoch N and Checkpoint N authenticate under the keys valid at N. An unauthenticated act is WIST4-E11; an authenticated key act that is a key-act failure is WIST4-E04, ignored, with the Epoch kept. Each history is a separate Log with its own Anchor and cumulative tree; `epochs` are in Log order, `entries` in canonical Entry order (\u00a73.3), `acts` carries one disposition per Entry index, `expected_state` the WIST-3 \u00a77 aggregator_key tuples a Consumer holds after the Epoch, and `valid_at` the key_ids valid at each listed height. `checkpoint` is the Checkpoint the Aggregator publishes; `checkpoint_cases` are candidates judged beside it. The parameter_change Entries are here only to fix the authentication height of a non-key act; their \u00a75 schedule rules are exercised by vectors/wist4/parameter-combinations.json. `anchor_cases` judge a Log Anchor Envelope: it is validated against schemas/log-anchor.schema.json first, one that fails being rejected with WIST3-E03 before its signature is verified, and a member present with a value the schema does not admit fails it, so `predecessor` null is no Anchor without a predecessor; one that passes is `accepted` when its sig.key_id names its genesis_key and the signature verifies under that key over the JCS of `anchor`. Every case here is self-signed.",
   "histories": [
     {
       "name": "rotation",
@@ -2986,6 +2986,77 @@
         }
       ],
       "verified_head": 1
+    }
+  ],
+  "anchor_cases": [
+    {
+      "name": "an Anchor without a predecessor",
+      "anchor": {
+        "anchor": {
+          "wist_version": "1.0.0",
+          "log_id": "keys-anchor.example.org",
+          "genesis_key": {
+            "key_id": "test-agg-a1",
+            "alg": "Ed25519",
+            "public_key": "Y0I-NV7gashA6C1hg5ZL1ZLfQEZVqDDfbfNZCBdQyC0"
+          },
+          "created_at": "2026-09-01T00:00:00Z"
+        },
+        "sig": {
+          "key_id": "test-agg-a1",
+          "alg": "Ed25519",
+          "value": "YGyAFCWHaORVhXwbHfYhULZUnlfllwCfdy88g5QHqnjH1ZcCyIMZiJwSCrbtCgE3zZJGOyfNVDpxMvh3CpHDAg"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "a successor Anchor naming its predecessor",
+      "anchor": {
+        "anchor": {
+          "wist_version": "1.0.0",
+          "log_id": "keys-anchor.example.org",
+          "genesis_key": {
+            "key_id": "test-agg-a1",
+            "alg": "Ed25519",
+            "public_key": "Y0I-NV7gashA6C1hg5ZL1ZLfQEZVqDDfbfNZCBdQyC0"
+          },
+          "created_at": "2026-09-01T00:00:00Z",
+          "predecessor": {
+            "log_id": "keys-rotation.example.org",
+            "final_epoch_number": 3,
+            "final_root_hash": "sha256:3fcd6168bb3b74cfdff8fd695fbc15e6e27f2b4821bc939491ff65f0bb4cd0b6"
+          }
+        },
+        "sig": {
+          "key_id": "test-agg-a1",
+          "alg": "Ed25519",
+          "value": "pzPcqi4qC6tvAJRQF8kKp1Pk6RdT2hxsBtExbdRS5eU-Y0wZUly-3lznngIqJkpJu4KWB_DB6DD3itdbRyDPCg"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "a self-signed Anchor carrying predecessor null: no Anchor without a predecessor",
+      "anchor": {
+        "anchor": {
+          "wist_version": "1.0.0",
+          "log_id": "keys-anchor.example.org",
+          "genesis_key": {
+            "key_id": "test-agg-a1",
+            "alg": "Ed25519",
+            "public_key": "Y0I-NV7gashA6C1hg5ZL1ZLfQEZVqDDfbfNZCBdQyC0"
+          },
+          "created_at": "2026-09-01T00:00:00Z",
+          "predecessor": null
+        },
+        "sig": {
+          "key_id": "test-agg-a1",
+          "alg": "Ed25519",
+          "value": "8fdd88nnrBqaSHMBz6Ehl4pwo0lF9VwZ-wO3oOssRAvMWWfiW-y7JFU9KX4OK-qkVp3maIHraTplwq6u61SuDQ"
+        }
+      },
+      "expected": "WIST3-E03"
     }
   ],
   "same_registry_histories": [

@@ -1,5 +1,5 @@
 {
-  "note": "WIST-3 section 7: the records, removal states and materialized records of one Log. Each case gives per Epoch its height, sealed_at and `events`, the record events its valid Entries make, in the order the Entries apply (WIST-3 section 3.3): `declaration`, a sealed publisher_declaration Entry of `domain`; `narrowing`, the records of `publisher` at `urls` that narrowing removes (WIST-1 section 5.2); `withdrawal`, a payload_withdrawal that meets its details contract, naming the Item ID `item`; `base`, a valid Catalog of `publisher` and `collection` that is a base, which removes every record of that Publisher whose Collection is `collection`; `record`, an Item of kind page that becomes the record of `publisher` and its url, with its Collection and the Catalog ID and generated_at of the Catalog it was proved against, in place of any record and ending any removal state; and `removal`, an Item of kind removed, with its Item ID and the same Catalog members, which removes the record of `publisher` and `url` and leaves that removal state. A record that narrowing or a base removes leaves no removal state, a removal state stays through narrowing and a base, and a withdrawal removes no record. `expected` gives after each Epoch the records (the Item ID, Collection, Catalog ID and generated_at), the removal states, the materialized records as their content tuples, and the content_digest over them. A record is materialized when no withdrawal sealed at or below the height names its Item and the one-URL rule selects its Publisher among the records of its URL that no such withdrawal names: the host's own Publisher once a publisher_declaration Entry of the host is sealed, else the nearest ancestor of the host, else the least domain in octet order. `snapshot` gives the state tuples of a Snapshot taken at `height` (declaration, collection, record, removal and withdrawal; no Aggregator key, parameter, suffix list, Label or dispute is live): a Consumer resumed from them, holding a host as self-declared where a declaration tuple names it, and applying the events of the later Epochs, reaches every later `expected`. The events are those of a replay of signed Entries under the rules of vectors/wist3/catalog-sealing.json, every Entry valid; Epochs carry no Checkpoint and no Merkle tree. Keys derive from the stated test-only seeds. `payloads` maps the Item ID of every Item of kind page the file carries to the Payload its `payload` commits to ({wist_version, salt, content}, WIST-1 section 3.6); they are carried so the commitments can be recomputed, and the replay reads none of them.",
+  "note": "WIST-3 section 7: the records, removal states and materialized records of one Log. Each case gives per Epoch its height, sealed_at and `events`, the record events its valid Entries make, in the order the Entries apply (WIST-3 section 3.3): `declaration`, a sealed publisher_declaration Entry of `domain`; `narrowing`, the records of `publisher` at `urls` that narrowing removes (WIST-1 section 5.2); `withdrawal`, a payload_withdrawal that meets its details contract, naming the Item ID `item`; `base`, a valid Catalog of `publisher` and `collection` that is a base, which removes every record of that Publisher whose Collection is `collection`; `record`, an Item of kind page that becomes the record of `publisher` and its url, with its Collection and the Catalog ID and generated_at of the Catalog it was proved against, in place of any record and ending any removal state; and `removal`, an Item of kind removed, with its Item ID and the same Catalog members, which removes the record of `publisher` and `url` and leaves that removal state. A record that narrowing or a base removes leaves no removal state, a removal state stays through narrowing and a base, and a withdrawal removes no record. `expected` gives after each Epoch the records (the Item ID, Collection, Catalog ID and generated_at), the removal states, the materialized records as their content tuples, ordered by Publisher and then by URL, each compared as the octets of its UTF-8 string, `links`, the rows of the link graph as {source_url, target_url, position}, one per member of the materialized record's Payload's links.urls, position being that member's zero-based index, ordered by their source records in the order of `materialized` and then by ascending position, and the content_digest over the content tuples. The order of `materialized` and of `links` is significant. A record is materialized when no withdrawal sealed at or below the height names its Item and the one-URL rule selects its Publisher among the records of its URL that no such withdrawal names: the host's own Publisher once a publisher_declaration Entry of the host is sealed, else the nearest ancestor of the host, else the least domain in octet order. `snapshot` gives the state tuples of a Snapshot taken at `height` (declaration, collection, record, removal and withdrawal; no Aggregator key, parameter, suffix list, Label or dispute is live): a Consumer resumed from them, holding a host as self-declared where a declaration tuple names it, and applying the events of the later Epochs, reaches every later `expected`. The events are those of a replay of signed Entries under the rules of vectors/wist3/catalog-sealing.json, every Entry valid; Epochs carry no Checkpoint and no Merkle tree. Keys derive from the stated test-only seeds. `payloads` maps the Item ID of every Item of kind page the file carries to the Payload its `payload` commits to ({wist_version, salt, content}, WIST-1 section 3.6); they are carried so the commitments can be recomputed, and the replay reads none of them.",
   "keys": {
     "owner": {
       "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
@@ -257,6 +257,7 @@
           "records": [],
           "removals": [],
           "materialized": [],
+          "links": [],
           "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         {
@@ -326,6 +327,7 @@
               "attested_at": "2026-10-01T00:59:00Z"
             }
           ],
+          "links": [],
           "content_digest": "sha256:a5ed4c089683f66f07fbc0b486e2769abff9c501cf2d220d00a0601d0edbfe0e"
         },
         {
@@ -381,6 +383,7 @@
               "attested_at": "2026-10-01T00:59:00Z"
             }
           ],
+          "links": [],
           "content_digest": "sha256:6ed83b3771bdce5f521d729e40f5a92a0e9985a1e9c261f0c8c5099ecaa3b781"
         },
         {
@@ -444,6 +447,7 @@
               "attested_at": "2026-10-01T00:59:00Z"
             }
           ],
+          "links": [],
           "content_digest": "sha256:6ed83b3771bdce5f521d729e40f5a92a0e9985a1e9c261f0c8c5099ecaa3b781"
         },
         {
@@ -492,6 +496,7 @@
               "attested_at": "2026-10-01T00:59:00Z"
             }
           ],
+          "links": [],
           "content_digest": "sha256:6d64316e16a77dff35f04b5279d59b51e3dc2da16ec633ee74be4fbad9483608"
         },
         {
@@ -524,6 +529,7 @@
               "attested_at": "2027-03-30T02:59:01Z"
             }
           ],
+          "links": [],
           "content_digest": "sha256:1065e9849b24ad73053a3b679c9dfebe7390b3e1f445935dc9554d025019da96"
         }
       ],
@@ -872,6 +878,7 @@
           "records": [],
           "removals": [],
           "materialized": [],
+          "links": [],
           "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         {
@@ -904,6 +911,7 @@
               "attested_at": "2026-10-01T00:59:00Z"
             }
           ],
+          "links": [],
           "content_digest": "sha256:6a561258d99fd079f8216d398048cd563519c0243053e9306c651b26b2a33701"
         },
         {
@@ -936,6 +944,7 @@
               "attested_at": "2026-10-01T00:59:00Z"
             }
           ],
+          "links": [],
           "content_digest": "sha256:4719d25c245f17d12745df0d389692f9065c4c1f8bed9cf172cd5fa1ca7ffab6"
         },
         {
@@ -968,6 +977,7 @@
               "attested_at": "2026-10-01T02:59:00Z"
             }
           ],
+          "links": [],
           "content_digest": "sha256:5fe8d281615badd84490c82d8c388e1a9c7370c6e94f824b9743e15b46904929"
         },
         {
@@ -1000,6 +1010,7 @@
               "attested_at": "2026-10-01T00:59:00Z"
             }
           ],
+          "links": [],
           "content_digest": "sha256:4719d25c245f17d12745df0d389692f9065c4c1f8bed9cf172cd5fa1ca7ffab6"
         },
         {
@@ -1024,6 +1035,7 @@
             }
           ],
           "materialized": [],
+          "links": [],
           "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         {
@@ -1064,6 +1076,7 @@
               "attested_at": "2026-10-01T05:59:00Z"
             }
           ],
+          "links": [],
           "content_digest": "sha256:3e31d58681a713c9e9dfc5947341a60f444b3b0dea770b11b60b3373e03604ca"
         }
       ],
@@ -1233,6 +1246,430 @@
           ]
         ]
       }
+    },
+    {
+      "name": "records of two Publishers whose order differs from the order of their URLs, with link rows",
+      "why": "a.example names z.a.example in subdomain_scope. At height 1 a.example seals Items of https://a.example/y and https://z.a.example/p and b.example one of https://b.example/q, each the only record of its URL and materialized: ordered by Publisher, then URL, b.example's record comes last, though its URL sorts between a.example's two. Each Payload declares links: the link rows follow the materialized records and then position, a.example/y's targets out of their own octet order. A Snapshot is taken at height 1. At height 2 a withdrawal of b.example's Item is sealed: its record stays, is no longer materialized, and its link rows leave.",
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "events": [
+            {
+              "event": "declaration",
+              "domain": "b.example"
+            },
+            {
+              "event": "declaration",
+              "domain": "a.example"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "events": [
+            {
+              "event": "record",
+              "publisher": "b.example",
+              "item": {
+                "publisher": "b.example",
+                "url": "https://b.example/q",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:b658e3c7589136ad8f92f006aa530a8b7c1fd2be91c45b9c01a111df7587c146",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 131
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:ed44c642b2157a9b7fc45e6840070d78af36df0d88ae501d5dfef5a3b88a1eca",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "event": "record",
+              "publisher": "a.example",
+              "item": {
+                "publisher": "a.example",
+                "url": "https://z.a.example/p",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:eb9c37328b73a531e5caa80da44e12599c686d047a550e5df3107cff4d49742e",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 131
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:736690c8b2f6adb02686fb1b2a0ebe9a54fe74d433d54df89db9454e036aa498",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "event": "record",
+              "publisher": "a.example",
+              "item": {
+                "publisher": "a.example",
+                "url": "https://a.example/y",
+                "observed_at": "2026-09-30T10:00:00Z",
+                "payload": {
+                  "commitment": "hmac-sha256:d832bbf447d79620971483499bc1ed3033e8969959207544f1a4c376ac6fd446",
+                  "alg": "HMAC-SHA256",
+                  "bytes": 153
+                },
+                "meta": {
+                  "lang": "en"
+                }
+              },
+              "collection": "default",
+              "catalog": "sha256:736690c8b2f6adb02686fb1b2a0ebe9a54fe74d433d54df89db9454e036aa498",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "events": [
+            {
+              "event": "withdrawal",
+              "item": "sha256:ff696926c50b2b2456c676adfc6928b9bec71008873fae8b140857a88c23fd85"
+            }
+          ]
+        }
+      ],
+      "expected": [
+        {
+          "height": 0,
+          "records": [],
+          "removals": [],
+          "materialized": [],
+          "links": [],
+          "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "height": 1,
+          "records": [
+            {
+              "publisher": "a.example",
+              "url": "https://a.example/y",
+              "item": "sha256:7e2a06f9bf93db1ceb29d5623395a9d98b60098a0190ed8ec216b9cbf4b78fad",
+              "collection": "default",
+              "catalog": "sha256:736690c8b2f6adb02686fb1b2a0ebe9a54fe74d433d54df89db9454e036aa498",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "a.example",
+              "url": "https://z.a.example/p",
+              "item": "sha256:5697a10d576705f601debdf3ca1d80f2a758b845a2e682666ba50feb61bfbc4c",
+              "collection": "default",
+              "catalog": "sha256:736690c8b2f6adb02686fb1b2a0ebe9a54fe74d433d54df89db9454e036aa498",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "b.example",
+              "url": "https://b.example/q",
+              "item": "sha256:ff696926c50b2b2456c676adfc6928b9bec71008873fae8b140857a88c23fd85",
+              "collection": "default",
+              "catalog": "sha256:ed44c642b2157a9b7fc45e6840070d78af36df0d88ae501d5dfef5a3b88a1eca",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "removals": [],
+          "materialized": [
+            {
+              "url": "https://a.example/y",
+              "publisher": "a.example",
+              "item_id": "sha256:7e2a06f9bf93db1ceb29d5623395a9d98b60098a0190ed8ec216b9cbf4b78fad",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "url": "https://z.a.example/p",
+              "publisher": "a.example",
+              "item_id": "sha256:5697a10d576705f601debdf3ca1d80f2a758b845a2e682666ba50feb61bfbc4c",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "url": "https://b.example/q",
+              "publisher": "b.example",
+              "item_id": "sha256:ff696926c50b2b2456c676adfc6928b9bec71008873fae8b140857a88c23fd85",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "links": [
+            {
+              "source_url": "https://a.example/y",
+              "target_url": "https://c.example/2",
+              "position": 0
+            },
+            {
+              "source_url": "https://a.example/y",
+              "target_url": "https://b.example/q",
+              "position": 1
+            },
+            {
+              "source_url": "https://z.a.example/p",
+              "target_url": "https://d.example/1",
+              "position": 0
+            },
+            {
+              "source_url": "https://b.example/q",
+              "target_url": "https://a.example/y",
+              "position": 0
+            }
+          ],
+          "content_digest": "sha256:84541dbc087ca01477a866cc7b608b090749a9f0be73c897fce2a2ef4d72cc1a"
+        },
+        {
+          "height": 2,
+          "records": [
+            {
+              "publisher": "a.example",
+              "url": "https://a.example/y",
+              "item": "sha256:7e2a06f9bf93db1ceb29d5623395a9d98b60098a0190ed8ec216b9cbf4b78fad",
+              "collection": "default",
+              "catalog": "sha256:736690c8b2f6adb02686fb1b2a0ebe9a54fe74d433d54df89db9454e036aa498",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "a.example",
+              "url": "https://z.a.example/p",
+              "item": "sha256:5697a10d576705f601debdf3ca1d80f2a758b845a2e682666ba50feb61bfbc4c",
+              "collection": "default",
+              "catalog": "sha256:736690c8b2f6adb02686fb1b2a0ebe9a54fe74d433d54df89db9454e036aa498",
+              "generated_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "publisher": "b.example",
+              "url": "https://b.example/q",
+              "item": "sha256:ff696926c50b2b2456c676adfc6928b9bec71008873fae8b140857a88c23fd85",
+              "collection": "default",
+              "catalog": "sha256:ed44c642b2157a9b7fc45e6840070d78af36df0d88ae501d5dfef5a3b88a1eca",
+              "generated_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "removals": [],
+          "materialized": [
+            {
+              "url": "https://a.example/y",
+              "publisher": "a.example",
+              "item_id": "sha256:7e2a06f9bf93db1ceb29d5623395a9d98b60098a0190ed8ec216b9cbf4b78fad",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            },
+            {
+              "url": "https://z.a.example/p",
+              "publisher": "a.example",
+              "item_id": "sha256:5697a10d576705f601debdf3ca1d80f2a758b845a2e682666ba50feb61bfbc4c",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "attested_at": "2026-10-01T00:59:00Z"
+            }
+          ],
+          "links": [
+            {
+              "source_url": "https://a.example/y",
+              "target_url": "https://c.example/2",
+              "position": 0
+            },
+            {
+              "source_url": "https://a.example/y",
+              "target_url": "https://b.example/q",
+              "position": 1
+            },
+            {
+              "source_url": "https://z.a.example/p",
+              "target_url": "https://d.example/1",
+              "position": 0
+            }
+          ],
+          "content_digest": "sha256:4a10cdef07aa4c4a1012464625413312df33263677285f221ff4ec6526c7d7b6"
+        }
+      ],
+      "snapshot": {
+        "height": 1,
+        "tuples": [
+          [
+            "collection",
+            "a.example",
+            "default",
+            {
+              "catalog": {
+                "wist_version": "1.0.0",
+                "publisher": "a.example",
+                "collection": "default",
+                "generated_at": "2026-10-01T00:59:00Z",
+                "size": 2,
+                "root": "sha256:55aa950481d450ed67cbefa1fc6d54d40d940f9ba47d86d09e8331de08f91873",
+                "tree": "sha256:637bc2f709f0b7eb376609d09c60b91d89f99b35a944b7f1de9aa7a452157bce"
+              },
+              "sig": {
+                "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "alg": "Ed25519",
+                "value": "Vy4WbPcn_PCkE4D7Hj-Wudjm9kCdcin8gGlx0v3sWRyUrkZEd6VkQvKdzVgi0EgSeCSLeDiWlj4RoDyvUhFwCQ"
+              }
+            },
+            1
+          ],
+          [
+            "collection",
+            "b.example",
+            "default",
+            {
+              "catalog": {
+                "wist_version": "1.0.0",
+                "publisher": "b.example",
+                "collection": "default",
+                "generated_at": "2026-10-01T00:59:00Z",
+                "size": 1,
+                "root": "sha256:7ad5fde2a4fc6b6c75b8741088ce2a6e0dae2dec471a4206d78eb10161fa5fd2",
+                "tree": "sha256:77531ec3a3971d179847e2489668097bbcd416879d5a960cc69f8bcafdada9d5"
+              },
+              "sig": {
+                "key_id": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA",
+                "alg": "Ed25519",
+                "value": "r-eXENIF72yo9-YbBIi2oDCRO7ufXAYA6y8w80rOQapMOM0x1I0SoP4oWRBzI0f0R191c-n6H30gDLwazW7AAQ"
+              }
+            },
+            1
+          ],
+          [
+            "declaration",
+            "a.example",
+            {
+              "publisher": {
+                "wist_version": "1.0.0",
+                "seq": 0,
+                "domain": "a.example",
+                "subdomain_scope": [
+                  "z.a.example"
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                    "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "nbf": 1788220800
+                  }
+                ],
+                "recovery_keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                    "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              "sig": {
+                "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "alg": "Ed25519",
+                "value": "ScUwWTFfdxiX1U-sYFvG6dxM5HO3OzFlHsY8FUOrBjvr0acrBnFJ1EuH_U9OvNjzRZdVLdAQdmeRiAFiLEa0DQ"
+              }
+            },
+            0,
+            0
+          ],
+          [
+            "declaration",
+            "b.example",
+            {
+              "publisher": {
+                "wist_version": "1.0.0",
+                "seq": 0,
+                "domain": "b.example",
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "ujthHiiCwbaqSyrj7HjqBzbjrZkjg1NFAXFQekufFbU",
+                    "kid": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              "sig": {
+                "key_id": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA",
+                "alg": "Ed25519",
+                "value": "j6GTkN-RJIWlXCrfbDa2O6UipWMCOi9lfknW1Aj4jVUCTjH_DXdI1HY31WFk8fN-LwpZDuGiLaHJ-J4Ym-j4DA"
+              }
+            },
+            0,
+            0
+          ],
+          [
+            "record",
+            "a.example",
+            "https://a.example/y",
+            {
+              "publisher": "a.example",
+              "url": "https://a.example/y",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:d832bbf447d79620971483499bc1ed3033e8969959207544f1a4c376ac6fd446",
+                "alg": "HMAC-SHA256",
+                "bytes": 153
+              },
+              "meta": {
+                "lang": "en"
+              }
+            },
+            "default",
+            "sha256:736690c8b2f6adb02686fb1b2a0ebe9a54fe74d433d54df89db9454e036aa498",
+            "2026-10-01T00:59:00Z"
+          ],
+          [
+            "record",
+            "a.example",
+            "https://z.a.example/p",
+            {
+              "publisher": "a.example",
+              "url": "https://z.a.example/p",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:eb9c37328b73a531e5caa80da44e12599c686d047a550e5df3107cff4d49742e",
+                "alg": "HMAC-SHA256",
+                "bytes": 131
+              },
+              "meta": {
+                "lang": "en"
+              }
+            },
+            "default",
+            "sha256:736690c8b2f6adb02686fb1b2a0ebe9a54fe74d433d54df89db9454e036aa498",
+            "2026-10-01T00:59:00Z"
+          ],
+          [
+            "record",
+            "b.example",
+            "https://b.example/q",
+            {
+              "publisher": "b.example",
+              "url": "https://b.example/q",
+              "observed_at": "2026-09-30T10:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:b658e3c7589136ad8f92f006aa530a8b7c1fd2be91c45b9c01a111df7587c146",
+                "alg": "HMAC-SHA256",
+                "bytes": 131
+              },
+              "meta": {
+                "lang": "en"
+              }
+            },
+            "default",
+            "sha256:ed44c642b2157a9b7fc45e6840070d78af36df0d88ae501d5dfef5a3b88a1eca",
+            "2026-10-01T00:59:00Z"
+          ]
+        ]
+      }
     }
   ],
   "payloads": {
@@ -1261,6 +1698,39 @@
         },
         "summary": {
           "title": "Title u by example.com, again"
+        }
+      }
+    },
+    "sha256:5697a10d576705f601debdf3ca1d80f2a758b845a2e682666ba50feb61bfbc4c": {
+      "wist_version": "1.0.0",
+      "salt": "iviJBJ4_r_ar6IHmxXbk9w",
+      "content": {
+        "extract": "Text of p by a.example.",
+        "links": {
+          "total": 1,
+          "urls": [
+            "https://d.example/1"
+          ]
+        },
+        "summary": {
+          "title": "Title p by a.example"
+        }
+      }
+    },
+    "sha256:7e2a06f9bf93db1ceb29d5623395a9d98b60098a0190ed8ec216b9cbf4b78fad": {
+      "wist_version": "1.0.0",
+      "salt": "R1Z6rhQ0NnzoDogq6L1Vqg",
+      "content": {
+        "extract": "Text of y by a.example.",
+        "links": {
+          "total": 2,
+          "urls": [
+            "https://c.example/2",
+            "https://b.example/q"
+          ]
+        },
+        "summary": {
+          "title": "Title y by a.example"
         }
       }
     },
@@ -1373,6 +1843,22 @@
         },
         "summary": {
           "title": "Title record d"
+        }
+      }
+    },
+    "sha256:ff696926c50b2b2456c676adfc6928b9bec71008873fae8b140857a88c23fd85": {
+      "wist_version": "1.0.0",
+      "salt": "UeYQJIxvbQ7PyzvRAI7aKg",
+      "content": {
+        "extract": "Text of q by b.example.",
+        "links": {
+          "total": 1,
+          "urls": [
+            "https://a.example/y"
+          ]
+        },
+        "summary": {
+          "title": "Title q by b.example"
         }
       }
     }

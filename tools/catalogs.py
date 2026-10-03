@@ -106,9 +106,27 @@ def fetched_catalog_disposition(octets, publisher, clock, parameters=None):
     return catalog_disposition(bytes(octets), publisher, clock, parameters)
 
 
-def pull_order(fetched, fetched_for, last_accepted, latest=None):
+def window_order(fetched, key, latest, window):
+    identifier, instant = catalog_id(fetched), log_seconds(fetched["generated_at"])
+    if latest is not None and identifier == catalog_id(latest):
+        return "idempotent"
+    held = [(entry["catalog"], entry["key"]) for entry in window["queued"]]
+    if not window["opened"] and window["waiting"] is not None:
+        held.append((window["waiting"]["catalog"], window["waiting"]["key"]))
+    if any(identifier == catalog_id(catalog) and key == signer for catalog, signer in held):
+        return "idempotent"
+    if latest is not None and instant <= log_seconds(latest["generated_at"]):
+        return "WIST2-E05"
+    if any(key == signer and instant <= log_seconds(catalog["generated_at"]) for catalog, signer in held):
+        return "WIST2-E05"
+    return "accepted"
+
+
+def pull_order(fetched, fetched_for, last_accepted, latest=None, window=None, key=None):
     if fetched["publisher"] != fetched_for["publisher"] or fetched["collection"] != fetched_for["collection"]:
         return "WIST2-E04"
+    if window is not None:
+        return window_order(fetched, key, latest, window)
     if any(known is not None and catalog_id(fetched) == catalog_id(known) for known in (last_accepted, latest)):
         return "idempotent"
     if last_accepted is None:

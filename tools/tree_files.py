@@ -140,9 +140,23 @@ def walk(catalog, files, parameters=None):
     return listed
 
 
+class Recording:
+    def __init__(self, files):
+        self.files = files
+        self.read = {}
+        self.fetched = []
+
+    def get(self, digest):
+        if digest not in self.read:
+            self.fetched.append(digest)
+            self.read[digest] = self.files.get(digest)
+        return self.read[digest]
+
+
 def walk_disposition(catalog, files, parameters=None):
+    site = Recording(files)
     try:
-        listed = walk(catalog, files, parameters)
+        listed = walk(catalog, site, parameters)
     except TreeRefusal:
-        return {"refused": TreeRefusal.code}
-    return {"list": [items.item_id(item) for item in listed]}
+        return {"refused": TreeRefusal.code, "fetched": site.fetched}
+    return {"list": [items.item_id(item) for item in listed], "fetched": site.fetched}

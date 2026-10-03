@@ -46,9 +46,14 @@ earliest Epoch governing. Rejecting a withdrawal of an unsealed or
 foreign Item keeps the act's `subject` truthful and gives every replayer
 one withdrawal height per Item.
 
-Every Registry Update is identified by its ID: an occurrence of an ID already
-accepted at a lower Epoch, or earlier in the same Epoch, is idempotent, so a
-re-sealed Entry never re-applies or conflicts with itself.
+Every Registry Update is identified by its ID, which hashes `update` alone.
+An occurrence that fails eligibility or field validation is rejected with
+that failure's code whether or not its ID was accepted earlier: the Envelope
+around an accepted `update` can itself be malformed, and one order of the
+two checks gives every validator one diagnostic. An occurrence that passes
+them and carries an ID already accepted at a lower Epoch, or earlier in the
+same Epoch, is idempotent, so a re-sealed Entry never re-applies or
+conflicts with itself.
 
 ## Alternatives and consequences
 

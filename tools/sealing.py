@@ -21,6 +21,11 @@ WITHDRAWAL = "payload_withdrawal"
 CONTRACT_FAILED = "WIST4-E04"
 ENVELOPE_FAILED = "WIST4-E11"
 FIELD_FAILED = "WIST1-E14"
+UPDATE_ENVELOPE_MEMBERS = {"update", "sig"}
+UPDATE_MEMBERS = {"wist_version", "action", "subject", "effective_at", "details"}
+UPDATE_ACTIONS = ("aggregator_key_add", "aggregator_key_remove", "parameter_change", WITHDRAWAL,
+                  "suffix_list_update")
+WITHDRAWAL_DETAILS = {"delta_id", "legal_basis", "jurisdiction"}
 
 
 def check_parameters(parameters):
@@ -44,12 +49,35 @@ def entry_form(entry):
 
 
 def withdrawal_act(entry):
-    if not isinstance(entry["body"], dict):
-        return None
-    update = entry["body"].get("update")
-    if not isinstance(update, dict) or update.get("action") != WITHDRAWAL:
+    return entry["body"] if isinstance(entry["body"], dict) else None
+
+
+def bounded_string(value, low, high):
+    return isinstance(value, str) and low <= len(value) <= high
+
+
+def update_field_code(body):
+    update, sig = body.get("update"), body.get("sig")
+    if (set(body) != UPDATE_ENVELOPE_MEMBERS or not isinstance(update, dict) or set(update) != UPDATE_MEMBERS
+            or not isinstance(sig, dict) or set(sig) != catalogs.SIG_MEMBERS):
+        return ENVELOPE_FAILED
+    if (not isinstance(update["wist_version"], str) or not items.VERSION_PATTERN.fullmatch(update["wist_version"])
+            or update["action"] not in UPDATE_ACTIONS or not bounded_string(update["subject"], 1, 256)
+            or not isinstance(update["details"], dict) or catalogs.log_seconds(update["effective_at"]) is None
+            or not bounded_string(sig["key_id"], 0, 64) or sig["alg"] != "Ed25519"
+            or rules.canonical_b64url(sig["value"], 64) is None):
+        return ENVELOPE_FAILED
+    if update["action"] != WITHDRAWAL:
         raise ValueError("a registry_update this replay does not carry")
-    return entry["body"]
+    details = update["details"]
+    if (not rules.is_canonical_host(update["subject"]) or set(details) != WITHDRAWAL_DETAILS or not isinstance(details["delta_id"], str)
+            or not items.HASH_PATTERN.fullmatch(details["delta_id"])
+            or not bounded_string(details["legal_basis"], 1, 1024)
+            or not bounded_string(details["jurisdiction"], 1, 128)):
+        return CONTRACT_FAILED
+    if items.VERSION_PATTERN.fullmatch(update["wist_version"]).group(1) != "1":
+        return ENVELOPE_FAILED
+    return None
 
 
 def update_id(update):
@@ -365,8 +393,9 @@ class Sealing:
             if not failed:
                 self.apply_item(entry["body"], named, height, parameters, removed)
         for index, act in sorted(acts.items()):
-            if act is None:
-                dispositions[index] = disposition([("envelope", ENVELOPE_FAILED)])
+            code = ENVELOPE_FAILED if act is None else update_field_code(act)
+            if code is not None:
+                dispositions[index] = disposition([("envelope" if code == ENVELOPE_FAILED else "contract", code)])
                 continue
             identifier = update_id(act["update"])
             if identifier in self.accepted_updates:

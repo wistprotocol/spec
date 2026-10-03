@@ -1,5 +1,5 @@
 {
-  "note": "ADR-0052 Catalog order. pull_cases judge the inner object `fetched`, pulled for the Publisher and Collection of `fetched_for`, against `last_accepted`, the inner object of that Collection's last accepted Catalog or null, and `latest`, the inner object of its latest Catalog or null: WIST2-E04 when fetched.publisher or fetched.collection differs from `fetched_for`; `idempotent` when its Catalog ID (sha256: + hex(SHA-256(JCS(catalog)))) equals the last accepted one's or the latest one's, replacing nothing; WIST2-E05 when its generated_at is at or before the last accepted one's and it is no idempotent re-serve; `accepted` otherwise, the Catalog then replacing the last accepted one. Only these rules are judged, and each rejected case fails exactly one of them. next_cases give the generated_at a Publisher signs for a Collection whose served Catalog has generated_at `served` (null when none is served), at clock `clock` (a Publisher timestamp, WIST-1 section 3.4): the later of the clock cut to the whole second and served plus one second, as {\"generated_at\": ...}; when that instant is more than clock_skew_seconds after the clock cut to the whole second, the part that signs refuses, {\"refused\": \"catalog-instant\"}, and signs nothing. The part that signs reads clock_skew_seconds at its suite value, 600. due_cases give whether a Catalog of a Collection whose served Catalog has generated_at `served` is due at clock `clock`, whether or not its list changed: {\"due\": true} once the clock cut to the whole second is at or after served plus catalog_refresh_seconds, read at its suite value, 604 800 seconds, whatever a Log has amended, and at any clock when `served` is null, no Catalog being served.",
+  "note": "ADR-0052 Catalog order. pull_cases judge the inner object `fetched`, pulled for the Publisher and Collection of `fetched_for`, against `last_accepted`, the inner object of that Collection's last accepted Catalog or null, and `latest`, the inner object of its latest Catalog or null: WIST2-E04 when fetched.publisher or fetched.collection differs from `fetched_for`; `idempotent` when its Catalog ID (sha256: + hex(SHA-256(JCS(catalog)))) equals the last accepted one's or the latest one's, replacing nothing; WIST2-E05 when its generated_at is at or before the last accepted one's and it is no idempotent re-serve; `accepted` otherwise, the Catalog then replacing the last accepted one. `window` is null outside WIST-1 section 5.2's recovery window and from the discovery of a recovery rotation until its settlement holds {opened, queued, waiting}: `opened` whether the window has opened, `queued` the Catalogs queued under the Collection's name, each with the public key that signed it, and `waiting` null or the Catalog that waits for the Collection, the last accepted one, with its key; `signed_by` is the public key that signed `fetched`, keys being compared as the labels given. Inside a window, after the WIST2-E04 rule: `idempotent` when the Catalog ID is the latest Catalog's, whatever the key, or when the Catalog ID and `signed_by` are those of a queued Catalog or, before the window opens, of the waiting Catalog; otherwise WIST2-E05 when generated_at is at or before the floor (the latest Catalog's generated_at) or at or before that of a queued Catalog or, before the window opens, the waiting Catalog signed by the same key; `accepted` otherwise, the Catalog then being queued under its key. The last accepted Catalog is no idempotent re-serve inside a window unless it is the waiting Catalog under the same key. Only these rules are judged, and each rejected case fails exactly one of them. next_cases give the generated_at a Publisher signs for a Collection whose served Catalog has generated_at `served` (null when none is served), at clock `clock` (a Publisher timestamp, WIST-1 section 3.4): the later of the clock cut to the whole second and served plus one second, as {\"generated_at\": ...}; when that instant is more than clock_skew_seconds after the clock cut to the whole second, the part that signs refuses, {\"refused\": \"catalog-instant\"}, and signs nothing. The part that signs reads clock_skew_seconds at its suite value, 600. due_cases give whether a Catalog of a Collection whose served Catalog has generated_at `served` is due at clock `clock`, whether or not its list changed: {\"due\": true} once the clock cut to the whole second is at or after served plus catalog_refresh_seconds, read at its suite value, 604 800 seconds, whatever a Log has amended, and at any clock when `served` is null, no Catalog being served.",
   "pull_cases": [
     {
       "name": "no Catalog accepted before",
@@ -9,6 +9,8 @@
       },
       "last_accepted": null,
       "latest": null,
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -44,6 +46,8 @@
         "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -79,6 +83,8 @@
         "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -114,6 +120,8 @@
         "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -149,6 +157,8 @@
         "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -184,6 +194,8 @@
         "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -219,6 +231,8 @@
         "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -254,6 +268,8 @@
         "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "blog.example.com",
@@ -289,6 +305,8 @@
         "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -308,6 +326,8 @@
       },
       "last_accepted": null,
       "latest": null,
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -343,6 +363,8 @@
         "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
         "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
       },
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -378,6 +400,8 @@
         "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
         "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
       },
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -413,6 +437,8 @@
         "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
         "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
       },
+      "window": null,
+      "signed_by": null,
       "fetched": {
         "wist_version": "1.0.0",
         "publisher": "example.com",
@@ -423,6 +449,566 @@
         "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
       },
       "expected": "idempotent"
+    },
+    {
+      "name": "inside a recovery window, the last accepted Catalog that does not wait, later than the floor: no idempotent re-serve",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "window": {
+        "opened": true,
+        "queued": [],
+        "waiting": null
+      },
+      "signed_by": "key-1",
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "inside a recovery window, the last accepted Catalog that does not wait, not later than the queued Catalog of its key",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "window": {
+        "opened": true,
+        "queued": [
+          {
+            "catalog": {
+              "wist_version": "1.0.0",
+              "publisher": "example.com",
+              "collection": "journal",
+              "generated_at": "2026-10-01T13:00:00Z",
+              "size": 2,
+              "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+              "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+            },
+            "key": "key-1"
+          }
+        ],
+        "waiting": null
+      },
+      "signed_by": "key-1",
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "WIST2-E05"
+    },
+    {
+      "name": "inside a recovery window, the last accepted Catalog that does not wait, earlier than a Catalog queued under another key",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "window": {
+        "opened": true,
+        "queued": [
+          {
+            "catalog": {
+              "wist_version": "1.0.0",
+              "publisher": "example.com",
+              "collection": "journal",
+              "generated_at": "2026-10-01T13:00:00Z",
+              "size": 2,
+              "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+              "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+            },
+            "key": "key-2"
+          }
+        ],
+        "waiting": null
+      },
+      "signed_by": "key-1",
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "inside a recovery window, the Catalog ID of a queued Catalog signed by another key: no idempotent re-serve",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "window": {
+        "opened": true,
+        "queued": [
+          {
+            "catalog": {
+              "wist_version": "1.0.0",
+              "publisher": "example.com",
+              "collection": "journal",
+              "generated_at": "2026-10-01T13:00:00Z",
+              "size": 2,
+              "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+              "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+            },
+            "key": "key-1"
+          }
+        ],
+        "waiting": null
+      },
+      "signed_by": "key-2",
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T13:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "inside a recovery window, the Catalog ID and key of a queued Catalog: an idempotent re-serve",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "window": {
+        "opened": true,
+        "queued": [
+          {
+            "catalog": {
+              "wist_version": "1.0.0",
+              "publisher": "example.com",
+              "collection": "journal",
+              "generated_at": "2026-10-01T13:00:00Z",
+              "size": 2,
+              "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+              "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+            },
+            "key": "key-1"
+          }
+        ],
+        "waiting": null
+      },
+      "signed_by": "key-1",
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T13:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "expected": "idempotent"
+    },
+    {
+      "name": "from the discovery of a recovery rotation, the Catalog ID and key of the waiting Catalog: an idempotent re-serve",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "window": {
+        "opened": false,
+        "queued": [],
+        "waiting": {
+          "catalog": {
+            "wist_version": "1.0.0",
+            "publisher": "example.com",
+            "collection": "journal",
+            "generated_at": "2026-10-01T12:00:00Z",
+            "size": 1,
+            "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+            "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+          },
+          "key": "key-1"
+        }
+      },
+      "signed_by": "key-1",
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "idempotent"
+    },
+    {
+      "name": "from the discovery of a recovery rotation, the Catalog ID of the waiting Catalog signed by another key: no idempotent re-serve",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "window": {
+        "opened": false,
+        "queued": [],
+        "waiting": {
+          "catalog": {
+            "wist_version": "1.0.0",
+            "publisher": "example.com",
+            "collection": "journal",
+            "generated_at": "2026-10-01T12:00:00Z",
+            "size": 1,
+            "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+            "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+          },
+          "key": "key-1"
+        }
+      },
+      "signed_by": "key-2",
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "from the discovery of a recovery rotation, another Catalog ID at the instant of the waiting Catalog under its key",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "window": {
+        "opened": false,
+        "queued": [],
+        "waiting": {
+          "catalog": {
+            "wist_version": "1.0.0",
+            "publisher": "example.com",
+            "collection": "journal",
+            "generated_at": "2026-10-01T12:00:00Z",
+            "size": 1,
+            "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+            "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+          },
+          "key": "key-1"
+        }
+      },
+      "signed_by": "key-1",
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "expected": "WIST2-E05"
+    },
+    {
+      "name": "from the discovery of a recovery rotation, another Catalog ID at the instant of the waiting Catalog under another key",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "window": {
+        "opened": false,
+        "queued": [],
+        "waiting": {
+          "catalog": {
+            "wist_version": "1.0.0",
+            "publisher": "example.com",
+            "collection": "journal",
+            "generated_at": "2026-10-01T12:00:00Z",
+            "size": 1,
+            "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+            "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+          },
+          "key": "key-1"
+        }
+      },
+      "signed_by": "key-2",
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "inside a recovery window, the latest Catalog's Catalog ID under a key that signed nothing held: an idempotent re-serve",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "window": {
+        "opened": true,
+        "queued": [
+          {
+            "catalog": {
+              "wist_version": "1.0.0",
+              "publisher": "example.com",
+              "collection": "journal",
+              "generated_at": "2026-10-01T13:00:00Z",
+              "size": 2,
+              "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+              "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+            },
+            "key": "key-1"
+          }
+        ],
+        "waiting": null
+      },
+      "signed_by": "key-3",
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "expected": "idempotent"
+    },
+    {
+      "name": "inside a recovery window, another Catalog ID at the floor",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "latest": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "window": {
+        "opened": true,
+        "queued": [],
+        "waiting": null
+      },
+      "signed_by": "key-1",
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-30T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "WIST2-E05"
     }
   ],
   "next_cases": [
