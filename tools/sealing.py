@@ -1,4 +1,5 @@
 import copy
+import hashlib
 
 import catalogs
 import collection_rules as rules
@@ -48,7 +49,22 @@ def withdrawal_act(entry):
     update = entry["body"].get("update")
     if not isinstance(update, dict) or update.get("action") != WITHDRAWAL:
         raise ValueError("a registry_update this replay does not carry")
-    return update["details"]["delta_id"], update["subject"]
+    return entry["body"]
+
+
+def update_id(update):
+    return "sha256:" + hashlib.sha256(items.jcs(update)).hexdigest()
+
+
+def authenticated(envelope, log_key):
+    if log_key is None:
+        return True
+    sig = envelope.get("sig")
+    if not isinstance(sig, dict) or sig.get("key_id") != log_key["kid"] or sig.get("alg") != "Ed25519":
+        return False
+    value = rules.canonical_b64url(sig.get("value"), 64)
+    public = rules.canonical_b64url(log_key["x"], 32)
+    return value is not None and rules.verifies(public, value, items.jcs(envelope["update"]))
 
 
 def entry_leaf(entry):
@@ -118,7 +134,9 @@ def disposition(failed):
 
 
 class Sealing:
-    def __init__(self):
+    def __init__(self, log_key=None):
+        self.log_key = log_key
+        self.accepted_updates = set()
         self.replays = {}
         self.latest = {}
         self.records = {}
@@ -347,8 +365,20 @@ class Sealing:
             if not failed:
                 self.apply_item(entry["body"], named, height, parameters, removed)
         for index, act in sorted(acts.items()):
-            dispositions[index] = disposition([("envelope", ENVELOPE_FAILED)] if act is None
-                                              else self.apply_withdrawal(*act, height))
+            if act is None:
+                dispositions[index] = disposition([("envelope", ENVELOPE_FAILED)])
+                continue
+            identifier = update_id(act["update"])
+            if identifier in self.accepted_updates:
+                continue
+            if not authenticated(act, self.log_key):
+                dispositions[index] = disposition([("authentication", ENVELOPE_FAILED)])
+                continue
+            update = act["update"]
+            failed = self.apply_withdrawal(update["details"]["delta_id"], update["subject"], height)
+            dispositions[index] = disposition(failed)
+            if not failed:
+                self.accepted_updates.add(identifier)
         return {"height": height, "status": "accepted",
                 "entries": [dispositions.get(i) for i in range(len(entries))],
                 "records_removed": removed}
@@ -399,8 +429,8 @@ class Sealing:
         return None
 
 
-def replay(epochs):
-    sealing = Sealing()
+def replay(epochs, log_key=None):
+    sealing = Sealing(log_key)
     results, previous = [], None
     for epoch in epochs:
         if previous is not None and (epoch["height"] != previous["height"] + 1 or narrowing.log_seconds(

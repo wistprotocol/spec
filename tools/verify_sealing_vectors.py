@@ -127,7 +127,7 @@ def check_map(parameters):
 
 def new_log(log_key=None):
     return {"domains": {}, "latest": {}, "records": {}, "removals": {}, "withdrawn": {}, "sealed_items": {},
-            "duties": {}, "log_key": log_key}
+            "duties": {}, "accepted_updates": set(), "log_key": log_key}
 
 
 def in_force(log, domain):
@@ -363,7 +363,7 @@ def judge_item_entry(log, body, height, sealed_at, parameters, removed):
     return failed, codes
 
 
-def withdrawal_form(log, body):
+def withdrawal_form(body):
     members_read(body, UPDATE_ENVELOPE_MEMBERS, "registry_update body")
     update, sig = body["update"], body["sig"]
     members_read(update, UPDATE_MEMBERS, "update")
@@ -382,19 +382,32 @@ def withdrawal_form(log, body):
         raise VerifierError("a payload_withdrawal of another form is outside this fixture's scope")
     if not sig_form(sig):
         raise VerifierError("a Registry Update whose sig is of another form")
-    key = log["log_key"]
-    if key is not None and (sig["key_id"] != key["kid"] or not signature_verifies(
-            b64u_canonical(key["x"], 32), b64u_canonical(sig["value"], 64), jcs(update))):
-        raise VerifierError("a Registry Update not signed by the fixture's Log key")
     return update["subject"], details["delta_id"]
+
+
+def update_id(update):
+    return "sha256:" + hashlib.sha256(jcs(update)).hexdigest()
+
+
+def authenticated(log, envelope):
+    key, sig = log["log_key"], envelope["sig"]
+    signature = b64u_canonical(sig["value"], 64)
+    return sig["key_id"] == key["kid"] and signature is not None and signature_verifies(
+        b64u_canonical(key["x"], 32), signature, jcs(envelope["update"]))
 
 
 def judge_withdrawal(log, body, height):
     if not isinstance(body, dict):
         return ["envelope"], {"WIST4-E11"}
-    subject, identifier = withdrawal_form(log, body)
+    subject, identifier = withdrawal_form(body)
+    act = update_id(body["update"])
+    if act in log["accepted_updates"]:
+        return None
+    if not authenticated(log, body):
+        return ["authentication"], {"WIST4-E11"}
     if subject not in log["sealed_items"].get(identifier, set()):
         return ["contract"], {CONTRACT_BROKEN}
+    log["accepted_updates"].add(act)
     log["withdrawn"].setdefault(identifier, height)
     return [], set()
 
@@ -491,7 +504,9 @@ def apply_epoch(log, epoch):
     for kind in ("publisher_catalog", "publisher_item", "registry_update"):
         for index, named in enumerate(entries):
             if entry_type(named["entry"]) == kind:
-                verdicts[index] = judges[kind](named["entry"]["body"])
+                verdict = judges[kind](named["entry"]["body"])
+                if verdict is not None:
+                    verdicts[index] = verdict
     results = []
     for index, named in enumerate(entries):
         if index not in verdicts:

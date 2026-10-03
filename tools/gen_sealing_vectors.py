@@ -177,6 +177,20 @@ def withdrawal(withdrawn, sealed_at, subject=None):
     return {"type": "registry_update", "body": sign("log", "update", update)}
 
 
+def unverified(entry, salt):
+    bad = copy.deepcopy(entry)
+    other = rfc8785.dumps(bad["body"]["update"]) + salt.to_bytes(4, "big")
+    bad["body"]["sig"]["value"] = rules.b64u(PRIVATE["log"].sign(other))
+    return bad
+
+
+def unverified_placed(entry, after):
+    salt = 0
+    while (sealing.entry_leaf(unverified(entry, salt)) > sealing.entry_leaf(entry)) != after:
+        salt += 1
+    return unverified(entry, salt)
+
+
 def item(catalog, url, **changes):
     listed = next(i for i in catalog.listed if i["url"] == url)
     body = items.publisher_item_body(listed, catalog.inner, catalog.listed)
@@ -222,7 +236,8 @@ def expected_disposition(value):
 def run(epochs, expect, rejected, label, duties=False):
     results, state = sealing.replay([{"height": e["height"], "sealed_at": e["sealed_at"],
                                       "parameters": e["parameters"],
-                                      "entries": [n["entry"] for n in e["entries"]]} for e in epochs])
+                                      "entries": [n["entry"] for n in e["entries"]]} for e in epochs],
+                                    KEYS_MEMBER["log"])
     names = {}
     for epoch in epochs:
         for named in epoch["entries"]:
@@ -240,7 +255,8 @@ def run(epochs, expect, rejected, label, duties=False):
         else:
             entry["entries"] = []
             for named, got in zip(epoch["entries"], result["entries"]):
-                if got is None:
+                if expect.get(named["name"]) is None:
+                    assert got is None, (label, named["name"], got)
                     continue
                 wanted = expected_disposition(expect[named["name"]])
                 assert got == wanted, (label, named["name"], got, wanted)
@@ -1008,6 +1024,108 @@ def sealing_vectors():
          "update body x": ("WIST4-E11", ["envelope"]), "update body []": ("WIST4-E11", ["envelope"])},
         check=withdrawn_a_check, duties=True))
 
+    wa = withdrawal(pa, at(2, 0))
+    ra = removed(J + "a")
+    once = Cat([pa], at(1))
+    gone = Cat([ra], at(3))
+    back = Cat([pa], at(4))
+
+    def first_height_check(results):
+        assert results[4]["state"]["records"] == []
+        assert results[4]["payload_duties"] == []
+
+    histories.append(history(
+        "a withdrawal sealed again at a higher Epoch",
+        "a becomes a record at height 1 and a payload_withdrawal of a, which meets its details contract, is "
+        "accepted at height 2. The removed a against J2 removes a's record at height 3. Height 4 carries the "
+        "same Envelope again, octet for octet, with J3, which lists a again, and a against J3. The act's Registry "
+        "Update ID is that of an act accepted at height 2, so the occurrence is idempotent (WIST-4 section 5.1): it "
+        "has no disposition and changes nothing, and the withdrawal's height stays 2, so a against J3 fails I7 "
+        "(WIST3-E06) since a withdrawal sealed below height 4 names its Item ID.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", once)), ("a@J1", item(once, J + "a"))]},
+         {"entries": [("withdrawal of a", wa)]},
+         {"entries": [("J2", cat("journal", gone)), ("a removed@J2", item(gone, J + "a"))]},
+         {"entries": [("withdrawal of a sealed again", wa), ("J3", cat("journal", back)),
+                      ("a@J3", item(back, J + "a"))]}],
+        {"J1": "valid", "a@J1": "valid", "withdrawal of a": "valid", "J2": "valid", "a removed@J2": "valid",
+         "withdrawal of a sealed again": None, "J3": "valid", "a@J3": (E06, ["I7"])},
+        check=first_height_check, duties=True))
+
+    histories.append(history(
+        "an accepted Registry Update sealed again under a signature that does not verify",
+        "a and b become records at height 1 and a payload_withdrawal of a is accepted at height 2. Height 3 "
+        "carries the same update under a sig whose value is a well-formed Ed25519 signature of the Log key over "
+        "other octets. The Registry Update ID covers the update alone, so it is that of the act accepted at "
+        "height 2: the occurrence is idempotent (WIST-4 section 5.1), is not authenticated, has no disposition "
+        "and changes nothing.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", e1)), ("a@J1", item(e1, J + "a")), ("b@J1", item(e1, J + "b"))]},
+         {"entries": [("withdrawal of a", wa)]},
+         {"entries": [("withdrawal of a under a signature that does not verify", unverified(wa, 0))]}],
+        {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "withdrawal of a": "valid",
+         "withdrawal of a under a signature that does not verify": None}, duties=True))
+
+    histories.append(history(
+        "one Registry Update twice in an Epoch, the verifying occurrence first",
+        "a and b become records at height 1. Height 2 carries a payload_withdrawal of a and the same update under "
+        "a well-formed signature of the Log key over other octets, which canonical order places after it. The "
+        "first occurrence is accepted; the second carries the ID of an act accepted earlier in the same Epoch, "
+        "so it is idempotent (WIST-4 section 5.1) and has no disposition.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", e1)), ("a@J1", item(e1, J + "a")), ("b@J1", item(e1, J + "b"))]},
+         {"entries": [("withdrawal of a", wa),
+                      ("withdrawal of a under a signature that does not verify", unverified_placed(wa, True))]}],
+        {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "withdrawal of a": "valid",
+         "withdrawal of a under a signature that does not verify": None}, duties=True))
+
+    histories.append(history(
+        "one Registry Update twice in an Epoch, the occurrence that does not verify first",
+        "a and b become records at height 1. Height 2 carries a payload_withdrawal of a and the same update under "
+        "a well-formed signature of the Log key over other octets, which canonical order places before it. No "
+        "act of the ID is accepted when the first occurrence is judged: its signature does not verify, so it is "
+        "ignored (`failed` [authentication], WIST4-E11). The second is then accepted and ends a's serving duty.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", e1)), ("a@J1", item(e1, J + "a")), ("b@J1", item(e1, J + "b"))]},
+         {"entries": [("withdrawal of a", wa),
+                      ("withdrawal of a under a signature that does not verify", unverified_placed(wa, False))]}],
+        {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "withdrawal of a": "valid",
+         "withdrawal of a under a signature that does not verify": ("WIST4-E11", ["authentication"])},
+        check=withdrawn_a_check, duties=True))
+
+    def accepted_later_check(results):
+        assert [d["url"] for d in results[2]["payload_duties"]] == [J + "a", J + "b"]
+        assert [d["url"] for d in results[3]["payload_duties"]] == [J + "b"]
+
+    histories.append(history(
+        "a Registry Update ignored and then accepted",
+        "a and b become records at height 1. Height 2 carries a payload_withdrawal of a under a well-formed "
+        "signature of the Log key over other octets: ignored (`failed` [authentication], WIST4-E11), so a's "
+        "serving duty stays. Height 3 carries the same update under its verifying signature: an ID only ignored "
+        "before is not accepted, so the act is judged, accepted at height 3 and ends a's serving duty.",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", e1)), ("a@J1", item(e1, J + "a")), ("b@J1", item(e1, J + "b"))]},
+         {"entries": [("withdrawal of a under a signature that does not verify", unverified(wa, 0))]},
+         {"entries": [("withdrawal of a", wa)]}],
+        {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "withdrawal of a": "valid",
+         "withdrawal of a under a signature that does not verify": ("WIST4-E11", ["authentication"])},
+        check=accepted_later_check, duties=True))
+
+    histories.append(history(
+        "another Registry Update withdrawing an Item already withdrawn",
+        "a and b become records at height 1 and a payload_withdrawal of a is accepted at height 2. Height 3 "
+        "carries a payload_withdrawal of a with another effective_at, so another Registry Update ID, under a "
+        "well-formed signature of the Log key over other octets: idempotence is by ID, not by Item, so the act is "
+        "judged and ignored (`failed` [authentication], WIST4-E11).",
+        [{"entries": [("G", decl("owner", G))]},
+         {"entries": [("J1", cat("journal", e1)), ("a@J1", item(e1, J + "a")), ("b@J1", item(e1, J + "b"))]},
+         {"entries": [("withdrawal of a", wa)]},
+         {"entries": [("withdrawal of a at another instant under a signature that does not verify",
+                       unverified(withdrawal(pa, at(3, 0)), 0))]}],
+        {"J1": "valid", "a@J1": "valid", "b@J1": "valid", "withdrawal of a": "valid",
+         "withdrawal of a at another instant under a signature that does not verify":
+             ("WIST4-E11", ["authentication"])}, duties=True))
+
     histories.append(history(
         "a publisher_declaration Entry whose body is not an object",
         "Height 1 carries D, a successor of G, and a publisher_declaration Entry whose body is the string \"x\": "
@@ -1089,7 +1207,12 @@ def sealing_vectors():
         "applies them (WIST-1 section 5.2 and ADR-0051's narrowing), then registry_update Entries, then "
         "publisher_catalog and then publisher_item Entries in ascending Entry index. Every registry_update "
         "with an object body is a payload_withdrawal (WIST-3 section 6.2, WIST-4 section 5.1) whose details.delta_id is an "
-        "Item ID, signed by the test-only Log key, which the replay does not authenticate. Its details contract "
+        "Item ID, authenticated under the test-only Log key `keys.log`, valid at every height: an act whose sig "
+        "does not name that key or whose signature does not verify over JCS(update) is ignored (`failed` "
+        "[authentication], WIST4-E11). An act whose Registry Update ID (WIST-4 section 2, over the update alone) "
+        "an act accepted at a lower Epoch, or earlier in the same Epoch, carries is idempotent (WIST-4 section "
+        "5.1): it is neither authenticated nor judged, has no disposition in `entries` and changes nothing; an "
+        "ID only ignored before is judged again. An authenticated act's details contract "
         "(WIST-4 section 5.1) is judged once the Epoch's Items have applied: delta_id names an Item of kind page, "
         "since no other has a Payload, that a valid publisher_item Entry sealed at or below the act's Epoch against a Catalog whose publisher is the act's "
         "subject; an act that breaks it is ignored (`failed` [contract], WIST4-E04) and blocks nothing. I7 reads "

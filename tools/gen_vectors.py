@@ -5090,6 +5090,12 @@ def withdrawal_vectors():
                                             ensure_ascii=True),
                 "code": code, "withdrawn_height": None}
 
+    def unverified(case, label, height):
+        envelope = json.loads(case["envelope_json"])
+        envelope["sig"]["value"] = b64u(priv.sign(rfc8785.dumps(envelope["update"]) + b"\x00"))
+        return {**case, "label": label, "height": height,
+                "envelope_json": json.dumps(envelope, ensure_ascii=True)}
+
     def replay(acts, withdrawn, key="code", at="withdrawn_height"):
         for case in acts:
             update = json.loads(case["envelope_json"])["update"]
@@ -5101,7 +5107,7 @@ def withdrawal_vectors():
 
     acts = [
         act("valid withdrawal", None),
-        act("signed by a key the Log does not hold", "WIST4-E11", signer=priv2, key_id="test-log-r1"),
+        act("signed by a key the Log does not hold", "WIST4-E11", signer=priv2, key_id="test-log-r1", extra={"effective_at": "2026-08-05T12:00:01Z"}),
         act("unsupported major", "WIST4-E11", version="2.0.0"),
         act("unknown member", "WIST4-E11", extra={"note": "x"}),
         act("delta id not an Item ID", "WIST4-E04",
@@ -5117,6 +5123,7 @@ def withdrawal_vectors():
         act("repeated withdrawal keeps the first height", None, height=6,
             details={"delta_id": s1, "legal_basis": "second order", "jurisdiction": "BR"}),
     ]
+    acts.append(unverified(acts[0], "the accepted update again under a signature that does not verify", 6))
     withdrawn = replay(acts, {})
     for case in acts:
         update = json.loads(case["envelope_json"])["update"]
@@ -5236,6 +5243,9 @@ def withdrawal_vectors():
                  "Entry sealed the Item its details.delta_id names, of kind page, at or below the act's Epoch, "
                  "against a Catalog whose publisher is the act's subject (WIST4-E04 otherwise); the earliest "
                  "accepted withdrawal's Epoch governs and a later withdrawal of the same Item changes nothing. "
+                 "An act_case carrying the Registry Update ID (WIST-4 section 2, over the update alone) of an "
+                 "earlier accepted act_case is idempotent: neither authenticated nor judged, code null, "
+                 "withdrawn_height the earliest height. "
                  "sealed_items is the Log's every valid publisher_item Entry in Log order, each with its kind, "
                  "sealing height and the Collection, Catalog ID and generated_at of the Catalog it was proved "
                  "against; the Catalog's publisher is the Item's. Registry Updates precede Items in an Epoch's "

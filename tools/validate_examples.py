@@ -7334,10 +7334,15 @@ check('vectors:wist1-payload-fields', _payload_field_vectors)
 def _withdrawal_vector():
     return json.loads((ROOT / "vectors/wist4/withdrawal.json").read_text())
 
-def _withdrawal_judged(case, validator, log_key, key_id, contract):
+def _registry_update_id(update):
+    return "sha256:" + hashlib.sha256(rfc8785.dumps(update)).hexdigest()
+
+def _withdrawal_judged(case, validator, log_key, key_id, contract, accepted):
     code, doc = _registry_update_eligibility(case["envelope_json"], validator)
     if doc is None:
         return code, None
+    if _registry_update_id(doc["update"]) in accepted:
+        return None, doc["update"]
     try:
         assert doc["sig"]["key_id"] == key_id
         log_key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
@@ -7346,11 +7351,12 @@ def _withdrawal_judged(case, validator, log_key, key_id, contract):
     update = doc["update"]
     return contract(update["details"]["delta_id"], update["subject"], case["height"]), update
 
-def _withdrawal_replay(cases, judged, withdrawn, code_key, height_key):
+def _withdrawal_replay(cases, judged, withdrawn, code_key, height_key, accepted):
     for case in cases:
-        code, update = judged(case)
+        code, update = judged(case, accepted)
         assert code == case[code_key], (case["label"], code_key, code)
         if code is None:
+            accepted.setdefault(_registry_update_id(update), case["height"])
             withdrawn.setdefault(update["details"]["delta_id"], (case["height"], update["subject"]))
             assert withdrawn[update["details"]["delta_id"]][0] == case[height_key], (case["label"], height_key)
         else:
@@ -7394,13 +7400,17 @@ def _dc4_withdrawal():
         return sorted(tuples, key=rfc8785.dumps)
 
     key_id = v["log_key"]["key_id"]
-    withdrawn = {}
+    withdrawn, accepted = {}, {}
     tuples = _withdrawal_replay(
-        v["act_cases"], lambda c: _withdrawal_judged(c, validator, log_key, key_id, meets),
-        withdrawn, "code", "withdrawn_height")
+        v["act_cases"], lambda c, ids: _withdrawal_judged(c, validator, log_key, key_id, meets, ids),
+        withdrawn, "code", "withdrawn_height", accepted)
     assert {c["code"] for c in v["act_cases"]} == {None, "WIST4-E11", "WIST4-E04"}
     assert any(c["code"] is None and c["height"] > c["withdrawn_height"] for c in v["act_cases"]), \
         "no repeated withdrawal keeps the first height"
+    judged_every_time = {}
+    assert any(c["code"] is None and _withdrawal_judged(c, validator, log_key, key_id, meets, judged_every_time)[0]
+               == "WIST4-E11" for c in v["act_cases"]), \
+        "no occurrence of an accepted Registry Update ID that would fail authentication shows idempotence"
     assert tuples == ordered(v["state_tuples"]), "the replay does not leave the vector's withdrawal tuples"
     last = max(d["height"] for d in history)
     records, removals = holdings(last)
@@ -7439,11 +7449,12 @@ def _dc4_withdrawal():
     resume = v["resume"]
     adopted, resumed = resumed_judge(resume)
     cases = resume["act_cases"]
-    after = _withdrawal_replay(cases, lambda c: _withdrawal_judged(c, validator, log_key, key_id, resumed),
-                               dict(adopted), "code", "withdrawn_height")
+    after = _withdrawal_replay(cases, lambda c, ids: _withdrawal_judged(c, validator, log_key, key_id, resumed, ids),
+                               dict(adopted), "code", "withdrawn_height", {})
     assert after == ordered(resume["state_tuples"])
-    replayed = _withdrawal_replay(cases, lambda c: _withdrawal_judged(c, validator, log_key, key_id, meets),
-                                  dict(adopted), "replay_code", "replay_withdrawn_height")
+    replayed = _withdrawal_replay(cases, lambda c, ids: _withdrawal_judged(c, validator, log_key, key_id, meets, ids),
+                                  dict(adopted), "replay_code", "replay_withdrawn_height",
+                                  {i: h for i, h in accepted.items() if h <= resume["snapshot_height"]})
     assert replayed == ordered(resume["replay_state_tuples"])
     differing = [c for c in cases if c["code"] != c["replay_code"]]
     assert differing and all(c["code"] is None and c["replay_code"] == "WIST4-E04" for c in differing), \
@@ -7463,11 +7474,12 @@ def _dc4_withdrawal():
     adopted_again, resumed_again = resumed_judge(again)
     assert again["snapshot_height"] > resume["snapshot_height"]
     after_again = _withdrawal_replay(again["act_cases"],
-                                     lambda c: _withdrawal_judged(c, validator, log_key, key_id, resumed_again),
-                                     dict(adopted_again), "code", "withdrawn_height")
+                                     lambda c, ids: _withdrawal_judged(c, validator, log_key, key_id, resumed_again, ids),
+                                     dict(adopted_again), "code", "withdrawn_height", {})
     assert after_again == ordered(again["state_tuples"])
-    _withdrawal_replay(again["act_cases"], lambda c: _withdrawal_judged(c, validator, log_key, key_id, meets),
-                       dict(adopted_again), "replay_code", "replay_withdrawn_height")
+    _withdrawal_replay(again["act_cases"], lambda c, ids: _withdrawal_judged(c, validator, log_key, key_id, meets, ids),
+                       dict(adopted_again), "replay_code", "replay_withdrawn_height",
+                       {i: h for i, h in accepted.items() if h <= again["snapshot_height"]})
     dropped = {_item_id(t[3]) for t in resume["record_tuples"]} - {_item_id(t[3]) for t in again["record_tuples"]}
     assert any(named(c)["details"]["delta_id"] in dropped and c["code"] is None
                and resumed(named(c)["details"]["delta_id"], named(c)["subject"], c["height"]) == "WIST4-E04"
