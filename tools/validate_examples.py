@@ -9226,6 +9226,8 @@ def _dispute_disposition(doc, declaration, validator, sealed, clock, clock_skew_
     if not validator.is_valid(doc):
         return "fields"
     dispute = doc["dispute"]
+    if dispute["height"] > 9007199254740991:
+        return "fields"
     if dispute["wist_version"].partition(".")[0] != "1":
         return "fields"
     publisher = declaration["publisher"]
@@ -9269,7 +9271,11 @@ def _dispute_vectors():
     bound = log_seconds(v["clock"]) + v["clock_skew_seconds"]
     outcomes = set()
     for case in v["cases"]:
-        got = _dispute_disposition(case["envelope"], case["declaration"], validator, sealed,
+        envelope = case["envelope"]
+        if "envelope_json" in case:
+            envelope = item_rules.strict_loads(case["envelope_json"].encode("utf-8"))
+            assert envelope == case["envelope"] and case["envelope_json"] != json.dumps(case["envelope"])
+        got = _dispute_disposition(envelope, case["declaration"], validator, sealed,
                                    v["clock"], v["clock_skew_seconds"])
         assert got == case["expected"], (case["name"], got, case["expected"])
         assert case["code"] == codes[case["expected"]], case["name"]
@@ -9283,6 +9289,15 @@ def _dispute_vectors():
                for c in v["cases"]), "no fractional excess"
     assert any(c["expected"] == "accepted" and c["envelope"]["dispute"]["log"] != "log.example" for c in v["cases"]), \
         "no accepted dispute cites another Log"
+    by_name = {c["name"]: c for c in v["cases"]}
+    plain = by_name["dispute citing another Log"]
+    for spelled in ("height with a zero fraction", "height in exponent spelling"):
+        assert by_name[spelled]["dispute_id"] == plain["dispute_id"] is not None, spelled
+        assert json.dumps(by_name[spelled]["envelope"]["dispute"]["height"]) != \
+            json.dumps(plain["envelope"]["dispute"]["height"]), spelled
+    assert "7e0" in by_name["height in exponent spelling"]["envelope_json"]
+    assert by_name["height at the safe-integer bound"]["expected"] == "accepted" \
+        and by_name["height above the safe-integer bound"]["expected"] == "fields"
     ported = {c["expected"] for c in v["cases"]
               if re.match(r"https://[^/]+:\d", sealed.get(c["envelope"]["dispute"].get("label"), {}).get("subject", ""))}
     assert ported == {"accepted", "authority"}, "no disputed subject carries a port on both sides of the scope rule"

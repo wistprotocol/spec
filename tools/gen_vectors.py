@@ -4381,6 +4381,13 @@ def dispute_vectors():
         declaration=labeler_declaration, expected="authority")
     add("disputant other than the authenticated domain", dict(base, disputant="example.com"), expected="fields")
     add("reason present as null", dict(base, reason=None), expected="fields")
+    cited = dict(base, log="mirror.log.example")
+    add("height with a zero fraction", dict(cited, height=7.0))
+    add("height in exponent spelling", dict(cited, height=7.0))
+    cases[-1]["envelope_json"] = json.dumps(cases[-1]["envelope"]).replace('"height": 7.0', '"height": 7e0')
+    add("height with a fraction", dict(cited, height=7.5), expected="fields")
+    add("height at the safe-integer bound", dict(cited, height=9007199254740991))
+    add("height above the safe-integer bound", dict(cited, height=9007199254740992.0), expected="fields")
     add("signature over other bytes", expected="signature",
         mutate=lambda doc: doc["dispute"].update(asserted_at="2026-08-02T13:00:01Z"))
     add("signed under an unknown identifier", key_id=KID5, expected="binding")
@@ -4416,7 +4423,10 @@ def dispute_vectors():
               "and binding keep WIST-1 codes; log and height are the "
               "disputant's citation and are not checked against this Log. current_cases replay sealed "
               "disputes of one (label, disputant) and give the current dispute and the WIST-3 section 7 "
-              "dispute tuple."),
+              "dispute tuple. A height is an integer by the number it denotes, inside WIST-1 section 4's "
+              "safe range: a case naming envelope_json is judged over that JSON text, which denotes the "
+              "same value as envelope in another spelling, and a height spelled with a zero fraction or "
+              "an exponent has the Dispute ID of the plain spelling."),
         sealed_labels=sealed_labels, clock="2026-08-02T14:00:00Z", clock_skew_seconds=600,
         cases=cases, current_cases=current)
 
