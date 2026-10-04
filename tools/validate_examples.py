@@ -6,7 +6,8 @@ from fractions import Fraction
 
 import rfc8785
 from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import ValidationError
 from referencing import Registry, Resource
@@ -2922,6 +2923,7 @@ NON_CONTENT_VALUES = {
         "an Ed25519 Aggregator key, in a Log Anchor, an aggregator_key_add or a §7 "
         "aggregator_key tuple (WIST-3 §3.4)",
     ("vectors/wist3/snapshot-keys.json", "value"): "an Ed25519 signature",
+    ("vectors/wist3/snapshot-keys.json", "seed_hex"): "a test-only Ed25519 seed, no page content",
     ("vectors/wist3/snapshot-keys.json", "leaf_hashes"):
         "leaf hashes over Entries, which carry governance acts and no page content",
     ("vectors/wist3/snapshot-keys.json", "root_hash"):
@@ -8376,6 +8378,81 @@ def _snapshot_case_outcome(case, history, anchor, validator, **variant):
             "key_ids": sorted(_keys_valid_at(at_head, genesis_key_id, head))}
 
 
+def _published_files_hash(v, manifests, where):
+    """Every tier file a manifest lists is published with the SHA-256 and
+    length the manifest states, and nothing else is."""
+    octets = {path: canonical_b64u_decode(value) for path, value in v["files"].items()}
+    listed = set()
+    for envelope in manifests:
+        for entry in envelope["manifest"]["files"]:
+            listed.add(entry["path"])
+            assert entry["path"] in octets, f"{where}: {entry['path']} is listed and not published"
+            assert hashlib.sha256(octets[entry["path"]]).hexdigest() == entry["sha256"] \
+                and len(octets[entry["path"]]) == entry["bytes"], \
+                f"{where}: {entry['path']} does not hash to the manifest's sha256 and bytes"
+    assert listed == set(octets), f"{where}: a published file no manifest lists"
+
+
+def _published_keys_reproduce(v, log_id):
+    """Every signature the family carries, Envelope or Checkpoint line, is
+    reproduced from a published seed (Ed25519 signing is deterministic, RFC
+    8032 §5.1.6), or is so reproduced with its first octet inverted, the
+    damage its failing signatures carry."""
+    signers = {}
+    for name, key in v["keys"].items():
+        assert key["key_id"] == name, f"{name}: the key is published under another key_id"
+        private = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(key["seed_hex"]))
+        raw = private.public_key().public_bytes(
+            serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+        assert base64.urlsafe_b64encode(raw).rstrip(b"=").decode() == key["public_key"], \
+            f"{name}: the seed does not derive the public key"
+        signers[name] = private
+    published = {key["public_key"] for key in v["keys"].values()}
+    used_public, used_signers = set(), set()
+
+    def signed_by(message, signature):
+        for name, private in signers.items():
+            if private.sign(message) == signature:
+                return name
+        return None
+
+    def walk(node):
+        if isinstance(node, list):
+            if len(node) == 7 and node[0] == "aggregator_key" and isinstance(node[2], str):
+                used_public.add(node[2])
+            for child in node:
+                walk(child)
+            return
+        if isinstance(node, str) and "\n\n" in node and node.startswith(log_id + "\n"):
+            parsed = parse_checkpoint(node)
+            for _name, kid, rest in parsed["signatures"]:
+                name = signed_by(parsed["signed_bytes"], rest)
+                assert name is not None and note_key_id(log_id, b64u_decode(v["keys"][name]["public_key"])) == kid, \
+                    "a Checkpoint signature line no published seed reproduces"
+                used_signers.add(name)
+            return
+        if not isinstance(node, dict):
+            return
+        if "public_key" in node and isinstance(node["public_key"], str):
+            used_public.add(node["public_key"])
+        if isinstance(node.get("sig"), dict) and "value" in node["sig"]:
+            inner = next(k for k in node if k != "sig")
+            message, signature = rfc8785.dumps(node[inner]), b64u_decode(node["sig"]["value"])
+            name = signed_by(message, signature) or signed_by(
+                message, bytes([signature[0] ^ 0xFF]) + signature[1:])
+            assert name is not None, f"an {inner} signature no published seed reproduces"
+            used_signers.add(name)
+        for key, child in node.items():
+            if node is v and key == "keys":
+                continue
+            walk(child)
+
+    walk(v)
+    assert used_public <= published, "a public key the family carries is not published"
+    assert published == used_public | {v["keys"][n]["public_key"] for n in used_signers}, \
+        "a published key whose signature or public key the family never carries"
+
+
 def _wist3_snapshot_keys():
     """WIST-3 §7: a state file's `aggregator_key` tuples authenticate from the
     Anchor's genesis key or the Snapshot is rejected (`WIST3-E04`); §3.4: its
@@ -8403,6 +8480,9 @@ def _wist3_snapshot_keys():
     assert history["anchor"]["sig"]["key_id"] == genesis["key_id"] \
         and _envelope_verifies(b64u_decode(genesis["public_key"]), history["anchor"], "anchor"), \
         "the Anchor is not self-signed under its own genesis_key"
+
+    _published_keys_reproduce(v, log_id)
+    _published_files_hash(v, [c["manifest"] for c in v["cases"]], "snapshot-keys")
 
     replay = _replay_key_history(history, validator)
     assert replay["head"] == history["verified_head"], "the verified head the replay leaves"
@@ -8641,6 +8721,12 @@ def _wist3_snapshot_index():
     index_schema = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-index.schema.json").read_text()))
     genesis = json.loads((ROOT / "examples/log-anchor.json").read_text())["anchor"]["genesis_key"]
     pub = b64u_decode(genesis["public_key"])
+    _published_files_hash(v, [m for c in v["cases"] for m in c["manifests"].values()], "snapshot-index")
+    state_octets = rfc8785.dumps(json.loads((ROOT / "examples/snapshot-state.json").read_text()))
+    assert all(m["manifest"]["state"]["sha256"] == hashlib.sha256(state_octets).hexdigest()
+               and m["manifest"]["state"]["bytes"] == len(state_octets)
+               for c in v["cases"] for m in c["manifests"].values()), \
+        "a manifest does not hash the example state file"
     seen = set()
     for case in v["cases"]:
         where = case["name"]

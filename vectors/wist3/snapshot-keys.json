@@ -1,5 +1,45 @@
 {
-  "note": "WIST-3 \u00a73.4, \u00a77 and \u00a78: a Consumer resuming from a Snapshot authenticates the state file's `aggregator_key` tuples from the Anchor's genesis key before it uses any of them, and verifies the Snapshot index, the manifest and the state file under the keys valid at the height of the Checkpoint it adopts. `history` is one Log with its own Anchor, genesis key and cumulative tree; `epochs` are in Log order and each carries the Checkpoint the Aggregator published. A case is one Snapshot of that Log: `epoch_number` is the Epoch it is taken at, `checkpoint` the Checkpoint of that Epoch it is served with, `adopted_head` the height of the Checkpoint the Consumer adopts, and `index`, `manifest` and `state` the three unsealed documents. `expected` is `accept` with the key_ids valid at the adopted head, or `WIST3-E04`, the one code every rejection here carries. `violations` says which requirement the case isolates: the \u00a77 rules of 1 through 5 the tuples break, the catch-up clauses `consumer_registry` falsifies \u2014 `omitted` for a key the registry holds and no tuple names, `disagrees` for a tuple contradicting the registry up to its verified head, `unknown` for a tuple the registry does not hold whose added height is not above that head \u2014 and the documents whose signatures do not verify at the adopted head. Those rule numbers and reason strings are this family's labels, not a diagnostic the protocol defines: an implementation replaying the family is compared on the accept-or-`WIST3-E04` outcome, the key_ids valid at the adopted head, and which of the three documents verify. `self_consistent` marks a Snapshot whose Checkpoint and documents all verify under the tuples it carries, so that the chain to the Anchor is the only thing rejecting it. `state_digest` is \u00a77's digest over the case's own tuples; rules 1 through 5 test neither the sealing heights a tuple asserts nor which of two removals accepted in one Epoch it carries, and `removal_tie_break` is where the second of those is falsified instead \u2014 by the digest a replaying Consumer rebuilds. `mirror_cases` carry \u00a75's Mirror list, which has no error code when it does not verify.",
+  "note": "WIST-3 \u00a73.4, \u00a77 and \u00a78: a Consumer resuming from a Snapshot authenticates the state file's `aggregator_key` tuples from the Anchor's genesis key before it uses any of them, and verifies the Snapshot index, the manifest and the state file under the keys valid at the height of the Checkpoint it adopts. `history` is one Log with its own Anchor, genesis key and cumulative tree; `epochs` are in Log order and each carries the Checkpoint the Aggregator published. A case is one Snapshot of that Log: `epoch_number` is the Epoch it is taken at, `checkpoint` the Checkpoint of that Epoch it is served with, `adopted_head` the height of the Checkpoint the Consumer adopts, and `index`, `manifest` and `state` the three unsealed documents. `expected` is `accept` with the key_ids valid at the adopted head, or `WIST3-E04`, the one code every rejection here carries. `violations` says which requirement the case isolates: the \u00a77 rules of 1 through 5 the tuples break, the catch-up clauses `consumer_registry` falsifies \u2014 `omitted` for a key the registry holds and no tuple names, `disagrees` for a tuple contradicting the registry up to its verified head, `unknown` for a tuple the registry does not hold whose added height is not above that head \u2014 and the documents whose signatures do not verify at the adopted head. Those rule numbers and reason strings are this family's labels, not a diagnostic the protocol defines: an implementation replaying the family is compared on the accept-or-`WIST3-E04` outcome, the key_ids valid at the adopted head, and which of the three documents verify. `self_consistent` marks a Snapshot whose Checkpoint and documents all verify under the tuples it carries, so that the chain to the Anchor is the only thing rejecting it. `state_digest` is \u00a77's digest over the case's own tuples; rules 1 through 5 test neither the sealing heights a tuple asserts nor which of two removals accepted in one Epoch it carries, and `removal_tie_break` is where the second of those is falsified instead \u2014 by the digest a replaying Consumer rebuilds. `mirror_cases` carry \u00a75's Mirror list, which has no error code when it does not verify. `keys` gives the public key and test-only Ed25519 seed (`seed_hex`) of every key whose signature or public key appears here, under its own key_id; some cases carry a key under another key_id. `files` gives, base64url without padding, the octets of each tier file the manifests list; a case's state file is the JCS serialization of its `state`. The tier file is opaque octets, not conforming tier content: nothing this family compares reads it, and a replay needs no copy of it installed.",
+  "keys": {
+    "test-snap-b": {
+      "key_id": "test-snap-b",
+      "public_key": "VXCaz1DQPTZ3pYjh6iPgO39PzJ5k4eMVAy7v1lxqWr8",
+      "seed_hex": "04d30c0ee1e13e3b38b2dbd9de820938d3ec32bcccee100ff0df9a87d10cdb4a"
+    },
+    "test-snap-c": {
+      "key_id": "test-snap-c",
+      "public_key": "04b2ocyCijK5mKJOaccQsM-5F8sRwVj4GHBUUUeHYbo",
+      "seed_hex": "00970135b69d1d08a62485115e148aed474e8abf063d3e7f1895e0050e02c809"
+    },
+    "test-snap-d": {
+      "key_id": "test-snap-d",
+      "public_key": "5mf044_EUMlwbXGrUuFH-nqjmQrZdsWNYeMkyy1HiHU",
+      "seed_hex": "3d203b7a7290346e76e4dc81665aef5ed5ff420650d10893bbb34446955b5f50"
+    },
+    "test-snap-f": {
+      "key_id": "test-snap-f",
+      "public_key": "vVvS2v1ApxHIO5RJowV1ziVNKtH2ulDhCez90FpzTbU",
+      "seed_hex": "fa275176229cc3fd06aa2ff993d8c19cc45c7c362e4ac21dbe3200d1a134cfe7"
+    },
+    "test-snap-g": {
+      "key_id": "test-snap-g",
+      "public_key": "aJoAgMcGHKrfM_iHpnaUE5OtP7PkNMf5b-e2L7uHL9w",
+      "seed_hex": "256d4bd6c9a9bab4bb520c353b2f275a65f94ffa32280529c75617da7c80f1f7"
+    },
+    "test-snap-s": {
+      "key_id": "test-snap-s",
+      "public_key": "8DW4JztSJuTRMP1tW7KvHTU--sDMeQriRC59mNnjb-c",
+      "seed_hex": "77aff37f058101301c9d6b5ea78e7f3b05c9253d3c9a33363d8353702aa58e59"
+    },
+    "test-snap-x": {
+      "key_id": "test-snap-x",
+      "public_key": "z_ZLYodO_CdDenDClmVDmodbk3vmSnakRcHmBO537ao",
+      "seed_hex": "66903f5b689580d44a4fcf5c559ee7fe8021029dadfcb218de59d2f6f2687c9d"
+    }
+  },
+  "files": {
+    "tier0/index.sqlite": "dGllcjAtcGxhY2Vob2xkZXI"
+  },
   "history": {
     "name": "rotation",
     "note": "One Log whose Entries are key acts alone: the genesis key admits a successor at Epoch 0 and is removed at Epoch 1, two further keys are admitted at Epochs 2 and 3, and Epoch 4 accepts two removals of one key. Every Snapshot below is taken at one of these Epochs and read at one of these heights.",

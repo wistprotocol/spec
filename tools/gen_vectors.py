@@ -2743,11 +2743,14 @@ print("wist3 checkpoint vectors written")
 KEY_ACT_GRACE_EFFECTIVE = "2026-10-01T00:00:00Z"  # > param_grace_days after every sealed_at below
 
 
+def agg_seed(name: str) -> bytes:
+    return hashlib.sha256(("wist aggregator " + name).encode()).digest()
+
+
 def agg_key(name: str):
     """A deterministic Aggregator keypair for the key-act histories, derived
     as `witness_keypair` derives a Witness's."""
-    return Ed25519PrivateKey.from_private_bytes(
-        hashlib.sha256(("wist aggregator " + name).encode()).digest())
+    return Ed25519PrivateKey.from_private_bytes(agg_seed(name))
 
 
 def raw_from_b64u(value: str) -> bytes:
@@ -3623,7 +3626,16 @@ write_json(WIST3 / "snapshot-index.json", {
              "chosen manifest carrying an optional member as null fails its "
              "schema (§8 step 2), WIST3-E04 with the Snapshot re-fetched, from "
              "another Mirror if needed (§9). Every "
-             "index and manifest is signed under the examples' test-agg-k1."),
+             "index and manifest is signed under the examples' test-agg-k1. "
+             "`files` gives, base64url without padding, the octets of each tier "
+             "file the manifests list; their state file is the JCS "
+             "serialization of examples/snapshot-state.json. The tier files "
+             "are opaque octets, not conforming "
+             "tier content: nothing this family compares reads them, and a "
+             "replay needs no copy of them installed."),
+    "files": {path: b64u(octets) for path, octets in (
+        ("tier0/index.sqlite", tier0_content), ("tier1/extracts.parquet", tier1_content),
+        ("tier1/links.parquet", links_parquet_content))},
     "cases": index_cases,
 })
 print("wist3 snapshot index vectors written")
@@ -3649,8 +3661,8 @@ def snapshot_key_vectors() -> dict:
     log_id = "snapshot-keys.example.org"
     G, B, C, D = "test-snap-g", "test-snap-b", "test-snap-c", "test-snap-d"
     X, SPARE, F = "test-snap-x", "test-snap-s", "test-snap-f"
-    material = {name: agg_key("snapshot " + name)
-                for name in (G, B, C, D, X, SPARE, F)}
+    seeds = {name: agg_seed("snapshot " + name) for name in (G, B, C, D, X, SPARE, F)}
+    material = {name: Ed25519PrivateKey.from_private_bytes(seed) for name, seed in seeds.items()}
 
     def add_entry(key_id, signer_key_id, effective_at=SNAPSHOT_KEY_EFFECTIVE, key_of=None):
         return registry_entry(
@@ -4099,7 +4111,17 @@ def snapshot_key_vectors() -> dict:
                 "Epoch it carries, and `removal_tie_break` is where the second "
                 "of those is falsified instead — by the digest a replaying "
                 "Consumer rebuilds. `mirror_cases` carry §5's Mirror list, "
-                "which has no error code when it does not verify.",
+                "which has no error code when it does not verify. `keys` gives "
+                "the public key and test-only Ed25519 seed (`seed_hex`) of every "
+                "key whose signature or public key appears here, under its own "
+                "key_id; some cases carry a key under another key_id. `files` gives, base64url without padding, the octets "
+                "of each tier file the manifests list; a case's state file is the "
+                "JCS serialization of its `state`. The tier file is opaque octets, "
+                "not conforming tier content: nothing this family compares reads "
+                "it, and a replay needs no copy of it installed.",
+        "keys": {name: {"key_id": name, "public_key": b64u(raw_public(material[name])),
+                        "seed_hex": seed.hex()} for name, seed in sorted(seeds.items())},
+        "files": {"tier0/index.sqlite": b64u(SNAPSHOT_KEY_TIER0)},
         "history": history,
         "cases": cases,
         "removal_tie_break": removal_tie_break,
