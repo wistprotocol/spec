@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a73.1, WIST-2 \u00a74, WIST-3 \u00a73.2 and \u00a77. lists are Public Suffix List snapshots as octets (text is the exact UTF-8 file). official_cases transcribe the Public Suffix List project's checkPublicSuffix cases over the first snapshot: host is the input's Canonical Host (null where it has none), expected the project's answer and registrable the Registrable Domain, the host itself where the list leaves none. domain_cases read a host under a named snapshot or under none. act_cases replay in Epoch order under the Log key: a suffix_list_update is in force from the Epoch after its sealing Epoch (in_force lists the snapshot in force at each height). capacity_cases count publisher_catalog, publisher_item, label and dispute Entries (a Catalog's or Item's publisher, a Label's labeler, a dispute's disputant; one that is not a Canonical Host counts toward no domain) per Registrable Domain under the snapshot in force at the Epoch; quota_cases apply quota_base to the noise Pings of one UTC day per Registrable Domain in order, each Ping under the snapshot in force at its own height where one is given; an act carrying consumer names a file no source holds, which fails its contract at the Aggregator and stops a Consumer with WIST3-E01; state_tuples are the WIST-3 \u00a77 suffix_list tuple at a tree_size. The snapshot named lines tells the readings of a rule line apart: a rule ends at U+0009, U+000B, U+000C, U+000D or U+0020 and a line at U+000A alone, a line that begins with whitespace carries no rule, and a rule holding another space or line-break character has a label Canonical Host processing rejects and is ignored.",
+  "note": "WIST-4 \u00a73.1, WIST-2 \u00a74, WIST-3 \u00a73.2 and \u00a77. lists are Public Suffix List snapshots as octets (text is the exact UTF-8 file). official_cases transcribe the Public Suffix List project's checkPublicSuffix cases over the first snapshot: host is the input's Canonical Host (null where it has none), expected the project's answer and registrable the Registrable Domain, the host itself where the list leaves none. domain_cases read a host under a named snapshot or under none. act_cases replay in Epoch order under the Log key: a suffix_list_update is in force from the Epoch after its sealing Epoch (in_force lists the snapshot in force at each height). capacity_cases count publisher_catalog, publisher_item, label and dispute Entries (a Catalog's or Item's publisher, a Label's labeler, a dispute's disputant; one that is not a Canonical Host counts toward no domain) per Registrable Domain under the snapshot in force at the Epoch; quota_cases apply quota_base to the noise Pings of one UTC day per Registrable Domain in order, each Ping under the snapshot in force at its own height where one is given; an act carrying consumer names a file no source holds, which fails its contract at the Aggregator and stops a Consumer with WIST3-E01; state_tuples are the WIST-3 \u00a77 suffix_list tuple at a tree_size, followed by one registry_update tuple per accepted act at or below it, with the height of its Epoch. The snapshot named lines tells the readings of a rule line apart: a rule ends at U+0009, U+000B, U+000C, U+000D or U+0020 and a line at U+000A alone, a line that begins with whitespace carries no rule, and a rule holding another space or line-break character has a label Canonical Host processing rejects and is ignored.",
   "log_key": {
     "key_id": "test-agg-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
@@ -1366,6 +1366,11 @@
           "suffix_list",
           "sha256:7d33b5043f459b41e3177b188f65790f7eef4c2fc40e28a996eace43034874e2",
           0
+        ],
+        [
+          "registry_update",
+          "sha256:18eb64cea150a00c804fff95b6cfdc8029260aa3672e420f05677633fb6fefdb",
+          0
         ]
       ]
     },
@@ -1375,6 +1380,11 @@
         [
           "suffix_list",
           "sha256:7d33b5043f459b41e3177b188f65790f7eef4c2fc40e28a996eace43034874e2",
+          0
+        ],
+        [
+          "registry_update",
+          "sha256:18eb64cea150a00c804fff95b6cfdc8029260aa3672e420f05677633fb6fefdb",
           0
         ]
       ]
@@ -1386,6 +1396,16 @@
           "suffix_list",
           "sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31",
           3
+        ],
+        [
+          "registry_update",
+          "sha256:18eb64cea150a00c804fff95b6cfdc8029260aa3672e420f05677633fb6fefdb",
+          0
+        ],
+        [
+          "registry_update",
+          "sha256:6068bb902a5ee3028efb5b87d463bbe7a9f123531099093af36a1bd4cbd3f605",
+          3
         ]
       ]
     },
@@ -1396,6 +1416,21 @@
           "suffix_list",
           "sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31",
           3
+        ],
+        [
+          "registry_update",
+          "sha256:18eb64cea150a00c804fff95b6cfdc8029260aa3672e420f05677633fb6fefdb",
+          0
+        ],
+        [
+          "registry_update",
+          "sha256:6068bb902a5ee3028efb5b87d463bbe7a9f123531099093af36a1bd4cbd3f605",
+          3
+        ],
+        [
+          "registry_update",
+          "sha256:2506e4a90bab18e3cfbedb2863bcb21fd23c1e14fd214bd32f14fa8c5d718665",
+          5
         ]
       ]
     }

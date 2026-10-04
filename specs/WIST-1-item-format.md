@@ -1175,8 +1175,10 @@ sequence, predecessor, key or signature check on its first installation.
 
 An Aggregator MUST NOT seal an Epoch with a conflicting Declaration group.
 A Consumer encountering one MUST reject the entire Epoch, retaining its
-previous accepted prefix and state; no Entry or settlement from that Epoch
-takes effect. The same whole-Epoch rejection applies when a Declaration
+previous accepted prefix and state; no Entry, settlement or activation
+from that Epoch takes effect, and one due there takes effect at the first
+accepted Epoch the rules below select. The same whole-Epoch rejection
+applies when a Declaration
 fails its acceptance checks during Epoch replay, with that check's error
 code. If different domains have different acceptance failures, a validator
 MAY report any of those applicable error codes; no cross-domain diagnostic
@@ -1214,8 +1216,9 @@ end (**Publications during recovery**). Declaration competition instead
 starts immediately after the owner's application in ascending
 `(Epoch number, seq)` order. A Declaration applied earlier in the opening
 Epoch is a predecessor, not a competitor, and is not superseded by this
-window. Before applying any Declaration in the first Epoch at or after that
-end, settle the window: make its recovery-chain head current, supersede its
+window. Before applying any Declaration in the first accepted Epoch whose
+`sealed_at` is at or after that end, settle the window: make its
+recovery-chain head current, supersede its
 accepted non-chain competitors, and close the window without changing the
 sequence floor. Only the restored current head is then an eligible
 predecessor; a superseded competitor is `WIST1-E08`. The same transition
@@ -1309,10 +1312,10 @@ later predecessor and key resolution. This is the **reversal**, the answer
 a Publisher that still holds a listed signing or recovery key gives to a
 Declaration published from its web host alone. A recovery rotation that
 reverses a pending head opens a recovery window as any recovery rotation
-does. Before applying any Declaration in the Epoch at the activation
-height, activate: the pending head becomes current, the pending state ends,
-and the domain's identity resets at that height, so a party reading its
-history from the Log reads it from the activation height.
+does. Before applying any Declaration in the first accepted Epoch at or
+above the activation height, activate: the pending head becomes current,
+the pending state ends, and the domain's identity resets at that Epoch's
+height, so a party reading its history from the Log reads it from there.
 
 With `declaration_activation_epochs` at 0 the activation height is the
 sealing height itself: the fresh identity becomes current at once, when its
@@ -1383,7 +1386,7 @@ by what signs it, using the authenticated public key resolved above:
   without forfeiting it. The **settlement source** is that chain's newest
   Declaration — the recovery Declaration's own unless a legitimate
   follower was sealed inside the window — fixed immediately before
-  applying any Declarations in the first Epoch at or after the deadline.
+  applying any Declarations in the Epoch that settles the window.
   Admission at or after the deadline first performs the settlement; new
   candidates use the then-current Declaration, including any replacements
   already accepted at admission.
@@ -1502,8 +1505,8 @@ they carried included.
 | Transition | Height |
 |---|---|
 | An ordinary rotation naming the current Declaration, sealed outside a recovery window, a reversal of a pending head included. One applied in the Epoch that opens a window, before the recovery rotation that owns it, is a predecessor and not a competitor and is sealed outside that window | Its sealing Epoch |
-| Settlement of a recovery window, for the recovery-chain head it makes current | The first Epoch whose `sealed_at` is at or after the window's end |
-| Activation of a pending head | The activation height |
+| Settlement of a recovery window, for the recovery-chain head it makes current | The Epoch that settles it |
+| Activation of a pending head | The Epoch that activates it |
 
 A recovery rotation, a Declaration of any class accepted inside an open
 window, a fresh identity that becomes pending, a replacement of a pending

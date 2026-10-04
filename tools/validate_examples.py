@@ -791,7 +791,7 @@ def _state_tuple_encoding():
                    for m in v["prefixItems"]), f"untyped member in {v['prefixItems'][0]}"
     expected = {"aggregator_key", "declaration", "pending_declaration", "parameter",
                 "recovery_window", "suffix_list", "withdrawal", "label", "dispute", "record",
-                "collection", "removal"}
+                "collection", "removal", "registry_update"}
     assert kinds == expected, f"kinds mismatch: {kinds ^ expected}"
     state = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())["state"]
     digest = "sha256:" + hashlib.sha256(
@@ -1999,6 +1999,14 @@ def _record_snapshot_tuples(case):
     assert removals == sorted(rfc8785.dumps(t) for t in tuples if t[0] == "removal")
     withdrawals = sorted(rfc8785.dumps(["withdrawal", i, publishers[i], h]) for i, h in state["withdrawn"].items())
     assert withdrawals == sorted(rfc8785.dumps(t) for t in tuples if t[0] == "withdrawal")
+    accepted = {}
+    for epoch in case["epochs"][:height + 1]:
+        for e in epoch["events"]:
+            if e["event"] == "withdrawal":
+                accepted.setdefault(e["update"], epoch["height"])
+    assert sorted(rfc8785.dumps(["registry_update", i, h]) for i, h in accepted.items()) == \
+        sorted(rfc8785.dumps(t) for t in tuples if t[0] == "registry_update"), \
+        "the Snapshot's registry_update tuples are not one per accepted Registry Update"
     assert {t[1] for t in tuples if t[0] == "declaration"} == state["declared"]
     return state
 
@@ -2065,8 +2073,8 @@ def _sealing_duties(history, window_from_removal=False):
         verdicts = {d["name"]: d["disposition"] for d in expected["entries"]}
         records = {_item_id(r["item"]) for r in expected["state"]["records"]}
         for named in epoch["entries"]:
-            entry = named["entry"]
-            if verdicts.get(named["name"]) != "valid":
+            entry = named.get("entry")
+            if verdicts.get(named["name"]) != "valid" or entry is None:
                 continue
             if entry["type"] == "registry_update":
                 withdrawn.add(entry["body"]["update"]["details"]["delta_id"])
@@ -2193,7 +2201,8 @@ def _dc3_materialization_preference():
     assert "The record materialized is then the **nearest ancestor**'s" in prose
     assert "among such Publishers the least domain in ascending octet order does" in prose
     assert "return when the preferred record leaves" in prose
-    assert "From the height at which the first `publisher_declaration` Entry whose `domain` is the host is sealed" in prose
+    assert ("From the height of the first accepted Epoch (WIST-1 §5.2) that seals a `publisher_declaration` Entry "
+            "whose `domain` is the host") in prose
 check("vectors:wist3-materialization-preference", _dc3_materialization_preference)
 
 def _dc3_materialization_preference_twin():
@@ -2393,6 +2402,7 @@ def _dc4_parameter_in_force():
                    "the one later in Log order (WIST-3 §3.3: ascending Epoch number, then Entry index) prevails"):
         assert marker in prose, f"§5 does not state: {marker!r}"
 check("vectors:wist4-parameter-in-force", _dc4_parameter_in_force)
+
 
 def _dc4_parameter_in_force_twin():
     """The check above must notice an exclusive endpoint and a tie broken
@@ -2827,6 +2837,7 @@ NON_CONTENT_DIGESTS = {
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[11]/prefixItems[3]"): "the Item ID of an Item of kind removed (WIST-3 §7): SHA-256 over an Item that carries a URL and an instant, no page content",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[11]/prefixItems[4]"): "the Catalog ID the Item of kind removed was proved against (WIST-3 §7): SHA-256 over a Catalog that carries no page content",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[8]/prefixItems[1]"): "a Public Suffix List snapshot identifier: SHA-256 over a list of domain-name rules, no page content (WIST-4 §3.1)",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[12]/prefixItems[1]"): "a Registry Update ID (WIST-4 §2): SHA-256 over an update, which carries no page content",
     ("registry-update.schema.json", "allOf[4]/then/properties/update/properties/subject"): "a Public Suffix List snapshot identifier: SHA-256 over a list of domain-name rules, no page content (WIST-4 §3.1)",
     ("registry-update.schema.json", "allOf[4]/then/properties/update/properties/details/properties/sha256"): "a Public Suffix List snapshot identifier: SHA-256 over a list of domain-name rules, no page content (WIST-4 §3.1)",
 }
@@ -3047,7 +3058,7 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/withdrawal.json", "replay_state_tuples"): "fixture Item IDs inside WIST-3 §7 withdrawal tuples",
     ("vectors/wist4/withdrawal.json", "removal_tuples"):
         "fixture Item IDs of Items of kind removed and Catalog IDs inside WIST-3 §7 removal tuples",
-    ("vectors/wist4/registrable-domain.json", "entries"): "Public Suffix List snapshot identifiers inside WIST-3 §7 suffix_list tuples",
+    ("vectors/wist4/registrable-domain.json", "entries"): "Public Suffix List snapshot identifiers and Registry Update IDs inside WIST-3 §7 suffix_list and registry_update tuples",
     ("vectors/wist3/timestamps.json", "entries"): "a placeholder Label ID inside a WIST-3 §7 label or dispute tuple whose timestamp position is probed",
     ("examples/dispute.json", "label"): "the disputed Label's ID: SHA-256 over a Label, no page content (WIST-2 §3.3)",
     ("examples/dispute.json", "value"): "an Ed25519 signature over the example dispute",
@@ -3281,6 +3292,22 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/served-files.json", "catalog"): "a Catalog ID (ADR-0052) naming a served Catalog the file does not carry, no page content",
     ("vectors/wist2/served-files.json", "withdrawn"): "Item IDs a payload_withdrawal names (WIST-2 §3.1): SHA-256 over Items that carry only a salted commitment",
     ("vectors/wist3/catalog-sealing.json", "salt"): "Payload salts",
+    ("vectors/wist2/labels.json", "item"):
+        "an Item ID (WIST-1 §4.1) a record carries: SHA-256 over an Item that carries only a salted commitment",
+    ("vectors/wist3/record-materialization.json", "update"):
+        "a Registry Update ID (WIST-4 §2): SHA-256 over an update, which carries no page content",
+    ("vectors/wist4/parameter-in-force.json", "public_key"): "the fixture Log public key",
+    ("vectors/wist4/parameter-in-force.json", "value"): "an Ed25519 signature",
+    ("vectors/wist4/parameter-in-force.json", "snapshot_tuples"):
+        "Registry Update IDs inside WIST-3 §7 registry_update tuples: SHA-256 over an update, no page content",
+    ("vectors/wist4/withdrawal.json", "registry_update_tuples"):
+        "Registry Update IDs inside WIST-3 §7 registry_update tuples: SHA-256 over an update, no page content",
+    ("vectors/wist3/catalog-sealing.json", "label"):
+        "a Label ID (WIST-2 §3.3): SHA-256 over a Label, which carries a subject, a name and an integer, no page content",
+    ("vectors/wist3/catalog-sealing.json", "dispute"):
+        "a Dispute ID (WIST-2 §3.3): SHA-256 over a dispute, which carries a Label ID and a reason URL, no page content",
+    ("vectors/wist3/catalog-sealing.json", "item_id"):
+        "an Item ID (WIST-1 §4.1) in a content tuple (WIST-3 §7): SHA-256 over an Item that carries only a salted commitment",
     ("vectors/multilog/catalog-order.json", "salt"): "Payload salts",
 }
 
@@ -3693,7 +3720,7 @@ def _sealed_publisher_item_bodies():
         verdicts = {d["name"]: d for ex in history["expected"] for d in ex.get("entries", [])}
         for epoch in history["epochs"]:
             for named in epoch["entries"]:
-                entry = named["entry"]
+                entry = named.get("entry")
                 if not isinstance(entry, dict) or set(entry) != {"type", "body"} or entry["type"] != "publisher_item":
                     continue
                 verdict = verdicts.get(named["name"], {})
@@ -7473,6 +7500,8 @@ def _dc4_withdrawal():
         assert ordered(snap_removals) == ordered(snapshot["removal_tuples"])
         adopted = {t[1]: (t[3], t[2]) for t in snapshot["adopted"]}
         assert adopted == {i: hp for i, hp in withdrawn.items() if hp[0] <= top}
+        assert ordered(snapshot["registry_update_tuples"]) == ordered(
+            [["registry_update", i, h] for i, h in accepted.items() if h <= top])
         assert all(c["height"] > top for c in snapshot["act_cases"])
 
         def resumed(identifier, subject, height):
@@ -7490,7 +7519,8 @@ def _dc4_withdrawal():
     adopted, resumed = resumed_judge(resume)
     cases = resume["act_cases"]
     after = _withdrawal_replay(cases, lambda c, ids: _withdrawal_judged(c, validator, log_key, key_id, resumed, ids),
-                               dict(adopted), "code", "withdrawn_height", {})
+                               dict(adopted), "code", "withdrawn_height",
+                               {t[1]: t[2] for t in resume["registry_update_tuples"]})
     assert after == ordered(resume["state_tuples"])
     replayed = _withdrawal_replay(cases, lambda c, ids: _withdrawal_judged(c, validator, log_key, key_id, meets, ids),
                                   dict(adopted), "replay_code", "replay_withdrawn_height",
@@ -7515,7 +7545,8 @@ def _dc4_withdrawal():
     assert again["snapshot_height"] > resume["snapshot_height"]
     after_again = _withdrawal_replay(again["act_cases"],
                                      lambda c, ids: _withdrawal_judged(c, validator, log_key, key_id, resumed_again, ids),
-                                     dict(adopted_again), "code", "withdrawn_height", {})
+                                     dict(adopted_again), "code", "withdrawn_height",
+                                     {t[1]: t[2] for t in again["registry_update_tuples"]})
     assert after_again == ordered(again["state_tuples"])
     _withdrawal_replay(again["act_cases"], lambda c, ids: _withdrawal_judged(c, validator, log_key, key_id, meets, ids),
                        dict(adopted_again), "replay_code", "replay_withdrawn_height",
@@ -7597,6 +7628,54 @@ def _envelope_verifies(raw_pub: bytes, envelope: dict, inner: str = "update") ->
         return True
     except (InvalidSignature, ValueError):
         return False
+
+def _parameter_resume_run(case, epochs, accepted, amendments):
+    public = b64u_decode(case["log_key"]["public_key"])
+    for epoch in epochs:
+        for index, envelope in enumerate(epoch["acts"]):
+            update = envelope["update"]
+            assert envelope["sig"]["key_id"] == case["log_key"]["key_id"] and _envelope_verifies(public, envelope)
+            assert update["action"] == "parameter_change" and update["subject"] == case["parameter"] \
+                == update["details"]["parameter"]
+            identifier = _registry_update_id(update)
+            if identifier in accepted:
+                continue
+            if log_seconds(update["effective_at"]) - log_seconds(epoch["sealed_at"]) < 7 * 86400:
+                continue
+            accepted[identifier] = epoch["epoch_number"]
+            amendments.append({"effective_at_s": log_seconds(update["effective_at"]),
+                               "epoch_number": epoch["epoch_number"], "entry_index": index,
+                               "value": update["details"]["value"], "effective_at": update["effective_at"]})
+    return _value_in_force(case["default"], amendments, log_seconds(case["query_at"]))[0]
+
+def _dc4_parameter_resume():
+    v = _parameter_vector()
+    assert v["resume_cases"]
+    for case in v["resume_cases"]:
+        top = case["snapshot_epoch"]
+        accepted, amendments = {}, []
+        _parameter_resume_run(case, case["epochs"][:top + 1], accepted, amendments)
+        live = [a for a in amendments if not any(
+            b["effective_at_s"] == a["effective_at_s"] and (b["epoch_number"], b["entry_index"])
+            > (a["epoch_number"], a["entry_index"]) for b in amendments)]
+        tuples = [["parameter", case["parameter"], a["effective_at"], a["value"]] for a in live]
+        tuples += [["registry_update", i, h] for i, h in accepted.items()]
+        assert sorted(map(rfc8785.dumps, tuples)) == sorted(map(rfc8785.dumps, case["snapshot_tuples"])), \
+            f"{case['label']}: the Snapshot's tuples are not the replayed state"
+        envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+        envelope["state"]["entries"] = case["snapshot_tuples"]
+        Draft202012Validator(json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text())).validate(envelope)
+        replayed = _parameter_resume_run(case, case["epochs"], {}, [])
+        adopted = {t[1]: t[2] for t in case["snapshot_tuples"] if t[0] == "registry_update"}
+        resumed_amendments = [{"effective_at_s": log_seconds(t[2]), "epoch_number": top, "entry_index": -1,
+                               "value": t[3]} for t in case["snapshot_tuples"] if t[0] == "parameter"]
+        later = case["epochs"][top + 1:]
+        resumed = _parameter_resume_run(case, later, adopted, list(resumed_amendments))
+        without = _parameter_resume_run(case, later, {}, list(resumed_amendments))
+        assert (replayed, resumed, without) == (case["replayed_value"], case["resumed_value"],
+                                                case["value_resumed_without_registry_update_tuples"]), case["label"]
+        assert replayed == resumed != without, f"{case['label']}: the registry_update tuples decide nothing"
+check("vectors:wist4-parameter-resume", _dc4_parameter_resume)
 
 
 def _keys_valid_at(tuples, genesis_key_id: str, height: int) -> set:
@@ -7919,8 +7998,13 @@ def _wist3_aggregator_keys():
                         complete.add(json.dumps(["parameter", update["subject"],
                                                  update["effective_at"],
                                                  update["details"]["value"]]))
+                    if code is None and epoch["epoch_number"] <= history["verified_head"] and not any(
+                            json.loads(t)[0] == "registry_update" and json.loads(t)[1] == _registry_update_id(update)
+                            for t in complete):
+                        complete.add(json.dumps(["registry_update", _registry_update_id(update),
+                                                 epoch["epoch_number"]]))
             envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
-            saw_removed_tuple = False
+            saw_removed_tuple, omitted_updates = False, False
             for case in snapshot["cases"]:
                 envelope["state"]["entries"] = case["entries"]
                 envelope["state"]["tree_size"] = snapshot["tree_size"]
@@ -7935,9 +8019,12 @@ def _wist3_aggregator_keys():
                 else:
                     missing = [json.loads(t) for t in complete - carried]
                     assert missing and all(t[0] == "aggregator_key" and t[4] is not None
-                                           for t in missing), \
-                        f"{history['name']}: {case['name']!r} omits a tuple that is not a removed key's"
+                                           or t[0] == "registry_update" for t in missing), \
+                        f"{history['name']}: {case['name']!r} omits a tuple that is neither a removed key's " \
+                        "nor an accepted Registry Update's"
+                    omitted_updates |= any(t[0] == "registry_update" for t in missing)
             assert saw_removed_tuple, "no verifying state file carries a removed key's tuple"
+            assert omitted_updates, "no state file omitting the registry_update tuples is refused"
 
     assert seen_codes == {None, "WIST4-E04", "WIST4-E11"}, \
         f"the histories do not exercise every disposition: {sorted(map(str, seen_codes))}"
@@ -8392,7 +8479,8 @@ def _wist3_snapshot_keys():
         # Anchor is the only thing that rejects it.
         if case.get("self_consistent"):
             self_consistent += 1
-            at_epoch = _keys_valid_at(tuples, genesis["key_id"], epoch_number)
+            at_epoch = _keys_valid_at([t for t in tuples if t[0] == "aggregator_key"], genesis["key_id"],
+                                      epoch_number)
             _verify_checkpoint_keyset(
                 case["checkpoint"], log_id,
                 {t[1]: b64u_decode(t[2]) for t in tuples if t[1] in at_epoch})
@@ -8454,8 +8542,15 @@ def _wist3_snapshot_keys():
         "the tie-break restates a digest neither case carries"
     assert accepted["state_digest"] != alternate["state_digest"], \
         "the two removals leave one state_digest, so the tie-break decides nothing recomputable"
+    accepted_updates = {}
+    for epoch_, codes in zip(history["epochs"], replay["dispositions"]):
+        if epoch_["epoch_number"] <= tie["epoch_number"] and epoch_["checkpoint"] is not None:
+            for entry, code in zip(epoch_["entries"], codes):
+                if code is None:
+                    accepted_updates.setdefault(_registry_update_id(entry["body"]["update"]), epoch_["epoch_number"])
     rebuilt = "sha256:" + hashlib.sha256(b"".join(sorted(
-        rfc8785.dumps(t) for t in replay["states"][tie["epoch_number"]]))).hexdigest()
+        rfc8785.dumps(t) for t in replay["states"][tie["epoch_number"]]
+        + [["registry_update", i, h] for i, h in accepted_updates.items()]))).hexdigest()
     assert rebuilt == tie["accepted_state_digest"], \
         "a replaying Consumer's own rebuild is not the accepted case's state_digest"
     assert accepted["expected"] == alternate["expected"] == "accept", \
@@ -8636,7 +8731,8 @@ def _wist3_snapshot_keys_twin():
         "reading a key act at its own height did not admit the self-signed addition"
     restated = next(c for c in v["cases"]
                     if c.get("self_consistent") and c["violations"]["tuple_rules"] == [2]
-                    and len([t for t in c["state"]["state"]["entries"] if t[5] is None]) == 1)
+                    and len([t for t in c["state"]["state"]["entries"]
+                             if t[0] == "aggregator_key" and t[5] is None]) == 1)
     assert not _snapshot_case_outcome(restated, history, anchor, validator,
                                       genesis_binding=False)["tuple_rules"], \
         "dropping rule 2's comparison against the Anchor did not admit the restated genesis key"
@@ -8689,7 +8785,7 @@ def _wist3_snapshot_keys_twin():
         for index in range(len(case["state"]["state"]["entries"])):
             mutated = copy.deepcopy(case)
             tuple_ = mutated["state"]["state"]["entries"][index]
-            if tuple_[position] == replacement:
+            if tuple_[0] != "aggregator_key" or tuple_[position] == replacement:
                 continue
             tuple_[position] = replacement
             assert _snapshot_case_outcome(mutated, history, anchor, validator)["tuple_rules"], \
@@ -8866,7 +8962,9 @@ def _dc4_registrable_domain():
         for h, n in accepted:
             if h <= state["tree_size"] and (pinned is None or pinned[1] != n):
                 pinned = (h, n)
-        assert state["entries"] == [["suffix_list", lists[pinned[1]]["sha256"], pinned[0]]], state
+        updates = [["registry_update", _registry_update_id(json.loads(c["envelope_json"])["update"]), c["height"]]
+                   for c in v["act_cases"] if c["code"] is None and c["height"] <= state["tree_size"]]
+        assert state["entries"] == [["suffix_list", lists[pinned[1]]["sha256"], pinned[0]]] + updates, state
     assert any(h > s["entries"][0][2] for h, _ in accepted for s in v["state_tuples"]
                if h <= s["tree_size"]), "no repeated pin leaves the tuple's height alone"
     schema = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text()))
@@ -9190,6 +9288,13 @@ def _usable_point(encoded):
         return False
     return not ed25519_curve._is_identity(ed25519_curve._mul(8, point))
 
+def _materialized_binding(case, any_record=False):
+    live = {r["publisher"]: r["item"] for r in case["records"] if not r["withdrawn"]}
+    if any_record:
+        return case["materialized"], case["delta"] in live.values()
+    chosen = _materialization_preference(_url_host(case["subject"]), case["host_declared"], list(live))
+    return chosen, chosen is not None and live[chosen] == case["delta"]
+
 def _label_vectors():
     """WIST-2 §3.3 and WIST-4 §6: every case's disposition is recomputed over
     the example Declaration, the accepted Label IDs reproduce, and the
@@ -9262,6 +9367,11 @@ def _label_vectors():
         applies = case["record_item"] is not None and (case["delta"] is None or case["delta"] == case["record_item"])
         assert applies == case["applies"], case["name"]
     assert {c["applies"] for c in v["binding_cases"]} == {True, False}
+    for case in v["materialized_binding_cases"]:
+        chosen, applies = _materialized_binding(case)
+        assert (chosen, applies) == (case["materialized"], case["applies"]), case["name"]
+    assert any(c["applies"] is False and any(r["item"] == c["delta"] and not r["withdrawn"] for r in c["records"])
+               for c in v["materialized_binding_cases"]), "no Label bound to a record that is not materialized"
     outcomes_expiry = {c["expected"] for c in v["cases"] if "expires_at" in c["envelope"]["label"]}
     assert outcomes_expiry == {"accepted", "fields"}, "expiry cases do not cover both dispositions"
     assert {c["expected"] for c in v["cases"] if "delta" in c["envelope"]["label"]} == {"accepted", "fields"}
@@ -9273,7 +9383,8 @@ def _label_vectors():
             "a Catalog's `generated_at`") in prose
     assert "an `asserted_at` beyond the clock allowance" in prose
     assert "applies nothing at an Epoch whose `sealed_at` is at or after that instant" in prose
-    assert "the Label applies only while the subject URL's record carries that Item (WIST-3 §7)" in prose
+    assert ("the Label applies only while the subject URL's materialized record (WIST-3 §7, **One URL, one "
+            "Publisher**) carries that Item") in prose
     assert ("by the binding check WIST-1 §5.1 gives a Catalog, with `asserted_at` in the place of "
             "`generated_at` for key validity, over `keys` alone") in prose
     windowed = [c for c in v["cases"] if c["expected"] in ("accepted", "binding")
@@ -9306,6 +9417,8 @@ def _label_vectors_twin():
     beyond = next(c for c in v["cases"] if c["name"] == "asserted_at a fraction beyond the allowance")
     assert _label_disposition(beyond["envelope"], v["declaration"], validator, v["url_cap_bytes"], terms,
                               v["clock"], v["clock_skew_seconds"] + 1) == "accepted"
+    assert any(_materialized_binding(c, any_record=True)[1] != c["applies"]
+               for c in v["materialized_binding_cases"]), "a Label read against any record of its URL passes"
     tie = next(c for c in v["current_cases"] if c["name"] == "equal instants break by Epoch number")
     reversed_order = min(tie["sealed"], key=lambda s: (s["height"], s["entry_index"]))
     assert reversed_order["label_id"] != tie["current"]

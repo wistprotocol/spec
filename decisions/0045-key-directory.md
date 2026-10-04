@@ -62,7 +62,12 @@ or produce.
   previous Key Set or its recovery keys, naming the previous current
   Declaration and sealed before that height, reverses the pending
   identity: it is discarded and never becomes current. The pending head
-  and its activation height are Snapshot state. With
+  and its activation height are Snapshot state. Where the Epoch at the
+  activation height is rejected, the pending head activates at the
+  first accepted Epoch above it, and the identity reset and the
+  narrowing take that Epoch's height: a rejected Epoch applies nothing,
+  and leaving the head pending for ever would let one rejected Epoch
+  cancel an activation no key holder reversed. With
   `declaration_activation_epochs` at 0 the fresh identity becomes current
   when its Declaration applies, so a Declaration of higher `seq` applied
   later in the same Epoch meets it as current and cannot reverse it, and

@@ -567,7 +567,9 @@ above is rejected with that failure's code whether or not its ID was
 accepted earlier, and changes no state either way. An occurrence that
 passes them and carries an ID already accepted at a lower Epoch, or
 earlier in the same Epoch, is idempotent — it applies nothing and rejects
-nothing, so only the earliest sealing Epoch participates.
+nothing, so only the earliest sealing Epoch participates. A Consumer
+resumed from a Snapshot holds as accepted at or below its `tree_size` the
+IDs of the Snapshot's `registry_update` tuples (WIST-3 §7).
 
 `wist_version` MUST contain exactly three dot-separated nonnegative ASCII
 decimal components, without leading zeros except `0` itself, prerelease
@@ -692,8 +694,8 @@ Registrable Domain into one node under the snapshot in force at the
 height ranked, so that a thousand free subdomains are one voice and
 hosts under a private-section suffix keep theirs; and read a domain's
 age from the height of the first Entry the Log seals for it — its first
-`publisher_declaration` Entry, or the activation height of a fresh
-identity (WIST-1 §5.2) — never from registration records, WHOIS or any source
+`publisher_declaration` Entry, or the height at which a fresh identity
+activates (WIST-1 §5.2) — never from registration records, WHOIS or any source
 outside the Log, which are neither replayable nor bound to the keys
 that sign.
 An Aggregator MUST seal every eligible Label it pulls whatever its name
@@ -766,7 +768,7 @@ MUST NOT reuse them for another meaning.
   the Log as a Declaration signed by neither the previous Key Set nor its
   recovery keys, takes effect only after its activation delay, and a
   Consumer reading a domain's age or publication history from the Log
-  reads it from the activation height.
+  reads it from the height at which it activates.
 - **Free hostnames.** A hostname under a domain one already holds, or
   under a hosting provider's suffix, costs nothing, so any bound keyed
   per hostname is no bound. Quota, ingest budget and Epoch capacity are
@@ -844,8 +846,9 @@ enters the Log.
       checks and their precedence, authenticating a key act under the
       keys valid at the previous height, ignores a key-act failure as
       `WIST4-E04`, and treats a repeated Registry Update ID as
-      idempotent only in an occurrence that passes field validation
-      (§5.1, WIST-3 §3.4)
+      idempotent only in an occurrence that passes field validation,
+      reading the IDs accepted up to a Snapshot it resumed from in that
+      Snapshot's `registry_update` tuples (§5.1, WIST-3 §§3.4, 7)
 - [ ] Rejects a `parameter_change` that fails a bound, a combination
       rule, the Epoch-size guarantee or the grace period, preserving the
       accepted schedule (§5, §7)

@@ -10,7 +10,7 @@
       "type": "object",
       "required": ["wist_version", "tree_size", "entries"],
       "additionalProperties": false,
-      "description": "The protocol state at tree_size, as one tuple per live item and per removed Aggregator key. Each tuple is a JSON array whose first member names its kind; WIST-3 §7's table is the normative inventory of kinds and their fields, in prose, on the pattern WIST-4 §5.1 sets for Registry Update details. Every field is Log-derived — no page content — so the state_digest over these tuples survives any withdrawal.",
+      "description": "The protocol state at tree_size, as one tuple per live item, per removed Aggregator key and per accepted Registry Update. Each tuple is a JSON array whose first member names its kind; WIST-3 §7's table is the normative inventory of kinds and their fields, in prose, on the pattern WIST-4 §5.1 sets for Registry Update details. Every field is Log-derived — no page content — so the state_digest over these tuples survives any withdrawal.",
       "properties": {
         "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "tree_size": {"type": "integer", "minimum": 0, "description": "The manifest's `tree_size`, the tree size Checkpoint `epoch_number` states (WIST-3 §7)."},
@@ -158,6 +158,15 @@
                 ],
                 "items": false,
                 "minItems": 6
+              },
+              {
+                "prefixItems": [
+                  {"const": "registry_update"},
+                  {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID (WIST-4 section 2) of an accepted Registry Update: SHA-256 over JCS of its update, which carries no page content."},
+                  {"type": "integer", "minimum": 0, "description": "The sealing height of the Epoch whose occurrence of the act was accepted."}
+                ],
+                "items": false,
+                "minItems": 3
               }
             ]
           }

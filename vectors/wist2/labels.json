@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration, every case validated at clock under clock_skew_seconds: accepted means the Label validates and its label_id seals; fields, clock and self are WIST2-E06, clock being an asserted_at beyond the inclusive allowance clock + clock_skew_seconds (WIST-1 section 3.4's rule read over asserted_at: the validator's clock before sealing, the committing Epoch's sealed_at once sealed); signature and binding keep WIST-1 codes. The key check is WIST-1 section 5.1's binding check for a Catalog over `keys` alone, with asserted_at in the place of generated_at: binding (WIST1-E02) where no usable entry of `keys` named by sig.key_id has a window holding asserted_at, a Collection's keys taking no part; signature (WIST1-E01) where none of those verifies. A case naming `declaration` is judged under that entry of `declarations` instead of the example Declaration. Every asserted_at a key window is compared with is a whole second. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, null where the current Label is retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a Label's delta, an Item ID, against the Item the subject URL's record carries (record_item, null where no record stands): a bound Label applies only while the record carries that Item. A value is an integer by the number it denotes (WIST-1 section 4): a case naming envelope_json is judged over that JSON text, which denotes the same value as envelope in another spelling, and a value spelled with a zero fraction, an exponent or a negative zero has the Label ID of the plain spelling.",
+  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration, every case validated at clock under clock_skew_seconds: accepted means the Label validates and its label_id seals; fields, clock and self are WIST2-E06, clock being an asserted_at beyond the inclusive allowance clock + clock_skew_seconds (WIST-1 section 3.4's rule read over asserted_at: the validator's clock before sealing, the committing Epoch's sealed_at once sealed); signature and binding keep WIST-1 codes. The key check is WIST-1 section 5.1's binding check for a Catalog over `keys` alone, with asserted_at in the place of generated_at: binding (WIST1-E02) where no usable entry of `keys` named by sig.key_id has a window holding asserted_at, a Collection's keys taking no part; signature (WIST1-E01) where none of those verifies. A case naming `declaration` is judged under that entry of `declarations` instead of the example Declaration. Every asserted_at a key window is compared with is a whole second. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, null where the current Label is retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a Label's delta, an Item ID, against the Item the subject URL's record carries (record_item, null where no record stands): a bound Label applies only while the record carries that Item. materialized_binding_cases give the records of one subject URL held by two Publishers, example.com, an ancestor of the URL's host, and zeta.example, which is not, each with its Item ID and whether a withdrawal names it, and whether a publisher_declaration Entry of the host is sealed (host_declared): the Label reads the materialized record that WIST-3 section 7's One URL, one Publisher rule selects (materialized, null where it selects none), and applies only while that record carries the Item delta names, whatever the other record carries. A value is an integer by the number it denotes (WIST-1 section 4): a case naming envelope_json is judged over that JSON text, which denotes the same value as envelope in another spelling, and a value spelled with a zero fraction, an exponent or a negative zero has the Label ID of the plain spelling.",
   "declaration": {
     "publisher": {
       "wist_version": "1.0.0",
@@ -2166,6 +2166,108 @@
       "name": "unbound with no live record",
       "delta": null,
       "record_item": null,
+      "applies": false
+    }
+  ],
+  "materialized_binding_cases": [
+    {
+      "name": "bound to the Item of the materialized record",
+      "subject": "https://news.example.com/u",
+      "host_declared": false,
+      "records": [
+        {
+          "publisher": "example.com",
+          "item": "sha256:63df5bcb80e53c7cd17303394b7932483acbc0da22c50685fff5f1847c51a9e1",
+          "withdrawn": false
+        },
+        {
+          "publisher": "zeta.example",
+          "item": "sha256:1a2dc616bf3f6366cd08f734e4f52172eb35473738ac3a0188889d6d7336f7df",
+          "withdrawn": false
+        }
+      ],
+      "delta": "sha256:63df5bcb80e53c7cd17303394b7932483acbc0da22c50685fff5f1847c51a9e1",
+      "materialized": "example.com",
+      "applies": true
+    },
+    {
+      "name": "bound to the Item of a record not materialized",
+      "subject": "https://news.example.com/u",
+      "host_declared": false,
+      "records": [
+        {
+          "publisher": "example.com",
+          "item": "sha256:63df5bcb80e53c7cd17303394b7932483acbc0da22c50685fff5f1847c51a9e1",
+          "withdrawn": false
+        },
+        {
+          "publisher": "zeta.example",
+          "item": "sha256:1a2dc616bf3f6366cd08f734e4f52172eb35473738ac3a0188889d6d7336f7df",
+          "withdrawn": false
+        }
+      ],
+      "delta": "sha256:1a2dc616bf3f6366cd08f734e4f52172eb35473738ac3a0188889d6d7336f7df",
+      "materialized": "example.com",
+      "applies": false
+    },
+    {
+      "name": "the materialized record's Item withdrawn, bound to it",
+      "subject": "https://news.example.com/u",
+      "host_declared": false,
+      "records": [
+        {
+          "publisher": "example.com",
+          "item": "sha256:63df5bcb80e53c7cd17303394b7932483acbc0da22c50685fff5f1847c51a9e1",
+          "withdrawn": true
+        },
+        {
+          "publisher": "zeta.example",
+          "item": "sha256:1a2dc616bf3f6366cd08f734e4f52172eb35473738ac3a0188889d6d7336f7df",
+          "withdrawn": false
+        }
+      ],
+      "delta": "sha256:63df5bcb80e53c7cd17303394b7932483acbc0da22c50685fff5f1847c51a9e1",
+      "materialized": "zeta.example",
+      "applies": false
+    },
+    {
+      "name": "the materialized record's Item withdrawn, bound to the record materialized instead",
+      "subject": "https://news.example.com/u",
+      "host_declared": false,
+      "records": [
+        {
+          "publisher": "example.com",
+          "item": "sha256:63df5bcb80e53c7cd17303394b7932483acbc0da22c50685fff5f1847c51a9e1",
+          "withdrawn": true
+        },
+        {
+          "publisher": "zeta.example",
+          "item": "sha256:1a2dc616bf3f6366cd08f734e4f52172eb35473738ac3a0188889d6d7336f7df",
+          "withdrawn": false
+        }
+      ],
+      "delta": "sha256:1a2dc616bf3f6366cd08f734e4f52172eb35473738ac3a0188889d6d7336f7df",
+      "materialized": "zeta.example",
+      "applies": true
+    },
+    {
+      "name": "a self-declared host holding no record",
+      "subject": "https://news.example.com/u",
+      "host_declared": true,
+      "records": [
+        {
+          "publisher": "example.com",
+          "item": "sha256:63df5bcb80e53c7cd17303394b7932483acbc0da22c50685fff5f1847c51a9e1",
+          "withdrawn": false
+        },
+        {
+          "publisher": "zeta.example",
+          "item": "sha256:1a2dc616bf3f6366cd08f734e4f52172eb35473738ac3a0188889d6d7336f7df",
+          "withdrawn": false
+        }
+      ],
+      "delta": "sha256:63df5bcb80e53c7cd17303394b7932483acbc0da22c50685fff5f1847c51a9e1",
+      "materialized": null,
       "applies": false
     }
   ]

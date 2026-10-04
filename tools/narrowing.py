@@ -245,7 +245,7 @@ class Replay:
             head = self.window["chain_head"]
             self.current, self.window = head, None
             self.narrow("settlement", head, height, transitions)
-        if self.pending and self.pending["activation_height"] == height:
+        if self.pending and self.pending["activation_height"] <= height:
             self.activate(height, transitions)
         by_seq = {}
         for envelope in epoch["declarations"]:

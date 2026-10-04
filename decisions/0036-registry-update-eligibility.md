@@ -53,7 +53,10 @@ around an accepted `update` can itself be malformed, and one order of the
 two checks gives every validator one diagnostic. An occurrence that passes
 them and carries an ID already accepted at a lower Epoch, or earlier in the
 same Epoch, is idempotent, so a re-sealed Entry never re-applies or
-conflicts with itself.
+conflicts with itself. A Snapshot carries one `registry_update` tuple
+per accepted ID, of every action, with the height of the Epoch whose
+occurrence was accepted (WIST-3 §7), and a Consumer resumed from it holds
+those IDs as accepted.
 
 ## Alternatives and consequences
 
@@ -68,6 +71,17 @@ Payload.
 Reusing `WIST1-E01` for every failing signature would mislabel an act signed
 under the wrong key, whose signature may verify under a key the rule does not
 admit.
+
+Leaving a resumed Consumer to judge a repeat as a first occurrence changes
+state, not only a diagnostic. Two `parameter_change` acts A and B with one
+`effective_at`, B sealed later and so prevailing (WIST-4 §5), are followed
+by A sealed again while its `effective_at` is still `param_grace_days`
+ahead: on replay the repeat is idempotent and B stays in force, while a
+Consumer resumed from a Snapshot between B and the repeat, without A's
+ID, would accept the repeat as later in Log order and put A in force. The tuple adds one ID
+and one height per accepted act: of the other kinds only `aggregator_key`
+carries the act that produced it, and a superseded amendment has no
+`parameter` tuple.
 
 `vectors/wist4/withdrawal.json` and `vectors/wist4/registrable-domain.json`
 carry unknown-member, unsupported-major, foreign-key and contract cases for

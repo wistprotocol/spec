@@ -29,8 +29,9 @@ on how much one party can say.
   lives.
 - **A Label can bind to one publication.** An OPTIONAL `delta`, an Item
   ID, on a URL subject binds the Label to that Item: the Label applies
-  only while the URL's record carries the Item, and a later Item of the
-  URL is not covered. The binding is not checked against any Log at
+  only while the URL's materialized record (ADR-0039) carries the Item,
+  and nothing while the URL has no materialized record or one carrying
+  another Item, whatever other records of the URL exist. The binding is not checked against any Log at
   pull, since the Item may be sealed elsewhere.
 - **A Labeler defines the names it uses.** A signed label definition
   per name, served under the Labeler's well-known prefix at a path
@@ -54,12 +55,20 @@ on how much one party can say.
   Registrable Domain per Epoch, inside the per-domain capacity and
   never above it, and a Consumer rejects an Epoch over it as it rejects
   one over the capacity.
+- **A sealed Label or dispute that fails its checks is ignored.** A
+  `label` or `dispute` Entry failing any check WIST-2 §3.3 gives it,
+  judged at its Epoch, a binding failure included, applies nothing and
+  enters no table; its Epoch stays accepted and the Consumer reports the
+  code. It still counts toward the capacity and the per-Labeler cap of
+  the Registrable Domain its `labeler` or `disputant` names, and a
+  `label` Entry whose Label ID is computable still holds that ID under
+  the rule that seals a Label once.
 - **A default profile is recommended.** Count `wist:mismatch` and
   `wist:unavailable` only once they persist across two consecutive
   Epochs, and ignore a Labeler with no sealed Entry within a configured
   number of Epochs, 720 by default. Both read the Log alone.
 - **The Aggregator publishes labeler statistics.** A per-Labeler table
-  of sealed Labels, retractions, distinct subjects and first-seen
+  of valid sealed Labels, retractions, distinct subjects and first-seen
   height, derived from Entry counts without reading any Label's
   meaning, so a subscription decision can start from behavior.
 
@@ -82,6 +91,20 @@ on how much one party can say.
 - **A dispute count in the labeler table.** Derivable from the dispute
   table by a join; left out to keep the statistics table a pure count
   over `label` Entries.
+- **Rejecting the Epoch of a failing sealed Label or dispute.** A
+  Catalog or Item that fails its judgment is ignored, not fatal, and an
+  opinion about another party carries no more weight in the Log than a
+  publication; rejecting would let one Labeler's defect stop every
+  Consumer's replay.
+- **Exempting an ignored Entry from the counts.** The capacity, the
+  cap and the single sealing of a Label ID are read before or beside
+  judgment; counting only valid Entries would make each depend on the
+  Declaration in force and the clock, and the Aggregator holds every
+  Label ID it sealed as seen whatever its judgment found.
+- **Binding `delta` to any record of the URL.** A URL can carry records
+  under two Publishers (ADR-0039); a Label bound to an Item that a
+  query never shows would apply to a record nobody reads, so the
+  binding reads the one record materialized.
 
 ## Consequences
 
@@ -93,6 +116,8 @@ on how much one party can say.
   cases; `vectors/wist2/disputes.json`, `vectors/wist2/label-definitions.json`
   and `vectors/wist3/label-tables.json` are new; the parameter
   combination vectors carry the cap rule.
+- Replay judges every `label` and `dispute` Entry at its Epoch, and the
+  labeler table counts valid `label` Entries alone.
 - Implementations add expiry and binding to Label validation and
   materialization, dispute pulling and sealing, definition publication
   and reading, the per-Labeler cap, the two tier-1 tables and the

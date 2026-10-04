@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a75 value in force. changes are in Log order with sealing and effective instants; each query gives the value in force at t_s and the index of the amendment it comes from (null for the default).",
+  "note": "WIST-4 \u00a75 value in force. changes are in Log order with sealing and effective instants; each query gives the value in force at t_s and the index of the amendment it comes from (null for the default). resume_cases replay signed parameter_change Registry Updates, authenticated under log_key, Epoch by Epoch: an act whose Registry Update ID (WIST-4 \u00a72, over the update alone) an act accepted at a lower Epoch or earlier in its Epoch carries is idempotent (WIST-4 \u00a75.1) and applies nothing. snapshot_tuples are the WIST-3 \u00a77 parameter and registry_update tuples of a Snapshot taken after snapshot_epoch; a Consumer resumed from them takes the registry_update tuples as its accepted IDs and the parameter tuples as amendments sealed before every later Entry. replayed_value and resumed_value are the value in force at query_at for a Consumer that replays every Epoch and for one resumed from snapshot_tuples that applies the later Epochs; value_resumed_without_registry_update_tuples is what a resumed Consumer holding no accepted IDs computes, which the rule excludes.",
   "cases": [
     {
       "label": "effective at is inclusive",
@@ -170,6 +170,116 @@
           "from_index": 2
         }
       ]
+    }
+  ],
+  "resume_cases": [
+    {
+      "label": "a superseded amendment sealed again after a Snapshot",
+      "parameter": "catalog_refresh_seconds",
+      "default": 604800,
+      "log_key": {
+        "key_id": "test-agg-k1",
+        "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+      },
+      "epochs": [
+        {
+          "epoch_number": 0,
+          "sealed_at": "2026-08-04T00:00:00Z",
+          "acts": []
+        },
+        {
+          "epoch_number": 1,
+          "sealed_at": "2026-08-04T01:00:00Z",
+          "acts": [
+            {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "parameter_change",
+                "subject": "catalog_refresh_seconds",
+                "effective_at": "2026-08-14T00:00:00Z",
+                "details": {
+                  "parameter": "catalog_refresh_seconds",
+                  "value": 3600
+                }
+              },
+              "sig": {
+                "key_id": "test-agg-k1",
+                "alg": "Ed25519",
+                "value": "kmYxLd3sak2E80JB7IygDch7s9xnBpJLPHz8fhG3sB1LDYVFTlRFB8fZVY61Ec-KioCe46S5vUXXRyMDtCAHBw"
+              }
+            }
+          ]
+        },
+        {
+          "epoch_number": 2,
+          "sealed_at": "2026-08-04T02:00:00Z",
+          "acts": [
+            {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "parameter_change",
+                "subject": "catalog_refresh_seconds",
+                "effective_at": "2026-08-14T00:00:00Z",
+                "details": {
+                  "parameter": "catalog_refresh_seconds",
+                  "value": 7200
+                }
+              },
+              "sig": {
+                "key_id": "test-agg-k1",
+                "alg": "Ed25519",
+                "value": "OjjnZeviS7lMcxkP6jCmBY3ffkzN8RFiy8n5or5rmJWDt7RiKe8J9TiMvK1KYHs9KUCvtVm69Qmni5uy2tPyAQ"
+              }
+            }
+          ]
+        },
+        {
+          "epoch_number": 3,
+          "sealed_at": "2026-08-04T03:00:00Z",
+          "acts": [
+            {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "parameter_change",
+                "subject": "catalog_refresh_seconds",
+                "effective_at": "2026-08-14T00:00:00Z",
+                "details": {
+                  "parameter": "catalog_refresh_seconds",
+                  "value": 3600
+                }
+              },
+              "sig": {
+                "key_id": "test-agg-k1",
+                "alg": "Ed25519",
+                "value": "kmYxLd3sak2E80JB7IygDch7s9xnBpJLPHz8fhG3sB1LDYVFTlRFB8fZVY61Ec-KioCe46S5vUXXRyMDtCAHBw"
+              }
+            }
+          ]
+        }
+      ],
+      "snapshot_epoch": 2,
+      "snapshot_tuples": [
+        [
+          "parameter",
+          "catalog_refresh_seconds",
+          "2026-08-14T00:00:00Z",
+          7200
+        ],
+        [
+          "registry_update",
+          "sha256:6c3709d72ee1773d8f8825887182dd2e00550eddc7b7609cb0a0090be31eaa2b",
+          2
+        ],
+        [
+          "registry_update",
+          "sha256:f127e93e8ed084df8a6270913729c3e7034dc8be43d17a043eb0f49007abc2fe",
+          1
+        ]
+      ],
+      "query_at": "2026-08-14T00:00:00Z",
+      "replayed_value": 7200,
+      "resumed_value": 7200,
+      "value_resumed_without_registry_update_tuples": 3600
     }
   ]
 }

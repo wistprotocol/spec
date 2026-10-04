@@ -1449,11 +1449,19 @@ def waiting_vectors():
     foreign = {"wist_version": "1.0.0", "labeler": "watch.example.net", "subject": J + "a", "name": "wist:spam",
                "asserted_at": "2026-09-30T08:00:00Z"}
     disputed = "sha256:" + hashlib.sha256(rfc8785.dumps(foreign)).hexdigest()
+    watch = {"wist_version": "1.0.0", "seq": 0, "domain": "watch.example.net", "keys": [key("docs")]}
+
+    def foreign_sealed(h):
+        h.declare("G", "owner", G)
+        h.declare("W", "docs", watch)
+        h.epoch("G", "W")
+        h.label("F", J + "a", seconds(foreign["asserted_at"]), labeler="watch.example.net", signer="docs")
+        h.pull(4 * MINUTE, "W", {}, publisher="watch.example.net", labels=["F"])
+        h.epoch()
 
     def labels_history(name, why, **parameters):
         h = History(name, why, **parameters)
-        h.declare("G", "owner", G)
-        h.epoch("G")
+        foreign_sealed(h)
         h.cat("J1", [page(J + "a")], h.at(4 * MINUTE), "journal")
         h.label("L1", "https://watch.example.net/one", h.at(3 * MINUTE))
         h.label("L2", "https://watch.example.net/two", h.at(3 * MINUTE))
@@ -1466,45 +1474,46 @@ def waiting_vectors():
 
     h = labels_history(
         "Labels and a dispute take their places after the pull's Catalogs and URLs and share the capacity",
-        "domain_epoch_entries_max is 3. The pull after height 0 accepts J1, a, then L1, L2 and D1 from the Label "
-        "Feed, which take places after J1's and a's in the order the pull accepts them; all are eligible for "
-        "height 1. A pull serving L2 again finds it seen. Height 1 gives the capacity to J1, then to a, L1, L2 and "
-        "D1 together in the order of places: J1, a and L1 are sealed, and L2 and D1, which do not fit, are "
-        "deferred by capacity to height 2, a deferral the status endpoint does not report, and sealed there.",
+        "domain_epoch_entries_max is 3. F, watch.example.net's Label of journal/a, is sealed at height 1. The pull "
+        "after height 1 accepts J1, a, then L1, L2 and D1, example.com's dispute of F, from the Label Feed, which "
+        "take places after J1's and a's in the order the pull accepts them; all are eligible for height 2. A pull "
+        "serving L2 again finds it seen. Height 2 gives the capacity to J1, then to a, L1, L2 and D1 together in "
+        "the order of places: J1, a and L1 are sealed, and L2 and D1, which do not fit, are deferred by capacity "
+        "to height 3, a deferral the status endpoint does not report, and sealed there.",
         domain_epoch_entries_max=3)
 
     def labels_capacity(v):
-        accepted = v.expected[1]["labels"]
+        accepted = v.expected[3]["labels"]
         assert [(r["type"], r["outcome"], r["place"]) for r in accepted] == [
-            ("label", "accepted", [1, 2, 0]), ("label", "accepted", [1, 2, 1]), ("dispute", "accepted", [1, 2, 2])]
-        assert [r["outcome"] for r in v.expected[2]["labels"]] == ["seen"]
-        assert v.labels(2)["L1"]["eligibility"] == 1 and v.labels(2)["L1"]["ceiling"] == 5
-        assert v.sealed(3) == ["J1", J + "a", "L1"] and v.deferred(3) == {}
-        assert v.labels(3)["L2"]["eligibility"] == 2 and v.labels(3)["D1"]["eligibility"] == 2
-        assert v.eligibility(4) == {"L2": (2, 6), "D1": (2, 6)} and "labels" not in v.expected[4]["state"]
+            ("label", "accepted", [3, 2, 0]), ("label", "accepted", [3, 2, 1]), ("dispute", "accepted", [3, 2, 2])]
+        assert [r["outcome"] for r in v.expected[4]["labels"]] == ["seen"]
+        assert v.labels(4)["L1"]["eligibility"] == 2 and v.labels(4)["L1"]["ceiling"] == 6
+        assert v.sealed(5) == ["J1", J + "a", "L1"] and v.deferred(5) == {}
+        assert v.labels(5)["L2"]["eligibility"] == 3 and v.labels(5)["D1"]["eligibility"] == 3
+        assert v.eligibility(6) == {"L2": (3, 7), "D1": (3, 7)} and "labels" not in v.expected[6]["state"]
 
     histories.append(run(h, labels_capacity))
 
     h = labels_history(
         "Labels and a dispute that fit the capacity are sealed together",
         "As the previous history under domain_epoch_entries_max 5: J1, a, L1, L2 and D1 fit and are all sealed "
-        "at height 1.", domain_epoch_entries_max=5)
+        "at height 2.", domain_epoch_entries_max=5)
 
     def labels_fit(v):
-        assert v.sealed(3) == ["J1", J + "a", "L1", "L2", "D1"] and v.deferred(3) == {}
+        assert v.sealed(5) == ["J1", J + "a", "L1", "L2", "D1"] and v.deferred(5) == {}
 
     histories.append(run(h, labels_fit))
 
     h = labels_history(
         "the per-Labeler cap defers a Label by capacity",
         "As the previous history under labeler_epoch_entries_max 2, the per-domain capacity 10 000: J1, a, L1 and "
-        "L2 are sealed at height 1, and D1, the third Label or dispute of the domain, is deferred by capacity to "
-        "height 2 although the per-domain capacity has room.", labeler_epoch_entries_max=2)
+        "L2 are sealed at height 2, and D1, the third Label or dispute of the domain, is deferred by capacity to "
+        "height 3 although the per-domain capacity has room.", labeler_epoch_entries_max=2)
 
     def labeler_cap(v):
-        assert v.sealed(3) == ["J1", J + "a", "L1", "L2"] and v.deferred(3) == {}
-        assert v.labels(3)["D1"]["eligibility"] == 2
-        assert v.eligibility(4) == {"D1": (2, 6)}
+        assert v.sealed(5) == ["J1", J + "a", "L1", "L2"] and v.deferred(5) == {}
+        assert v.labels(5)["D1"]["eligibility"] == 3
+        assert v.eligibility(6) == {"D1": (3, 7)}
 
     histories.append(run(h, labeler_cap))
 
@@ -1568,34 +1577,34 @@ def waiting_vectors():
 
     def dispute_history(name, why, lowered_at):
         h = History(name, why, clock_skew_seconds=4 * HOUR)
-        h.declare("G", "owner", G)
-        h.epoch("G")
+        foreign_sealed(h)
         h.dispute("D1", disputed, h.at(3 * HOUR))
         h.pull(5 * MINUTE, "G", {}, labels=["D1"])
-        for height in (1, 2):
+        for height in (2, 3):
             h.epoch(**({"clock_skew_seconds": 600} if height >= lowered_at else {}))
         return h
 
     h = dispute_history(
         "a dispute that fails a check repeated at its turn leaves and is reported",
-        "clock_skew_seconds is four hours at height 0 and at the pull that accepts D1, asserted three hours after "
-        "the end of height 0; the map of height 1, D1's candidate Epoch, carries 600. At its turn D1's asserted_at "
+        "F, watch.example.net's Label of journal/a, is sealed at height 1. clock_skew_seconds is four hours "
+        "through height 1 and at the pull that accepts D1, example.com's dispute of F, asserted three hours after "
+        "the end of height 1; the map of height 2, D1's candidate Epoch, carries 600. At its turn D1's asserted_at "
         "is beyond that Epoch's sealed_at plus 600 seconds: it is not sealed and leaves with its rejection reported "
-        "with WIST2-E06 and its Dispute ID.", 1)
+        "with WIST2-E06 and its Dispute ID.", 2)
 
     def dispute_leaves(v):
-        assert v.sealed(2) == [] and [r["code"] for r in v.expected[2]["rejections"]] == ["WIST2-E06"]
-        assert "labels" not in v.expected[2]["state"]
+        assert v.sealed(4) == [] and [r["code"] for r in v.expected[4]["rejections"]] == ["WIST2-E06"]
+        assert "labels" not in v.expected[4]["state"]
 
     histories.append(run(h, dispute_leaves))
 
     h = dispute_history(
         "a dispute sealed before the allowance its instant exceeds takes effect",
-        "As the previous history, the map lowering clock_skew_seconds to 600 only from height 2: D1 is sealed at "
-        "height 1.", 2)
+        "As the previous history, the map lowering clock_skew_seconds to 600 only from height 3: D1 is sealed at "
+        "height 2.", 3)
 
     def dispute_sealed_first(v):
-        assert v.sealed(2) == ["D1"] and "rejections" not in v.expected[2]
+        assert v.sealed(4) == ["D1"] and "rejections" not in v.expected[4]
 
     histories.append(run(h, dispute_sealed_first))
 

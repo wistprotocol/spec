@@ -1,16 +1,27 @@
 import copy
+import functools
 import hashlib
+import json
+import pathlib
+import re
 
 import catalogs
 import collection_rules as rules
 import items
+import materialization
 import merkle
 import narrowing
 import tree_files
+from link_extraction import normalize_url
 
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 ENTRY_GROUPS = ("publisher_declaration", "registry_update", "publisher_catalog", "publisher_item", "label", "dispute")
 ENTRY_MEMBERS = {"type", "body"}
 LABEL_MEMBERS = {"label": "labeler", "dispute": "disputant"}
+LABEL_CODES = {"fields": "WIST2-E06", "clock": "WIST2-E06", "self": "WIST2-E06", "unsealed": "WIST2-E06",
+               "authority": "WIST2-E06", "binding": "WIST1-E02", "signature": "WIST1-E01"}
+LABEL_NAME = re.compile(r"([a-z0-9.-]+):([a-z0-9-]+)")
+NOT_JCS = "WIST1-E05"
 OUT_OF_PLACE = "WIST3-E06"
 EPOCH_REJECTED = "WIST3-E03"
 DAY_SECONDS = 86400
@@ -42,6 +53,121 @@ def check_parameters(parameters):
         raise ValueError("labeler_epoch_entries_max exceeds domain_epoch_entries_max")
     rules.parameter_map({k: parameters[k] for k in DECLARATION_PARAMETERS})
     return parameters
+
+
+class Raw:
+    def __init__(self, text):
+        self.text = text
+
+
+class Repeated(dict):
+    pass
+
+
+def lenient_loads(text):
+    def pairs(members):
+        names = [name for name, _ in members]
+        return (Repeated if len(set(names)) != len(names) else dict)(members)
+
+    return json.loads(text, object_pairs_hook=pairs)
+
+
+def jcs_input(value):
+    if isinstance(value, Repeated):
+        return False
+    if isinstance(value, dict):
+        return all(jcs_input(v) for v in value.values())
+    if isinstance(value, list):
+        return all(jcs_input(v) for v in value)
+    return True
+
+
+def stored(entry):
+    if not isinstance(entry, Raw):
+        return entry
+    value = lenient_loads(entry.text)
+    try:
+        items.strict_loads(entry.text.encode())
+        strict = True
+    except items.NotJcsInput:
+        strict = False
+    if strict != jcs_input(value):
+        raise ValueError("a form outside JCS input that this replay does not locate")
+    return value
+
+
+def entry_octets(entry):
+    return entry.text.encode() if isinstance(entry, Raw) else items.jcs(entry)
+
+
+@functools.cache
+def label_terms():
+    text = (ROOT / "specs" / "WIST-4-governance.md").read_text()
+    registry = text.split("## 6. Label Registry")[1].split("## 7.")[0]
+    return frozenset(re.findall(r"^\| `(wist:[a-z0-9-]+)` \|", registry, re.M))
+
+
+def subject_host(subject):
+    if subject.startswith("https://"):
+        return rules.url_host(subject) if normalize_url(subject, subject) == subject else None
+    return subject if rules.is_canonical_host(subject) else None
+
+
+def label_id(inner):
+    return "sha256:" + hashlib.sha256(items.jcs(inner)).hexdigest()
+
+
+def computable_label_id(entry):
+    body = entry["body"]
+    if entry["type"] != "label" or not isinstance(body, dict) or "label" not in body or not jcs_input(body["label"]):
+        return None
+    return label_id(body["label"])
+
+
+LABEL_INNER = {"label": ({"wist_version", "labeler", "subject", "name", "asserted_at"},
+                         {"value", "retracted", "expires_at", "delta"}),
+               "dispute": ({"wist_version", "disputant", "label", "log", "height", "asserted_at"}, {"reason"})}
+
+
+def label_fields_hold(kind, body, parameters):
+    if not isinstance(body, dict) or not jcs_input(body) or set(body) != {kind, "sig"}:
+        return False
+    inner, sig = body[kind], body["sig"]
+    required, optional = LABEL_INNER[kind]
+    if not isinstance(inner, dict) or not required <= set(inner) <= required | optional:
+        return False
+    if not isinstance(sig, dict) or set(sig) != catalogs.SIG_MEMBERS or not bounded_string(sig["key_id"], 0, 64) \
+            or sig["alg"] != "Ed25519" or rules.canonical_b64url(sig["value"], 64) is None:
+        return False
+    version = inner["wist_version"]
+    if not isinstance(version, str) or not items.VERSION_PATTERN.fullmatch(version) \
+            or items.VERSION_PATTERN.fullmatch(version).group(1) != "1":
+        return False
+    if not rules.is_canonical_host(inner[LABEL_MEMBERS[kind]]) or items.instant(inner["asserted_at"]) is None:
+        return False
+    if kind == "dispute":
+        reason = inner.get("reason")
+        return (isinstance(inner["label"], str) and items.HASH_PATTERN.fullmatch(inner["label"]) is not None
+                and rules.is_canonical_host(inner["log"]) and items.is_safe_integer(inner["height"])
+                and ("reason" not in inner or isinstance(reason, str) and reason.startswith("https://")
+                     and normalize_url(reason, reason) == reason))
+    subject = inner["subject"]
+    if not isinstance(subject, str) or subject_host(subject) is None \
+            or len(items.jcs(subject)) > parameters["url_cap_bytes"]:
+        return False
+    name = LABEL_NAME.fullmatch(inner["name"]) if isinstance(inner["name"], str) else None
+    if name is None or len(inner["name"]) > 64 or (name.group(1) == "wist" and inner["name"] not in label_terms()) \
+            or (name.group(1) != "wist" and not rules.is_canonical_host(name.group(1))):
+        return False
+    if "value" in inner and not (items.is_safe_integer(inner["value"]) and inner["value"] <= 1000000):
+        return False
+    if "retracted" in inner and inner["retracted"] is not True:
+        return False
+    if "expires_at" in inner and (items.instant(inner["expires_at"]) is None
+                                  or items.instant(inner["expires_at"]) <= items.instant(inner["asserted_at"])):
+        return False
+    return "delta" not in inner or (isinstance(inner["delta"], str) and items.HASH_PATTERN.fullmatch(inner["delta"])
+                                    is not None and subject.startswith("https://"))
 
 
 def entry_form(entry):
@@ -172,6 +298,10 @@ class Sealing:
         self.withdrawals = {}
         self.sealed_items = {}
         self.duties = {}
+        self.labels = {}
+        self.disputes = {}
+        self.sealed_labels = set()
+        self.declared = set()
         self.sealed_at = None
 
     def declaration(self, domain):
@@ -196,7 +326,7 @@ class Sealing:
     def apply_declarations(self, entries, height, sealed_at, parameters, removed):
         by_domain = {}
         for entry in entries:
-            if entry["type"] == "publisher_declaration" and isinstance(entry["body"], dict):
+            if entry["type"] == "publisher_declaration" and isinstance(entry["body"], dict) and jcs_input(entry["body"]):
                 by_domain.setdefault(entry["body"]["publisher"]["domain"], []).append(entry["body"])
         for domain in sorted(set(self.replays) | set(by_domain)):
             replay = self.replays.setdefault(domain, narrowing.Replay(
@@ -214,6 +344,8 @@ class Sealing:
                     removed.append({"publisher": publisher, "url": url, "cause": "narrowing"})
 
     def judge_catalog(self, envelope, sealed_at, parameters):
+        if not jcs_input(envelope):
+            return [("C1", NOT_JCS)]
         form = refusal(catalogs.check_envelope_form, envelope)
         if form is not None:
             return [("C1", form)]
@@ -287,7 +419,46 @@ class Sealing:
                     self.remove_record((publisher, url), parameters)
                     removed.append({"publisher": publisher, "url": url, "cause": "base"})
 
+    def judge_label(self, kind, body, sealed_at, parameters):
+        if not label_fields_hold(kind, body, parameters):
+            return "fields"
+        inner, sig = body[kind], body["sig"]
+        asserted = items.instant(inner["asserted_at"])
+        if asserted > narrowing.log_seconds(sealed_at) + parameters["clock_skew_seconds"]:
+            return "clock"
+        publisher = self.declaration(inner[LABEL_MEMBERS[kind]])
+        if publisher is None:
+            return "binding"
+        if kind == "label" and subject_host(inner["subject"]) in rules.authority_hosts(publisher):
+            return "self"
+        if kind == "dispute":
+            disputed = self.labels.get(inner["label"])
+            if disputed is None:
+                return "unsealed"
+            if subject_host(disputed["subject"]) not in rules.authority_hosts(publisher):
+                return "authority"
+        candidates = [e for e in publisher["keys"] if e["kid"] == sig["key_id"]
+                      and rules.usable_point(rules.canonical_b64url(e["x"], 32)) and rules.time_eligible(e, asserted)]
+        if not candidates:
+            return "binding"
+        signature = rules.canonical_b64url(sig["value"], 64)
+        if not any(rules.verifies(rules.canonical_b64url(e["x"], 32), signature, items.jcs(inner))
+                   for e in candidates):
+            return "signature"
+        return None
+
+    def apply_label(self, kind, body, height):
+        inner = body[kind]
+        identifier = label_id(inner)
+        if kind == "label":
+            self.labels[identifier] = {"labeler": inner["labeler"], "subject": inner["subject"],
+                                       "name": inner["name"], "height": height}
+        else:
+            self.disputes[identifier] = {"label": inner["label"], "disputant": inner["disputant"], "height": height}
+
     def judge_item(self, body, height, parameters):
+        if not jcs_input(body):
+            raise ValueError("a publisher_item body outside JCS input is not carried")
         form = refusal(item_body_form, body)
         if form is not None:
             return [("I1", form)], None
@@ -347,7 +518,10 @@ class Sealing:
         if not all(entry_form(e) for e in entries):
             found.append((EPOCH_REJECTED, "an Entry not an object of exactly type and body of an Entry type"))
             entries = [e for e in entries if entry_form(e)]
-        if any(e["type"] == "publisher_declaration" and not isinstance(e["body"], dict) for e in entries):
+        declarations = [e["body"] for e in entries if e["type"] == "publisher_declaration"]
+        if not all(jcs_input(body) for body in declarations):
+            found.append((NOT_JCS, "a publisher_declaration body that is not JCS input"))
+        elif not all(isinstance(body, dict) for body in declarations):
             found.append((FIELD_FAILED, "a publisher_declaration body that is not an object"))
         if list(entries) != canonical_order(entries):
             found.append((EPOCH_REJECTED, "Entries not in canonical order"))
@@ -360,12 +534,16 @@ class Sealing:
         labeled = capacity_counts([e for e in entries if e["type"] in LABEL_MEMBERS])
         if any(n > parameters["labeler_epoch_entries_max"] for n in labeled.values()):
             found.append((EPOCH_REJECTED, "above the per-Labeler Epoch cap"))
-        return found, entries
+        sealed = [computable_label_id(e) for e in entries]
+        sealed = [identifier for identifier in sealed if identifier is not None]
+        if len(set(sealed)) != len(sealed) or self.sealed_labels & set(sealed):
+            found.append((EPOCH_REJECTED, "a Label ID a lower label Entry carries"))
+        return found, entries, sealed
 
     def epoch(self, epoch):
         height, sealed_at, parameters = epoch["height"], epoch["sealed_at"], check_parameters(epoch["parameters"])
-        entries = epoch["entries"]
-        found, formed = self.rejections(entries, parameters)
+        entries = [stored(entry) for entry in epoch["entries"]]
+        found, formed, sealed_labels = self.rejections(entries, parameters)
         saved = copy.deepcopy(self.__dict__)
         self.sealed_at = sealed_at
         removed, dispositions = [], {}
@@ -377,6 +555,8 @@ class Sealing:
             self.__dict__ = saved
             return {"height": height, "status": "rejected", "codes": sorted({code for code, _ in found}),
                     "reason": "; ".join(reason for _, reason in found)}
+        self.declared |= {e["body"]["publisher"]["domain"] for e in entries if e["type"] == "publisher_declaration"}
+        self.sealed_labels |= set(sealed_labels)
         acts = {index: withdrawal_act(entry) for index, entry in enumerate(entries) if entry["type"] == "registry_update"}
         for index, entry in enumerate(entries):
             if entry["type"] != "publisher_catalog":
@@ -393,6 +573,9 @@ class Sealing:
             if not failed:
                 self.apply_item(entry["body"], named, height, parameters, removed)
         for index, act in sorted(acts.items()):
+            if not jcs_input(entries[index]["body"]):
+                dispositions[index] = disposition([("eligibility", NOT_JCS)])
+                continue
             code = ENVELOPE_FAILED if act is None else update_field_code(act)
             if code is not None:
                 dispositions[index] = disposition([("envelope" if code == ENVELOPE_FAILED else "contract", code)])
@@ -408,6 +591,14 @@ class Sealing:
             dispositions[index] = disposition(failed)
             if not failed:
                 self.accepted_updates.add(identifier)
+        for kind in LABEL_MEMBERS:
+            for index, entry in enumerate(entries):
+                if entry["type"] != kind:
+                    continue
+                failure = self.judge_label(kind, entry["body"], sealed_at, parameters)
+                dispositions[index] = disposition([] if failure is None else [(failure, LABEL_CODES[failure])])
+                if failure is None:
+                    self.apply_label(kind, entry["body"], height)
         return {"height": height, "status": "accepted",
                 "entries": [dispositions.get(i) for i in range(len(entries))],
                 "records_removed": removed}
@@ -433,7 +624,12 @@ class Sealing:
             "removals": [{"publisher": publisher, "url": url, "item": state["item"], "catalog": state["catalog"],
                           "generated_at": state["generated_at"]}
                          for (publisher, url), state in sorted(self.removals.items(),
-                                                               key=lambda kv: (kv[0][0].encode(), kv[0][1].encode()))]}
+                                                               key=lambda kv: (kv[0][0].encode(), kv[0][1].encode()))],
+            "labels": [{"label": identifier, **held} for identifier, held in sorted(self.labels.items())],
+            "disputes": [{"dispute": identifier, **held} for identifier, held in sorted(self.disputes.items())]}
+
+    def materialized(self):
+        return materialization.materialized(self.records, self.declared, self.withdrawals)
 
     def payload_duties(self):
         if self.sealed_at is None:
@@ -468,6 +664,7 @@ def replay(epochs, log_key=None):
         result = sealing.epoch(epoch)
         result["state"] = sealing.state()
         result["payload_duties"] = sealing.payload_duties()
+        result["materialized"] = sealing.materialized()
         results.append(result)
         previous = epoch
     return results, sealing

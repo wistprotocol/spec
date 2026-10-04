@@ -1784,6 +1784,61 @@
                 "quota_base",
                 "2026-10-01T00:00:00Z",
                 1500
+              ],
+              [
+                "registry_update",
+                "sha256:1bc064db2a66744659a1e8ee4116728faa8543560a1fff3f09d7f5a1ac9e0f82",
+                0
+              ],
+              [
+                "registry_update",
+                "sha256:441f5857792ce4e48513cbc2fe582777029761595f6715ffd798def2eef1d719",
+                0
+              ],
+              [
+                "registry_update",
+                "sha256:c5a6cbfa3aa331d0c41cd85c8791f18abaf1cc03199f0ad30d778fa0d5bb0d6b",
+                1
+              ],
+              [
+                "registry_update",
+                "sha256:9926cc2bed7a1d2ec873cf867474e8cf9cc11a693c69bc427810b663672249b4",
+                1
+              ],
+              [
+                "registry_update",
+                "sha256:1129ed06b518548806cf1f9b48c5ebe82d4f6980b8b2e990b8824ce2ff3bf516",
+                2
+              ],
+              [
+                "registry_update",
+                "sha256:9f20b4d38fd35695be25a809936962de0e35917d9ed5264067900628e1f2c29f",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:de4a22a1d4f08d33855f5c1faeb269634ffc59e10fe7ad0d5d6a5ee3765f36b4",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:857f8156d17253f432a76e28dd96719c6322139a343c755b91b6e58ef967bc13",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:31b31628cfa0e26fc9a1e9092dced478527c4960fb6e52fb9bdae95f6b3bc077",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:6f140ef233967bbfddcd191bde1f1e836ab5afd640bfe56d9d451a3e461d7edb",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:e7369d2614a034b96802d6452877db5e760745144671b2efec930dc04d6d8b0e",
+                4
               ]
             ],
             "why": "an aggregator_key tuple exists for every key admitted at or below tree_size, a removed key carrying its removal height",
@@ -1966,6 +2021,61 @@
                 "quota_base",
                 "2026-10-01T00:00:00Z",
                 1500
+              ],
+              [
+                "registry_update",
+                "sha256:1bc064db2a66744659a1e8ee4116728faa8543560a1fff3f09d7f5a1ac9e0f82",
+                0
+              ],
+              [
+                "registry_update",
+                "sha256:441f5857792ce4e48513cbc2fe582777029761595f6715ffd798def2eef1d719",
+                0
+              ],
+              [
+                "registry_update",
+                "sha256:c5a6cbfa3aa331d0c41cd85c8791f18abaf1cc03199f0ad30d778fa0d5bb0d6b",
+                1
+              ],
+              [
+                "registry_update",
+                "sha256:9926cc2bed7a1d2ec873cf867474e8cf9cc11a693c69bc427810b663672249b4",
+                1
+              ],
+              [
+                "registry_update",
+                "sha256:1129ed06b518548806cf1f9b48c5ebe82d4f6980b8b2e990b8824ce2ff3bf516",
+                2
+              ],
+              [
+                "registry_update",
+                "sha256:9f20b4d38fd35695be25a809936962de0e35917d9ed5264067900628e1f2c29f",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:de4a22a1d4f08d33855f5c1faeb269634ffc59e10fe7ad0d5d6a5ee3765f36b4",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:857f8156d17253f432a76e28dd96719c6322139a343c755b91b6e58ef967bc13",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:31b31628cfa0e26fc9a1e9092dced478527c4960fb6e52fb9bdae95f6b3bc077",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:6f140ef233967bbfddcd191bde1f1e836ab5afd640bfe56d9d451a3e461d7edb",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:e7369d2614a034b96802d6452877db5e760745144671b2efec930dc04d6d8b0e",
+                4
               ]
             ],
             "why": "a resuming Consumer evaluates key-act failures against removed keys and judges a lower Checkpoint under the keys valid at its own height, so the tuple outlives its key",
@@ -2165,9 +2275,287 @@
                 "quota_base",
                 "2026-10-01T00:00:00Z",
                 1500
+              ],
+              [
+                "registry_update",
+                "sha256:1bc064db2a66744659a1e8ee4116728faa8543560a1fff3f09d7f5a1ac9e0f82",
+                0
+              ],
+              [
+                "registry_update",
+                "sha256:441f5857792ce4e48513cbc2fe582777029761595f6715ffd798def2eef1d719",
+                0
+              ],
+              [
+                "registry_update",
+                "sha256:c5a6cbfa3aa331d0c41cd85c8791f18abaf1cc03199f0ad30d778fa0d5bb0d6b",
+                1
+              ],
+              [
+                "registry_update",
+                "sha256:9926cc2bed7a1d2ec873cf867474e8cf9cc11a693c69bc427810b663672249b4",
+                1
+              ],
+              [
+                "registry_update",
+                "sha256:1129ed06b518548806cf1f9b48c5ebe82d4f6980b8b2e990b8824ce2ff3bf516",
+                2
+              ],
+              [
+                "registry_update",
+                "sha256:9f20b4d38fd35695be25a809936962de0e35917d9ed5264067900628e1f2c29f",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:de4a22a1d4f08d33855f5c1faeb269634ffc59e10fe7ad0d5d6a5ee3765f36b4",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:857f8156d17253f432a76e28dd96719c6322139a343c755b91b6e58ef967bc13",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:31b31628cfa0e26fc9a1e9092dced478527c4960fb6e52fb9bdae95f6b3bc077",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:6f140ef233967bbfddcd191bde1f1e836ab5afd640bfe56d9d451a3e461d7edb",
+                3
+              ],
+              [
+                "registry_update",
+                "sha256:e7369d2614a034b96802d6452877db5e760745144671b2efec930dc04d6d8b0e",
+                4
               ]
             ],
             "why": "the genesis key is a key like any other once removed",
+            "verifies": false
+          },
+          {
+            "name": "the registry_update tuples omitted",
+            "entries": [
+              [
+                "aggregator_key",
+                "test-agg-k1",
+                "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
+                0,
+                4,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_remove",
+                    "subject": "test-agg-k1",
+                    "details": {
+                      "key_id": "test-agg-k1"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k5",
+                    "alg": "Ed25519",
+                    "value": "9e0neRT6cdyqkKAFrYU77YAwtJH9jGYEDs1bm8q34qINRYcEDAaHmaTlnjnZ-PlG79ded0qrVsvzANgADK9KBg"
+                  }
+                }
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k2",
+                "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
+                0,
+                1,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k2",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k2",
+                      "public_key": "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "hhuPG6yT6HXpkPfRmOC2tO-GPSmF2QnVaG3QnQ_OMl5qF5d4Qas7tQurYRIyE_yhPC-47IcxSGmtF_6eOGr-Aw"
+                  }
+                },
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_remove",
+                    "subject": "test-agg-k2",
+                    "details": {
+                      "key_id": "test-agg-k2"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k2",
+                    "alg": "Ed25519",
+                    "value": "kT9bJV4VUleivJhd4AvKPJSQj5_EUMUKMVV57_n1cDjGZs637XTnbf3MWifnSOWYunCe8n6PBMBCvxTcvgMSAg"
+                  }
+                }
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k4",
+                "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
+                1,
+                3,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k4",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k4",
+                      "public_key": "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k2",
+                    "alg": "Ed25519",
+                    "value": "PLuIPkOigPamz_eLeHD23tD08LaqFJUEE0EVKcO-mK7DcgPM8lECqWx5RGDs17XSzvxNIzcmByFAAYY8zmpwDQ"
+                  }
+                },
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_remove",
+                    "subject": "test-agg-k4",
+                    "details": {
+                      "key_id": "test-agg-k4"
+                    },
+                    "effective_at": "2026-10-02T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "BHXmSGUukmlWD9BzQ0NeKv5MsTDKd8ppqc98FnHKs0lrIE3cwVQgG3b9l4_ae3mDDx2dSenB2cJY9-6XJmuZDA"
+                  }
+                }
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k5",
+                "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
+                2,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k5",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k5",
+                      "public_key": "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "oG3En2Vl98aPu-i3OdgBpOS1nz1--oy2ZDO4iklhcdVk-T1wOM13GhqYbXI92xEERFGZ9N8ZsZmcT7aKoTmhCw"
+                  }
+                },
+                null
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k6",
+                "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U",
+                3,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k6",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k6",
+                      "public_key": "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "m4rnzOomQwGAeW8HmAcKuInGzSzJqOkxIZ2HDq3_FAuP6J-4xGEiRjAtHpVEMof6d1H8h8ZK9IuP7H03B4OIAQ"
+                  }
+                },
+                null
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k7",
+                "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM",
+                3,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k7",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k7",
+                      "public_key": "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "e00VzryHfzD4Wjzh-nE5Aum-FI8IOKSUR8y61KRApLcgl8Qz5jMrzwf2T5cWHb0LzG05jARXc6yb2jizdggdDQ"
+                  }
+                },
+                null
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k9",
+                "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM",
+                3,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k9",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k9",
+                      "public_key": "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "wXlLKSN6POILG0pP7Q-8ozqxurgNFWrPNn50v0Va5aeHDkPSclahXhFHvHbZNPdYBn-W31vWov5UP0TRfGmXDg"
+                  }
+                },
+                null
+              ],
+              [
+                "parameter",
+                "quota_base",
+                "2026-10-01T00:00:00Z",
+                1500
+              ]
+            ],
+            "why": "a registry_update tuple exists for every accepted Registry Update, so that a resuming Consumer reads an act sealed again above tree_size as idempotent (WIST-4 \u00a75.1) exactly as a replaying one does",
             "verifies": false
           }
         ]

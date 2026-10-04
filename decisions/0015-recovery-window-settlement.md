@@ -134,8 +134,8 @@ the recovering Publisher extend its chain after a competing fresh identity
 without requiring the competitor's cooperation. It does not allow a fork
 from an earlier recovery-chain ancestor.
 
-Settle before applying Declarations in the first Epoch at or after the
-window end, restoring the chain head as the only eligible predecessor.
+Settle before applying Declarations in the first accepted Epoch at or
+after the window end, restoring the chain head as the only eligible predecessor.
 The same boundary governs admission. The sequence floor survives. A
 re-serve of the current canonical `publisher` object is idempotent, including
 the restored lower-sequence head; any other old Declaration rejects. Equal

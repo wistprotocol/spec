@@ -216,14 +216,16 @@ judgment (§3.3) finds it valid or ignores it, and one whose member is
 not a Canonical Host counts toward no domain. The unit is the Registrable
 Domain, not the hostname, because a hostname under a name one holds is
 free; before the first accepted `suffix_list_update` every Canonical
-Host is its own unit. `dispute` Entries count with the publications and
-Labels of the unit of their `dispute.disputant`, and one whose
+Host is its own unit. `dispute` Entries, valid or ignored, count with the
+publications and Labels of the unit of their `dispute.disputant`, and
+one whose
 `disputant` is not a Canonical Host counts toward no domain. The
 Publishers and Collections of one Registrable Domain share its capacity,
 and no Collection has a share of its own. **Per-Labeler cap.** Inside that capacity, an Epoch MUST NOT
 carry more than `labeler_epoch_entries_max` (Parameter Registry; default
 1 000) `label` and `dispute` Entries, counted together, of one
-Registrable Domain, and a Consumer replaying the Log MUST reject an Epoch
+Registrable Domain, each counted toward a domain as the capacity counts
+it, and a Consumer replaying the Log MUST reject an Epoch
 that does (`WIST3-E03`); the surplus waits its turn in the order of
 places (§3.3) like any other. The cap never exceeds the per-domain
 capacity (WIST-4 §5), so a Labeler's Labels are bounded twice and its
@@ -254,7 +256,11 @@ most one `label` Entry in the whole Log. An Aggregator that pulls a Label
 it has already sealed holds it as seen (WIST-2 §5.5) and MUST NOT seal it
 a second time; a Consumer replaying the Log MUST reject an Epoch
 containing a `label` Entry whose Label ID a lower Entry — in the same
-Epoch or an earlier one — already carries (`WIST3-E03`). Together with
+Epoch or an earlier one — already carries (`WIST3-E03`). A `label` Entry
+carries a Label ID whenever its `body` is an object whose `label` member
+is valid JCS input (WIST-1 §4), whether its judgment (§3.3) finds it
+valid or ignores it, since an Aggregator holds every ID it sealed as
+seen (WIST-2 §5.5). Together with
 immutability above, this makes "the Epoch that sealed this Label" a
 function. An Item may be sealed more than once (§3.3).
 
@@ -295,15 +301,23 @@ members `type` and `body` is rejected the same way, with its Epoch
 (`WIST3-E03`): the Entry form is the Log's own, and no rule reads a member
 beside the two.
 
-A `body` that is not a JSON object rejects no Epoch by this section. It is
+A `body` that is not a JSON object, `"body": null` included, is a
+present member, so the Entry form holds and this section rejects no
+Epoch for it. It is
 a field failure of the object its `type` names and takes the consequence
 that object's rules give one: a `publisher_declaration` Entry fails its
 acceptance checks (`WIST1-E14`, WIST-1 §5.1) and rejects the Epoch as any
 failing Declaration does; a `publisher_catalog` Entry fails C1 and a
-`publisher_item` Entry fails I1 (`WIST1-E14`), and a `registry_update`
-Entry is a non-object container under WIST-4 §5.1 (`WIST4-E11`), each
-ignored in an Epoch that stays accepted; a `label` or `dispute` Entry
-fails the field check of WIST-2 §3.3 (`WIST2-E06`).
+`publisher_item` Entry fails I1 (`WIST1-E14`), a `registry_update`
+Entry is a non-object container under WIST-4 §5.1 (`WIST4-E11`), and a
+`label` or `dispute` Entry fails a field check of WIST-2 §3.3
+(`WIST2-E06`), each ignored in an Epoch that stays accepted.
+
+JSON/JCS eligibility (WIST-1 §4) is judged before field validation in
+every object (WIST-1 §7): a `body` that is not valid JCS input fails it
+whatever else it fails, so a `publisher_declaration` Entry rejects its
+Epoch with `WIST1-E05` and a `registry_update` Entry is ignored with
+`WIST1-E05` (WIST-4 §5.1), neither reaching `WIST1-E14` or `WIST4-E11`.
 
 **An Entry fits one leaf.** An Entry's JCS serialization — its leaf
 data (§4) — MUST NOT exceed 65 535 octets, the largest length the
@@ -330,7 +344,8 @@ Storage order and application order are therefore decoupled, and
 `publisher_declaration` Entries first (for each domain, validate and apply
 them in ascending `seq`, after settling any recovery window whose end is
 at or before this Epoch's `sealed_at` and activating any pending head
-whose activation height is this Epoch's; WIST-1 §5.2 retains the highest
+whose activation height is at or below this Epoch's; WIST-1 §5.2
+retains the highest
 accepted sequence through settlement and selects a recovery window's owner in
 ascending `(Epoch number, seq)` order, so intra-Epoch storage position
 never decides between them; a fresh Declaration applied before that owner
@@ -402,8 +417,9 @@ once the `publisher_catalog` Entries of Epoch N have applied.
 | I6 | `proof` verifies against the named Catalog (WIST-1 §4.3) |
 | I7 | An Item of kind `page` is not the Item of its URL's record (§7), and no `payload_withdrawal` sealed in an Epoch below N names its Item ID; an Item of kind `removed` has a record for its URL. The record is that of the Publisher and the URL, whatever Collection it carries |
 
-C2 to C4 are read only for a Catalog that meets neither `WIST1-E05` nor a
-`WIST1-E14` condition. Where I1 fails no other condition of the Item is
+C2 to C4 are read for a Catalog that meets neither `WIST1-E05` nor a
+`WIST1-E14` condition, whatever other C1 condition it meets, and for no
+other Catalog. Where I1 fails no other condition of the Item is
 read, and I2 and I4 to I7 are read only where I3 holds, since they read
 the named Catalog. I7 reads, of each `payload_withdrawal` that meets its
 `details` contract (WIST-4 §5.1), the Item ID it names in
@@ -433,6 +449,18 @@ Catalog, a replaced one or one never sealed fails I3.
 
 `WIST1-E05` and the `WIST1-E14` conditions are checked first; among the
 others WIST-1 §7 leaves the choice of diagnostic.
+
+A `label` or `dispute` Entry is valid when its `body` passes every check
+WIST-2 §3.3 gives a Label or a dispute, judged at N: among them JSON/JCS
+eligibility, the member set and each field's form, `wist_version`, the
+form of `subject` and `name`, the clock bound on `asserted_at`,
+self-labeling, the binding check, and for a dispute a Label sealed in
+this Log at a lower height or earlier in N's application order whose
+`subject` lies under the disputant's authority. One that fails a check
+is ignored, with `WIST2-E06`, or with `WIST1-E02` or `WIST1-E01` where
+the binding check fails (WIST-2 §5.5); it enters no table of §7, and it
+counts under **A Label is sealed once**, the capacity and the
+per-Labeler cap (§3.2) as a valid one does.
 
 An Epoch is rejected whole, with `WIST3-E03`, when two of its
 `publisher_catalog` Entries carry the same strings as `catalog.publisher`
@@ -1545,12 +1573,12 @@ other so that a Consumer weighing a Labeler can read what the labeled
 parties answered, and no builder decides between them.
 
 **The labeler table.** `tier1/labelers.parquet` carries one row per
-Labeler with any sealed `label` Entry at or below `tree_size`:
+Labeler with any valid `label` Entry (§3.3) at or below `tree_size`:
 `(labeler, label_count, retraction_count, distinct_subjects,
-first_seen_height)` — every sealed `label` Entry of the Labeler counted,
+first_seen_height)` — every valid `label` Entry of the Labeler counted,
 retractions included, the number of those with `retracted` `true`, the
 number of distinct `subject` values across them, and the height of its
-first sealed `label` Entry. The table reads no Label's `name` or
+first valid `label` Entry. The table reads no Label's `name` or
 `value` and applies no Label: it is arithmetic over Entry counts a
 Consumer could redo from the Log, materialized so that a subscription
 decision can start from how a Labeler behaves rather than from
@@ -1607,18 +1635,19 @@ the same value. No act of the Aggregator marks a base; every party
 derives it from two sealed instants and that constant.
 
 When a base applies, every record of its Publisher in its Collection is
-removed, before the Items of the Epoch apply. I7 then reads no record of
-that Collection: a record of the URL that another Collection carries is
-read as outside a base, so an Item of kind `removed` passes I7 where such
-a record exists and fails it elsewhere, and an Item of kind `page` that
-no withdrawal names passes it unless it is such a record's Item. A record
-is absent from the Epoch of the base until the Epoch that seals its Item
-again. The capacity and the inclusion ceiling bound that interval and
-nothing else does: a list of n Items under a capacity of c Entries takes
-at least ⌈n / c⌉ Epochs.
+removed, once, before the first Item of the Epoch applies; its records
+in another Collection stay. I7 reads, for each Item, the records as they
+stand when that Item applies in the Epoch's application order (§3.3): a
+record the base removed is not read, and one an earlier Item of the
+Epoch made, in the base's Collection or another, is. A URL whose record
+the base removed has none until a valid Item of kind `page` makes one
+again, in the base's Epoch or a later one. The capacity and the
+inclusion ceiling bound that interval and nothing else does: a list of n
+Items under a capacity of c Entries takes at least ⌈n / c⌉ Epochs.
 
-An Aggregator reads I7 for the Collection in the same way from the pull
-that accepts a Catalog that is a base against the floor until that
+An Aggregator reads I7 for the Collection as if the base had removed its
+records from the pull that accepts a Catalog that is a base against the
+floor until that
 Catalog, or one that replaces it while it waits, is sealed or leaves:
 every admitted Item for which I7 so holds waits (§3.3) and is sealed in
 its turn. A Catalog a pull queues (WIST-1 §5.2) begins no such reading;
@@ -1649,10 +1678,11 @@ authorities at once: its own domain's, and that of a Publisher whose
 domain, Normalized URL), so the same URL can carry a record under each
 Publisher, and a query needs one. Of the records of one URL whose Item no
 withdrawal sealed at or below the height names, one is **materialized**.
-From the height at which the first `publisher_declaration` Entry whose
-`domain` is the host is sealed, only the record of the host's own
-Publisher is materialized, and none where that Publisher holds none:
-self-declaration prevails, and no later Entry ends it. Below that height,
+From the height of the first accepted Epoch (WIST-1 §5.2) that seals a
+`publisher_declaration` Entry whose `domain` is the host, only the
+record of the host's own Publisher is materialized, and none where that
+Publisher holds none: self-declaration prevails, and no later Entry
+ends it. Below that height,
 and for a host that never declares, more than one Publisher can hold such
 a record. The record materialized is then the **nearest ancestor**'s: the
 Publisher whose domain is the longest the host descends from, the host
@@ -1875,6 +1905,7 @@ The kinds, their key fields and their value fields are:
 | `parameter` | identifier, `effective_at` | value | WIST-4 §5 |
 | `recovery_window` | domain | owner Declaration height, window end, the recovery-chain head Envelope, its sealing height | WIST-1 §5.2 |
 | `suffix_list` | snapshot identifier | sealing height of the act that put it in force | WIST-4 §3.1 |
+| `registry_update` | Registry Update ID | sealing height of the Epoch whose occurrence was accepted | WIST-4 §5.1 |
 | `collection` | publisher, Collection name | the latest Catalog Envelope, its sealing height | §7 |
 | `record` | publisher, URL | the Item, its Collection name, the Catalog ID and `generated_at` of the Catalog it was proved against | §7 |
 | `removal` | publisher, URL | the Item ID, the Catalog ID and `generated_at` of the Catalog it was proved against | §7 |
@@ -1960,7 +1991,11 @@ for the one snapshot in force at the first Epoch above `tree_size`
 — the most recent accepted `suffix_list_update` sealed at or below it
 (WIST-4 §3.1) — and for no earlier one, so that a resuming Consumer
 accounts the next Epoch's capacity under the snapshot a replaying one
-reads; no tuple exists while no act has been accepted. A `collection`
+reads; no tuple exists while no act has been accepted. A
+`registry_update` tuple exists for every Registry Update ID accepted at
+or below `tree_size`, of every action, since a resuming Consumer judges
+a later occurrence of the ID by WIST-4 §5.1's idempotence rule as a
+replaying one does. A `collection`
 tuple exists for every Publisher and Collection name with a latest
 Catalog, a name no Declaration in force names included; a resuming
 Consumer derives the floor, C3, C4, I3 and a base from it as a replaying
@@ -2039,9 +2074,9 @@ Publisher-domain rule, one part per shard for the domain-keyed kinds
 (`declaration`, `pending_declaration`, `recovery_window`, `collection`,
 `record` and `removal` by their Publisher, `withdrawal` by the
 withdrawn Item's Publisher, `label` by its Labeler, `dispute` by its
-disputant), with the Log-wide
-kinds (`aggregator_key`, `parameter`, `suffix_list`) carried in every
-part, since no Consumer can validate an Entry without them.
+disputant), with the Log-wide kinds (`aggregator_key`, `parameter`,
+`suffix_list`, `registry_update`) carried in every part, since no
+Consumer can validate an Entry without them.
 The tuple set is a set: a Log-wide tuple appears exactly once in the
 digest preimage, however many parts carry a copy.
 `state_digest` remains the digest over the whole tuple set: a partial
@@ -2074,8 +2109,9 @@ above, treats its coverage as partial.
    Public Suffix List snapshot in force (whose octets the Consumer
    fetches from `/log/suffix-lists/` and verifies by their identifier
    before it checks the next Epoch's per-domain capacity, WIST-4
-   §3.1), withdrawals, Labels, latest Catalogs, records and removal
-   states. Every Entry applied below is validated against this state
+   §3.1), accepted Registry Update IDs, withdrawals, Labels, latest
+   Catalogs, records and removal states. Every Entry applied below is
+   validated against this state
    exactly as a replaying Consumer validates against state it derived
    itself: a signature under a key the state does not admit, a
    `publisher_item` Entry naming a Catalog that is not a latest Catalog
@@ -2083,8 +2119,8 @@ above, treats its coverage as partial.
    the one the state holds for its triple, all fail as they would on full
    replay. A `recovery_window` tuple makes its head an
    eligible predecessor beside the current Declaration, and the Consumer
-   settles it before applying the first Epoch at or after its end exactly
-   as WIST-1 §5.2 directs: the head becomes current and the `declaration`
+   settles it at the Epoch WIST-1 §5.2 selects, exactly as that section
+   directs: the head becomes current and the `declaration`
    tuple's sequence floor stays. A `pending_declaration` tuple makes its
    head an eligible predecessor beside the current Declaration, supplies
    no candidate to a Catalog's binding check, and activates or is
@@ -2422,7 +2458,7 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       dispute as a `dispute` Entry, at most once per ID and within the
       per-Labeler cap, and materializes `tier1/labels.parquet`,
       `tier1/disputes.parquet` and `tier1/labelers.parquet` from the
-      Labels and disputes current at `tree_size` and every sealed
+      Labels and disputes current at `tree_size` and every valid
       `label` Entry (§3.2, §3.3, §7, WIST-2 §3.3)
 
 **Mirror:**
@@ -2496,6 +2532,10 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       applies the valid ones to the latest Catalogs, records and removal
       states, removing records at a base and by narrowing (§3.3, §7,
       WIST-1 §5.2)
+- [ ] Judges every `label` and `dispute` Entry once, at its Epoch, by
+      the checks of WIST-2 §3.3, and ignores and reports one that fails
+      while counting it under the capacity, the per-Labeler cap and the
+      single sealing of a Label ID (§3.2, §3.3)
 - [ ] Implements all six Error Registry behaviors, including evidence
       preservation on divergence (§9)
 - [ ] Enforces the format sizes and the transport bound while reading

@@ -1,5 +1,5 @@
 {
-  "note": "WIST-3 section 7: the records, removal states and materialized records of one Log. Each case gives per Epoch its height, sealed_at and `events`, the record events its valid Entries make, in the order the Entries apply (WIST-3 section 3.3): `declaration`, a sealed publisher_declaration Entry of `domain`; `narrowing`, the records of `publisher` at `urls` that narrowing removes (WIST-1 section 5.2); `withdrawal`, a payload_withdrawal that meets its details contract, naming the Item ID `item`; `base`, a valid Catalog of `publisher` and `collection` that is a base, which removes every record of that Publisher whose Collection is `collection`; `record`, an Item of kind page that becomes the record of `publisher` and its url, with its Collection and the Catalog ID and generated_at of the Catalog it was proved against, in place of any record and ending any removal state; and `removal`, an Item of kind removed, with its Item ID and the same Catalog members, which removes the record of `publisher` and `url` and leaves that removal state. A record that narrowing or a base removes leaves no removal state, a removal state stays through narrowing and a base, and a withdrawal removes no record. `expected` gives after each Epoch the records (the Item ID, Collection, Catalog ID and generated_at), the removal states, the materialized records as their content tuples, ordered by Publisher and then by URL, each compared as the octets of its UTF-8 string, `links`, the rows of the link graph as {source_url, target_url, position}, one per member of the materialized record's Payload's links.urls, position being that member's zero-based index, ordered by their source records in the order of `materialized` and then by ascending position, and the content_digest over the content tuples. The order of `materialized` and of `links` is significant. A record is materialized when no withdrawal sealed at or below the height names its Item and the one-URL rule selects its Publisher among the records of its URL that no such withdrawal names: the host's own Publisher once a publisher_declaration Entry of the host is sealed, else the nearest ancestor of the host, else the least domain in octet order. `snapshot` gives the state tuples of a Snapshot taken at `height` (declaration, collection, record, removal and withdrawal; no Aggregator key, parameter, suffix list, Label or dispute is live): a Consumer resumed from them, holding a host as self-declared where a declaration tuple names it, and applying the events of the later Epochs, reaches every later `expected`. The events are those of a replay of signed Entries under the rules of vectors/wist3/catalog-sealing.json, every Entry valid; Epochs carry no Checkpoint and no Merkle tree. Keys derive from the stated test-only seeds. `payloads` maps the Item ID of every Item of kind page the file carries to the Payload its `payload` commits to ({wist_version, salt, content}, WIST-1 section 3.6); they are carried so the commitments can be recomputed, and the replay reads none of them.",
+  "note": "WIST-3 section 7: the records, removal states and materialized records of one Log. Each case gives per Epoch its height, sealed_at and `events`, the record events its valid Entries make, in the order the Entries apply (WIST-3 section 3.3): `declaration`, a sealed publisher_declaration Entry of `domain`; `narrowing`, the records of `publisher` at `urls` that narrowing removes (WIST-1 section 5.2); `withdrawal`, a payload_withdrawal that meets its details contract, naming the Item ID `item`, with its Registry Update ID `update` (WIST-4 section 2); `base`, a valid Catalog of `publisher` and `collection` that is a base, which removes every record of that Publisher whose Collection is `collection`; `record`, an Item of kind page that becomes the record of `publisher` and its url, with its Collection and the Catalog ID and generated_at of the Catalog it was proved against, in place of any record and ending any removal state; and `removal`, an Item of kind removed, with its Item ID and the same Catalog members, which removes the record of `publisher` and `url` and leaves that removal state. A record that narrowing or a base removes leaves no removal state, a removal state stays through narrowing and a base, and a withdrawal removes no record. `expected` gives after each Epoch the records (the Item ID, Collection, Catalog ID and generated_at), the removal states, the materialized records as their content tuples, ordered by Publisher and then by URL, each compared as the octets of its UTF-8 string, `links`, the rows of the link graph as {source_url, target_url, position}, one per member of the materialized record's Payload's links.urls, position being that member's zero-based index, ordered by their source records in the order of `materialized` and then by ascending position, and the content_digest over the content tuples. The order of `materialized` and of `links` is significant. A record is materialized when no withdrawal sealed at or below the height names its Item and the one-URL rule selects its Publisher among the records of its URL that no such withdrawal names: the host's own Publisher once a publisher_declaration Entry of the host is sealed, else the nearest ancestor of the host, else the least domain in octet order. `snapshot` gives the state tuples of a Snapshot taken at `height` (declaration, collection, record, removal, withdrawal and registry_update, one per accepted payload_withdrawal with the height of the Epoch that accepted it; no Aggregator key, parameter, suffix list, Label or dispute is live): a Consumer resumed from them, holding a host as self-declared where a declaration tuple names it, and applying the events of the later Epochs, reaches every later `expected`. The events are those of a replay of signed Entries under the rules of vectors/wist3/catalog-sealing.json, every Entry valid; Epochs carry no Checkpoint and no Merkle tree. Keys derive from the stated test-only seeds. `payloads` maps the Item ID of every Item of kind page the file carries to the Payload its `payload` commits to ({wist_version, salt, content}, WIST-1 section 3.6); they are carried so the commitments can be recomputed, and the replay reads none of them.",
   "keys": {
     "owner": {
       "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
@@ -159,7 +159,8 @@
           "events": [
             {
               "event": "withdrawal",
-              "item": "sha256:bafe7edeb5fef8bf8dbe9946701042e4b5b3dc7563ec557a01c73efbee0cd415"
+              "item": "sha256:bafe7edeb5fef8bf8dbe9946701042e4b5b3dc7563ec557a01c73efbee0cd415",
+              "update": "sha256:eefc041b70f37adf2280dcf536510338857520e7070dae2b7cd1dbc73552c076"
             },
             {
               "event": "removal",
@@ -177,7 +178,8 @@
           "events": [
             {
               "event": "withdrawal",
-              "item": "sha256:e75c31d4d5f521f0ed2220a272111931f633666919c0862557908d104e3a9d44"
+              "item": "sha256:e75c31d4d5f521f0ed2220a272111931f633666919c0862557908d104e3a9d44",
+              "update": "sha256:f196cf67b46dd037e15e66ae643adc531467e7c46792a0dff8e1d1a5fd98d761"
             },
             {
               "event": "record",
@@ -679,6 +681,16 @@
             "2026-10-01T00:59:00Z"
           ],
           [
+            "registry_update",
+            "sha256:eefc041b70f37adf2280dcf536510338857520e7070dae2b7cd1dbc73552c076",
+            2
+          ],
+          [
+            "registry_update",
+            "sha256:f196cf67b46dd037e15e66ae643adc531467e7c46792a0dff8e1d1a5fd98d761",
+            3
+          ],
+          [
             "removal",
             "example.com",
             "https://example.com/old/c",
@@ -771,7 +783,8 @@
           "events": [
             {
               "event": "withdrawal",
-              "item": "sha256:e3df85ad1b191613b1bfbd99adf665438b8bf55c38388636e2e52855c7dbdc33"
+              "item": "sha256:e3df85ad1b191613b1bfbd99adf665438b8bf55c38388636e2e52855c7dbdc33",
+              "update": "sha256:3aaac5ba8127fc87544f32fdc921fac010cc0ba383d3988880273de0c8352e25"
             }
           ]
         },
@@ -1239,6 +1252,11 @@
             "2026-10-01T00:59:00Z"
           ],
           [
+            "registry_update",
+            "sha256:3aaac5ba8127fc87544f32fdc921fac010cc0ba383d3988880273de0c8352e25",
+            2
+          ],
+          [
             "withdrawal",
             "sha256:e3df85ad1b191613b1bfbd99adf665438b8bf55c38388636e2e52855c7dbdc33",
             "example.com",
@@ -1337,7 +1355,8 @@
           "events": [
             {
               "event": "withdrawal",
-              "item": "sha256:ff696926c50b2b2456c676adfc6928b9bec71008873fae8b140857a88c23fd85"
+              "item": "sha256:ff696926c50b2b2456c676adfc6928b9bec71008873fae8b140857a88c23fd85",
+              "update": "sha256:df1ab5c96f5019394654bd3fefb2130474bf5a6fc380ff6ff235334165f5998d"
             }
           ]
         }

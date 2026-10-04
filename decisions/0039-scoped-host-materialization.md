@@ -15,9 +15,10 @@ one URL and two replayers could show different ones.
 ## Decision
 
 The rule chooses among the records of one URL whose Item no withdrawal
-names. From the height at which the first `publisher_declaration` Entry
-whose `domain` is the host is sealed, only the host's own Publisher's
-record is materialized, and nothing ends that. For a URL whose host has
+names. From the height of the first accepted Epoch that seals a
+`publisher_declaration` Entry whose `domain` is the host, only the host's
+own Publisher's record is materialized, and nothing ends that; a
+Declaration in a rejected Epoch takes no effect, so it starts nothing. For a URL whose host has
 no such Entry sealed at the height, the record materialized is the
 nearest ancestor Publisher's: the longest domain the host descends from.
 A non-ancestor Publisher materializes the URL only while no ancestor

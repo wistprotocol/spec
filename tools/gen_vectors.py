@@ -2844,6 +2844,18 @@ def key_state_tuples(state: dict) -> list:
                     for kid, entry in state.items()]), key=lambda tuple_: tuple_[1])
 
 
+def accepted_update_tuples(history: dict, through: int) -> list:
+    heights = {}
+    for epoch in history["epochs"]:
+        if epoch["epoch_number"] > through or not epoch["applied"]:
+            continue
+        for entry, act in zip(epoch["entries"], epoch["acts"]):
+            if act["code"] is None:
+                identifier = "sha256:" + sha256_hex(rfc8785.dumps(entry["body"]["update"]))
+                heights.setdefault(identifier, epoch["epoch_number"])
+    return [["registry_update", identifier, height] for identifier, height in heights.items()]
+
+
 def key_history(name: str, note: str, log_id: str, genesis_key_id: str, genesis_priv,
                 created_at: str, privs: dict, specs: list, extra=None) -> dict:
     """One signed Log: an Anchor, then an Epoch per spec, each carrying its
@@ -3105,7 +3117,8 @@ def aggregator_key_vectors() -> dict:
          entry["body"]["update"]["details"]["value"]]
         for epoch in rotation["epochs"] if epoch["applied"]
         for act, entry in zip(epoch["acts"], epoch["entries"])
-        if act["code"] is None and act["action"] == "parameter_change"]
+        if act["code"] is None and act["action"] == "parameter_change"] + accepted_update_tuples(
+        rotation, rotation["verified_head"])
     rotation["snapshot_state"] = {
         "tree_size": rotation["epochs"][-1]["tree_size"],
         "epoch_number": rotation["verified_head"],
@@ -3123,6 +3136,12 @@ def aggregator_key_vectors() -> dict:
             {"name": "the removed genesis key's tuple omitted",
              "entries": [t for t in head_state if t[1] != K1],
              "why": "the genesis key is a key like any other once removed",
+             "verifies": False},
+            {"name": "the registry_update tuples omitted",
+             "entries": [t for t in head_state if t[0] != "registry_update"],
+             "why": "a registry_update tuple exists for every accepted Registry Update, so that a "
+                    "resuming Consumer reads an act sealed again above tree_size as idempotent "
+                    "(WIST-4 §5.1) exactly as a replaying one does",
              "verifies": False},
         ]}
     histories.append(rotation)
@@ -3785,7 +3804,8 @@ def snapshot_key_vectors() -> dict:
     def case(name, why, epoch_number, adopted_head, entries=None, signers=None,
              corrupt=(), checkpoint=None, consumer_registry=None,
              tuple_rules=(), catch_up=(), unsealed=(), self_consistent=None):
-        entries = tuples_at(epoch_number) if entries is None else entries
+        entries = (tuples_at(epoch_number) if entries is None else entries) + accepted_update_tuples(
+            history, epoch_number)
         chosen = {"index": signed_by(B), "manifest": signed_by(B), "state": signed_by(B)}
         chosen.update(signers or {})
         index, manifest, state, digest = snapshot_documents(
@@ -4359,6 +4379,30 @@ def label_vectors():
         ("unbound with no live record", None, None, False),
     ):
         binding.append({"name": name, "delta": delta, "record_item": record_item, "applies": applies})
+    held_host = "news.example.com"
+    held_url = "https://" + held_host + "/u"
+    ancestor_item = items.item_id(dict(example_item, url=held_url))
+    other_item = items.item_id(dict(example_item, url=held_url, publisher="zeta.example"))
+
+    def held(name, delta, withdrawn=(), declared=False, applies=None):
+        records = [{"publisher": publisher, "item": item, "withdrawn": item in withdrawn}
+                   for publisher, item in (("example.com", ancestor_item), ("zeta.example", other_item))]
+        live = {r["publisher"]: r["item"] for r in records if not r["withdrawn"]}
+        chosen = materialization.preferred(held_host, declared, sorted(live, key=str.encode))
+        outcome = chosen is not None and live[chosen] == delta
+        assert outcome == applies, name
+        return {"name": name, "subject": held_url, "host_declared": declared, "records": records, "delta": delta,
+                "materialized": chosen, "applies": outcome}
+
+    materialized_binding = [
+        held("bound to the Item of the materialized record", ancestor_item, applies=True),
+        held("bound to the Item of a record not materialized", other_item, applies=False),
+        held("the materialized record's Item withdrawn, bound to it", ancestor_item, withdrawn=[ancestor_item],
+             applies=False),
+        held("the materialized record's Item withdrawn, bound to the record materialized instead", other_item,
+             withdrawn=[ancestor_item], applies=True),
+        held("a self-declared host holding no record", ancestor_item, declared=True, applies=False),
+    ]
     return dict(
         note=("WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases "
               "over the example Declaration, every case validated at clock under clock_skew_seconds: "
@@ -4378,13 +4422,20 @@ def label_vectors():
               "retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a "
               "Label's delta, an Item ID, against the Item the subject URL's record carries "
               "(record_item, null where no record stands): a bound Label applies only while the record "
-              "carries that Item. A value is an integer by the number it denotes (WIST-1 section 4): a "
+              "carries that Item. materialized_binding_cases give the records of one subject URL held by "
+              "two Publishers, example.com, an ancestor of the URL's host, and zeta.example, which is not, each "
+              "with its Item ID and whether a withdrawal names it, and whether a publisher_declaration Entry "
+              "of the host is sealed (host_declared): the Label reads the materialized record that WIST-3 "
+              "section 7's One URL, one Publisher rule selects (materialized, null where it selects none), "
+              "and applies only while that record carries the Item delta names, whatever the other record "
+              "carries. A value is an integer by the number it denotes (WIST-1 section 4): a "
               "case naming envelope_json is judged over that JSON text, which denotes the same value as "
               "envelope in another spelling, and a value spelled with a zero fraction, an exponent or a "
               "negative zero has the Label ID of the plain spelling."),
         declaration=example_declaration, declarations=declarations,
         url_cap_bytes=2048, clock="2026-08-03T12:00:00Z", clock_skew_seconds=600,
-        cases=cases, current_cases=current, binding_cases=binding)
+        cases=cases, current_cases=current, binding_cases=binding,
+        materialized_binding_cases=materialized_binding)
 
 
 write_json(WIST2V / "labels.json", label_vectors())
@@ -4721,9 +4772,78 @@ parameter_cases = [
                [30 * DAY_S, 40 * DAY_S]),
 ]
 
+def resume_case():
+    start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
+
+    def instant(hours=0, days=0):
+        return (start + datetime.timedelta(hours=hours, days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    effective = instant(days=10)
+
+    def change(value):
+        return sign_envelope("update", {"wist_version": "1.0.0", "action": "parameter_change",
+                                        "subject": "catalog_refresh_seconds", "effective_at": effective,
+                                        "details": {"parameter": "catalog_refresh_seconds", "value": value}},
+                             "test-agg-k1")
+
+    first, second = change(3600), change(7200)
+    epochs = [{"epoch_number": h, "sealed_at": instant(hours=h), "acts": acts}
+              for h, acts in enumerate([[], [first], [second], [first]])]
+    snapshot_epoch = 2
+
+    def update_id(envelope):
+        return "sha256:" + sha256_hex(rfc8785.dumps(envelope["update"]))
+
+    def run(from_epoch, accepted, amendments):
+        for epoch in epochs[from_epoch:]:
+            for index, envelope in enumerate(epoch["acts"]):
+                update = envelope["update"]
+                if update_id(envelope) in accepted:
+                    continue
+                ahead = log_instant_s(update["effective_at"]) - log_instant_s(epoch["sealed_at"])
+                assert ahead >= 7 * DAY_S
+                accepted[update_id(envelope)] = epoch["epoch_number"]
+                amendments.append((update["effective_at"], epoch["epoch_number"], index, update["details"]["value"]))
+        live = [a for a in amendments if a[0] <= effective]
+        return max(live, key=lambda a: (log_instant_s(a[0]), a[1], a[2]))[3] if live else 604800
+
+    at_snapshot_ids, at_snapshot = {}, []
+    for epoch in epochs[:snapshot_epoch + 1]:
+        for index, envelope in enumerate(epoch["acts"]):
+            at_snapshot_ids.setdefault(update_id(envelope), epoch["epoch_number"])
+            at_snapshot.append((envelope["update"]["effective_at"], epoch["epoch_number"], index,
+                                envelope["update"]["details"]["value"]))
+    assert {a[0] for a in at_snapshot} == {effective}
+    prevailing = max(at_snapshot, key=lambda a: (a[1], a[2]))
+    tuples = sorted([["parameter", "catalog_refresh_seconds", prevailing[0], prevailing[3]]]
+                    + [["registry_update", i, h] for i, h in at_snapshot_ids.items()], key=rfc8785.dumps)
+    from_tuples = [(prevailing[0], snapshot_epoch, -1, prevailing[3])]
+    replayed = run(0, {}, [])
+    resumed = run(snapshot_epoch + 1, dict(at_snapshot_ids), list(from_tuples))
+    without = run(snapshot_epoch + 1, {}, list(from_tuples))
+    assert replayed == resumed == 7200 and without == 3600
+    return {"label": "a superseded amendment sealed again after a Snapshot", "parameter": "catalog_refresh_seconds",
+            "default": 604800, "log_key": {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)},
+            "epochs": epochs, "snapshot_epoch": snapshot_epoch, "snapshot_tuples": tuples, "query_at": effective,
+            "replayed_value": replayed, "resumed_value": resumed,
+            "value_resumed_without_registry_update_tuples": without}
+
+
 write_json(WIST4 / "parameter-in-force.json", spaced_labels({
-    "note": "WIST-4 §5 value in force. changes are in Log order with sealing and effective instants; each query gives the value in force at t_s and the index of the amendment it comes from (null for the default).",
+    "note": ("WIST-4 §5 value in force. changes are in Log order with sealing and effective instants; each query "
+             "gives the value in force at t_s and the index of the amendment it comes from (null for the "
+             "default). resume_cases replay signed parameter_change Registry Updates, authenticated under "
+             "log_key, Epoch by Epoch: an act whose Registry Update ID (WIST-4 §2, over the update alone) an act "
+             "accepted at a lower Epoch or earlier in its Epoch carries is idempotent (WIST-4 §5.1) and applies "
+             "nothing. snapshot_tuples are the WIST-3 §7 parameter and registry_update tuples of a Snapshot "
+             "taken after snapshot_epoch; a Consumer resumed from them takes the registry_update tuples as its "
+             "accepted IDs and the parameter tuples as amendments sealed before every later Entry. "
+             "replayed_value and resumed_value are the value in force at query_at for a Consumer that replays "
+             "every Epoch and for one resumed from snapshot_tuples that applies the later Epochs; "
+             "value_resumed_without_registry_update_tuples is what a resumed Consumer holding no accepted IDs "
+             "computes, which the rule excludes."),
     "cases": parameter_cases,
+    "resume_cases": [resume_case()],
 }))
 print("wist4 parameter-in-force vector written")
 
@@ -5301,9 +5421,18 @@ def withdrawal_vectors():
     second_resumed = replay(second_acts, dict(second_adopted))
     replay(second_acts, dict(second_adopted), "replay_code", "replay_withdrawn_height")
     assert second_acts[0]["code"] != second_acts[0]["replay_code"]
+    def accepted_ids(through):
+        heights = {}
+        for case in acts:
+            if case["code"] is None and case["height"] <= through:
+                update = json.loads(case["envelope_json"])["update"]
+                heights.setdefault("sha256:" + sha256_hex(rfc8785.dumps(update)), case["height"])
+        return sorted((["registry_update", i, h] for i, h in heights.items()), key=rfc8785.dumps)
+
     second = {
         "snapshot_height": second_height,
         "adopted": sorted((["withdrawal", i, p, h] for i, (h, p) in second_adopted.items()), key=rfc8785.dumps),
+        "registry_update_tuples": accepted_ids(second_height),
         "record_tuples": sorted((record_tuple(d) for d in second_records.values()), key=rfc8785.dumps),
         "removal_tuples": sorted((removal_tuple(d) for d in second_removals.values()), key=rfc8785.dumps),
         "act_cases": second_acts,
@@ -5314,6 +5443,7 @@ def withdrawal_vectors():
     resume = {
         "snapshot_height": snapshot_height,
         "adopted": sorted((["withdrawal", i, p, h] for i, (h, p) in adopted.items()), key=rfc8785.dumps),
+        "registry_update_tuples": accepted_ids(snapshot_height),
         "record_tuples": sorted((record_tuple(d) for d in snap_records.values()), key=rfc8785.dumps),
         "removal_tuples": sorted((removal_tuple(d) for d in snap_removals.values()), key=rfc8785.dumps),
         "act_cases": resume_acts,
@@ -5341,7 +5471,8 @@ def withdrawal_vectors():
                  "record_tuples and removal_tuples the record and removal tuples after the last Epoch (a "
                  "withdrawal removes no record), and materialized the Item IDs of the records whose content "
                  "materializes. resume is a Consumer resumed from a Snapshot taken after Epoch snapshot_height: "
-                 "it adopted the Snapshot's withdrawal, record and removal tuples and applied every Entry of "
+                 "it adopted the Snapshot's withdrawal, record and removal tuples, and its registry_update tuples "
+                 "(registry_update_tuples) as the accepted Registry Update IDs, and applied every Entry of "
                  "sealed_items above snapshot_height, and its act_cases are acts sealed above snapshot_height in "
                  "place of those of act_cases. It judges each act against the Entries it applied through "
                  "the act's Epoch and the tuples it adopted, which it keeps for this judgment after later Entries "
@@ -5650,10 +5781,12 @@ def registrable_domain_vectors():
                           ("a.hosts.sample.net", True, 4), ("a.hosts.sample.net", True, 4),
                           ("b.hosts.sample.net", True, 4), ("c.hosts.sample.net", False, 4)])]
 
-    state_tuples = [{"tree_size": 0, "entries": [["suffix_list", ids["first"], 0]]},
-                    {"tree_size": 2, "entries": [["suffix_list", ids["first"], 0]]},
-                    {"tree_size": 3, "entries": [["suffix_list", ids["second"], 3]]},
-                    {"tree_size": 6, "entries": [["suffix_list", ids["second"], 3]]}]
+    def accepted_acts(through):
+        return [["registry_update", "sha256:" + sha256_hex(rfc8785.dumps(json.loads(a["envelope_json"])["update"])),
+                 a["height"]] for a in acts if a["code"] is None and a["height"] <= through]
+
+    state_tuples = [{"tree_size": size, "entries": [["suffix_list", ids[name], pinned]] + accepted_acts(size)}
+                    for size, name, pinned in ((0, "first", 0), (2, "first", 0), (3, "second", 3), (6, "second", 3))]
     return spaced_labels({
         "note": ("WIST-4 §3.1, WIST-2 §4, WIST-3 §3.2 and §7. lists are Public Suffix List snapshots as octets "
                  "(text is the exact UTF-8 file). official_cases transcribe the Public Suffix List project's "
@@ -5669,7 +5802,8 @@ def registrable_domain_vectors():
                  "per Registrable Domain in order, each Ping under the snapshot in force at its own height where "
                  "one is given; an act carrying consumer names a file no source holds, which fails its contract "
                  "at the Aggregator and stops a Consumer with WIST3-E01; state_tuples are the WIST-3 §7 "
-                 "suffix_list tuple at a tree_size. The snapshot named lines tells the readings of a rule "
+                 "suffix_list tuple at a tree_size, followed by one registry_update tuple per accepted act at "
+                 "or below it, with the height of its Epoch. The snapshot named lines tells the readings of a rule "
                  "line apart: a rule ends at U+0009, U+000B, U+000C, U+000D or U+0020 and a line at U+000A "
                  "alone, a line that begins with whitespace carries no rule, and a rule holding another "
                  "space or line-break character has a label Canonical Host processing rejects and is ignored."),

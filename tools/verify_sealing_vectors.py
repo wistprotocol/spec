@@ -8,9 +8,9 @@ import urllib.parse
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from verify_collection_vectors import (
-    Rejected, VerifierError, apply_group, b64u_canonical, canonical_host, check_keys_block, check_parameter_map,
-    collection_names, log_seconds, log_timestamp, narrow, publisher_instant, signature_verifies, strict_load,
-    validate)
+    Rejected, VerifierError, apply_group, authority, b64u_canonical, canonical_host, check_keys_block,
+    check_parameter_map, collection_names, log_seconds, log_timestamp, narrow, normalized, public_raw,
+    publisher_instant, signature_verifies, strict_load, url_host, usable_public, validate)
 from verify_catalog_vectors import (
     ACCEPTED, BODY_MEMBERS, E14, HASH, NAME, PAGE_MEMBERS, REGISTRY_SIZE_CAPS, REMOVAL_RETENTION_SECONDS, VERSION,
     Report, binding_code, catalog_id, catalog_inner_form, check_floors, commitment_form, integer, item_form, item_id,
@@ -24,7 +24,6 @@ REPLACED_FILE_SECONDS = 86400
 CATALOG_REFRESH_BOUNDS = (1, 7776000)
 PAYLOAD_WINDOW_DAYS_MIN = 30
 GROUP_ORDER = ["publisher_declaration", "registry_update", "publisher_catalog", "publisher_item", "label", "dispute"]
-UNJUDGED_TYPES = {"label", "dispute"}
 CAPACITY_HOSTS = {"publisher_catalog": ("catalog", "publisher"), "publisher_item": ("item", "publisher"),
                   "label": ("label", "labeler"), "dispute": ("dispute", "disputant")}
 JUDGED_TYPES = ("registry_update", "publisher_catalog", "publisher_item")
@@ -41,10 +40,18 @@ PARAMETER_MEMBERS = {
     "clock_skew_seconds", "catalog_items_max", "catalog_refresh_seconds", "payload_window_days",
     "domain_epoch_entries_max", "url_cap_bytes", "extract_cap_bytes", "links_cap_bytes", "link_url_cap_bytes",
     "summary_cap_bytes", "collections_max", "scope_entries_max", "recovery_window_days",
-    "declaration_activation_epochs"}
+    "declaration_activation_epochs", "labeler_epoch_entries_max"}
+LABEL_KINDS = {"label": "labeler", "dispute": "disputant"}
+LABEL_REQUIRED = {"label": {"wist_version", "labeler", "subject", "name", "asserted_at"},
+                  "dispute": {"wist_version", "disputant", "label", "log", "height", "asserted_at"}}
+LABEL_OPTIONAL = {"label": {"value", "retracted", "expires_at", "delta"}, "dispute": {"reason"}}
+LABEL_FAILURE_CODES = {"fields": "WIST2-E06", "clock": "WIST2-E06", "self": "WIST2-E06", "unsealed": "WIST2-E06",
+                       "authority": "WIST2-E06", "binding": "WIST1-E02", "signature": "WIST1-E01"}
+LABEL_TERM = re.compile(r"\| `(wist:[a-z0-9-]+)` \|")
+NOT_JCS = "WIST1-E05"
 KEY_MEMBERS = {"seed_hex", "x", "kid"}
 EPOCH_MEMBERS = {"height", "sealed_at", "parameters", "entries"}
-NAMED_ENTRY_MEMBERS = {"name", "entry"}
+NAMED_ENTRY_FORMS = ({"name", "entry"}, {"name", "entry_json"})
 ENTRY_MEMBERS = {"type", "body"}
 UPDATE_ENVELOPE_MEMBERS = {"update", "sig"}
 UPDATE_MEMBERS = {"wist_version", "action", "subject", "effective_at", "details"}
@@ -56,6 +63,7 @@ FILE_MEMBERS = {
     "record-materialization": {"keys", "cases", "payloads"},
 }
 HISTORY_MEMBERS = {"name", "epochs", "expected"}
+SIDE_MEMBERS = ("payload_duties", "materialized")
 PARAMETER_CASE_MEMBERS = {"name", "parameters", "expected"}
 ORDER_CASE_MEMBERS = {"name", "catalogs", "expected"}
 COMBINED_CASE_MEMBERS = {"name", "publisher", "url", "logs", "expected"}
@@ -67,13 +75,13 @@ EVENT_EPOCH_MEMBERS = {"height", "sealed_at", "events"}
 EVENT_MEMBERS = {
     "declaration": {"event", "domain"},
     "narrowing": {"event", "publisher", "urls"},
-    "withdrawal": {"event", "item"},
+    "withdrawal": {"event", "item", "update"},
     "base": {"event", "publisher", "collection", "catalog"},
     "record": {"event", "publisher", "item", "collection", "catalog", "generated_at"},
     "removal": {"event", "publisher", "url", "item", "catalog", "generated_at"},
 }
 EVENT_RANK = {"declaration": 0, "narrowing": 0, "withdrawal": 1, "base": 2, "record": 3, "removal": 3}
-TUPLE_ARITY = {"declaration": 5, "collection": 5, "record": 7, "removal": 6, "withdrawal": 4}
+TUPLE_ARITY = {"declaration": 5, "collection": 5, "record": 7, "removal": 6, "withdrawal": 4, "registry_update": 3}
 
 
 class EpochRejected(Exception):
@@ -101,6 +109,151 @@ def leaf_hash(entry):
     return hashlib.sha256(b"\x00" + jcs(entry)).digest()
 
 
+class RepeatedMembers(dict):
+    pass
+
+
+def parse_stored(text):
+    def pairs(members):
+        names = [name for name, _ in members]
+        return RepeatedMembers(members) if len(set(names)) < len(names) else dict(members)
+
+    return json.loads(text, object_pairs_hook=pairs)
+
+
+def jcs_eligible(value):
+    if isinstance(value, RepeatedMembers):
+        return False
+    if isinstance(value, dict):
+        return all(jcs_eligible(member) for member in value.values())
+    if isinstance(value, list):
+        return all(jcs_eligible(member) for member in value)
+    return True
+
+
+def stored_entries(named_entries):
+    out = []
+    for named in named_entries:
+        if not isinstance(named, dict) or set(named) not in NAMED_ENTRY_FORMS:
+            raise VerifierError(f"Entry {named!r:.60} is neither {{name, entry}} nor {{name, entry_json}}")
+        if "entry_json" in named:
+            out.append({"name": named["name"], "entry": parse_stored(named["entry_json"]),
+                        "octets": named["entry_json"].encode("utf-8")})
+        else:
+            out.append({"name": named["name"], "entry": named["entry"], "octets": jcs(named["entry"])})
+    return out
+
+
+LABEL_TERMS = None
+
+
+def label_terms():
+    global LABEL_TERMS
+    if LABEL_TERMS is None:
+        text = (ROOT / "specs" / "WIST-4-governance.md").read_text(encoding="utf-8")
+        LABEL_TERMS = set(LABEL_TERM.findall(text.split("## 6. Label Registry", 1)[1].split("\n## ", 1)[0]))
+    return LABEL_TERMS
+
+
+def instant_of(value):
+    try:
+        return publisher_instant(value)
+    except VerifierError:
+        return None
+
+
+def subject_authority_host(subject):
+    if subject.startswith("https://"):
+        return url_host(subject) if normalized(subject, subject) == subject else None
+    return subject if canonical_host(subject) else None
+
+
+def registry_name(name):
+    if not isinstance(name, str) or len(name) > 64:
+        return False
+    prefix, colon, term = name.partition(":")
+    if not colon or not term or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789-" for c in term):
+        return False
+    return name in label_terms() if prefix == "wist" else canonical_host(prefix)
+
+
+def label_fields(kind, body, parameters):
+    if not jcs_eligible(body) or not isinstance(body, dict) or set(body) != {kind, "sig"} or not sig_form(body["sig"]):
+        return False
+    inner = body[kind]
+    if not isinstance(inner, dict) or not LABEL_REQUIRED[kind] <= set(inner) <= LABEL_REQUIRED[kind] | LABEL_OPTIONAL[kind]:
+        return False
+    version = VERSION.fullmatch(inner["wist_version"]) if isinstance(inner["wist_version"], str) else None
+    if version is None or version.group(1) != "1" or not canonical_host(inner[LABEL_KINDS[kind]]):
+        return False
+    asserted = instant_of(inner["asserted_at"])
+    if asserted is None:
+        return False
+    if kind == "dispute":
+        reason = inner.get("reason")
+        return (isinstance(inner["label"], str) and HASH.fullmatch(inner["label"]) is not None
+                and canonical_host(inner["log"]) and integer(inner["height"]) is not None
+                and (reason is None and "reason" not in inner or isinstance(reason, str)
+                     and reason.startswith("https://") and normalized(reason, reason) == reason))
+    subject = inner["subject"]
+    if not isinstance(subject, str) or subject_authority_host(subject) is None \
+            or len(jcs(subject)) > parameters["url_cap_bytes"] or not registry_name(inner["name"]):
+        return False
+    if "value" in inner and integer(inner["value"], 0, 1000000) is None:
+        return False
+    if "retracted" in inner and inner["retracted"] is not True:
+        return False
+    if "expires_at" in inner:
+        expires = instant_of(inner["expires_at"])
+        if expires is None or expires <= asserted:
+            return False
+    if "delta" in inner and not (isinstance(inner["delta"], str) and HASH.fullmatch(inner["delta"])
+                                 and subject.startswith("https://")):
+        return False
+    return True
+
+
+def judge_label_entry(log, kind, body, sealed_at, parameters):
+    if not label_fields(kind, body, parameters):
+        return "fields"
+    inner, sig = body[kind], body["sig"]
+    asserted = instant_of(inner["asserted_at"])
+    if asserted > sealed_at + parameters["clock_skew_seconds"]:
+        return "clock"
+    publisher = in_force(log, inner[LABEL_KINDS[kind]])
+    if publisher is None:
+        return "binding"
+    if kind == "label" and subject_authority_host(inner["subject"]) in authority(publisher):
+        return "self"
+    if kind == "dispute":
+        disputed = log["labels"].get(inner["label"])
+        if disputed is None:
+            return "unsealed"
+        if subject_authority_host(disputed["subject"]) not in authority(publisher):
+            return "authority"
+    keys = [k for k in publisher["keys"] if k["kid"] == sig["key_id"] and usable_public(public_raw(k))
+            and k["nbf"] <= asserted and ("exp" not in k or asserted < k["exp"])]
+    if not keys:
+        return "binding"
+    signature = b64u_canonical(sig["value"], 64)
+    if not any(signature_verifies(public_raw(k), signature, jcs(inner)) for k in keys):
+        return "signature"
+    identifier = "sha256:" + hashlib.sha256(jcs(inner)).hexdigest()
+    if kind == "label":
+        log["labels"][identifier] = {"labeler": inner["labeler"], "subject": inner["subject"],
+                                     "name": inner["name"], "height": None}
+    else:
+        log["disputes"][identifier] = {"label": inner["label"], "disputant": inner["disputant"], "height": None}
+    return identifier
+
+
+def carried_label_id(entry):
+    if entry_type(entry) != "label" or not isinstance(entry["body"], dict) or "label" not in entry["body"] \
+            or not jcs_eligible(entry["body"]["label"]):
+        return None
+    return "sha256:" + hashlib.sha256(jcs(entry["body"]["label"])).hexdigest()
+
+
 def map_refusal(parameters):
     if not isinstance(parameters, dict) or set(parameters) != PARAMETER_MEMBERS:
         return "a member set other than the one this verifier reads"
@@ -113,6 +266,8 @@ def map_refusal(parameters):
         return "a size cap outside its bounds"
     if parameters["payload_window_days"] < PAYLOAD_WINDOW_DAYS_MIN:
         return f"payload_window_days below {PAYLOAD_WINDOW_DAYS_MIN}"
+    if parameters["labeler_epoch_entries_max"] > parameters["domain_epoch_entries_max"]:
+        return "labeler_epoch_entries_max above domain_epoch_entries_max"
     try:
         check_floors(parameters)
         check_parameter_map(parameters)
@@ -130,7 +285,8 @@ def check_map(parameters):
 
 def new_log(log_key=None):
     return {"domains": {}, "latest": {}, "records": {}, "removals": {}, "withdrawn": {}, "sealed_items": {},
-            "duties": {}, "accepted_updates": set(), "log_key": log_key}
+            "duties": {}, "accepted_updates": set(), "log_key": log_key, "labels": {}, "disputes": {},
+            "sealed_labels": set(), "declared": set()}
 
 
 def in_force(log, domain):
@@ -173,7 +329,7 @@ def narrow_records(log, domain, label, removed):
 
 def activate(log, domain, height, removed):
     state = log["domains"][domain]
-    if state["pending"] is not None and state["activation"] == height:
+    if state["pending"] is not None and state["activation"] <= height:
         head = state["pending"]
         state["current"], state["pending"], state["activation"] = head, None, None
         narrow_records(log, domain, head, removed)
@@ -183,6 +339,8 @@ def apply_declarations(log, entries, height, sealed_at, parameters, removed):
     groups = {}
     for entry in entries:
         envelope = entry["entry"]["body"]
+        if not jcs_eligible(envelope):
+            raise EpochRejected(NOT_JCS, f"Declaration {entry['name']} is not JCS input")
         try:
             validate(envelope, parameters)
         except Rejected as rejection:
@@ -242,6 +400,8 @@ def latest_binds(log, latest):
 
 
 def judge_catalog_entry(log, body, height, clock, parameters, removed):
+    if not jcs_eligible(body):
+        return ["C1"], {NOT_JCS}
     failed, codes = [], set()
     domain = body["catalog"].get("publisher") if isinstance(body, dict) and isinstance(body.get("catalog"), dict) \
         else None
@@ -294,6 +454,8 @@ def named_catalog(log, body):
 
 
 def judge_item_entry(log, body, height, sealed_at, parameters, removed):
+    if not jcs_eligible(body):
+        raise VerifierError("a publisher_item body outside JCS input is outside this fixture's scope")
     if not body_form(body):
         return ["I1"], {"WIST1-E14"}
     failed, codes = [], set()
@@ -338,14 +500,10 @@ def judge_item_entry(log, body, height, sealed_at, parameters, removed):
         codes.add("WIST1-E17")
     key = (domain, item["url"])
     record = log["records"].get(key)
-    read = record
-    if named["base"] and named["height"] == height and record is not None \
-            and record["collection"] == inner["collection"]:
-        read = None
     if "removed" in item:
-        i7 = read is None
+        i7 = record is None
     else:
-        i7 = (read is not None and read["item"] == identifier) or identifier in log["withdrawn"]
+        i7 = (record is not None and record["item"] == identifier) or identifier in log["withdrawn"]
     if i7:
         failed.append("I7")
         codes.add(OUT_OF_PLACE)
@@ -404,6 +562,8 @@ def authenticated(log, envelope):
 
 
 def judge_withdrawal(log, body, height):
+    if not jcs_eligible(body):
+        return ["eligibility"], {NOT_JCS}
     code = withdrawal_field_code(body)
     if code is not None:
         return ["envelope" if code == ENVELOPE_BROKEN else "contract"], {code}
@@ -433,11 +593,11 @@ def entry_type(entry):
     return None
 
 
-def epoch_rejections(entries, parameters):
-    seen, counts, met = set(), {}, set()
+def epoch_rejections(log, entries, parameters):
+    seen, counts, labeled, met, carried = set(), {}, {}, set(), []
     for named in entries:
         entry = named["entry"]
-        if len(jcs(entry)) > ENTRY_OCTETS_MAX:
+        if len(named["octets"]) > ENTRY_OCTETS_MAX:
             met.add(EPOCH_REJECTED)
         kind = entry_type(entry)
         if kind == "publisher_catalog":
@@ -450,23 +610,28 @@ def epoch_rejections(entries, parameters):
             host = body_member(entry, *CAPACITY_HOSTS[kind])
             if isinstance(host, str) and canonical_host(host):
                 counts[host] = counts.get(host, 0) + 1
+                if kind in LABEL_KINDS:
+                    labeled[host] = labeled.get(host, 0) + 1
+        identifier = carried_label_id(entry)
+        if identifier is not None:
+            if identifier in log["sealed_labels"] or identifier in carried:
+                met.add(EPOCH_REJECTED)
+            carried.append(identifier)
     if any(count > parameters["domain_epoch_entries_max"] for count in counts.values()):
         met.add(EPOCH_REJECTED)
-    return met
+    if any(count > parameters["labeler_epoch_entries_max"] for count in labeled.values()):
+        met.add(EPOCH_REJECTED)
+    return met, carried
 
 
 def form_rejections(entries):
     ranks, met = [], set()
     for named in entries:
-        members_read(named, NAMED_ENTRY_MEMBERS, f"Entry {named.get('name')!r}")
-        entry = named["entry"]
-        kind = entry_type(entry)
+        kind = entry_type(named["entry"])
         if kind is None:
             met.add(EPOCH_REJECTED)
             continue
-        if kind in UNJUDGED_TYPES and isinstance(entry["body"], dict):
-            raise VerifierError(f"a {kind} Entry whose body is an object is outside this fixture's scope")
-        ranks.append((GROUP_ORDER.index(kind), leaf_hash(entry)))
+        ranks.append((GROUP_ORDER.index(kind), hashlib.sha256(b"\x00" + named["octets"]).digest()))
     if ranks != sorted(ranks):
         met.add(EPOCH_REJECTED)
     return met
@@ -490,13 +655,15 @@ def duties(log, sealed_at):
 
 def apply_epoch(log, epoch):
     height, sealed_at, parameters = epoch["height"], log_seconds(epoch["sealed_at"]), epoch["parameters"]
-    entries = epoch["entries"]
-    met = form_rejections(entries) | epoch_rejections(entries, parameters)
+    entries = stored_entries(epoch["entries"])
+    met = form_rejections(entries)
+    rejected, carried = epoch_rejections(log, entries, parameters)
+    met |= rejected
     before = copy.deepcopy(log)
     removed, verdicts = [], {}
     declarations = [e for e in entries if entry_type(e["entry"]) == "publisher_declaration"]
     try:
-        apply_declarations(log, sorted(declarations, key=lambda e: leaf_hash(e["entry"])),
+        apply_declarations(log, sorted(declarations, key=lambda e: hashlib.sha256(b"\x00" + e["octets"]).digest()),
                            height, sealed_at, parameters, removed)
     except EpochRejected as rejection:
         met.add(rejection.code)
@@ -504,6 +671,8 @@ def apply_epoch(log, epoch):
         log.clear()
         log.update(before)
         return {"height": height, "status": "rejected", "codes": sorted(met)}
+    log["declared"] |= {e["entry"]["body"]["publisher"]["domain"] for e in declarations}
+    log["sealed_labels"] |= set(carried)
     judges = {
         "publisher_catalog": lambda b: judge_catalog_entry(log, b, height, sealed_at, parameters, removed),
         "publisher_item": lambda b: judge_item_entry(log, b, height, sealed_at, parameters, removed),
@@ -515,6 +684,16 @@ def apply_epoch(log, epoch):
                 verdict = judges[kind](named["entry"]["body"])
                 if verdict is not None:
                     verdicts[index] = verdict
+    for kind in ("label", "dispute"):
+        for index, named in enumerate(entries):
+            if entry_type(named["entry"]) != kind:
+                continue
+            outcome = judge_label_entry(log, kind, named["entry"]["body"], sealed_at, parameters)
+            if outcome in LABEL_FAILURE_CODES:
+                verdicts[index] = ([outcome], {LABEL_FAILURE_CODES[outcome]})
+            else:
+                log[kind + "s"][outcome]["height"] = height
+                verdicts[index] = ([], set())
     results = []
     for index, named in enumerate(entries):
         if index not in verdicts:
@@ -541,7 +720,12 @@ def snapshot(log):
                 for (publisher, collection), latest in sorted(log["latest"].items(), key=by_key)]
     records = [{"publisher": p, "url": u, **record_fields(record), "item": record["body"]}
                for (p, u), record in sorted(log["records"].items(), key=by_key)]
-    return {"declarations": declarations, "catalogs": catalogs, "records": records, "removals": removals_of(log)}
+    labels = [{"label": identifier, **held} for identifier, held in sorted(log["labels"].items(),
+                                                                          key=lambda kv: octets(kv[0]))]
+    disputes = [{"dispute": identifier, **held} for identifier, held in sorted(log["disputes"].items(),
+                                                                              key=lambda kv: octets(kv[0]))]
+    return {"declarations": declarations, "catalogs": catalogs, "records": records, "removals": removals_of(log),
+            "labels": labels, "disputes": disputes}
 
 
 def record_fields(record):
@@ -553,7 +737,14 @@ def removals_of(log):
     return [{"publisher": p, "url": u, **state} for (p, u), state in sorted(log["removals"].items(), key=by_key)]
 
 
-def replay(epochs, log_key, with_duties=False):
+def log_materialized(log):
+    holdings = {"records": {key: {"item": record["body"], "generated_at": record["generated_at"]}
+                            for key, record in log["records"].items()},
+                "withdrawn": log["withdrawn"], "declared": log["declared"]}
+    return sorted(materialized(holdings), key=lambda t: (octets(t["publisher"]), octets(t["url"])))
+
+
+def replay(epochs, log_key, sides=()):
     log, produced, previous = new_log(log_key), [], None
     for epoch in epochs:
         members_read(epoch, EPOCH_MEMBERS, f"Epoch {epoch.get('height')}")
@@ -563,8 +754,10 @@ def replay(epochs, log_key, with_duties=False):
             raise VerifierError("Epoch heights or sealed_at instants do not increase")
         previous = instant
         result = apply_epoch(log, epoch)
-        if with_duties:
+        if "payload_duties" in sides:
             result["payload_duties"] = duties(log, instant[1])
+        if "materialized" in sides:
+            result["materialized"] = log_materialized(log)
         result["state"] = snapshot(log)
         produced.append(result)
     return log, produced
@@ -582,18 +775,22 @@ def compare_epochs(report, label, expected, produced):
                                         f"expected {json.dumps(want.get(field))}, got {json.dumps(got.get(field))}"))
 
 
-def carries_duties(history):
-    carried = {"payload_duties" in epoch for epoch in history["expected"]}
-    if len(carried) > 1:
-        raise VerifierError("payload_duties carried by some Epochs of the history and not by others")
-    return carried == {True}
+def sides_carried(history):
+    sides = []
+    for side in SIDE_MEMBERS:
+        carried = {side in epoch for epoch in history["expected"]}
+        if len(carried) > 1:
+            raise VerifierError(f"{side} carried by some Epochs of the history and not by others")
+        if carried == {True}:
+            sides.append(side)
+    return sides
 
 
 def page_items(epochs_lists):
     found = {}
     for epochs in epochs_lists:
         for epoch in epochs:
-            for named in epoch["entries"]:
+            for named in stored_entries(epoch["entries"]):
                 entry = named["entry"]
                 if entry_type(entry) == "publisher_item" and isinstance(entry["body"], dict):
                     item = entry["body"].get("item")
@@ -620,7 +817,7 @@ def family_sealing(data, report):
     for history in data["histories"]:
         def one(h=history):
             members_read(h, HISTORY_MEMBERS, f"history {h.get('name')!r}", {"why"})
-            produced = replay(h["epochs"], data["keys"]["log"], carries_duties(h))[1]
+            produced = replay(h["epochs"], data["keys"]["log"], sides_carried(h))[1]
             compare_epochs(report, h["name"], h["expected"], produced)
         report.run(history["name"], one)
     for case in data["parameter_cases"]:
@@ -747,14 +944,14 @@ def family_served(data, report):
 
 
 def new_holdings():
-    return {"records": {}, "removals": {}, "withdrawn": {}, "declared": set(), "sealed": {}}
+    return {"records": {}, "removals": {}, "withdrawn": {}, "declared": set(), "sealed": {}, "accepted_updates": {}}
 
 
 def event_form(event):
     if not isinstance(event, dict) or event.get("event") not in EVENT_MEMBERS:
         raise VerifierError(f"not a record event: {event!r}")
     members_read(event, EVENT_MEMBERS[event["event"]], f"{event['event']} event")
-    for member in ("catalog",) + (("item",) if event["event"] in ("withdrawal", "removal") else ()):
+    for member in ("catalog", "update") + (("item",) if event["event"] in ("withdrawal", "removal") else ()):
         if member in event and not (isinstance(event[member], str) and HASH.fullmatch(event[member])):
             raise VerifierError(f"{event['event']} event: {member} is not a sha256 ID")
     if "generated_at" in event and log_instant(event["generated_at"]) is None:
@@ -775,6 +972,7 @@ def apply_event(state, event, height, walked):
             del records[(event["publisher"], url)]
     elif kind == "withdrawal":
         state["withdrawn"].setdefault(event["item"], {"height": height, "walked": walked})
+        state["accepted_updates"].setdefault(event["update"], height)
     elif kind == "base":
         for key in [key for key, record in records.items()
                     if key[0] == event["publisher"] and record["collection"] == event["collection"]]:
@@ -874,6 +1072,7 @@ def replayed_tuples(state):
         if identifier not in state["sealed"]:
             raise VerifierError(f"no Publisher sealed the withdrawn Item {identifier}")
         tuples.append(["withdrawal", identifier, state["sealed"][identifier], entry["height"]])
+    tuples += [["registry_update", identifier, height] for identifier, height in state["accepted_updates"].items()]
     return sorted(tuples, key=jcs)
 
 
@@ -905,6 +1104,11 @@ def resumed_holdings(snapshot):
             _, identifier, publisher, height = entry
             state["withdrawn"][identifier] = {"height": height, "walked": False}
             state["sealed"][identifier] = publisher
+        elif kind == "registry_update":
+            _, identifier, height = entry
+            if not (isinstance(identifier, str) and HASH.fullmatch(identifier)) or height > snapshot["height"]:
+                raise VerifierError(f"registry_update tuple {identifier!r} of another form or above the Snapshot")
+            state["accepted_updates"][identifier] = height
     for entry in snapshot["tuples"]:
         if entry[0] == "collection":
             _, publisher, name, envelope, height = entry
@@ -933,8 +1137,10 @@ def materialization_case(case, report, payloads):
     if at_snapshot is None or snapshot["height"] == epochs[-1]["height"]:
         raise VerifierError("the snapshot height is no Epoch below the last")
     resumed = resumed_holdings(snapshot)
-    carried = sorted((t for t in snapshot["tuples"] if t[0] in ("record", "removal", "withdrawal")), key=jcs)
-    report.equal(f"{case['name']} snapshot record, removal and withdrawal tuples", at_snapshot[0], carried)
+    carried = sorted((t for t in snapshot["tuples"] if t[0] in ("record", "removal", "withdrawal", "registry_update")),
+                     key=jcs)
+    report.equal(f"{case['name']} snapshot record, removal, withdrawal and registry_update tuples", at_snapshot[0],
+                 carried)
     report.equal(f"{case['name']} snapshot declaration tuples", sorted(at_snapshot[1], key=octets),
                  sorted(resumed["declared"], key=octets))
     later = [epoch for epoch in epochs if epoch["height"] > snapshot["height"]]

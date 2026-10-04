@@ -42131,20 +42131,34 @@
     },
     {
       "name": "Labels and a dispute take their places after the pull's Catalogs and URLs and share the capacity",
-      "why": "domain_epoch_entries_max is 3. The pull after height 0 accepts J1, a, then L1, L2 and D1 from the Label Feed, which take places after J1's and a's in the order the pull accepts them; all are eligible for height 1. A pull serving L2 again finds it seen. Height 1 gives the capacity to J1, then to a, L1, L2 and D1 together in the order of places: J1, a and L1 are sealed, and L2 and D1, which do not fit, are deferred by capacity to height 2, a deferral the status endpoint does not report, and sealed there.",
+      "why": "domain_epoch_entries_max is 3. F, watch.example.net's Label of journal/a, is sealed at height 1. The pull after height 1 accepts J1, a, then L1, L2 and D1, example.com's dispute of F, from the Label Feed, which take places after J1's and a's in the order the pull accepts them; all are eligible for height 2. A pull serving L2 again finds it seen. Height 2 gives the capacity to J1, then to a, L1, L2 and D1 together in the order of places: J1, a and L1 are sealed, and L2 and D1, which do not fit, are deferred by capacity to height 3, a deferral the status endpoint does not report, and sealed there.",
       "labels": {
+        "F": {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "watch.example.net",
+            "subject": "https://example.com/journal/a",
+            "name": "wist:spam",
+            "asserted_at": "2026-09-30T08:00:00Z"
+          },
+          "sig": {
+            "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+            "alg": "Ed25519",
+            "value": "fyFNaRncMOR0LVOQ_rHK4wTiyKpTzxIt3LF9l5V6F7Q0Uig9iTY3kIRjNMJqS2VhvyC4yW7aDqodyYUfTAf4Bw"
+          }
+        },
         "L1": {
           "label": {
             "wist_version": "1.0.0",
             "labeler": "example.com",
             "subject": "https://watch.example.net/one",
             "name": "wist:spam",
-            "asserted_at": "2026-10-01T00:03:00Z"
+            "asserted_at": "2026-10-01T01:03:00Z"
           },
           "sig": {
             "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
             "alg": "Ed25519",
-            "value": "O-pTaG9m61mQ50CgC9LH8NTSNsbhRj1BWgPqbNL8YISHVJmomZUFfAeGC5lGS-HkyRokN3YjcO3v5lLLKr_1Cw"
+            "value": "CFKKwZ9JRzSUnlszoGgu2_TiCHuhcisRMpk3WtmLK4E_Zg3t7cqqEogS9PBvXJgFeO2_oswxgcKwaNjoRISrBg"
           }
         },
         "L2": {
@@ -42153,12 +42167,12 @@
             "labeler": "example.com",
             "subject": "https://watch.example.net/two",
             "name": "wist:spam",
-            "asserted_at": "2026-10-01T00:03:00Z"
+            "asserted_at": "2026-10-01T01:03:00Z"
           },
           "sig": {
             "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
             "alg": "Ed25519",
-            "value": "wL8mrHYVDKyhSn8w5LILocIcbhnxTCIPQ5FvWng_iPqoWWjjnANOlQzOat1pZAhCTmBE-ZCo5RpqOzvi9QT1DA"
+            "value": "Bipm6vVZee7snZvQ1k62ndxZ8OhS4ACwqYI5MXM0he1DQZ3hNo4364J4Yt_eyCxLddb6mfU3yUK_Lpgw4wccAA"
           }
         },
         "D1": {
@@ -42168,12 +42182,12 @@
             "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
             "log": "log.example",
             "height": 1,
-            "asserted_at": "2026-10-01T00:03:00Z"
+            "asserted_at": "2026-10-01T01:03:00Z"
           },
           "sig": {
             "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
             "alg": "Ed25519",
-            "value": "bFS6QD8rs2UFvARVT-h6B_GQJb23kGM3ecesKTGsMrB9qRybD8RMrsZcEIC2Rt4IWY7BYMKkBX0BaE-rvSBiBw"
+            "value": "LirjpiHLatdeYsXzxCBvMg7r-mQSJPQqt74BXuSsU-NDDAejn6Ms5jcO8gvRJzUYEIG0x0Cv01sBZES_dvo4Dg"
           }
         }
       },
@@ -42248,6 +42262,27 @@
             "alg": "Ed25519",
             "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
           }
+        },
+        "W": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "watch.example.net",
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+                "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                "nbf": 1788220800
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+            "alg": "Ed25519",
+            "value": "Bj3pHew9zQyGMLqcbQTA99i5138LT5omty9ntUmGfeuHFKmoyX5LPbxcHQwYOpRZEe2R5OGUwO3SrjHgz1eEAw"
+          }
         }
       },
       "catalogs": {
@@ -42256,7 +42291,7 @@
             "wist_version": "1.0.0",
             "publisher": "example.com",
             "collection": "journal",
-            "generated_at": "2026-10-01T00:04:00Z",
+            "generated_at": "2026-10-01T01:04:00Z",
             "size": 1,
             "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
             "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
@@ -42264,12 +42299,12 @@
           "sig": {
             "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
             "alg": "Ed25519",
-            "value": "eVE3ZwGJhTYhZUhzogvJExYPSf7aF0SWpwdMn2l-RJu0-xEZVE2L5QXXNrcAAIMBZ09CySYk6P-AUL9L8agHBw"
+            "value": "FKmZqbtx9MSGkroTfEBXRIK4BUxvgITStM5d5HPx3jhuY4Dx4nml95orrmpy_YqCcan6u_Ann3jc6gnZ-DEgAA"
           }
         }
       },
       "catalog_ids": {
-        "J1": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc"
+        "J1": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148"
       },
       "tree_files": {
         "bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914": "{\"items\":[{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":140,\"commitment\":\"hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/a\"}]}"
@@ -42301,12 +42336,71 @@
             "declaration_activation_epochs": 24
           },
           "declarations": [
-            "G"
+            "G",
+            "W"
           ]
         },
         {
           "event": "pull",
-          "at": "2026-10-01T00:05:00Z",
+          "at": "2026-10-01T00:04:00Z",
+          "publisher": "watch.example.net",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 3,
+            "labeler_epoch_entries_max": 3,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declaration": "W",
+          "collections": {},
+          "labels": [
+            "F"
+          ]
+        },
+        {
+          "event": "epoch",
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 3,
+            "labeler_epoch_entries_max": 3,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declarations": []
+        },
+        {
+          "event": "pull",
+          "at": "2026-10-01T01:05:00Z",
           "publisher": "example.com",
           "parameters": {
             "clock_skew_seconds": 600,
@@ -42362,7 +42456,7 @@
         },
         {
           "event": "pull",
-          "at": "2026-10-01T00:10:00Z",
+          "at": "2026-10-01T01:10:00Z",
           "publisher": "example.com",
           "parameters": {
             "clock_skew_seconds": 600,
@@ -42416,8 +42510,8 @@
         },
         {
           "event": "epoch",
-          "height": 1,
-          "sealed_at": "2026-10-01T01:00:00Z",
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
@@ -42443,8 +42537,8 @@
         },
         {
           "event": "epoch",
-          "height": 2,
-          "sealed_at": "2026-10-01T02:00:00Z",
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
@@ -42546,9 +42640,131 @@
                   "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
                 }
               }
+            },
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 0,
+                  "domain": "watch.example.net",
+                  "keys": [
+                    {
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+                      "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                      "nbf": 1788220800
+                    }
+                  ]
+                },
+                "sig": {
+                  "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                  "alg": "Ed25519",
+                  "value": "Bj3pHew9zQyGMLqcbQTA99i5138LT5omty9ntUmGfeuHFKmoyX5LPbxcHQwYOpRZEe2R5OGUwO3SrjHgz1eEAw"
+                }
+              }
             }
           ],
           "sealed": [],
+          "left": [],
+          "deferred": [],
+          "records_removed": [],
+          "state": {
+            "collections": [],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": []
+          }
+        },
+        {
+          "settlement": [],
+          "declaration": {
+            "outcome": "idempotent",
+            "discovered": false,
+            "reduces_authority": false,
+            "sources": [
+              "W"
+            ],
+            "window": false
+          },
+          "collections_pulled": [
+            "default"
+          ],
+          "catalogs": [
+            {
+              "collection": "default",
+              "outcome": "unavailable",
+              "codes": [
+                "WIST2-E01"
+              ]
+            }
+          ],
+          "labels": [
+            {
+              "type": "label",
+              "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+              "outcome": "accepted",
+              "place": [
+                1,
+                1,
+                0
+              ]
+            }
+          ],
+          "state": {
+            "collections": [],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": [],
+            "labels": [
+              {
+                "type": "label",
+                "publisher": "watch.example.net",
+                "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+                "place": [
+                  1,
+                  1,
+                  0
+                ],
+                "eligibility": 1,
+                "ceiling": 5
+              }
+            ]
+          }
+        },
+        {
+          "settlement": [],
+          "entries": [
+            {
+              "type": "label",
+              "body": {
+                "label": {
+                  "wist_version": "1.0.0",
+                  "labeler": "watch.example.net",
+                  "subject": "https://example.com/journal/a",
+                  "name": "wist:spam",
+                  "asserted_at": "2026-09-30T08:00:00Z"
+                },
+                "sig": {
+                  "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                  "alg": "Ed25519",
+                  "value": "fyFNaRncMOR0LVOQ_rHK4wTiyKpTzxIt3LF9l5V6F7Q0Uig9iTY3kIRjNMJqS2VhvyC4yW7aDqodyYUfTAf4Bw"
+                }
+              }
+            }
+          ],
+          "sealed": [
+            {
+              "type": "label",
+              "publisher": "watch.example.net",
+              "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+              "eligibility": 1,
+              "ceiling": 5
+            }
+          ],
           "left": [],
           "deferred": [],
           "records_removed": [],
@@ -42578,7 +42794,7 @@
           "catalogs": [
             {
               "collection": "journal",
-              "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+              "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
               "sources": [
                 "G"
               ],
@@ -42609,30 +42825,30 @@
           "labels": [
             {
               "type": "label",
-              "label": "sha256:1ab3eac2673062996314b0110e5aebcc6b031b00fe2b81e08050b970c8e23617",
+              "label": "sha256:ab4dae440574bff836d002db2548dcee1adb1fce0dd84ba40cedcc05362e5acf",
               "outcome": "accepted",
               "place": [
-                1,
+                3,
                 2,
                 0
               ]
             },
             {
               "type": "label",
-              "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+              "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
               "outcome": "accepted",
               "place": [
-                1,
+                3,
                 2,
                 1
               ]
             },
             {
               "type": "dispute",
-              "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
+              "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
               "outcome": "accepted",
               "place": [
-                1,
+                3,
                 2,
                 2
               ]
@@ -42644,15 +42860,15 @@
                 "publisher": "example.com",
                 "collection": "journal",
                 "latest": null,
-                "last_accepted": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "last_accepted": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "waiting": {
-                  "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                  "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                   "place": [
-                    1,
+                    3,
                     0
                   ],
-                  "eligibility": 1,
-                  "ceiling": 5
+                  "eligibility": 2,
+                  "ceiling": 6
                 }
               }
             ],
@@ -42663,12 +42879,12 @@
                 "collection": "journal",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
                 "place": [
-                  1,
+                  3,
                   0,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ],
             "queue": [],
@@ -42678,38 +42894,38 @@
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:1ab3eac2673062996314b0110e5aebcc6b031b00fe2b81e08050b970c8e23617",
+                "label": "sha256:ab4dae440574bff836d002db2548dcee1adb1fce0dd84ba40cedcc05362e5acf",
                 "place": [
-                  1,
+                  3,
                   2,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               },
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+                "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
                 "place": [
-                  1,
+                  3,
                   2,
                   1
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               },
               {
                 "type": "dispute",
                 "publisher": "example.com",
-                "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
+                "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
                 "place": [
-                  1,
+                  3,
                   2,
                   2
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ]
           }
@@ -42732,7 +42948,7 @@
           "catalogs": [
             {
               "collection": "journal",
-              "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+              "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
               "outcome": "idempotent",
               "tree_files_fetched": [],
               "items": []
@@ -42748,7 +42964,7 @@
           "labels": [
             {
               "type": "label",
-              "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+              "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
               "outcome": "seen"
             }
           ],
@@ -42759,15 +42975,15 @@
                 "publisher": "example.com",
                 "collection": "journal",
                 "latest": null,
-                "last_accepted": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "last_accepted": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "waiting": {
-                  "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                  "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                   "place": [
-                    1,
+                    3,
                     0
                   ],
-                  "eligibility": 1,
-                  "ceiling": 5
+                  "eligibility": 2,
+                  "ceiling": 6
                 }
               }
             ],
@@ -42778,12 +42994,12 @@
                 "collection": "journal",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
                 "place": [
-                  1,
+                  3,
                   0,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ],
             "queue": [],
@@ -42793,38 +43009,38 @@
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:1ab3eac2673062996314b0110e5aebcc6b031b00fe2b81e08050b970c8e23617",
+                "label": "sha256:ab4dae440574bff836d002db2548dcee1adb1fce0dd84ba40cedcc05362e5acf",
                 "place": [
-                  1,
+                  3,
                   2,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               },
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+                "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
                 "place": [
-                  1,
+                  3,
                   2,
                   1
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               },
               {
                 "type": "dispute",
                 "publisher": "example.com",
-                "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
+                "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
                 "place": [
-                  1,
+                  3,
                   2,
                   2
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ]
           }
@@ -42839,7 +43055,7 @@
                   "wist_version": "1.0.0",
                   "publisher": "example.com",
                   "collection": "journal",
-                  "generated_at": "2026-10-01T00:04:00Z",
+                  "generated_at": "2026-10-01T01:04:00Z",
                   "size": 1,
                   "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
                   "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
@@ -42847,7 +43063,7 @@
                 "sig": {
                   "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
                   "alg": "Ed25519",
-                  "value": "eVE3ZwGJhTYhZUhzogvJExYPSf7aF0SWpwdMn2l-RJu0-xEZVE2L5QXXNrcAAIMBZ09CySYk6P-AUL9L8agHBw"
+                  "value": "FKmZqbtx9MSGkroTfEBXRIK4BUxvgITStM5d5HPx3jhuY4Dx4nml95orrmpy_YqCcan6u_Ann3jc6gnZ-DEgAA"
                 }
               }
             },
@@ -42868,7 +43084,7 @@
                   "url": "https://example.com/journal/a"
                 },
                 "collection": "journal",
-                "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "proof": {
                   "index": 0,
                   "tree_size": 1,
@@ -42884,12 +43100,12 @@
                   "labeler": "example.com",
                   "subject": "https://watch.example.net/one",
                   "name": "wist:spam",
-                  "asserted_at": "2026-10-01T00:03:00Z"
+                  "asserted_at": "2026-10-01T01:03:00Z"
                 },
                 "sig": {
                   "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
                   "alg": "Ed25519",
-                  "value": "O-pTaG9m61mQ50CgC9LH8NTSNsbhRj1BWgPqbNL8YISHVJmomZUFfAeGC5lGS-HkyRokN3YjcO3v5lLLKr_1Cw"
+                  "value": "CFKKwZ9JRzSUnlszoGgu2_TiCHuhcisRMpk3WtmLK4E_Zg3t7cqqEogS9PBvXJgFeO2_oswxgcKwaNjoRISrBg"
                 }
               }
             }
@@ -42899,9 +43115,9 @@
               "type": "publisher_catalog",
               "publisher": "example.com",
               "collection": "journal",
-              "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
-              "eligibility": 1,
-              "ceiling": 5
+              "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
+              "eligibility": 2,
+              "ceiling": 6
             },
             {
               "type": "publisher_item",
@@ -42909,16 +43125,16 @@
               "collection": "journal",
               "url": "https://example.com/journal/a",
               "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
-              "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
-              "eligibility": 1,
-              "ceiling": 5
+              "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
+              "eligibility": 2,
+              "ceiling": 6
             },
             {
               "type": "label",
               "publisher": "example.com",
-              "label": "sha256:1ab3eac2673062996314b0110e5aebcc6b031b00fe2b81e08050b970c8e23617",
-              "eligibility": 1,
-              "ceiling": 5
+              "label": "sha256:ab4dae440574bff836d002db2548dcee1adb1fce0dd84ba40cedcc05362e5acf",
+              "eligibility": 2,
+              "ceiling": 6
             }
           ],
           "left": [],
@@ -42929,8 +43145,8 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "latest": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
-                "last_accepted": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "latest": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
+                "last_accepted": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "waiting": null
               }
             ],
@@ -42943,33 +43159,33 @@
                 "url": "https://example.com/journal/a",
                 "collection": "journal",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
-                "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc"
+                "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148"
               }
             ],
             "labels": [
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+                "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
                 "place": [
-                  1,
+                  3,
                   2,
                   1
                 ],
-                "eligibility": 2,
-                "ceiling": 6
+                "eligibility": 3,
+                "ceiling": 7
               },
               {
                 "type": "dispute",
                 "publisher": "example.com",
-                "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
+                "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
                 "place": [
-                  1,
+                  3,
                   2,
                   2
                 ],
-                "eligibility": 2,
-                "ceiling": 6
+                "eligibility": 3,
+                "ceiling": 7
               }
             ]
           }
@@ -42985,12 +43201,12 @@
                   "labeler": "example.com",
                   "subject": "https://watch.example.net/two",
                   "name": "wist:spam",
-                  "asserted_at": "2026-10-01T00:03:00Z"
+                  "asserted_at": "2026-10-01T01:03:00Z"
                 },
                 "sig": {
                   "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
                   "alg": "Ed25519",
-                  "value": "wL8mrHYVDKyhSn8w5LILocIcbhnxTCIPQ5FvWng_iPqoWWjjnANOlQzOat1pZAhCTmBE-ZCo5RpqOzvi9QT1DA"
+                  "value": "Bipm6vVZee7snZvQ1k62ndxZ8OhS4ACwqYI5MXM0he1DQZ3hNo4364J4Yt_eyCxLddb6mfU3yUK_Lpgw4wccAA"
                 }
               }
             },
@@ -43003,12 +43219,12 @@
                   "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
                   "log": "log.example",
                   "height": 1,
-                  "asserted_at": "2026-10-01T00:03:00Z"
+                  "asserted_at": "2026-10-01T01:03:00Z"
                 },
                 "sig": {
                   "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
                   "alg": "Ed25519",
-                  "value": "bFS6QD8rs2UFvARVT-h6B_GQJb23kGM3ecesKTGsMrB9qRybD8RMrsZcEIC2Rt4IWY7BYMKkBX0BaE-rvSBiBw"
+                  "value": "LirjpiHLatdeYsXzxCBvMg7r-mQSJPQqt74BXuSsU-NDDAejn6Ms5jcO8gvRJzUYEIG0x0Cv01sBZES_dvo4Dg"
                 }
               }
             }
@@ -43017,16 +43233,16 @@
             {
               "type": "label",
               "publisher": "example.com",
-              "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
-              "eligibility": 2,
-              "ceiling": 6
+              "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
+              "eligibility": 3,
+              "ceiling": 7
             },
             {
               "type": "dispute",
               "publisher": "example.com",
-              "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
-              "eligibility": 2,
-              "ceiling": 6
+              "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
+              "eligibility": 3,
+              "ceiling": 7
             }
           ],
           "left": [],
@@ -43037,8 +43253,8 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "latest": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
-                "last_accepted": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "latest": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
+                "last_accepted": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "waiting": null
               }
             ],
@@ -43051,7 +43267,7 @@
                 "url": "https://example.com/journal/a",
                 "collection": "journal",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
-                "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc"
+                "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148"
               }
             ]
           }
@@ -43060,20 +43276,34 @@
     },
     {
       "name": "Labels and a dispute that fit the capacity are sealed together",
-      "why": "As the previous history under domain_epoch_entries_max 5: J1, a, L1, L2 and D1 fit and are all sealed at height 1.",
+      "why": "As the previous history under domain_epoch_entries_max 5: J1, a, L1, L2 and D1 fit and are all sealed at height 2.",
       "labels": {
+        "F": {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "watch.example.net",
+            "subject": "https://example.com/journal/a",
+            "name": "wist:spam",
+            "asserted_at": "2026-09-30T08:00:00Z"
+          },
+          "sig": {
+            "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+            "alg": "Ed25519",
+            "value": "fyFNaRncMOR0LVOQ_rHK4wTiyKpTzxIt3LF9l5V6F7Q0Uig9iTY3kIRjNMJqS2VhvyC4yW7aDqodyYUfTAf4Bw"
+          }
+        },
         "L1": {
           "label": {
             "wist_version": "1.0.0",
             "labeler": "example.com",
             "subject": "https://watch.example.net/one",
             "name": "wist:spam",
-            "asserted_at": "2026-10-01T00:03:00Z"
+            "asserted_at": "2026-10-01T01:03:00Z"
           },
           "sig": {
             "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
             "alg": "Ed25519",
-            "value": "O-pTaG9m61mQ50CgC9LH8NTSNsbhRj1BWgPqbNL8YISHVJmomZUFfAeGC5lGS-HkyRokN3YjcO3v5lLLKr_1Cw"
+            "value": "CFKKwZ9JRzSUnlszoGgu2_TiCHuhcisRMpk3WtmLK4E_Zg3t7cqqEogS9PBvXJgFeO2_oswxgcKwaNjoRISrBg"
           }
         },
         "L2": {
@@ -43082,12 +43312,12 @@
             "labeler": "example.com",
             "subject": "https://watch.example.net/two",
             "name": "wist:spam",
-            "asserted_at": "2026-10-01T00:03:00Z"
+            "asserted_at": "2026-10-01T01:03:00Z"
           },
           "sig": {
             "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
             "alg": "Ed25519",
-            "value": "wL8mrHYVDKyhSn8w5LILocIcbhnxTCIPQ5FvWng_iPqoWWjjnANOlQzOat1pZAhCTmBE-ZCo5RpqOzvi9QT1DA"
+            "value": "Bipm6vVZee7snZvQ1k62ndxZ8OhS4ACwqYI5MXM0he1DQZ3hNo4364J4Yt_eyCxLddb6mfU3yUK_Lpgw4wccAA"
           }
         },
         "D1": {
@@ -43097,12 +43327,12 @@
             "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
             "log": "log.example",
             "height": 1,
-            "asserted_at": "2026-10-01T00:03:00Z"
+            "asserted_at": "2026-10-01T01:03:00Z"
           },
           "sig": {
             "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
             "alg": "Ed25519",
-            "value": "bFS6QD8rs2UFvARVT-h6B_GQJb23kGM3ecesKTGsMrB9qRybD8RMrsZcEIC2Rt4IWY7BYMKkBX0BaE-rvSBiBw"
+            "value": "LirjpiHLatdeYsXzxCBvMg7r-mQSJPQqt74BXuSsU-NDDAejn6Ms5jcO8gvRJzUYEIG0x0Cv01sBZES_dvo4Dg"
           }
         }
       },
@@ -43177,6 +43407,27 @@
             "alg": "Ed25519",
             "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
           }
+        },
+        "W": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "watch.example.net",
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+                "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                "nbf": 1788220800
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+            "alg": "Ed25519",
+            "value": "Bj3pHew9zQyGMLqcbQTA99i5138LT5omty9ntUmGfeuHFKmoyX5LPbxcHQwYOpRZEe2R5OGUwO3SrjHgz1eEAw"
+          }
         }
       },
       "catalogs": {
@@ -43185,7 +43436,7 @@
             "wist_version": "1.0.0",
             "publisher": "example.com",
             "collection": "journal",
-            "generated_at": "2026-10-01T00:04:00Z",
+            "generated_at": "2026-10-01T01:04:00Z",
             "size": 1,
             "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
             "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
@@ -43193,12 +43444,12 @@
           "sig": {
             "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
             "alg": "Ed25519",
-            "value": "eVE3ZwGJhTYhZUhzogvJExYPSf7aF0SWpwdMn2l-RJu0-xEZVE2L5QXXNrcAAIMBZ09CySYk6P-AUL9L8agHBw"
+            "value": "FKmZqbtx9MSGkroTfEBXRIK4BUxvgITStM5d5HPx3jhuY4Dx4nml95orrmpy_YqCcan6u_Ann3jc6gnZ-DEgAA"
           }
         }
       },
       "catalog_ids": {
-        "J1": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc"
+        "J1": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148"
       },
       "tree_files": {
         "bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914": "{\"items\":[{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":140,\"commitment\":\"hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/a\"}]}"
@@ -43230,12 +43481,71 @@
             "declaration_activation_epochs": 24
           },
           "declarations": [
-            "G"
+            "G",
+            "W"
           ]
         },
         {
           "event": "pull",
-          "at": "2026-10-01T00:05:00Z",
+          "at": "2026-10-01T00:04:00Z",
+          "publisher": "watch.example.net",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 5,
+            "labeler_epoch_entries_max": 5,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declaration": "W",
+          "collections": {},
+          "labels": [
+            "F"
+          ]
+        },
+        {
+          "event": "epoch",
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 5,
+            "labeler_epoch_entries_max": 5,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declarations": []
+        },
+        {
+          "event": "pull",
+          "at": "2026-10-01T01:05:00Z",
           "publisher": "example.com",
           "parameters": {
             "clock_skew_seconds": 600,
@@ -43291,7 +43601,7 @@
         },
         {
           "event": "pull",
-          "at": "2026-10-01T00:10:00Z",
+          "at": "2026-10-01T01:10:00Z",
           "publisher": "example.com",
           "parameters": {
             "clock_skew_seconds": 600,
@@ -43345,8 +43655,8 @@
         },
         {
           "event": "epoch",
-          "height": 1,
-          "sealed_at": "2026-10-01T01:00:00Z",
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
@@ -43372,8 +43682,8 @@
         },
         {
           "event": "epoch",
-          "height": 2,
-          "sealed_at": "2026-10-01T02:00:00Z",
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
@@ -43475,9 +43785,131 @@
                   "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
                 }
               }
+            },
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 0,
+                  "domain": "watch.example.net",
+                  "keys": [
+                    {
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+                      "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                      "nbf": 1788220800
+                    }
+                  ]
+                },
+                "sig": {
+                  "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                  "alg": "Ed25519",
+                  "value": "Bj3pHew9zQyGMLqcbQTA99i5138LT5omty9ntUmGfeuHFKmoyX5LPbxcHQwYOpRZEe2R5OGUwO3SrjHgz1eEAw"
+                }
+              }
             }
           ],
           "sealed": [],
+          "left": [],
+          "deferred": [],
+          "records_removed": [],
+          "state": {
+            "collections": [],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": []
+          }
+        },
+        {
+          "settlement": [],
+          "declaration": {
+            "outcome": "idempotent",
+            "discovered": false,
+            "reduces_authority": false,
+            "sources": [
+              "W"
+            ],
+            "window": false
+          },
+          "collections_pulled": [
+            "default"
+          ],
+          "catalogs": [
+            {
+              "collection": "default",
+              "outcome": "unavailable",
+              "codes": [
+                "WIST2-E01"
+              ]
+            }
+          ],
+          "labels": [
+            {
+              "type": "label",
+              "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+              "outcome": "accepted",
+              "place": [
+                1,
+                1,
+                0
+              ]
+            }
+          ],
+          "state": {
+            "collections": [],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": [],
+            "labels": [
+              {
+                "type": "label",
+                "publisher": "watch.example.net",
+                "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+                "place": [
+                  1,
+                  1,
+                  0
+                ],
+                "eligibility": 1,
+                "ceiling": 5
+              }
+            ]
+          }
+        },
+        {
+          "settlement": [],
+          "entries": [
+            {
+              "type": "label",
+              "body": {
+                "label": {
+                  "wist_version": "1.0.0",
+                  "labeler": "watch.example.net",
+                  "subject": "https://example.com/journal/a",
+                  "name": "wist:spam",
+                  "asserted_at": "2026-09-30T08:00:00Z"
+                },
+                "sig": {
+                  "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                  "alg": "Ed25519",
+                  "value": "fyFNaRncMOR0LVOQ_rHK4wTiyKpTzxIt3LF9l5V6F7Q0Uig9iTY3kIRjNMJqS2VhvyC4yW7aDqodyYUfTAf4Bw"
+                }
+              }
+            }
+          ],
+          "sealed": [
+            {
+              "type": "label",
+              "publisher": "watch.example.net",
+              "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+              "eligibility": 1,
+              "ceiling": 5
+            }
+          ],
           "left": [],
           "deferred": [],
           "records_removed": [],
@@ -43507,7 +43939,7 @@
           "catalogs": [
             {
               "collection": "journal",
-              "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+              "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
               "sources": [
                 "G"
               ],
@@ -43538,30 +43970,30 @@
           "labels": [
             {
               "type": "label",
-              "label": "sha256:1ab3eac2673062996314b0110e5aebcc6b031b00fe2b81e08050b970c8e23617",
+              "label": "sha256:ab4dae440574bff836d002db2548dcee1adb1fce0dd84ba40cedcc05362e5acf",
               "outcome": "accepted",
               "place": [
-                1,
+                3,
                 2,
                 0
               ]
             },
             {
               "type": "label",
-              "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+              "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
               "outcome": "accepted",
               "place": [
-                1,
+                3,
                 2,
                 1
               ]
             },
             {
               "type": "dispute",
-              "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
+              "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
               "outcome": "accepted",
               "place": [
-                1,
+                3,
                 2,
                 2
               ]
@@ -43573,15 +44005,15 @@
                 "publisher": "example.com",
                 "collection": "journal",
                 "latest": null,
-                "last_accepted": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "last_accepted": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "waiting": {
-                  "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                  "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                   "place": [
-                    1,
+                    3,
                     0
                   ],
-                  "eligibility": 1,
-                  "ceiling": 5
+                  "eligibility": 2,
+                  "ceiling": 6
                 }
               }
             ],
@@ -43592,12 +44024,12 @@
                 "collection": "journal",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
                 "place": [
-                  1,
+                  3,
                   0,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ],
             "queue": [],
@@ -43607,38 +44039,38 @@
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:1ab3eac2673062996314b0110e5aebcc6b031b00fe2b81e08050b970c8e23617",
+                "label": "sha256:ab4dae440574bff836d002db2548dcee1adb1fce0dd84ba40cedcc05362e5acf",
                 "place": [
-                  1,
+                  3,
                   2,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               },
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+                "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
                 "place": [
-                  1,
+                  3,
                   2,
                   1
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               },
               {
                 "type": "dispute",
                 "publisher": "example.com",
-                "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
+                "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
                 "place": [
-                  1,
+                  3,
                   2,
                   2
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ]
           }
@@ -43661,7 +44093,7 @@
           "catalogs": [
             {
               "collection": "journal",
-              "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+              "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
               "outcome": "idempotent",
               "tree_files_fetched": [],
               "items": []
@@ -43677,7 +44109,7 @@
           "labels": [
             {
               "type": "label",
-              "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+              "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
               "outcome": "seen"
             }
           ],
@@ -43688,15 +44120,15 @@
                 "publisher": "example.com",
                 "collection": "journal",
                 "latest": null,
-                "last_accepted": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "last_accepted": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "waiting": {
-                  "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                  "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                   "place": [
-                    1,
+                    3,
                     0
                   ],
-                  "eligibility": 1,
-                  "ceiling": 5
+                  "eligibility": 2,
+                  "ceiling": 6
                 }
               }
             ],
@@ -43707,12 +44139,12 @@
                 "collection": "journal",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
                 "place": [
-                  1,
+                  3,
                   0,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ],
             "queue": [],
@@ -43722,38 +44154,38 @@
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:1ab3eac2673062996314b0110e5aebcc6b031b00fe2b81e08050b970c8e23617",
+                "label": "sha256:ab4dae440574bff836d002db2548dcee1adb1fce0dd84ba40cedcc05362e5acf",
                 "place": [
-                  1,
+                  3,
                   2,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               },
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+                "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
                 "place": [
-                  1,
+                  3,
                   2,
                   1
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               },
               {
                 "type": "dispute",
                 "publisher": "example.com",
-                "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
+                "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
                 "place": [
-                  1,
+                  3,
                   2,
                   2
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ]
           }
@@ -43768,7 +44200,7 @@
                   "wist_version": "1.0.0",
                   "publisher": "example.com",
                   "collection": "journal",
-                  "generated_at": "2026-10-01T00:04:00Z",
+                  "generated_at": "2026-10-01T01:04:00Z",
                   "size": 1,
                   "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
                   "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
@@ -43776,7 +44208,7 @@
                 "sig": {
                   "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
                   "alg": "Ed25519",
-                  "value": "eVE3ZwGJhTYhZUhzogvJExYPSf7aF0SWpwdMn2l-RJu0-xEZVE2L5QXXNrcAAIMBZ09CySYk6P-AUL9L8agHBw"
+                  "value": "FKmZqbtx9MSGkroTfEBXRIK4BUxvgITStM5d5HPx3jhuY4Dx4nml95orrmpy_YqCcan6u_Ann3jc6gnZ-DEgAA"
                 }
               }
             },
@@ -43797,7 +44229,7 @@
                   "url": "https://example.com/journal/a"
                 },
                 "collection": "journal",
-                "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "proof": {
                   "index": 0,
                   "tree_size": 1,
@@ -43811,14 +44243,14 @@
                 "label": {
                   "wist_version": "1.0.0",
                   "labeler": "example.com",
-                  "subject": "https://watch.example.net/one",
+                  "subject": "https://watch.example.net/two",
                   "name": "wist:spam",
-                  "asserted_at": "2026-10-01T00:03:00Z"
+                  "asserted_at": "2026-10-01T01:03:00Z"
                 },
                 "sig": {
                   "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
                   "alg": "Ed25519",
-                  "value": "O-pTaG9m61mQ50CgC9LH8NTSNsbhRj1BWgPqbNL8YISHVJmomZUFfAeGC5lGS-HkyRokN3YjcO3v5lLLKr_1Cw"
+                  "value": "Bipm6vVZee7snZvQ1k62ndxZ8OhS4ACwqYI5MXM0he1DQZ3hNo4364J4Yt_eyCxLddb6mfU3yUK_Lpgw4wccAA"
                 }
               }
             },
@@ -43828,14 +44260,14 @@
                 "label": {
                   "wist_version": "1.0.0",
                   "labeler": "example.com",
-                  "subject": "https://watch.example.net/two",
+                  "subject": "https://watch.example.net/one",
                   "name": "wist:spam",
-                  "asserted_at": "2026-10-01T00:03:00Z"
+                  "asserted_at": "2026-10-01T01:03:00Z"
                 },
                 "sig": {
                   "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
                   "alg": "Ed25519",
-                  "value": "wL8mrHYVDKyhSn8w5LILocIcbhnxTCIPQ5FvWng_iPqoWWjjnANOlQzOat1pZAhCTmBE-ZCo5RpqOzvi9QT1DA"
+                  "value": "CFKKwZ9JRzSUnlszoGgu2_TiCHuhcisRMpk3WtmLK4E_Zg3t7cqqEogS9PBvXJgFeO2_oswxgcKwaNjoRISrBg"
                 }
               }
             },
@@ -43848,12 +44280,12 @@
                   "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
                   "log": "log.example",
                   "height": 1,
-                  "asserted_at": "2026-10-01T00:03:00Z"
+                  "asserted_at": "2026-10-01T01:03:00Z"
                 },
                 "sig": {
                   "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
                   "alg": "Ed25519",
-                  "value": "bFS6QD8rs2UFvARVT-h6B_GQJb23kGM3ecesKTGsMrB9qRybD8RMrsZcEIC2Rt4IWY7BYMKkBX0BaE-rvSBiBw"
+                  "value": "LirjpiHLatdeYsXzxCBvMg7r-mQSJPQqt74BXuSsU-NDDAejn6Ms5jcO8gvRJzUYEIG0x0Cv01sBZES_dvo4Dg"
                 }
               }
             }
@@ -43863,9 +44295,9 @@
               "type": "publisher_catalog",
               "publisher": "example.com",
               "collection": "journal",
-              "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
-              "eligibility": 1,
-              "ceiling": 5
+              "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
+              "eligibility": 2,
+              "ceiling": 6
             },
             {
               "type": "publisher_item",
@@ -43873,30 +44305,30 @@
               "collection": "journal",
               "url": "https://example.com/journal/a",
               "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
-              "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
-              "eligibility": 1,
-              "ceiling": 5
+              "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
+              "eligibility": 2,
+              "ceiling": 6
             },
             {
               "type": "label",
               "publisher": "example.com",
-              "label": "sha256:1ab3eac2673062996314b0110e5aebcc6b031b00fe2b81e08050b970c8e23617",
-              "eligibility": 1,
-              "ceiling": 5
+              "label": "sha256:ab4dae440574bff836d002db2548dcee1adb1fce0dd84ba40cedcc05362e5acf",
+              "eligibility": 2,
+              "ceiling": 6
             },
             {
               "type": "label",
               "publisher": "example.com",
-              "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
-              "eligibility": 1,
-              "ceiling": 5
+              "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
+              "eligibility": 2,
+              "ceiling": 6
             },
             {
               "type": "dispute",
               "publisher": "example.com",
-              "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
-              "eligibility": 1,
-              "ceiling": 5
+              "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
+              "eligibility": 2,
+              "ceiling": 6
             }
           ],
           "left": [],
@@ -43907,8 +44339,8 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "latest": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
-                "last_accepted": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "latest": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
+                "last_accepted": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "waiting": null
               }
             ],
@@ -43921,7 +44353,7 @@
                 "url": "https://example.com/journal/a",
                 "collection": "journal",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
-                "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc"
+                "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148"
               }
             ]
           }
@@ -43938,8 +44370,8 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "latest": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
-                "last_accepted": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "latest": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
+                "last_accepted": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "waiting": null
               }
             ],
@@ -43952,7 +44384,7 @@
                 "url": "https://example.com/journal/a",
                 "collection": "journal",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
-                "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc"
+                "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148"
               }
             ]
           }
@@ -43961,20 +44393,34 @@
     },
     {
       "name": "the per-Labeler cap defers a Label by capacity",
-      "why": "As the previous history under labeler_epoch_entries_max 2, the per-domain capacity 10 000: J1, a, L1 and L2 are sealed at height 1, and D1, the third Label or dispute of the domain, is deferred by capacity to height 2 although the per-domain capacity has room.",
+      "why": "As the previous history under labeler_epoch_entries_max 2, the per-domain capacity 10 000: J1, a, L1 and L2 are sealed at height 2, and D1, the third Label or dispute of the domain, is deferred by capacity to height 3 although the per-domain capacity has room.",
       "labels": {
+        "F": {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "watch.example.net",
+            "subject": "https://example.com/journal/a",
+            "name": "wist:spam",
+            "asserted_at": "2026-09-30T08:00:00Z"
+          },
+          "sig": {
+            "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+            "alg": "Ed25519",
+            "value": "fyFNaRncMOR0LVOQ_rHK4wTiyKpTzxIt3LF9l5V6F7Q0Uig9iTY3kIRjNMJqS2VhvyC4yW7aDqodyYUfTAf4Bw"
+          }
+        },
         "L1": {
           "label": {
             "wist_version": "1.0.0",
             "labeler": "example.com",
             "subject": "https://watch.example.net/one",
             "name": "wist:spam",
-            "asserted_at": "2026-10-01T00:03:00Z"
+            "asserted_at": "2026-10-01T01:03:00Z"
           },
           "sig": {
             "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
             "alg": "Ed25519",
-            "value": "O-pTaG9m61mQ50CgC9LH8NTSNsbhRj1BWgPqbNL8YISHVJmomZUFfAeGC5lGS-HkyRokN3YjcO3v5lLLKr_1Cw"
+            "value": "CFKKwZ9JRzSUnlszoGgu2_TiCHuhcisRMpk3WtmLK4E_Zg3t7cqqEogS9PBvXJgFeO2_oswxgcKwaNjoRISrBg"
           }
         },
         "L2": {
@@ -43983,12 +44429,12 @@
             "labeler": "example.com",
             "subject": "https://watch.example.net/two",
             "name": "wist:spam",
-            "asserted_at": "2026-10-01T00:03:00Z"
+            "asserted_at": "2026-10-01T01:03:00Z"
           },
           "sig": {
             "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
             "alg": "Ed25519",
-            "value": "wL8mrHYVDKyhSn8w5LILocIcbhnxTCIPQ5FvWng_iPqoWWjjnANOlQzOat1pZAhCTmBE-ZCo5RpqOzvi9QT1DA"
+            "value": "Bipm6vVZee7snZvQ1k62ndxZ8OhS4ACwqYI5MXM0he1DQZ3hNo4364J4Yt_eyCxLddb6mfU3yUK_Lpgw4wccAA"
           }
         },
         "D1": {
@@ -43998,12 +44444,12 @@
             "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
             "log": "log.example",
             "height": 1,
-            "asserted_at": "2026-10-01T00:03:00Z"
+            "asserted_at": "2026-10-01T01:03:00Z"
           },
           "sig": {
             "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
             "alg": "Ed25519",
-            "value": "bFS6QD8rs2UFvARVT-h6B_GQJb23kGM3ecesKTGsMrB9qRybD8RMrsZcEIC2Rt4IWY7BYMKkBX0BaE-rvSBiBw"
+            "value": "LirjpiHLatdeYsXzxCBvMg7r-mQSJPQqt74BXuSsU-NDDAejn6Ms5jcO8gvRJzUYEIG0x0Cv01sBZES_dvo4Dg"
           }
         }
       },
@@ -44078,6 +44524,27 @@
             "alg": "Ed25519",
             "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
           }
+        },
+        "W": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "watch.example.net",
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+                "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                "nbf": 1788220800
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+            "alg": "Ed25519",
+            "value": "Bj3pHew9zQyGMLqcbQTA99i5138LT5omty9ntUmGfeuHFKmoyX5LPbxcHQwYOpRZEe2R5OGUwO3SrjHgz1eEAw"
+          }
         }
       },
       "catalogs": {
@@ -44086,7 +44553,7 @@
             "wist_version": "1.0.0",
             "publisher": "example.com",
             "collection": "journal",
-            "generated_at": "2026-10-01T00:04:00Z",
+            "generated_at": "2026-10-01T01:04:00Z",
             "size": 1,
             "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
             "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
@@ -44094,12 +44561,12 @@
           "sig": {
             "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
             "alg": "Ed25519",
-            "value": "eVE3ZwGJhTYhZUhzogvJExYPSf7aF0SWpwdMn2l-RJu0-xEZVE2L5QXXNrcAAIMBZ09CySYk6P-AUL9L8agHBw"
+            "value": "FKmZqbtx9MSGkroTfEBXRIK4BUxvgITStM5d5HPx3jhuY4Dx4nml95orrmpy_YqCcan6u_Ann3jc6gnZ-DEgAA"
           }
         }
       },
       "catalog_ids": {
-        "J1": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc"
+        "J1": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148"
       },
       "tree_files": {
         "bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914": "{\"items\":[{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":140,\"commitment\":\"hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/a\"}]}"
@@ -44131,12 +44598,71 @@
             "declaration_activation_epochs": 24
           },
           "declarations": [
-            "G"
+            "G",
+            "W"
           ]
         },
         {
           "event": "pull",
-          "at": "2026-10-01T00:05:00Z",
+          "at": "2026-10-01T00:04:00Z",
+          "publisher": "watch.example.net",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "labeler_epoch_entries_max": 2,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declaration": "W",
+          "collections": {},
+          "labels": [
+            "F"
+          ]
+        },
+        {
+          "event": "epoch",
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "labeler_epoch_entries_max": 2,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declarations": []
+        },
+        {
+          "event": "pull",
+          "at": "2026-10-01T01:05:00Z",
           "publisher": "example.com",
           "parameters": {
             "clock_skew_seconds": 600,
@@ -44192,7 +44718,7 @@
         },
         {
           "event": "pull",
-          "at": "2026-10-01T00:10:00Z",
+          "at": "2026-10-01T01:10:00Z",
           "publisher": "example.com",
           "parameters": {
             "clock_skew_seconds": 600,
@@ -44246,8 +44772,8 @@
         },
         {
           "event": "epoch",
-          "height": 1,
-          "sealed_at": "2026-10-01T01:00:00Z",
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
@@ -44273,8 +44799,8 @@
         },
         {
           "event": "epoch",
-          "height": 2,
-          "sealed_at": "2026-10-01T02:00:00Z",
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
@@ -44376,9 +44902,131 @@
                   "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
                 }
               }
+            },
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 0,
+                  "domain": "watch.example.net",
+                  "keys": [
+                    {
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+                      "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                      "nbf": 1788220800
+                    }
+                  ]
+                },
+                "sig": {
+                  "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                  "alg": "Ed25519",
+                  "value": "Bj3pHew9zQyGMLqcbQTA99i5138LT5omty9ntUmGfeuHFKmoyX5LPbxcHQwYOpRZEe2R5OGUwO3SrjHgz1eEAw"
+                }
+              }
             }
           ],
           "sealed": [],
+          "left": [],
+          "deferred": [],
+          "records_removed": [],
+          "state": {
+            "collections": [],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": []
+          }
+        },
+        {
+          "settlement": [],
+          "declaration": {
+            "outcome": "idempotent",
+            "discovered": false,
+            "reduces_authority": false,
+            "sources": [
+              "W"
+            ],
+            "window": false
+          },
+          "collections_pulled": [
+            "default"
+          ],
+          "catalogs": [
+            {
+              "collection": "default",
+              "outcome": "unavailable",
+              "codes": [
+                "WIST2-E01"
+              ]
+            }
+          ],
+          "labels": [
+            {
+              "type": "label",
+              "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+              "outcome": "accepted",
+              "place": [
+                1,
+                1,
+                0
+              ]
+            }
+          ],
+          "state": {
+            "collections": [],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": [],
+            "labels": [
+              {
+                "type": "label",
+                "publisher": "watch.example.net",
+                "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+                "place": [
+                  1,
+                  1,
+                  0
+                ],
+                "eligibility": 1,
+                "ceiling": 5
+              }
+            ]
+          }
+        },
+        {
+          "settlement": [],
+          "entries": [
+            {
+              "type": "label",
+              "body": {
+                "label": {
+                  "wist_version": "1.0.0",
+                  "labeler": "watch.example.net",
+                  "subject": "https://example.com/journal/a",
+                  "name": "wist:spam",
+                  "asserted_at": "2026-09-30T08:00:00Z"
+                },
+                "sig": {
+                  "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                  "alg": "Ed25519",
+                  "value": "fyFNaRncMOR0LVOQ_rHK4wTiyKpTzxIt3LF9l5V6F7Q0Uig9iTY3kIRjNMJqS2VhvyC4yW7aDqodyYUfTAf4Bw"
+                }
+              }
+            }
+          ],
+          "sealed": [
+            {
+              "type": "label",
+              "publisher": "watch.example.net",
+              "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+              "eligibility": 1,
+              "ceiling": 5
+            }
+          ],
           "left": [],
           "deferred": [],
           "records_removed": [],
@@ -44408,7 +45056,7 @@
           "catalogs": [
             {
               "collection": "journal",
-              "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+              "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
               "sources": [
                 "G"
               ],
@@ -44439,30 +45087,30 @@
           "labels": [
             {
               "type": "label",
-              "label": "sha256:1ab3eac2673062996314b0110e5aebcc6b031b00fe2b81e08050b970c8e23617",
+              "label": "sha256:ab4dae440574bff836d002db2548dcee1adb1fce0dd84ba40cedcc05362e5acf",
               "outcome": "accepted",
               "place": [
-                1,
+                3,
                 2,
                 0
               ]
             },
             {
               "type": "label",
-              "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+              "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
               "outcome": "accepted",
               "place": [
-                1,
+                3,
                 2,
                 1
               ]
             },
             {
               "type": "dispute",
-              "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
+              "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
               "outcome": "accepted",
               "place": [
-                1,
+                3,
                 2,
                 2
               ]
@@ -44474,15 +45122,15 @@
                 "publisher": "example.com",
                 "collection": "journal",
                 "latest": null,
-                "last_accepted": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "last_accepted": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "waiting": {
-                  "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                  "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                   "place": [
-                    1,
+                    3,
                     0
                   ],
-                  "eligibility": 1,
-                  "ceiling": 5
+                  "eligibility": 2,
+                  "ceiling": 6
                 }
               }
             ],
@@ -44493,12 +45141,12 @@
                 "collection": "journal",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
                 "place": [
-                  1,
+                  3,
                   0,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ],
             "queue": [],
@@ -44508,38 +45156,38 @@
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:1ab3eac2673062996314b0110e5aebcc6b031b00fe2b81e08050b970c8e23617",
+                "label": "sha256:ab4dae440574bff836d002db2548dcee1adb1fce0dd84ba40cedcc05362e5acf",
                 "place": [
-                  1,
+                  3,
                   2,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               },
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+                "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
                 "place": [
-                  1,
+                  3,
                   2,
                   1
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               },
               {
                 "type": "dispute",
                 "publisher": "example.com",
-                "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
+                "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
                 "place": [
-                  1,
+                  3,
                   2,
                   2
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ]
           }
@@ -44562,7 +45210,7 @@
           "catalogs": [
             {
               "collection": "journal",
-              "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+              "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
               "outcome": "idempotent",
               "tree_files_fetched": [],
               "items": []
@@ -44578,7 +45226,7 @@
           "labels": [
             {
               "type": "label",
-              "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+              "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
               "outcome": "seen"
             }
           ],
@@ -44589,15 +45237,15 @@
                 "publisher": "example.com",
                 "collection": "journal",
                 "latest": null,
-                "last_accepted": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "last_accepted": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "waiting": {
-                  "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                  "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                   "place": [
-                    1,
+                    3,
                     0
                   ],
-                  "eligibility": 1,
-                  "ceiling": 5
+                  "eligibility": 2,
+                  "ceiling": 6
                 }
               }
             ],
@@ -44608,12 +45256,12 @@
                 "collection": "journal",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
                 "place": [
-                  1,
+                  3,
                   0,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ],
             "queue": [],
@@ -44623,38 +45271,38 @@
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:1ab3eac2673062996314b0110e5aebcc6b031b00fe2b81e08050b970c8e23617",
+                "label": "sha256:ab4dae440574bff836d002db2548dcee1adb1fce0dd84ba40cedcc05362e5acf",
                 "place": [
-                  1,
+                  3,
                   2,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               },
               {
                 "type": "label",
                 "publisher": "example.com",
-                "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
+                "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
                 "place": [
-                  1,
+                  3,
                   2,
                   1
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               },
               {
                 "type": "dispute",
                 "publisher": "example.com",
-                "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
+                "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
                 "place": [
-                  1,
+                  3,
                   2,
                   2
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ]
           }
@@ -44669,7 +45317,7 @@
                   "wist_version": "1.0.0",
                   "publisher": "example.com",
                   "collection": "journal",
-                  "generated_at": "2026-10-01T00:04:00Z",
+                  "generated_at": "2026-10-01T01:04:00Z",
                   "size": 1,
                   "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
                   "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
@@ -44677,7 +45325,7 @@
                 "sig": {
                   "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
                   "alg": "Ed25519",
-                  "value": "eVE3ZwGJhTYhZUhzogvJExYPSf7aF0SWpwdMn2l-RJu0-xEZVE2L5QXXNrcAAIMBZ09CySYk6P-AUL9L8agHBw"
+                  "value": "FKmZqbtx9MSGkroTfEBXRIK4BUxvgITStM5d5HPx3jhuY4Dx4nml95orrmpy_YqCcan6u_Ann3jc6gnZ-DEgAA"
                 }
               }
             },
@@ -44698,7 +45346,7 @@
                   "url": "https://example.com/journal/a"
                 },
                 "collection": "journal",
-                "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "proof": {
                   "index": 0,
                   "tree_size": 1,
@@ -44712,14 +45360,14 @@
                 "label": {
                   "wist_version": "1.0.0",
                   "labeler": "example.com",
-                  "subject": "https://watch.example.net/one",
+                  "subject": "https://watch.example.net/two",
                   "name": "wist:spam",
-                  "asserted_at": "2026-10-01T00:03:00Z"
+                  "asserted_at": "2026-10-01T01:03:00Z"
                 },
                 "sig": {
                   "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
                   "alg": "Ed25519",
-                  "value": "O-pTaG9m61mQ50CgC9LH8NTSNsbhRj1BWgPqbNL8YISHVJmomZUFfAeGC5lGS-HkyRokN3YjcO3v5lLLKr_1Cw"
+                  "value": "Bipm6vVZee7snZvQ1k62ndxZ8OhS4ACwqYI5MXM0he1DQZ3hNo4364J4Yt_eyCxLddb6mfU3yUK_Lpgw4wccAA"
                 }
               }
             },
@@ -44729,14 +45377,14 @@
                 "label": {
                   "wist_version": "1.0.0",
                   "labeler": "example.com",
-                  "subject": "https://watch.example.net/two",
+                  "subject": "https://watch.example.net/one",
                   "name": "wist:spam",
-                  "asserted_at": "2026-10-01T00:03:00Z"
+                  "asserted_at": "2026-10-01T01:03:00Z"
                 },
                 "sig": {
                   "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
                   "alg": "Ed25519",
-                  "value": "wL8mrHYVDKyhSn8w5LILocIcbhnxTCIPQ5FvWng_iPqoWWjjnANOlQzOat1pZAhCTmBE-ZCo5RpqOzvi9QT1DA"
+                  "value": "CFKKwZ9JRzSUnlszoGgu2_TiCHuhcisRMpk3WtmLK4E_Zg3t7cqqEogS9PBvXJgFeO2_oswxgcKwaNjoRISrBg"
                 }
               }
             }
@@ -44746,9 +45394,9 @@
               "type": "publisher_catalog",
               "publisher": "example.com",
               "collection": "journal",
-              "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
-              "eligibility": 1,
-              "ceiling": 5
+              "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
+              "eligibility": 2,
+              "ceiling": 6
             },
             {
               "type": "publisher_item",
@@ -44756,23 +45404,23 @@
               "collection": "journal",
               "url": "https://example.com/journal/a",
               "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
-              "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
-              "eligibility": 1,
-              "ceiling": 5
+              "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
+              "eligibility": 2,
+              "ceiling": 6
             },
             {
               "type": "label",
               "publisher": "example.com",
-              "label": "sha256:1ab3eac2673062996314b0110e5aebcc6b031b00fe2b81e08050b970c8e23617",
-              "eligibility": 1,
-              "ceiling": 5
+              "label": "sha256:ab4dae440574bff836d002db2548dcee1adb1fce0dd84ba40cedcc05362e5acf",
+              "eligibility": 2,
+              "ceiling": 6
             },
             {
               "type": "label",
               "publisher": "example.com",
-              "label": "sha256:2bf20f66bc115ed89ed5b1a5d2e18f93faa9be538ddd038325039fffbc40bd14",
-              "eligibility": 1,
-              "ceiling": 5
+              "label": "sha256:74fe24665ed9ed462248aeb04a9e18f74ece4ca77bb7247cb84da2f81c20927d",
+              "eligibility": 2,
+              "ceiling": 6
             }
           ],
           "left": [],
@@ -44783,8 +45431,8 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "latest": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
-                "last_accepted": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "latest": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
+                "last_accepted": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "waiting": null
               }
             ],
@@ -44797,21 +45445,21 @@
                 "url": "https://example.com/journal/a",
                 "collection": "journal",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
-                "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc"
+                "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148"
               }
             ],
             "labels": [
               {
                 "type": "dispute",
                 "publisher": "example.com",
-                "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
+                "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
                 "place": [
-                  1,
+                  3,
                   2,
                   2
                 ],
-                "eligibility": 2,
-                "ceiling": 6
+                "eligibility": 3,
+                "ceiling": 7
               }
             ]
           }
@@ -44828,12 +45476,12 @@
                   "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
                   "log": "log.example",
                   "height": 1,
-                  "asserted_at": "2026-10-01T00:03:00Z"
+                  "asserted_at": "2026-10-01T01:03:00Z"
                 },
                 "sig": {
                   "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
                   "alg": "Ed25519",
-                  "value": "bFS6QD8rs2UFvARVT-h6B_GQJb23kGM3ecesKTGsMrB9qRybD8RMrsZcEIC2Rt4IWY7BYMKkBX0BaE-rvSBiBw"
+                  "value": "LirjpiHLatdeYsXzxCBvMg7r-mQSJPQqt74BXuSsU-NDDAejn6Ms5jcO8gvRJzUYEIG0x0Cv01sBZES_dvo4Dg"
                 }
               }
             }
@@ -44842,9 +45490,9 @@
             {
               "type": "dispute",
               "publisher": "example.com",
-              "label": "sha256:62506d7f02602d2a038307d6c59e1979660b2673d47a617b98e4226c5abb0f49",
-              "eligibility": 2,
-              "ceiling": 6
+              "label": "sha256:c2fab83c5eedb6d4e21fa1a066488dc80978b72a151d8e7f1877e536d4f4b78a",
+              "eligibility": 3,
+              "ceiling": 7
             }
           ],
           "left": [],
@@ -44855,8 +45503,8 @@
               {
                 "publisher": "example.com",
                 "collection": "journal",
-                "latest": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
-                "last_accepted": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc",
+                "latest": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
+                "last_accepted": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148",
                 "waiting": null
               }
             ],
@@ -44869,7 +45517,7 @@
                 "url": "https://example.com/journal/a",
                 "collection": "journal",
                 "item": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
-                "catalog": "sha256:0bb97b2f1707b8924f24cecda9489443b0d423a5861d9810045ba7501fda8efc"
+                "catalog": "sha256:977d4d275334670442e493afcb6461024dcc5f7e687875b900908af89e8dc148"
               }
             ]
           }
@@ -46228,8 +46876,22 @@
     },
     {
       "name": "a dispute that fails a check repeated at its turn leaves and is reported",
-      "why": "clock_skew_seconds is four hours at height 0 and at the pull that accepts D1, asserted three hours after the end of height 0; the map of height 1, D1's candidate Epoch, carries 600. At its turn D1's asserted_at is beyond that Epoch's sealed_at plus 600 seconds: it is not sealed and leaves with its rejection reported with WIST2-E06 and its Dispute ID.",
+      "why": "F, watch.example.net's Label of journal/a, is sealed at height 1. clock_skew_seconds is four hours through height 1 and at the pull that accepts D1, example.com's dispute of F, asserted three hours after the end of height 1; the map of height 2, D1's candidate Epoch, carries 600. At its turn D1's asserted_at is beyond that Epoch's sealed_at plus 600 seconds: it is not sealed and leaves with its rejection reported with WIST2-E06 and its Dispute ID.",
       "labels": {
+        "F": {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "watch.example.net",
+            "subject": "https://example.com/journal/a",
+            "name": "wist:spam",
+            "asserted_at": "2026-09-30T08:00:00Z"
+          },
+          "sig": {
+            "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+            "alg": "Ed25519",
+            "value": "fyFNaRncMOR0LVOQ_rHK4wTiyKpTzxIt3LF9l5V6F7Q0Uig9iTY3kIRjNMJqS2VhvyC4yW7aDqodyYUfTAf4Bw"
+          }
+        },
         "D1": {
           "dispute": {
             "wist_version": "1.0.0",
@@ -46237,12 +46899,12 @@
             "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
             "log": "log.example",
             "height": 1,
-            "asserted_at": "2026-10-01T03:00:00Z"
+            "asserted_at": "2026-10-01T04:00:00Z"
           },
           "sig": {
             "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
             "alg": "Ed25519",
-            "value": "XMe5UxlwyLGVBQhYG-6IdfIDvrMmVvZwjXKZZTXYAfOUtIIUbPSKmc3SB1ECBpx10fAfz-2eXCYLwj9Nh9j6Cg"
+            "value": "VOjj5CpdLP6sJXQKGIrYiR3WhhxSIPU-q59yo35tWqD_XQt-Nrk9df87NmwBSdDqefEqVMSDOqsPD8pTKoglAw"
           }
         }
       },
@@ -46317,6 +46979,27 @@
             "alg": "Ed25519",
             "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
           }
+        },
+        "W": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "watch.example.net",
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+                "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                "nbf": 1788220800
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+            "alg": "Ed25519",
+            "value": "Bj3pHew9zQyGMLqcbQTA99i5138LT5omty9ntUmGfeuHFKmoyX5LPbxcHQwYOpRZEe2R5OGUwO3SrjHgz1eEAw"
+          }
         }
       },
       "catalogs": {},
@@ -46349,12 +47032,71 @@
             "declaration_activation_epochs": 24
           },
           "declarations": [
-            "G"
+            "G",
+            "W"
           ]
         },
         {
           "event": "pull",
-          "at": "2026-10-01T00:05:00Z",
+          "at": "2026-10-01T00:04:00Z",
+          "publisher": "watch.example.net",
+          "parameters": {
+            "clock_skew_seconds": 14400,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "labeler_epoch_entries_max": 1000,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declaration": "W",
+          "collections": {},
+          "labels": [
+            "F"
+          ]
+        },
+        {
+          "event": "epoch",
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 14400,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "labeler_epoch_entries_max": 1000,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declarations": []
+        },
+        {
+          "event": "pull",
+          "at": "2026-10-01T01:05:00Z",
           "publisher": "example.com",
           "parameters": {
             "clock_skew_seconds": 14400,
@@ -46385,8 +47127,8 @@
         },
         {
           "event": "epoch",
-          "height": 1,
-          "sealed_at": "2026-10-01T01:00:00Z",
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
@@ -46412,8 +47154,8 @@
         },
         {
           "event": "epoch",
-          "height": 2,
-          "sealed_at": "2026-10-01T02:00:00Z",
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
@@ -46515,9 +47257,131 @@
                   "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
                 }
               }
+            },
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 0,
+                  "domain": "watch.example.net",
+                  "keys": [
+                    {
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+                      "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                      "nbf": 1788220800
+                    }
+                  ]
+                },
+                "sig": {
+                  "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                  "alg": "Ed25519",
+                  "value": "Bj3pHew9zQyGMLqcbQTA99i5138LT5omty9ntUmGfeuHFKmoyX5LPbxcHQwYOpRZEe2R5OGUwO3SrjHgz1eEAw"
+                }
+              }
             }
           ],
           "sealed": [],
+          "left": [],
+          "deferred": [],
+          "records_removed": [],
+          "state": {
+            "collections": [],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": []
+          }
+        },
+        {
+          "settlement": [],
+          "declaration": {
+            "outcome": "idempotent",
+            "discovered": false,
+            "reduces_authority": false,
+            "sources": [
+              "W"
+            ],
+            "window": false
+          },
+          "collections_pulled": [
+            "default"
+          ],
+          "catalogs": [
+            {
+              "collection": "default",
+              "outcome": "unavailable",
+              "codes": [
+                "WIST2-E01"
+              ]
+            }
+          ],
+          "labels": [
+            {
+              "type": "label",
+              "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+              "outcome": "accepted",
+              "place": [
+                1,
+                1,
+                0
+              ]
+            }
+          ],
+          "state": {
+            "collections": [],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": [],
+            "labels": [
+              {
+                "type": "label",
+                "publisher": "watch.example.net",
+                "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+                "place": [
+                  1,
+                  1,
+                  0
+                ],
+                "eligibility": 1,
+                "ceiling": 5
+              }
+            ]
+          }
+        },
+        {
+          "settlement": [],
+          "entries": [
+            {
+              "type": "label",
+              "body": {
+                "label": {
+                  "wist_version": "1.0.0",
+                  "labeler": "watch.example.net",
+                  "subject": "https://example.com/journal/a",
+                  "name": "wist:spam",
+                  "asserted_at": "2026-09-30T08:00:00Z"
+                },
+                "sig": {
+                  "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                  "alg": "Ed25519",
+                  "value": "fyFNaRncMOR0LVOQ_rHK4wTiyKpTzxIt3LF9l5V6F7Q0Uig9iTY3kIRjNMJqS2VhvyC4yW7aDqodyYUfTAf4Bw"
+                }
+              }
+            }
+          ],
+          "sealed": [
+            {
+              "type": "label",
+              "publisher": "watch.example.net",
+              "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+              "eligibility": 1,
+              "ceiling": 5
+            }
+          ],
           "left": [],
           "deferred": [],
           "records_removed": [],
@@ -46563,10 +47427,10 @@
           "labels": [
             {
               "type": "dispute",
-              "label": "sha256:af37f9dda5d87c91cbd8c4f1e714a9fb64442161263fe81d4c88c37a8dc2855b",
+              "label": "sha256:fefe999328fdca8435720f878bb07cba85fccbb8459ea038a868287f0f1fce6f",
               "outcome": "accepted",
               "place": [
-                1,
+                3,
                 2,
                 0
               ]
@@ -46582,14 +47446,14 @@
               {
                 "type": "dispute",
                 "publisher": "example.com",
-                "label": "sha256:af37f9dda5d87c91cbd8c4f1e714a9fb64442161263fe81d4c88c37a8dc2855b",
+                "label": "sha256:fefe999328fdca8435720f878bb07cba85fccbb8459ea038a868287f0f1fce6f",
                 "place": [
-                  1,
+                  3,
                   2,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ]
           }
@@ -46603,7 +47467,7 @@
           "records_removed": [],
           "rejections": [
             {
-              "id": "sha256:af37f9dda5d87c91cbd8c4f1e714a9fb64442161263fe81d4c88c37a8dc2855b",
+              "id": "sha256:fefe999328fdca8435720f878bb07cba85fccbb8459ea038a868287f0f1fce6f",
               "code": "WIST2-E06"
             }
           ],
@@ -46634,8 +47498,22 @@
     },
     {
       "name": "a dispute sealed before the allowance its instant exceeds takes effect",
-      "why": "As the previous history, the map lowering clock_skew_seconds to 600 only from height 2: D1 is sealed at height 1.",
+      "why": "As the previous history, the map lowering clock_skew_seconds to 600 only from height 3: D1 is sealed at height 2.",
       "labels": {
+        "F": {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "watch.example.net",
+            "subject": "https://example.com/journal/a",
+            "name": "wist:spam",
+            "asserted_at": "2026-09-30T08:00:00Z"
+          },
+          "sig": {
+            "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+            "alg": "Ed25519",
+            "value": "fyFNaRncMOR0LVOQ_rHK4wTiyKpTzxIt3LF9l5V6F7Q0Uig9iTY3kIRjNMJqS2VhvyC4yW7aDqodyYUfTAf4Bw"
+          }
+        },
         "D1": {
           "dispute": {
             "wist_version": "1.0.0",
@@ -46643,12 +47521,12 @@
             "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
             "log": "log.example",
             "height": 1,
-            "asserted_at": "2026-10-01T03:00:00Z"
+            "asserted_at": "2026-10-01T04:00:00Z"
           },
           "sig": {
             "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
             "alg": "Ed25519",
-            "value": "XMe5UxlwyLGVBQhYG-6IdfIDvrMmVvZwjXKZZTXYAfOUtIIUbPSKmc3SB1ECBpx10fAfz-2eXCYLwj9Nh9j6Cg"
+            "value": "VOjj5CpdLP6sJXQKGIrYiR3WhhxSIPU-q59yo35tWqD_XQt-Nrk9df87NmwBSdDqefEqVMSDOqsPD8pTKoglAw"
           }
         }
       },
@@ -46723,6 +47601,27 @@
             "alg": "Ed25519",
             "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
           }
+        },
+        "W": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "watch.example.net",
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+                "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                "nbf": 1788220800
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+            "alg": "Ed25519",
+            "value": "Bj3pHew9zQyGMLqcbQTA99i5138LT5omty9ntUmGfeuHFKmoyX5LPbxcHQwYOpRZEe2R5OGUwO3SrjHgz1eEAw"
+          }
         }
       },
       "catalogs": {},
@@ -46755,13 +47654,14 @@
             "declaration_activation_epochs": 24
           },
           "declarations": [
-            "G"
+            "G",
+            "W"
           ]
         },
         {
           "event": "pull",
-          "at": "2026-10-01T00:05:00Z",
-          "publisher": "example.com",
+          "at": "2026-10-01T00:04:00Z",
+          "publisher": "watch.example.net",
           "parameters": {
             "clock_skew_seconds": 14400,
             "catalog_items_max": 16777216,
@@ -46783,10 +47683,10 @@
             "recovery_window_days": 7,
             "declaration_activation_epochs": 24
           },
-          "declaration": "G",
+          "declaration": "W",
           "collections": {},
           "labels": [
-            "D1"
+            "F"
           ]
         },
         {
@@ -46817,9 +47717,67 @@
           "declarations": []
         },
         {
+          "event": "pull",
+          "at": "2026-10-01T01:05:00Z",
+          "publisher": "example.com",
+          "parameters": {
+            "clock_skew_seconds": 14400,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "labeler_epoch_entries_max": 1000,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declaration": "G",
+          "collections": {},
+          "labels": [
+            "D1"
+          ]
+        },
+        {
           "event": "epoch",
           "height": 2,
           "sealed_at": "2026-10-01T02:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 14400,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "labeler_epoch_entries_max": 1000,
+            "max_inclusion_epochs": 4,
+            "record_seal_epochs": 24,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "tree_file_cap_bytes": 65536,
+            "tree_depth_max": 16,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24
+          },
+          "declarations": []
+        },
+        {
+          "event": "epoch",
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
           "parameters": {
             "clock_skew_seconds": 600,
             "catalog_items_max": 16777216,
@@ -46921,9 +47879,131 @@
                   "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
                 }
               }
+            },
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 0,
+                  "domain": "watch.example.net",
+                  "keys": [
+                    {
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+                      "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                      "nbf": 1788220800
+                    }
+                  ]
+                },
+                "sig": {
+                  "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                  "alg": "Ed25519",
+                  "value": "Bj3pHew9zQyGMLqcbQTA99i5138LT5omty9ntUmGfeuHFKmoyX5LPbxcHQwYOpRZEe2R5OGUwO3SrjHgz1eEAw"
+                }
+              }
             }
           ],
           "sealed": [],
+          "left": [],
+          "deferred": [],
+          "records_removed": [],
+          "state": {
+            "collections": [],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": []
+          }
+        },
+        {
+          "settlement": [],
+          "declaration": {
+            "outcome": "idempotent",
+            "discovered": false,
+            "reduces_authority": false,
+            "sources": [
+              "W"
+            ],
+            "window": false
+          },
+          "collections_pulled": [
+            "default"
+          ],
+          "catalogs": [
+            {
+              "collection": "default",
+              "outcome": "unavailable",
+              "codes": [
+                "WIST2-E01"
+              ]
+            }
+          ],
+          "labels": [
+            {
+              "type": "label",
+              "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+              "outcome": "accepted",
+              "place": [
+                1,
+                1,
+                0
+              ]
+            }
+          ],
+          "state": {
+            "collections": [],
+            "urls": [],
+            "queue": [],
+            "reductions_pending": [],
+            "records": [],
+            "labels": [
+              {
+                "type": "label",
+                "publisher": "watch.example.net",
+                "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+                "place": [
+                  1,
+                  1,
+                  0
+                ],
+                "eligibility": 1,
+                "ceiling": 5
+              }
+            ]
+          }
+        },
+        {
+          "settlement": [],
+          "entries": [
+            {
+              "type": "label",
+              "body": {
+                "label": {
+                  "wist_version": "1.0.0",
+                  "labeler": "watch.example.net",
+                  "subject": "https://example.com/journal/a",
+                  "name": "wist:spam",
+                  "asserted_at": "2026-09-30T08:00:00Z"
+                },
+                "sig": {
+                  "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+                  "alg": "Ed25519",
+                  "value": "fyFNaRncMOR0LVOQ_rHK4wTiyKpTzxIt3LF9l5V6F7Q0Uig9iTY3kIRjNMJqS2VhvyC4yW7aDqodyYUfTAf4Bw"
+                }
+              }
+            }
+          ],
+          "sealed": [
+            {
+              "type": "label",
+              "publisher": "watch.example.net",
+              "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
+              "eligibility": 1,
+              "ceiling": 5
+            }
+          ],
           "left": [],
           "deferred": [],
           "records_removed": [],
@@ -46969,10 +48049,10 @@
           "labels": [
             {
               "type": "dispute",
-              "label": "sha256:af37f9dda5d87c91cbd8c4f1e714a9fb64442161263fe81d4c88c37a8dc2855b",
+              "label": "sha256:fefe999328fdca8435720f878bb07cba85fccbb8459ea038a868287f0f1fce6f",
               "outcome": "accepted",
               "place": [
-                1,
+                3,
                 2,
                 0
               ]
@@ -46988,14 +48068,14 @@
               {
                 "type": "dispute",
                 "publisher": "example.com",
-                "label": "sha256:af37f9dda5d87c91cbd8c4f1e714a9fb64442161263fe81d4c88c37a8dc2855b",
+                "label": "sha256:fefe999328fdca8435720f878bb07cba85fccbb8459ea038a868287f0f1fce6f",
                 "place": [
-                  1,
+                  3,
                   2,
                   0
                 ],
-                "eligibility": 1,
-                "ceiling": 5
+                "eligibility": 2,
+                "ceiling": 6
               }
             ]
           }
@@ -47012,12 +48092,12 @@
                   "label": "sha256:d1f44f100b29a8a70f70cd87a7267f760fbbeb7e31b1e443594ccabd5ffa2aa9",
                   "log": "log.example",
                   "height": 1,
-                  "asserted_at": "2026-10-01T03:00:00Z"
+                  "asserted_at": "2026-10-01T04:00:00Z"
                 },
                 "sig": {
                   "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
                   "alg": "Ed25519",
-                  "value": "XMe5UxlwyLGVBQhYG-6IdfIDvrMmVvZwjXKZZTXYAfOUtIIUbPSKmc3SB1ECBpx10fAfz-2eXCYLwj9Nh9j6Cg"
+                  "value": "VOjj5CpdLP6sJXQKGIrYiR3WhhxSIPU-q59yo35tWqD_XQt-Nrk9df87NmwBSdDqefEqVMSDOqsPD8pTKoglAw"
                 }
               }
             }
@@ -47026,9 +48106,9 @@
             {
               "type": "dispute",
               "publisher": "example.com",
-              "label": "sha256:af37f9dda5d87c91cbd8c4f1e714a9fb64442161263fe81d4c88c37a8dc2855b",
-              "eligibility": 1,
-              "ceiling": 5
+              "label": "sha256:fefe999328fdca8435720f878bb07cba85fccbb8459ea038a868287f0f1fce6f",
+              "eligibility": 2,
+              "ceiling": 6
             }
           ],
           "left": [],

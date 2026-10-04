@@ -522,8 +522,10 @@ Entries, against a Catalog whose `publisher` is the withdrawal's
 replay ignores one with `WIST4-E04` (WIST-4 §7), and it names no Item
 for I7.
 
-C2 to C4 are read only for a Catalog that meets neither `WIST1-E05`
-nor a `WIST1-E14` condition. Where I1 fails no other condition of the
+C2 to C4 are read for a Catalog that meets neither `WIST1-E05` nor a
+`WIST1-E14` condition, whatever other C1 condition it meets, a
+signature that does not verify included, and for no other Catalog.
+Where I1 fails no other condition of the
 Item is read, and I2 and I4 to I7 are read only where I3 holds, since
 they read the named Catalog.
 
@@ -550,6 +552,17 @@ Catalog, a replaced one or one never sealed fails I3.
 `publisher_item` Entry out of place in the Log. `WIST1-E05` and the
 `WIST1-E14` conditions are checked first; among the others WIST-1 §7
 leaves the choice of diagnostic.
+
+An Entry of a known type whose `body` is not a JSON object, `null`
+included, keeps the Entry form, whose two members are present, and
+takes the consequence the body's own object gives a field failure.
+JSON/JCS eligibility precedes field validation in every object, so a
+`body` that is not valid JCS input rejects its Epoch with `WIST1-E05`
+as a `publisher_declaration` and is ignored with `WIST1-E05` as a
+`registry_update` (ADR-0036). A `WIST3-E03` rejection of the Epoch for
+such a body was not chosen: the Entry form is the Log's own, and a defect
+inside an object the suite already judges takes that object's
+disposition, as a Declaration rejects its Epoch and a Catalog does not.
 
 An Epoch is rejected whole, with `WIST3-E03`, when two of its
 `publisher_catalog` Entries carry the same strings as `publisher` and
@@ -833,15 +846,18 @@ floor may have left the list since. A Catalog later than the floor by
 exactly that interval is not a base.
 
 When a base applies, every record of the Publisher in the Collection
-is removed, before the Items of the Epoch apply. I7 then reads no
-record of that Collection: a record of the URL that another Collection
-carries is read as outside a base, so an Item of kind `removed` passes
-I7 where such a record exists and fails it elsewhere, and an Item of
-kind `page` that no withdrawal names passes it unless it is such a
-record's Item. From the pull that accepts a Catalog that is a base
+is removed, once, before the first Item of the Epoch applies; its
+records in another Collection stay. I7 reads, for each Item, the
+records as they stand when that Item applies in the Epoch's
+application order, so a record an earlier Item of the Epoch made in
+the base's Collection is read by a later one. Reading the Collection as
+empty for the whole Epoch was rejected: an Item of kind `removed`
+following, in the same Epoch, the Item that made its URL's record would
+fail I7, and the Epoch would leave a state its Items, applied in order,
+do not produce. From the pull that accepts a Catalog that is a base
 against the floor until that Catalog, or one that replaces it while it
 waits, is sealed or leaves, the Aggregator reads I7 for the Collection
-in the same way: every admitted Item for which it holds waits, and is
+as if the base had removed its records: every admitted Item for which it holds waits, and is
 sealed in its turn. A Catalog a pull queues (Recovery) begins no such
 reading; for a base in the queue it begins at the settlement that
 makes the base the last accepted Catalog. When the base leaves
@@ -849,8 +865,8 @@ unsealed, failing C1 at its turn, I7 is read against the records
 again, and the Items that are their URL's record leave unreported, as
 an Item for which I7 no longer holds leaves (Waiting).
 
-A record is absent from the Epoch of the base until the Epoch that
-seals its Item. The capacity and the ceiling bound that interval and
+A URL whose record the base removed has none until a valid Item of kind
+`page` makes one again, in the base's Epoch or a later one. The capacity and the ceiling bound that interval and
 nothing else does: a list of n Items under a capacity of c Entries
 takes at least ⌈n / c⌉ Epochs.
 
