@@ -1,5 +1,5 @@
 {
-  "note": "WIST-3 \u00a73.4 and \u00a75, WIST-4 \u00a75.1: Aggregator key acts. A key act sealed in Epoch N authenticates under the keys valid at height N-1 (the genesis key alone before Epoch 0); every other Registry Update of Epoch N and Checkpoint N authenticate under the keys valid at N. An unauthenticated act is WIST4-E11; an authenticated key act that is a key-act failure is WIST4-E04, ignored, with the Epoch kept. Each history is a separate Log with its own Anchor and cumulative tree; `epochs` are in Log order, `entries` in canonical Entry order (\u00a73.3), `acts` carries one disposition per Entry index, `expected_state` the WIST-3 \u00a77 aggregator_key tuples a Consumer holds after the Epoch, and `valid_at` the key_ids valid at each listed height. `checkpoint` is the Checkpoint the Aggregator publishes; `checkpoint_cases` are candidates judged beside it. The parameter_change Entries are here only to fix the authentication height of a non-key act; their \u00a75 schedule rules are exercised by vectors/wist4/parameter-combinations.json. `anchor_cases` judge a Log Anchor Envelope: it is validated against schemas/log-anchor.schema.json first, one that fails being rejected with WIST3-E03 before its signature is verified, and a member present with a value the schema does not admit fails it, so `predecessor` null is no Anchor without a predecessor; one that passes is `accepted` when its sig.key_id names its genesis_key and the signature verifies under that key over the JCS of `anchor`. Every case here is self-signed.",
+  "note": "WIST-3 \u00a73.4 and \u00a75, WIST-4 \u00a75.1: Aggregator key acts. A key act sealed in Epoch N authenticates under the keys valid at height N-1 (the genesis key alone before Epoch 0); every other Registry Update of Epoch N and Checkpoint N authenticate under the keys valid at N. An unauthenticated act is WIST4-E11; an authenticated key act that is a key-act failure is WIST4-E04, ignored, with the Epoch kept. Each history is a separate Log with its own Anchor and cumulative tree; `epochs` are in Log order, `entries` in canonical Entry order (\u00a73.3), an Entry of a type \u00a73.3 does not list after the registry_update Entries, `acts` carries one disposition per registry_update Entry index, `expected_state` the WIST-3 \u00a77 aggregator_key tuples a Consumer holds after the Epoch, and `valid_at` the key_ids valid at each listed height. `applied` is false for an Epoch no Checkpoint verifies, which is never applied. `rejection` is WIST3-E03 for an Epoch an Entry of an unlisted type rejects whole (\u00a73.3, Rejected Epochs) and null otherwise: of a rejected Epoch the key acts are judged as in an accepted one and every other act carries WIST3-E03, is not judged and applies nothing. An occurrence of a Registry Update ID accepted at a lower Epoch or earlier in its Epoch that passes field validation is idempotent (WIST-4 \u00a75.1): it is neither authenticated nor evaluated, and its disposition is null; one that fails field validation carries that failure's code. `expected_registry_state` lists the WIST-3 \u00a77 parameter, suffix_list and registry_update tuples a Consumer holds after the Epoch; a suffix_list_update names a snapshot whose octets `suffix_lists` carries as text. Every parameter_change meets the \u00a75 grace period and bounds, and an amendment superseded by a later one of the same identifier and effective_at has no tuple; the \u00a75 schedule rules are exercised by vectors/wist4/parameter-combinations.json. `anchor_cases` judge a Log Anchor Envelope: it is validated against schemas/log-anchor.schema.json first, one that fails being rejected with WIST3-E03 before its signature is verified, and a member present with a value the schema does not admit fails it, so `predecessor` null is no Anchor without a predecessor; one that passes is `accepted` when its sig.key_id names its genesis_key and the signature verifies under that key over the JCS of `anchor`. Every case here is self-signed.",
   "histories": [
     {
       "name": "rotation",
@@ -187,7 +187,26 @@
               null
             ]
           ],
-          "why": "the published Checkpoint is a rotation Checkpoint: two signature lines, both under keys valid at height 0"
+          "why": "the published Checkpoint is a rotation Checkpoint: two signature lines, both under keys valid at height 0",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "parameter",
+              "quota_base",
+              "2026-10-01T00:00:00Z",
+              1500
+            ],
+            [
+              "registry_update",
+              "sha256:1bc064db2a66744659a1e8ee4116728faa8543560a1fff3f09d7f5a1ac9e0f82",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:441f5857792ce4e48513cbc2fe582777029761595f6715ffd798def2eef1d719",
+              0
+            ]
+          ]
         },
         {
           "epoch_number": 1,
@@ -387,7 +406,36 @@
               null
             ]
           ],
-          "why": "Checkpoint 1 authenticates under the keys valid at height 1, the set this Epoch's accepted key acts leave"
+          "why": "Checkpoint 1 authenticates under the keys valid at height 1, the set this Epoch's accepted key acts leave",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "parameter",
+              "quota_base",
+              "2026-10-01T00:00:00Z",
+              1500
+            ],
+            [
+              "registry_update",
+              "sha256:1bc064db2a66744659a1e8ee4116728faa8543560a1fff3f09d7f5a1ac9e0f82",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:441f5857792ce4e48513cbc2fe582777029761595f6715ffd798def2eef1d719",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:9926cc2bed7a1d2ec873cf867474e8cf9cc11a693c69bc427810b663672249b4",
+              1
+            ],
+            [
+              "registry_update",
+              "sha256:c5a6cbfa3aa331d0c41cd85c8791f18abaf1cc03199f0ad30d778fa0d5bb0d6b",
+              1
+            ]
+          ]
         },
         {
           "epoch_number": 2,
@@ -718,7 +766,41 @@
               null
             ]
           ],
-          "why": "six key-act failures beside one accepted addition: each is ignored as WIST4-E04 and the Epoch stays valid"
+          "why": "six key-act failures beside one accepted addition: each is ignored as WIST4-E04 and the Epoch stays valid",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "parameter",
+              "quota_base",
+              "2026-10-01T00:00:00Z",
+              1500
+            ],
+            [
+              "registry_update",
+              "sha256:1129ed06b518548806cf1f9b48c5ebe82d4f6980b8b2e990b8824ce2ff3bf516",
+              2
+            ],
+            [
+              "registry_update",
+              "sha256:1bc064db2a66744659a1e8ee4116728faa8543560a1fff3f09d7f5a1ac9e0f82",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:441f5857792ce4e48513cbc2fe582777029761595f6715ffd798def2eef1d719",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:9926cc2bed7a1d2ec873cf867474e8cf9cc11a693c69bc427810b663672249b4",
+              1
+            ],
+            [
+              "registry_update",
+              "sha256:c5a6cbfa3aa331d0c41cd85c8791f18abaf1cc03199f0ad30d778fa0d5bb0d6b",
+              1
+            ]
+          ]
         },
         {
           "epoch_number": 3,
@@ -1178,6 +1260,65 @@
             ]
           ],
           "why": "the failures an Epoch decides against itself: two additions of one key_id, two of one public key, a removal of a key added here, and two removals of one valid key",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "parameter",
+              "quota_base",
+              "2026-10-01T00:00:00Z",
+              1500
+            ],
+            [
+              "registry_update",
+              "sha256:1129ed06b518548806cf1f9b48c5ebe82d4f6980b8b2e990b8824ce2ff3bf516",
+              2
+            ],
+            [
+              "registry_update",
+              "sha256:1bc064db2a66744659a1e8ee4116728faa8543560a1fff3f09d7f5a1ac9e0f82",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:31b31628cfa0e26fc9a1e9092dced478527c4960fb6e52fb9bdae95f6b3bc077",
+              3
+            ],
+            [
+              "registry_update",
+              "sha256:441f5857792ce4e48513cbc2fe582777029761595f6715ffd798def2eef1d719",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:6f140ef233967bbfddcd191bde1f1e836ab5afd640bfe56d9d451a3e461d7edb",
+              3
+            ],
+            [
+              "registry_update",
+              "sha256:857f8156d17253f432a76e28dd96719c6322139a343c755b91b6e58ef967bc13",
+              3
+            ],
+            [
+              "registry_update",
+              "sha256:9926cc2bed7a1d2ec873cf867474e8cf9cc11a693c69bc427810b663672249b4",
+              1
+            ],
+            [
+              "registry_update",
+              "sha256:9f20b4d38fd35695be25a809936962de0e35917d9ed5264067900628e1f2c29f",
+              3
+            ],
+            [
+              "registry_update",
+              "sha256:c5a6cbfa3aa331d0c41cd85c8791f18abaf1cc03199f0ad30d778fa0d5bb0d6b",
+              1
+            ],
+            [
+              "registry_update",
+              "sha256:de4a22a1d4f08d33855f5c1faeb269634ffc59e10fe7ad0d5d6a5ee3765f36b4",
+              3
+            ]
+          ],
           "tie_breaks": [
             {
               "reason": "two additions naming one key_id",
@@ -1487,7 +1628,71 @@
               null
             ]
           ],
-          "why": "the genesis key is removed; Checkpoint 4 authenticates under the keys valid at height 4, which no longer include it"
+          "why": "the genesis key is removed; Checkpoint 4 authenticates under the keys valid at height 4, which no longer include it",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "parameter",
+              "quota_base",
+              "2026-10-01T00:00:00Z",
+              1500
+            ],
+            [
+              "registry_update",
+              "sha256:1129ed06b518548806cf1f9b48c5ebe82d4f6980b8b2e990b8824ce2ff3bf516",
+              2
+            ],
+            [
+              "registry_update",
+              "sha256:1bc064db2a66744659a1e8ee4116728faa8543560a1fff3f09d7f5a1ac9e0f82",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:31b31628cfa0e26fc9a1e9092dced478527c4960fb6e52fb9bdae95f6b3bc077",
+              3
+            ],
+            [
+              "registry_update",
+              "sha256:441f5857792ce4e48513cbc2fe582777029761595f6715ffd798def2eef1d719",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:6f140ef233967bbfddcd191bde1f1e836ab5afd640bfe56d9d451a3e461d7edb",
+              3
+            ],
+            [
+              "registry_update",
+              "sha256:857f8156d17253f432a76e28dd96719c6322139a343c755b91b6e58ef967bc13",
+              3
+            ],
+            [
+              "registry_update",
+              "sha256:9926cc2bed7a1d2ec873cf867474e8cf9cc11a693c69bc427810b663672249b4",
+              1
+            ],
+            [
+              "registry_update",
+              "sha256:9f20b4d38fd35695be25a809936962de0e35917d9ed5264067900628e1f2c29f",
+              3
+            ],
+            [
+              "registry_update",
+              "sha256:c5a6cbfa3aa331d0c41cd85c8791f18abaf1cc03199f0ad30d778fa0d5bb0d6b",
+              1
+            ],
+            [
+              "registry_update",
+              "sha256:de4a22a1d4f08d33855f5c1faeb269634ffc59e10fe7ad0d5d6a5ee3765f36b4",
+              3
+            ],
+            [
+              "registry_update",
+              "sha256:e7369d2614a034b96802d6452877db5e760745144671b2efec930dc04d6d8b0e",
+              4
+            ]
+          ]
         }
       ],
       "valid_at": [
@@ -2663,7 +2868,15 @@
               null
             ]
           ],
-          "why": "the genesis key admits a second key"
+          "why": "the genesis key admits a second key",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "registry_update",
+              "sha256:14baa3af8a357905b66adb276576d835143f60ef5a8c591c03c9d9f4db59a291",
+              0
+            ]
+          ]
         },
         {
           "epoch_number": 1,
@@ -2789,7 +3002,15 @@
               null
             ]
           ],
-          "why": "both removals authenticate at height 0 and are accepted, so no key is valid at height 1: no Checkpoint 1 verifies, the Epoch is never applied, and the verified head stays at Epoch 0"
+          "why": "both removals authenticate at height 0 and are accepted, so no key is valid at height 1: no Checkpoint 1 verifies, the Epoch is never applied, and the verified head stays at Epoch 0",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "registry_update",
+              "sha256:14baa3af8a357905b66adb276576d835143f60ef5a8c591c03c9d9f4db59a291",
+              0
+            ]
+          ]
         }
       ],
       "valid_at": [
@@ -2915,7 +3136,15 @@
               null
             ]
           ],
-          "why": "the genesis key admits the key that Epoch 1 removes"
+          "why": "the genesis key admits the key that Epoch 1 removes",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "registry_update",
+              "sha256:fb923f97bad509cad3f88f3843e5e920f40962dffa8db2c42de0471598141afd",
+              0
+            ]
+          ]
         },
         {
           "epoch_number": 1,
@@ -3067,7 +3296,25 @@
               null
             ]
           ],
-          "why": "both key acts authenticate at height 0, where the removed key is still valid, and both are accepted whichever Entry index each holds"
+          "why": "both key acts authenticate at height 0, where the removed key is still valid, and both are accepted whichever Entry index each holds",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "registry_update",
+              "sha256:0c9091c3f0b73e92f828d6d1ac5cf9d585304ea4bd5c8d61b0d97aee1caa5bda",
+              1
+            ],
+            [
+              "registry_update",
+              "sha256:ecbe7a18b3289362a5a531dda61b539e63727dc86ba4791c4d0445a8ce7c8242",
+              1
+            ],
+            [
+              "registry_update",
+              "sha256:fb923f97bad509cad3f88f3843e5e920f40962dffa8db2c42de0471598141afd",
+              0
+            ]
+          ]
         }
       ],
       "valid_at": [
@@ -3196,7 +3443,15 @@
               null
             ]
           ],
-          "why": "the genesis key admits the key that Epoch 1 removes"
+          "why": "the genesis key admits the key that Epoch 1 removes",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "registry_update",
+              "sha256:fb923f97bad509cad3f88f3843e5e920f40962dffa8db2c42de0471598141afd",
+              0
+            ]
+          ]
         },
         {
           "epoch_number": 1,
@@ -3348,7 +3603,25 @@
               null
             ]
           ],
-          "why": "both key acts authenticate at height 0, where the removed key is still valid, and both are accepted whichever Entry index each holds"
+          "why": "both key acts authenticate at height 0, where the removed key is still valid, and both are accepted whichever Entry index each holds",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "registry_update",
+              "sha256:0c9091c3f0b73e92f828d6d1ac5cf9d585304ea4bd5c8d61b0d97aee1caa5bda",
+              1
+            ],
+            [
+              "registry_update",
+              "sha256:ba959d3ff9c88174ba69f427c8add627baa313ff5bffddd9308b90550f8b5c52",
+              1
+            ],
+            [
+              "registry_update",
+              "sha256:fb923f97bad509cad3f88f3843e5e920f40962dffa8db2c42de0471598141afd",
+              0
+            ]
+          ]
         }
       ],
       "valid_at": [
@@ -3374,6 +3647,963 @@
         }
       ],
       "verified_head": 1
+    },
+    {
+      "name": "key acts of a rejected Epoch",
+      "note": "WIST-3 \u00a73.3, Rejected Epochs: Epoch 1 is rejected for an Entry of a type \u00a73.3 does not list; its key act applies and its ID is accepted, its other acts apply nothing and their IDs are not accepted, and its Checkpoint, signed by the key it admits, verifies.",
+      "log_id": "keys-rejected.example.org",
+      "anchor": {
+        "anchor": {
+          "wist_version": "1.0.0",
+          "log_id": "keys-rejected.example.org",
+          "genesis_key": {
+            "key_id": "test-agg-r1",
+            "alg": "Ed25519",
+            "public_key": "-xeSO4_WKddAtCmtxRYGg5VY5fL3wPlAHsNvKkzeYq8"
+          },
+          "created_at": "2026-08-30T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "test-agg-r1",
+          "alg": "Ed25519",
+          "value": "gqvTsfzNSLEGJwqogfMGWejKv_oqccsNHDubJ1dsfwbIbLgjjTITPWb7PIR8V9sqmnPFxJspsn-fOI9A1XT5Dg"
+        }
+      },
+      "epochs": [
+        {
+          "epoch_number": 0,
+          "sealed_at": "2026-09-05T00:00:00Z",
+          "tree_size": 1,
+          "leaf_hashes": [
+            "1eac66fad65d0f721d4ceb8d934dbd74ca335a78b79ceeb4916fee780f7c4535"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-r2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-r2",
+                    "public_key": "X_0PDrPrsEqnSbJs4hWCgDV0n9Bh5ett6tbMP6r0-_M"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-r1",
+                  "alg": "Ed25519",
+                  "value": "oVi5FP6xfbv1pZfSdTcjykKMl2K5AmEq06sbeQmiuJpeyoE0UGiyGyn5bCi5EtUJIV66-IV_TFz3nHsDwQbuCA"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-r2",
+              "signer_key_id": "test-agg-r1",
+              "code": null,
+              "why": "an accepted addition under the genesis key"
+            }
+          ],
+          "checkpoint": "keys-rejected.example.org\n1\nHqxm+tZdD3IdTOuNk029dMozWni3nO60kW/ueA98RTU=\nepoch_number 0\nsealed_at 2026-09-05T00:00:00Z\n\n\u2014 keys-rejected.example.org xAa43Uqoqypu/FblYFmyMchggj6v2AC3Hb2Kh1b/ySnmFkdH6KSfvkbAY//GSxi1c8oc60X9pDjAhNS2xX+Tefa8Tws=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-r1",
+              "-xeSO4_WKddAtCmtxRYGg5VY5fL3wPlAHsNvKkzeYq8",
+              0,
+              null,
+              null,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-r2",
+              "X_0PDrPrsEqnSbJs4hWCgDV0n9Bh5ett6tbMP6r0-_M",
+              0,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-r2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-r2",
+                    "public_key": "X_0PDrPrsEqnSbJs4hWCgDV0n9Bh5ett6tbMP6r0-_M"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-r1",
+                  "alg": "Ed25519",
+                  "value": "oVi5FP6xfbv1pZfSdTcjykKMl2K5AmEq06sbeQmiuJpeyoE0UGiyGyn5bCi5EtUJIV66-IV_TFz3nHsDwQbuCA"
+                }
+              },
+              null
+            ]
+          ],
+          "why": "the genesis key admits the key that signs Epoch 1's key act",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "registry_update",
+              "sha256:353b50e309f7f50516f6d4f0f14cacfe05d5a5e2e4bc99d78097e5aedca047b2",
+              0
+            ]
+          ]
+        },
+        {
+          "epoch_number": 1,
+          "sealed_at": "2026-09-05T01:00:00Z",
+          "tree_size": 5,
+          "leaf_hashes": [
+            "1eac66fad65d0f721d4ceb8d934dbd74ca335a78b79ceeb4916fee780f7c4535",
+            "22daa63fb249ab703cb3f5a028c2c20598be165c4a8d788ece1cce0a3224493b",
+            "ab261023d9f7bdd9af1127dd5ba0d27b8da0bc7721290aec705bdd40338b6aea",
+            "af492801a2cb017710100433e24983f86656a6c400d2c1ec34eea05ca10262d0",
+            "6e318b087a8ae99e1132bbadf4bd00eda585bca45606276018b73c0f1977dd73"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "suffix_list_update",
+                  "subject": "sha256:e11361b197c92144127c526d85a309860ab33b9bd54d94615603d17f0b045430",
+                  "details": {
+                    "sha256": "sha256:e11361b197c92144127c526d85a309860ab33b9bd54d94615603d17f0b045430",
+                    "bytes": 30
+                  },
+                  "effective_at": "2026-09-19T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-r3",
+                  "alg": "Ed25519",
+                  "value": "zhgnntx_bkh4oDWpLSKQeyqiKcR4Q4aJaJJGkdTK5bS1vGIcQ1s98h27LC0Cq9XogAkvZ_h8U5BJHXzK3jGgAw"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "parameter_change",
+                  "subject": "quota_base",
+                  "details": {
+                    "parameter": "quota_base",
+                    "value": 1700
+                  },
+                  "effective_at": "2026-09-19T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-r3",
+                  "alg": "Ed25519",
+                  "value": "3Q5yWaUMpREanrVsiXqD2LOP3CNlsYKE5R1R2ORDKJeo8RnWPWeTpAd3Z89rKyG7Zmy1D2-2ni9xC_DtU0erAg"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-r3",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-r3",
+                    "public_key": "K3H54y6y1WCHEoriIqQL6YYIkLKKBQ_3f-8WUg-wyCM"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-r2",
+                  "alg": "Ed25519",
+                  "value": "2MrkfolLmqdBK95aKGKCxy772dzB6MZvTtIFOGnqyg_Pxa4vWi1qHVSzu5ufnkPWOyLX4g-oq4Ey_Y9xqpECAw"
+                }
+              }
+            },
+            {
+              "type": "publisher_note",
+              "body": {}
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "suffix_list_update",
+              "subject": "sha256:e11361b197c92144127c526d85a309860ab33b9bd54d94615603d17f0b045430",
+              "signer_key_id": "test-agg-r3",
+              "code": "WIST3-E03",
+              "why": "a suffix_list_update of a rejected Epoch naming a file whose octets match: not judged, no snapshot in force and no accepted ID"
+            },
+            {
+              "entry_index": 1,
+              "action": "parameter_change",
+              "subject": "quota_base",
+              "signer_key_id": "test-agg-r3",
+              "code": "WIST3-E03",
+              "why": "a parameter_change of a rejected Epoch: not judged, no amendment and no accepted ID"
+            },
+            {
+              "entry_index": 2,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-r3",
+              "signer_key_id": "test-agg-r2",
+              "code": null,
+              "why": "a key act of a rejected Epoch: accepted, its ID accepted at height 1"
+            }
+          ],
+          "checkpoint": "keys-rejected.example.org\n5\n0lD/BGMF3Cv1JwYnNjBS1X5jAsJ0cYRBklI3hvkEbUE=\nepoch_number 1\nsealed_at 2026-09-05T01:00:00Z\n\n\u2014 keys-rejected.example.org BuquqflOUnOCewC9/mJNPYox/0KMc8/fKA0cSk4M9mgfOLYvUY7XhEqTuVxPgfM65399OQlD8ASZ0qzLMHjGrl9/SAM=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-r1",
+              "-xeSO4_WKddAtCmtxRYGg5VY5fL3wPlAHsNvKkzeYq8",
+              0,
+              null,
+              null,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-r2",
+              "X_0PDrPrsEqnSbJs4hWCgDV0n9Bh5ett6tbMP6r0-_M",
+              0,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-r2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-r2",
+                    "public_key": "X_0PDrPrsEqnSbJs4hWCgDV0n9Bh5ett6tbMP6r0-_M"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-r1",
+                  "alg": "Ed25519",
+                  "value": "oVi5FP6xfbv1pZfSdTcjykKMl2K5AmEq06sbeQmiuJpeyoE0UGiyGyn5bCi5EtUJIV66-IV_TFz3nHsDwQbuCA"
+                }
+              },
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-r3",
+              "K3H54y6y1WCHEoriIqQL6YYIkLKKBQ_3f-8WUg-wyCM",
+              1,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-r3",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-r3",
+                    "public_key": "K3H54y6y1WCHEoriIqQL6YYIkLKKBQ_3f-8WUg-wyCM"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-r2",
+                  "alg": "Ed25519",
+                  "value": "2MrkfolLmqdBK95aKGKCxy772dzB6MZvTtIFOGnqyg_Pxa4vWi1qHVSzu5ufnkPWOyLX4g-oq4Ey_Y9xqpECAw"
+                }
+              },
+              null
+            ]
+          ],
+          "why": "the Epoch is rejected whole (WIST3-E03); its key act is evaluated as in an accepted Epoch, so the key it admits is valid at height 1 and signs Checkpoint 1 alone, and replay continues at Epoch 2",
+          "rejection": "WIST3-E03",
+          "expected_registry_state": [
+            [
+              "registry_update",
+              "sha256:353b50e309f7f50516f6d4f0f14cacfe05d5a5e2e4bc99d78097e5aedca047b2",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:59b5e80e7a33dae5592b7927034b70125f2e506684dc3e1e46d789581b7d41dc",
+              1
+            ]
+          ]
+        },
+        {
+          "epoch_number": 2,
+          "sealed_at": "2026-09-05T02:00:00Z",
+          "tree_size": 7,
+          "leaf_hashes": [
+            "1eac66fad65d0f721d4ceb8d934dbd74ca335a78b79ceeb4916fee780f7c4535",
+            "22daa63fb249ab703cb3f5a028c2c20598be165c4a8d788ece1cce0a3224493b",
+            "ab261023d9f7bdd9af1127dd5ba0d27b8da0bc7721290aec705bdd40338b6aea",
+            "af492801a2cb017710100433e24983f86656a6c400d2c1ec34eea05ca10262d0",
+            "6e318b087a8ae99e1132bbadf4bd00eda585bca45606276018b73c0f1977dd73",
+            "ab261023d9f7bdd9af1127dd5ba0d27b8da0bc7721290aec705bdd40338b6aea",
+            "af492801a2cb017710100433e24983f86656a6c400d2c1ec34eea05ca10262d0"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "parameter_change",
+                  "subject": "quota_base",
+                  "details": {
+                    "parameter": "quota_base",
+                    "value": 1700
+                  },
+                  "effective_at": "2026-09-19T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-r3",
+                  "alg": "Ed25519",
+                  "value": "3Q5yWaUMpREanrVsiXqD2LOP3CNlsYKE5R1R2ORDKJeo8RnWPWeTpAd3Z89rKyG7Zmy1D2-2ni9xC_DtU0erAg"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-r3",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-r3",
+                    "public_key": "K3H54y6y1WCHEoriIqQL6YYIkLKKBQ_3f-8WUg-wyCM"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-r2",
+                  "alg": "Ed25519",
+                  "value": "2MrkfolLmqdBK95aKGKCxy772dzB6MZvTtIFOGnqyg_Pxa4vWi1qHVSzu5ufnkPWOyLX4g-oq4Ey_Y9xqpECAw"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "parameter_change",
+              "subject": "quota_base",
+              "signer_key_id": "test-agg-r3",
+              "code": null,
+              "why": "the ID's first occurrence in an accepted Epoch: judged, accepted at height 2, and its amendment scheduled"
+            },
+            {
+              "entry_index": 1,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-r3",
+              "signer_key_id": "test-agg-r2",
+              "code": null,
+              "why": "an ID accepted at height 1: idempotent, not evaluated, and its registry_update tuple keeps height 1"
+            }
+          ],
+          "checkpoint": "keys-rejected.example.org\n7\nEMWfRXKqdVCpW5J6qeo1pdr5egazJt1eS3hukPWVZLo=\nepoch_number 2\nsealed_at 2026-09-05T02:00:00Z\n\n\u2014 keys-rejected.example.org BuquqQ3cLX9MHwJUVjrIo8p/g9kunMOOK9WRDmN3TsqL1QauNK9E7MSfKyijVGDs5jyGaHAZVMeKb7cULld7d9AkBwA=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-r1",
+              "-xeSO4_WKddAtCmtxRYGg5VY5fL3wPlAHsNvKkzeYq8",
+              0,
+              null,
+              null,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-r2",
+              "X_0PDrPrsEqnSbJs4hWCgDV0n9Bh5ett6tbMP6r0-_M",
+              0,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-r2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-r2",
+                    "public_key": "X_0PDrPrsEqnSbJs4hWCgDV0n9Bh5ett6tbMP6r0-_M"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-r1",
+                  "alg": "Ed25519",
+                  "value": "oVi5FP6xfbv1pZfSdTcjykKMl2K5AmEq06sbeQmiuJpeyoE0UGiyGyn5bCi5EtUJIV66-IV_TFz3nHsDwQbuCA"
+                }
+              },
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-r3",
+              "K3H54y6y1WCHEoriIqQL6YYIkLKKBQ_3f-8WUg-wyCM",
+              1,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-r3",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-r3",
+                    "public_key": "K3H54y6y1WCHEoriIqQL6YYIkLKKBQ_3f-8WUg-wyCM"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-r2",
+                  "alg": "Ed25519",
+                  "value": "2MrkfolLmqdBK95aKGKCxy772dzB6MZvTtIFOGnqyg_Pxa4vWi1qHVSzu5ufnkPWOyLX4g-oq4Ey_Y9xqpECAw"
+                }
+              },
+              null
+            ]
+          ],
+          "why": "an accepted Epoch sealing again the two acts of Epoch 1 octet for octet",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "parameter",
+              "quota_base",
+              "2026-09-19T00:00:00Z",
+              1700
+            ],
+            [
+              "registry_update",
+              "sha256:11117d0fa8ed35093e5193cc1119200c60260680ed81c8cc2eadf64e8f59e4ab",
+              2
+            ],
+            [
+              "registry_update",
+              "sha256:353b50e309f7f50516f6d4f0f14cacfe05d5a5e2e4bc99d78097e5aedca047b2",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:59b5e80e7a33dae5592b7927034b70125f2e506684dc3e1e46d789581b7d41dc",
+              1
+            ]
+          ]
+        }
+      ],
+      "valid_at": [
+        {
+          "height": -1,
+          "key_ids": [
+            "test-agg-r1"
+          ]
+        },
+        {
+          "height": 0,
+          "key_ids": [
+            "test-agg-r1",
+            "test-agg-r2"
+          ]
+        },
+        {
+          "height": 1,
+          "key_ids": [
+            "test-agg-r1",
+            "test-agg-r2",
+            "test-agg-r3"
+          ]
+        },
+        {
+          "height": 2,
+          "key_ids": [
+            "test-agg-r1",
+            "test-agg-r2",
+            "test-agg-r3"
+          ]
+        }
+      ],
+      "verified_head": 2,
+      "suffix_lists": [
+        {
+          "sha256": "sha256:e11361b197c92144127c526d85a309860ab33b9bd54d94615603d17f0b045430",
+          "text": "// a fixture snapshot\ncom\norg\n"
+        }
+      ]
+    },
+    {
+      "name": "an accepted key act sealed again",
+      "note": "WIST-3 \u00a73.4, WIST-4 \u00a75.1: an occurrence of an accepted key act's ID that passes field validation is idempotent and not evaluated, whatever its signature; one that fails field validation keeps its code.",
+      "log_id": "keys-repeated.example.org",
+      "anchor": {
+        "anchor": {
+          "wist_version": "1.0.0",
+          "log_id": "keys-repeated.example.org",
+          "genesis_key": {
+            "key_id": "test-agg-p1",
+            "alg": "Ed25519",
+            "public_key": "bc2jHFdMB22JWwI6_KecJ2CViZSCIXjwuhm4WK5qq4Q"
+          },
+          "created_at": "2026-08-30T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "test-agg-p1",
+          "alg": "Ed25519",
+          "value": "rpyaMc5yaDmaef3-xdNBRuyE6VKREPBq-MncmzJTzoqjS24kIkXkRN0_ypfqroxmp-SN0omQXuMruioQKlquCQ"
+        }
+      },
+      "epochs": [
+        {
+          "epoch_number": 0,
+          "sealed_at": "2026-09-06T00:00:00Z",
+          "tree_size": 1,
+          "leaf_hashes": [
+            "874f4d3b7e47adaa3bb45ddcc19406bcfb97d8b08de8713dc998deee61184f70"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-p2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-p2",
+                    "public_key": "P6NXRelS06aJ2pjHAkVfnac2gVPzY0MuDpyvJZQntMU"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-p1",
+                  "alg": "Ed25519",
+                  "value": "87_3lShLDuyxEIDkxh0i3QLHaWjc5QAFdIihL0m2EQnO-mOo2nTULf99ZhJ7cwe4HuTS-6O22eVPdHtvOykbDw"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-p2",
+              "signer_key_id": "test-agg-p1",
+              "code": null,
+              "why": "the addition accepted at height 0"
+            }
+          ],
+          "checkpoint": "keys-repeated.example.org\n1\nh09NO35Hrao7tF3cwZQGvPuX2LCN6HE9yZje7mEYT3A=\nepoch_number 0\nsealed_at 2026-09-06T00:00:00Z\n\n\u2014 keys-repeated.example.org ZGpi2/GZgARiKevcq8gCeQSv11pHUqay8sU1E4rVLyIRoQUzhtiTm1uB9L3RoMtrEHlWfZzZpeXLZ3QLzIIDRD/dHQ4=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-p1",
+              "bc2jHFdMB22JWwI6_KecJ2CViZSCIXjwuhm4WK5qq4Q",
+              0,
+              null,
+              null,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-p2",
+              "P6NXRelS06aJ2pjHAkVfnac2gVPzY0MuDpyvJZQntMU",
+              0,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-p2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-p2",
+                    "public_key": "P6NXRelS06aJ2pjHAkVfnac2gVPzY0MuDpyvJZQntMU"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-p1",
+                  "alg": "Ed25519",
+                  "value": "87_3lShLDuyxEIDkxh0i3QLHaWjc5QAFdIihL0m2EQnO-mOo2nTULf99ZhJ7cwe4HuTS-6O22eVPdHtvOykbDw"
+                }
+              },
+              null
+            ]
+          ],
+          "why": "the genesis key admits a second key",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "registry_update",
+              "sha256:d90c9512bb0841499c819819121a4f872342be2d710c75e26be4a3fd86703a7d",
+              0
+            ]
+          ]
+        },
+        {
+          "epoch_number": 1,
+          "sealed_at": "2026-09-06T01:00:00Z",
+          "tree_size": 3,
+          "leaf_hashes": [
+            "874f4d3b7e47adaa3bb45ddcc19406bcfb97d8b08de8713dc998deee61184f70",
+            "874f4d3b7e47adaa3bb45ddcc19406bcfb97d8b08de8713dc998deee61184f70",
+            "dec83078b40c3e7f0a33b1b26a61676bf716558a873901983b2938bc0de9ad2d"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-p2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-p2",
+                    "public_key": "P6NXRelS06aJ2pjHAkVfnac2gVPzY0MuDpyvJZQntMU"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-p1",
+                  "alg": "Ed25519",
+                  "value": "87_3lShLDuyxEIDkxh0i3QLHaWjc5QAFdIihL0m2EQnO-mOo2nTULf99ZhJ7cwe4HuTS-6O22eVPdHtvOykbDw"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-p1",
+                  "details": {
+                    "key_id": "test-agg-p1"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-p1",
+                  "alg": "Ed25519",
+                  "value": "Jd1JVigkprTmuEAoEIhQzB-Fp2di-p-W3suuOEoxdGpVEZMeLeWWolQgJh9JgL3d0QG-40atY1jqgnlEgCJNCQ"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-p2",
+              "signer_key_id": "test-agg-p1",
+              "code": null,
+              "why": "the addition sealed again octet for octet under a key valid at height 0: idempotent, where evaluating it would fail it as an addition naming an admitted key (WIST4-E04)"
+            },
+            {
+              "entry_index": 1,
+              "action": "aggregator_key_remove",
+              "subject": "test-agg-p1",
+              "signer_key_id": "test-agg-p1",
+              "code": null,
+              "why": "the genesis key signs its own removal"
+            }
+          ],
+          "checkpoint": "keys-repeated.example.org\n3\nuQd+k8dY1bH6m0JanfhBVgwkWMS50ROzNWSD11eXwqw=\nepoch_number 1\nsealed_at 2026-09-06T01:00:00Z\n\n\u2014 keys-repeated.example.org Y1BvCfdFDT7i4mtthMTGPPz1ZjO6KrsCGmnU5PNIhRJ7WWnBmPU78N3JCP8ji3gN2SZ/QgZFMdl7Px4dycpiaRFHrw0=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-p1",
+              "bc2jHFdMB22JWwI6_KecJ2CViZSCIXjwuhm4WK5qq4Q",
+              0,
+              1,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-p1",
+                  "details": {
+                    "key_id": "test-agg-p1"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-p1",
+                  "alg": "Ed25519",
+                  "value": "Jd1JVigkprTmuEAoEIhQzB-Fp2di-p-W3suuOEoxdGpVEZMeLeWWolQgJh9JgL3d0QG-40atY1jqgnlEgCJNCQ"
+                }
+              }
+            ],
+            [
+              "aggregator_key",
+              "test-agg-p2",
+              "P6NXRelS06aJ2pjHAkVfnac2gVPzY0MuDpyvJZQntMU",
+              0,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-p2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-p2",
+                    "public_key": "P6NXRelS06aJ2pjHAkVfnac2gVPzY0MuDpyvJZQntMU"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-p1",
+                  "alg": "Ed25519",
+                  "value": "87_3lShLDuyxEIDkxh0i3QLHaWjc5QAFdIihL0m2EQnO-mOo2nTULf99ZhJ7cwe4HuTS-6O22eVPdHtvOykbDw"
+                }
+              },
+              null
+            ]
+          ],
+          "why": "the genesis key removes itself beside a copy of the addition",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "registry_update",
+              "sha256:d90c9512bb0841499c819819121a4f872342be2d710c75e26be4a3fd86703a7d",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:e38fb2ed39069e13be5cfd0c11d2d279daae6847bff5a2c105b2b56e9c39605c",
+              1
+            ]
+          ]
+        },
+        {
+          "epoch_number": 2,
+          "sealed_at": "2026-09-06T02:00:00Z",
+          "tree_size": 6,
+          "leaf_hashes": [
+            "874f4d3b7e47adaa3bb45ddcc19406bcfb97d8b08de8713dc998deee61184f70",
+            "874f4d3b7e47adaa3bb45ddcc19406bcfb97d8b08de8713dc998deee61184f70",
+            "dec83078b40c3e7f0a33b1b26a61676bf716558a873901983b2938bc0de9ad2d",
+            "628aeb4a80960fc957d609e987896d8a7e0849dd47f84c7ce72c342bb50da44b",
+            "6680a76e404cbfd3f7d0b68c043454cf69eb5ea8258a5e01715a7a15c99678a1",
+            "874f4d3b7e47adaa3bb45ddcc19406bcfb97d8b08de8713dc998deee61184f70"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-p2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-p2",
+                    "public_key": "P6NXRelS06aJ2pjHAkVfnac2gVPzY0MuDpyvJZQntMU"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-p1",
+                  "alg": "Ed25519",
+                  "value": "8r_3lShLDuyxEIDkxh0i3QLHaWjc5QAFdIihL0m2EQnO-mOo2nTULf99ZhJ7cwe4HuTS-6O22eVPdHtvOykbDw"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-p2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-p2",
+                    "public_key": "P6NXRelS06aJ2pjHAkVfnac2gVPzY0MuDpyvJZQntMU"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-p1",
+                  "alg": "Ed25519",
+                  "value": "87_3lShLDuyxEIDkxh0i3QLHaWjc5QAFdIihL0m2EQnO-mOo2nTULf99ZhJ7cwe4HuTS-6O22eVPdHtvOykbD"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-p2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-p2",
+                    "public_key": "P6NXRelS06aJ2pjHAkVfnac2gVPzY0MuDpyvJZQntMU"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-p1",
+                  "alg": "Ed25519",
+                  "value": "87_3lShLDuyxEIDkxh0i3QLHaWjc5QAFdIihL0m2EQnO-mOo2nTULf99ZhJ7cwe4HuTS-6O22eVPdHtvOykbDw"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-p2",
+              "signer_key_id": "test-agg-p1",
+              "code": null,
+              "why": "the same update under a signature value of the right form that does not verify: idempotent, never authenticated"
+            },
+            {
+              "entry_index": 1,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-p2",
+              "signer_key_id": "test-agg-p1",
+              "code": "WIST4-E11",
+              "why": "the same update under a sig value of another form: field validation fails it (WIST4-E11) whether or not its ID was accepted earlier"
+            },
+            {
+              "entry_index": 2,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-p2",
+              "signer_key_id": "test-agg-p1",
+              "code": null,
+              "why": "sealed again octet for octet under a key removed at height 1: idempotent, where authenticating it at height 1 would fail it (WIST4-E11)"
+            }
+          ],
+          "checkpoint": "keys-repeated.example.org\n6\nZY4JIFdwYPqMMraYToklgClqVTMsLRIxFxPmqKzH1RI=\nepoch_number 2\nsealed_at 2026-09-06T02:00:00Z\n\n\u2014 keys-repeated.example.org Y1BvCV9P//ckfuTJAl6hTOz42jx7jFdN++eXXMwQcqmgt1rmHDXMpZenoCkjT6cmjExcuIThD9BjUY4hoOmInlrlmwY=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-p1",
+              "bc2jHFdMB22JWwI6_KecJ2CViZSCIXjwuhm4WK5qq4Q",
+              0,
+              1,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-p1",
+                  "details": {
+                    "key_id": "test-agg-p1"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-p1",
+                  "alg": "Ed25519",
+                  "value": "Jd1JVigkprTmuEAoEIhQzB-Fp2di-p-W3suuOEoxdGpVEZMeLeWWolQgJh9JgL3d0QG-40atY1jqgnlEgCJNCQ"
+                }
+              }
+            ],
+            [
+              "aggregator_key",
+              "test-agg-p2",
+              "P6NXRelS06aJ2pjHAkVfnac2gVPzY0MuDpyvJZQntMU",
+              0,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-p2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-p2",
+                    "public_key": "P6NXRelS06aJ2pjHAkVfnac2gVPzY0MuDpyvJZQntMU"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-p1",
+                  "alg": "Ed25519",
+                  "value": "87_3lShLDuyxEIDkxh0i3QLHaWjc5QAFdIihL0m2EQnO-mOo2nTULf99ZhJ7cwe4HuTS-6O22eVPdHtvOykbDw"
+                }
+              },
+              null
+            ]
+          ],
+          "why": "three more occurrences of the addition's ID: nothing is applied, the key registry and its registry_update tuple keep height 0, and only the occurrence failing field validation is rejected",
+          "rejection": null,
+          "expected_registry_state": [
+            [
+              "registry_update",
+              "sha256:d90c9512bb0841499c819819121a4f872342be2d710c75e26be4a3fd86703a7d",
+              0
+            ],
+            [
+              "registry_update",
+              "sha256:e38fb2ed39069e13be5cfd0c11d2d279daae6847bff5a2c105b2b56e9c39605c",
+              1
+            ]
+          ]
+        }
+      ],
+      "valid_at": [
+        {
+          "height": -1,
+          "key_ids": [
+            "test-agg-p1"
+          ]
+        },
+        {
+          "height": 0,
+          "key_ids": [
+            "test-agg-p1",
+            "test-agg-p2"
+          ]
+        },
+        {
+          "height": 1,
+          "key_ids": [
+            "test-agg-p2"
+          ]
+        },
+        {
+          "height": 2,
+          "key_ids": [
+            "test-agg-p2"
+          ]
+        }
+      ],
+      "verified_head": 2
     }
   ],
   "anchor_cases": [

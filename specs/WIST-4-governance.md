@@ -399,8 +399,8 @@ B's `sealed_at` and every accepted `effective_at` at or after it MUST
 still have a cap ≥ M. An Aggregator MUST constrain the complete Epoch it
 seals to the smallest of those caps, even before a scheduled reduction
 takes effect. A later Epoch exceeding this bound is invalid; it does not
-revoke an earlier accepted amendment. A Consumer MUST NOT apply that
-Epoch (`WIST3-E03`). An increase permits larger Epochs only from its
+revoke an earlier accepted amendment. A Consumer MUST reject that
+Epoch (`WIST3-E03`; WIST-3 §3.3, **Rejected Epochs**). An increase permits larger Epochs only from its
 `effective_at`, the endpoint included; replacing a pending reduction can
 relax the bound only when the replacement itself passes admission.
 
@@ -437,7 +437,7 @@ ceiling with it, and the order in which a Registrable Domain's sealed
 Entries take its capacity are WIST-3 §3.3's (**Eligibility**, **Capacity
 order**). The duty ends without the sealing only where WIST-3 §3.3's
 rules of what leaves (**Waiting**) have it leave: by the Leaves row for a
-Catalog or an Item, by a failed sealing recheck for a Label or a
+Catalog or an Item, by a judgment failed at its turn for a Label or a
 dispute; one the Aggregator merely does not seal has not left. The
 ceiling bounds the Aggregator's delay of an Entry whose turn has
 come, not the domain's rate: the first pull of a Collection of 50 000
@@ -566,7 +566,8 @@ occurrence that fails the JSON/JCS eligibility or the field validation
 above is rejected with that failure's code whether or not its ID was
 accepted earlier, and changes no state either way. An occurrence that
 passes them and carries an ID already accepted at a lower Epoch, or
-earlier in the same Epoch, is idempotent — it applies nothing and rejects
+earlier in the same Epoch, is idempotent (which IDs a rejected Epoch
+accepts: WIST-3 §3.3, **Rejected Epochs**) — it applies nothing and rejects
 nothing, so only the earliest sealing Epoch participates. A Consumer
 resumed from a Snapshot holds as accepted at or below its `tree_size` the
 IDs of the Snapshot's `registry_update` tuples (WIST-3 §7).

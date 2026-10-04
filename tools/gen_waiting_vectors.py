@@ -1608,6 +1608,90 @@ def waiting_vectors():
 
     histories.append(run(h, dispute_sealed_first))
 
+    def owner_label_id(subject, asserted_at):
+        return waiting.label_id(sign("owner", "label", {"wist_version": "1.0.0", "labeler": "example.com",
+                                                        "subject": subject, "name": "wist:spam",
+                                                        "asserted_at": stamp(asserted_at)}))
+
+    def rotated_history(name, why, count):
+        h = History(name, why, labeler_epoch_entries_max=1)
+        h.declare("G", "owner", G)
+        h.declare("K", "owner", successor(G, keys=[key("owner2")]))
+        h.epoch("G")
+        subjects = ["https://watch.example.net/one", "https://watch.example.net/two"][:count]
+        subjects.sort(key=lambda s: owner_label_id(s, h.at(3 * MINUTE)).encode(), reverse=True)
+        for n, subject in enumerate(subjects, 1):
+            h.label(f"L{n}", subject, h.at(3 * MINUTE))
+        h.pull(5 * MINUTE, "G", {}, labels=[f"L{n}" for n in range(1, count + 1)])
+        h.label("N", "https://watch.example.net/new", h.at(8 * MINUTE), signer="owner2")
+        h.pull(10 * MINUTE, "K", {}, labels=["N"])
+        h.epoch("K")
+        return h
+
+    h = rotated_history(
+        "a Label whose key the candidate Epoch's Declaration no longer binds leaves and takes no room",
+        "labeler_epoch_entries_max is 1. L1, signed by the owner key of G, is accepted at pull 1. Pull 2 discovers "
+        "K, an ordinary rotation that replaces the owner key by owner2, and accepts N, signed by owner2. Height 1 "
+        "seals K, so at L1's turn the Declaration in force once the Epoch's transitions have applied binds no key "
+        "of L1's signature: L1 fails the binding check, is not sealed and is reported in `rejections` with "
+        "WIST1-E02, and takes no room under the per-Labeler cap, so N, next in the order of places, is sealed at "
+        "height 1 and not deferred by capacity.", 1)
+
+    def binding_leaves(v):
+        assert v.sealed(3) == ["N"] and v.deferred(3) == {}
+        assert v.expected[3]["rejections"] == [{"id": waiting.label_id(h_rotated["L1"]), "code": "WIST1-E02"}]
+        assert "labels" not in v.expected[3]["state"]
+
+    h_rotated = h.labels
+    histories.append(run(h, binding_leaves))
+
+    h = rotated_history(
+        "Labels that leave at one Epoch are reported in the order of their places",
+        "As the previous history, pull 1 accepting L1 and then L2, both signed by the owner key, L1's Label ID "
+        "above L2's in octet order. Both fail the binding check at height 1 and are reported in `rejections` "
+        "with WIST1-E02 in the order of their places, L1 before L2, which is not the order of their IDs; neither "
+        "takes room, and N is sealed.", 2)
+
+    def place_ordered(v):
+        assert v.sealed(3) == ["N"]
+        assert [r["id"] for r in v.expected[3]["rejections"]] == [waiting.label_id(h_two[n]) for n in ("L1", "L2")]
+        assert [r["id"] for r in v.expected[3]["rejections"]] != sorted(r["id"] for r in v.expected[3]["rejections"])
+        assert {r["code"] for r in v.expected[3]["rejections"]} == {"WIST1-E02"}
+
+    h_two = h.labels
+    histories.append(run(h, place_ordered))
+
+    unscoped = successor(G)
+    del unscoped["subdomain_scope"]
+    h = History("a dispute whose subject a Declaration of the candidate Epoch removes from the disputant's authority "
+                "leaves",
+                "S, watch.example.net's Label of https://www.example.com/a, a host of G's subdomain_scope, is sealed "
+                "at height 1. The pull after it accepts D1, example.com's dispute of S, under G; the next pull "
+                "discovers U, which drops subdomain_scope and so reduces authority. Height 2 seals U, so at D1's "
+                "turn S's subject is no longer under the disputant's authority: D1 is not sealed and is reported in "
+                "`rejections` with WIST2-E06 and its Dispute ID.")
+    h.declare("G", "owner", G)
+    h.declare("W", "docs", watch)
+    h.declare("U", "owner", unscoped)
+    h.epoch("G", "W")
+    h.label("S", "https://www.example.com/a", seconds(foreign["asserted_at"]), labeler="watch.example.net",
+            signer="docs")
+    h.pull(4 * MINUTE, "W", {}, publisher="watch.example.net", labels=["S"])
+    h.epoch()
+    h.dispute("D1", waiting.label_id(h.labels["S"]), h.at(3 * MINUTE))
+    h.pull(5 * MINUTE, "G", {}, labels=["D1"])
+    h.pull(10 * MINUTE, "U", {})
+    h.epoch("U")
+
+    def authority_leaves(v):
+        assert v.sealed(2) == ["S"] and v.expected[4]["declaration"]["reduces_authority"]
+        assert v.sealed(5) == [] and v.expected[5]["rejections"] == [
+            {"id": waiting.label_id(h_scoped["D1"]), "code": "WIST2-E06"}]
+        assert "labels" not in v.expected[5]["state"]
+
+    h_scoped = h.labels
+    histories.append(run(h, authority_leaves))
+
     return {"note": NOTE_COMMON + (
         " This file exercises ADR-0052 Sealing, Waiting (the last accepted Catalog, what waits, places, leaving, "
         "eligibility, its deferrals and the capacity order), Files (the retry of a refused Catalog and WIST2-E07 "
@@ -2621,6 +2705,73 @@ def recovery_vectors():
 
     histories.append(run(h, next_epoch))
 
+    h = History("a settlement that retains a recovery-signed follower not yet sealed: the frozen sources until its "
+                "sealing",
+                "S0 is queued inside R's window. C, a fresh identity naming R and signed by the fresh key, is a "
+                "competitor and current when F, signed by the recovery key and naming R, the recovery-chain head, is "
+                "accepted. Pull 6, after the window's end and before any Epoch at or after it, settles first: C is "
+                "superseded, S0 survives under R and waits, and F, retained and not yet sealed, is from then a "
+                "recovery rotation discovered and not yet sealed. The pull then accepts F2, F's ordinary successor "
+                "adding journal2 to the journal, and reads the two frozen sources, R, which F names, and F; F2 is "
+                "not read. S1, signed by the store key both bind, is queued under both, not waiting; J2, signed by "
+                "journal2, which F2 alone lists, is WIST1-E02. Pull 7 queues S2 in S1's stead and refuses J3 alike, "
+                "and pull 8 refuses J4, signed by C's fresh key, and So, signed by G's owner key, each WIST1-E02. "
+                "Height 2 settles R's window in the sealed history and seals F, which opens a window, and F2; S0 is "
+                "queued with its place and held. Height 3, at that window's end, settles under F2: S2 survives with "
+                "S0's place and is sealed with its Items.")
+    h.declare("G", "owner", G)
+    h.declare("R", "recovery", keeping)
+    h.declare("C", "fresh", successor(keeping, keys=[key("fresh")]))
+    f = h.declare("F", "recovery", successor(keeping, seq=3))
+    h.declare("F2", "owner2", successor(f, collections=[
+        collection("journal", [prefix(J)], [key("journal"), key("journal2")]), STORE]))
+    h.epoch("G")
+    pa, pb, ps, pt, pu = page(J + "a"), page(J + "b"), page(S + "s"), page(S + "t"), page(S + "u")
+    h.pull(5 * MINUTE, "R", {})
+    h.epoch("R")
+    start = h.last
+    h.cat("S0", [ps], h.at(4 * MINUTE), "store", "store")
+    h.pull(5 * MINUTE, "R", {"store": "S0"})
+    h.pull(10 * MINUTE, "C", {})
+    h.pull(15 * MINUTE, "F", {})
+    h.last = start + 7 * DAY
+    h.cat("J2", [pa], h.at(4 * MINUTE), "journal2")
+    h.cat("S1", [ps, pt], h.at(4 * MINUTE), "store", "store")
+    h.cat("J3", [pa, pb], h.at(9 * MINUTE), "journal2")
+    h.cat("S2", [ps, pt, pu], h.at(9 * MINUTE), "store", "store")
+    h.cat("J4", [pa, pb], h.at(14 * MINUTE), "fresh")
+    h.cat("So", [ps, pt, pu], h.at(14 * MINUTE), "owner", "store")
+    h.pull(5 * MINUTE, "F2", {"journal": "J2", "store": "S1"})
+    h.pull(10 * MINUTE, "F2", {"journal": "J3", "store": "S2"})
+    h.pull(15 * MINUTE, "F2", {"journal": "J4", "store": "So"})
+    h.epoch("F", "F2", sealed_at=start + 7 * DAY + HOUR)
+    h.epoch(sealed_at=start + 14 * DAY + HOUR)
+
+    def retained_follower(v):
+        assert v.expected[4]["declaration"]["outcome"] == "in_window_competitor"
+        assert v.expected[5]["declaration"]["outcome"] == "in_window_chain"
+        settling = v.expected[6]
+        assert {v.ids[s["catalog"]]: s["outcome"] for s in settling["settlement"]} == {"S0": "survivor"}
+        assert settling["declaration"]["outcome"] == "in_window_chain"
+        assert settling["declaration"]["sources"] == ["R", "F"] and settling["declaration"]["window"] is False
+        for event, store in ((6, "S1"), (7, "S2")):
+            assert v.outcome(event, "journal") == ("refused", ["WIST1-E02"])
+            assert v.catalog(event, "store")["queued"] is True and v.catalog(event, "store")["sources"] == ["R", "F"]
+            assert [v.ids[q["catalog"]] for q in v.expected[event]["state"]["queue"]] == [store]
+            assert v.last_accepted(event, "store") == "S0"
+            assert "journal" not in [c["collection"] for c in v.expected[event]["state"]["collections"]]
+        assert v.outcome(8, "journal") == ("refused", ["WIST1-E02"])
+        assert v.outcome(8, "store") == ("refused", ["WIST1-E02"])
+        assert v.deferred(9)["S0"] == ["recovery_window"] and v.sealed(9) == []
+        assert v.expected[9]["settlement"] == []
+        queue = [(v.ids[q["catalog"]], q["first_place"]) for q in v.expected[9]["state"]["queue"]]
+        assert queue == [("S2", v.collection(6, "store")["waiting"]["place"])]
+        assert {v.ids[s["catalog"]]: s["outcome"] for s in v.expected[10]["settlement"]} == {"S2": "survivor"}
+        assert v.sealed(10)[0] == "S2"
+        assert "journal" not in [c["collection"] for c in v.expected[10]["state"]["collections"]]
+
+    histories.append(run(h, retained_follower))
+
     return {"note": NOTE_COMMON + (
         " This file exercises ADR-0052 Recovery: the queue a pull fills inside an open recovery window from the two "
         "frozen sources of WIST-1 section 5.2 (the Declaration in effect before the recovery and the recovery "
@@ -2630,7 +2781,10 @@ def recovery_vectors():
         "key with the pull order read against the floor and the queued Catalog of the same name and key, and "
         "settlement, once, at the first event at or after the window's end: a pull, which settles before it reads "
         "anything, with its own instant as the clock and its own parameter map, and is then a pull outside a "
-        "window; or the Epoch of settlement, before any of its Declarations applies, with its sealed_at and its "
+        "window, or, where the settlement retains a recovery-signed follower not yet sealed, a pull from the "
+        "discovery under the frozen sources the Declaration that follower names and the follower, as every pull "
+        "until the follower is sealed; or the Epoch of settlement, before any of its Declarations applies, with "
+        "its sealed_at and its "
         "map. Every queued Catalog is judged by C1 under the settlement source (the last recovery-chain Declaration "
         "sealed before that event); `settlement`, on the event that settles, lists every queued Catalog in the order "
         "of its place, then of its key, with `survivor` for the one that becomes the last accepted Catalog of its "
@@ -3284,7 +3438,8 @@ NOTE_COMMON = (
     "unit unless the "
     "history carries `suffix_list`, the rules of a Public Suffix List snapshot in force at every event, from which "
     "the Registrable Domain is derived as WIST-4 section 3.1 states. A history may carry `labels`, signed Label and "
-    "dispute Envelopes by name (WIST-2 section 3.3), which the replay neither authenticates nor validates; a "
+    "dispute Envelopes by name (WIST-2 section 3.3), each meeting that section's form checks, which a pull neither "
+    "authenticates nor validates; a "
     "pull's `labels` names those its walk of the Publisher's Label Feed accepts, in the order it accepts them, "
     "and a pull result then carries `labels`, each with its type, its Label or Dispute ID and `outcome` "
     "`accepted` with its place, or `seen` for one already accepted or sealed. No Labeler of a history has a "
@@ -3379,11 +3534,16 @@ NOTE_COMMON = (
     "capacity is taken by Catalogs, then Items of kind removed, then Items of kind page, Labels and disputes "
     "together in the order of places, a Label or dispute also within labeler_epoch_entries_max of its unit; "
     "what does not fit is deferred by `capacity`, a Label or dispute by no other deferral and without a report. "
-    "A Label or dispute waits from the pull that accepts it and leaves when sealed or when, at its turn, it fails "
-    "a WIST-2 section 3.3 check repeated under the candidate Epoch's map and its sealed_at as the clock (the "
-    "subject of a Label within url_cap_bytes octets of JCS, asserted_at within clock_skew_seconds of the clock): "
-    "it is then not sealed and the Epoch result lists it in `rejections` with its ID and WIST2-E06 (present only "
-    "when nonempty). A URL "
+    "A Label or dispute waits from the pull that accepts it and leaves when sealed or when, at its turn with room "
+    "under the capacity and the per-Labeler cap, it fails the judgment of a `label` or `dispute` Entry of the "
+    "candidate Epoch (WIST-3 section 3.3), read under that Epoch's map, with its sealed_at as the clock and under "
+    "the Declaration in force once its transitions have applied: the subject of a Label within url_cap_bytes "
+    "octets of JCS, asserted_at within clock_skew_seconds of the clock, the binding check and the signature under "
+    "that Declaration's keys with asserted_at for key validity, no self-labeling, and for a dispute a Label sealed "
+    "at a lower height whose subject lies under the disputant's authority. It is then not sealed and takes no "
+    "room, and the Epoch result lists it in `rejections` (present only when nonempty) with its ID and the code of "
+    "the check it fails, WIST2-E06, or WIST1-E02 or WIST1-E01 for the binding check, in the order of places; no "
+    "history has one that fails checks of two codes. A URL "
     "waits while its Item is admitted and I7 holds for it, an Item of kind page whose Item ID a sealed withdrawal "
     "names failing I7; where the last accepted Catalogs of two Collections of the Publisher each list an admitted "
     "Item for one URL that meets that row, the Item of the Collection whose Scope covers the URL under the "

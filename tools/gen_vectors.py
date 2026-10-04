@@ -4,7 +4,7 @@
 Never uses wall-clock or randomness: fixed seed, fixed timestamps.
 Re-running always produces byte-identical output.
 """
-import base64, calendar, datetime, hashlib, hmac, itertools, json, pathlib, re, time
+import base64, calendar, copy, datetime, hashlib, hmac, itertools, json, pathlib, re, time
 from decimal import Decimal, localcontext
 from fractions import Fraction
 
@@ -2736,10 +2736,10 @@ print("wist3 checkpoint vectors written")
 # --------------------------------------- WIST-3 §3.4: Aggregator key acts
 # Each history below is its own Log — its own Anchor, genesis key and
 # cumulative tree — so no two Checkpoints of one origin in this file state
-# different trees. Every Entry is a `registry_update`, so canonical Entry
-# order (§3.3) is ascending leaf-hash order inside the single type group,
-# and the Entry index the key-act tie-break reads is a position nobody
-# chose.
+# different trees. Every Entry but the one that rejects its Epoch is a
+# `registry_update`, so canonical Entry order (§3.3) is ascending leaf-hash
+# order inside that group, and the Entry index the key-act tie-break reads
+# is a position nobody chose.
 KEY_ACT_GRACE_EFFECTIVE = "2026-10-01T00:00:00Z"  # > param_grace_days after every sealed_at below
 
 
@@ -2792,22 +2792,46 @@ def registry_entry(update: dict, signer, signer_key_id: str) -> dict:
             "body": sign_envelope_with(signer, "update", update, signer_key_id)}
 
 
-def key_acts_applied(prior: dict, log_id: str, height: int, entries: list):
+KEY_ACT_ACTIONS = ("aggregator_key_add", "aggregator_key_remove")
+ENTRY_TYPES = ("publisher_declaration", "registry_update", "publisher_catalog",
+               "publisher_item", "label", "dispute")
+
+
+def update_id(update: dict) -> str:
+    return "sha256:" + sha256_hex(rfc8785.dumps(update))
+
+
+def key_acts_applied(prior: dict, log_id: str, height: int, entries: list, registry=None,
+                     rejected=False, sealed_at=None):
     """WIST-3 §3.4 over one Epoch: authenticated key acts first, in canonical
     Entry index order, each read at height-1 and evaluated against the
     admitted set; then every other act, read at the height the accepted key
     acts leave. Each admitted key keeps the accepted Envelope that admitted
     it and the accepted Envelope that retired it — of two removals accepted
-    in one Epoch, the one at the lower Entry index (§7). Returns (state after
-    the Epoch, per-Entry dispositions, the key_ids valid at `height`)."""
+    in one Epoch, the one at the lower Entry index (§7). With `registry`
+    (accepted IDs, amendments and suffix-list acts, updated in place), an
+    occurrence of an accepted ID that passes field validation is idempotent
+    (WIST-4 §5.1), and of a rejected Epoch only key acts apply (§3.3,
+    Rejected Epochs). Returns (state after the Epoch, per-Entry dispositions,
+    the key_ids valid at `height`)."""
     state = {kid: dict(entry) for kid, entry in prior.items()}
     valid_before = {kid for kid, entry in state.items() if entry["removed"] is None}
     admitted_note_ids = {note_key_id(log_id, raw_from_b64u(entry["public_key"]))
                          for entry in state.values()}
     codes = [None] * len(entries)
-    for index, entry in enumerate(entries):
+    acts = [index for index, entry in enumerate(entries) if entry["type"] == "registry_update"]
+    accepted = registry["accepted"] if registry is not None else {}
+    if registry is not None:
+        schema = Draft202012Validator(json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text()))
+        for index in acts:
+            if not schema.is_valid(entries[index]["body"]):
+                codes[index] = "WIST4-E11"
+    for index in acts:
+        entry = entries[index]
         update = entry["body"]["update"]
-        if update["action"] not in ("aggregator_key_add", "aggregator_key_remove"):
+        if update["action"] not in KEY_ACT_ACTIONS or codes[index] is not None:
+            continue
+        if update_id(update) in accepted:
             continue
         if entry["body"]["sig"]["key_id"] not in valid_before:
             codes[index] = "WIST4-E11"
@@ -2824,17 +2848,60 @@ def key_acts_applied(prior: dict, log_id: str, height: int, entries: list):
             admitted_note_ids.add(kid)
         elif named not in valid_before:
             codes[index] = "WIST4-E04"
+            continue
         else:
             state[named]["removed"] = height
             if state[named]["removing"] is None:
                 state[named]["removing"] = entry["body"]
+        if registry is not None:
+            accepted[update_id(update)] = height
     valid_after = {kid for kid, entry in state.items() if entry["removed"] is None}
-    for index, entry in enumerate(entries):
-        if entry["body"]["update"]["action"] in ("aggregator_key_add", "aggregator_key_remove"):
+    for index in acts:
+        entry = entries[index]
+        update = entry["body"]["update"]
+        if update["action"] in KEY_ACT_ACTIONS or codes[index] is not None:
+            continue
+        if rejected:
+            codes[index] = "WIST3-E03"
+            continue
+        if update_id(update) in accepted:
             continue
         if entry["body"]["sig"]["key_id"] not in valid_after:
             codes[index] = "WIST4-E11"
+            continue
+        if registry is None:
+            continue
+        if update["action"] == "parameter_change":
+            grace = calendar.timegm(time.strptime(update["effective_at"], "%Y-%m-%dT%H:%M:%SZ")) \
+                - calendar.timegm(time.strptime(sealed_at, "%Y-%m-%dT%H:%M:%SZ"))
+            assert grace >= 7 * 86400, "every parameter_change here meets the grace period"
+            registry["amendments"].append({"parameter": update["subject"], "value": update["details"]["value"],
+                                           "effective_at": update["effective_at"]})
+        else:
+            assert update["action"] == "suffix_list_update"
+            octets = registry["suffix_lists"][update["details"]["sha256"]]
+            assert len(octets) == update["details"]["bytes"], "every suffix_list_update here is accepted"
+            if registry["suffix_list"] is None or registry["suffix_list"][0] != update["details"]["sha256"]:
+                registry["suffix_list"] = (update["details"]["sha256"], height)
+        accepted[update_id(update)] = height
     return state, codes, valid_after
+
+
+def registry_state_tuples(registry: dict) -> list:
+    """WIST-3 §7's Log-wide tuples beside `aggregator_key`: one `parameter`
+    tuple per amendment no later amendment of the same identifier and
+    `effective_at` supersedes, the `suffix_list` tuple of the snapshot in
+    force at the next Epoch, and one `registry_update` tuple per accepted
+    ID at its earliest height."""
+    live = {}
+    for amendment in registry["amendments"]:
+        live[(amendment["parameter"], amendment["effective_at"])] = amendment["value"]
+    tuples = [["parameter", p, at, value] for (p, at), value in live.items()]
+    if registry["suffix_list"] is not None:
+        tuples.append(["suffix_list", *registry["suffix_list"]])
+    tuples += [["registry_update", identifier, height]
+               for identifier, height in registry["accepted"].items()]
+    return sorted(tuples, key=lambda t: rfc8785.dumps(t))
 
 
 def key_state_tuples(state: dict) -> list:
@@ -2860,11 +2927,13 @@ def accepted_update_tuples(history: dict, through: int) -> list:
 
 
 def key_history(name: str, note: str, log_id: str, genesis_key_id: str, genesis_priv,
-                created_at: str, privs: dict, specs: list, extra=None) -> dict:
+                created_at: str, privs: dict, specs: list, extra=None, registry=False,
+                suffix_lists=None) -> dict:
     """One signed Log: an Anchor, then an Epoch per spec, each carrying its
     Entries in canonical order, the Checkpoint the Aggregator publishes, the
     candidate Checkpoints §5 judges beside it, and the key registry the
-    replay leaves."""
+    replay leaves; with `registry`, each Epoch also states its whole-Epoch
+    rejection and the Log-wide tuples of `registry_state_tuples`."""
     genesis_public = b64u(raw_public(genesis_priv))
     anchor_inner = {"wist_version": "1.0.0", "log_id": log_id,
                     "genesis_key": {"key_id": genesis_key_id, "alg": "Ed25519",
@@ -2872,12 +2941,21 @@ def key_history(name: str, note: str, log_id: str, genesis_key_id: str, genesis_
                     "created_at": created_at}
     state = {genesis_key_id: {"public_key": genesis_public, "added": 0, "removed": None,
                               "adding": None, "removing": None}}
+    held = ({"accepted": {}, "amendments": [], "suffix_list": None,
+             "suffix_lists": {sha: text.encode() for sha, text in (suffix_lists or {}).items()}}
+            if registry else None)
     valid_at = [{"height": -1, "key_ids": [genesis_key_id]}]
     leaves, epochs = [], []
     for height, spec in enumerate(specs):
-        annotated = sorted(spec["entries"], key=lambda a: leaf_hash(rfc8785.dumps(a["entry"])))
+        annotated = sorted(spec["entries"], key=lambda a: (
+            a["entry"].get("type") != "registry_update", leaf_hash(rfc8785.dumps(a["entry"]))))
         entries = [a["entry"] for a in annotated]
-        applied_state, codes, valid_after = key_acts_applied(state, log_id, height, entries)
+        rejection = None if all(set(e) == {"type", "body"} and e["type"] in ENTRY_TYPES
+                                for e in entries) else "WIST3-E03"
+        assert rejection == spec.get("rejection"), (name, height, rejection)
+        candidate = copy.deepcopy(held)
+        applied_state, codes, valid_after = key_acts_applied(
+            state, log_id, height, entries, candidate, rejection is not None, spec["sealed_at"])
         leaves = leaves + [leaf_hash(rfc8785.dumps(e)) for e in entries]
         root = merkle_tree_root(leaves) if leaves else EMPTY_ROOT
         applied = spec.get("applied", True)
@@ -2894,13 +2972,18 @@ def key_history(name: str, note: str, log_id: str, genesis_key_id: str, genesis_
                  "subject": entries[index]["body"]["update"]["subject"],
                  "signer_key_id": entries[index]["body"]["sig"]["key_id"],
                  "code": codes[index], "why": annotated[index]["why"]}
-                for index in range(len(entries))]
+                for index in range(len(entries)) if entries[index]["type"] == "registry_update"]
         epoch = {"epoch_number": height, "sealed_at": spec["sealed_at"],
                  "tree_size": len(leaves), "leaf_hashes": [h.hex() for h in leaves],
                  "entries": entries, "acts": acts, "checkpoint": checkpoint,
                  "checkpoint_cases": cases, "applied": applied,
                  "expected_state": key_state_tuples(applied_state if applied else state),
                  "why": spec["why"]}
+        if registry:
+            if applied:
+                held = candidate
+            epoch["rejection"] = rejection
+            epoch["expected_registry_state"] = registry_state_tuples(held)
         if spec.get("tie_breaks"):
             index_of = {rfc8785.dumps(e): i for i, e in enumerate(entries)}
             ties = []
@@ -2920,6 +3003,8 @@ def key_history(name: str, note: str, log_id: str, genesis_key_id: str, genesis_
                "anchor": sign_envelope_with(genesis_priv, "anchor", anchor_inner, genesis_key_id),
                "epochs": epochs, "valid_at": valid_at,
                "verified_head": max(b["epoch_number"] for b in epochs if b["applied"])}
+    if suffix_lists:
+        history["suffix_lists"] = [{"sha256": sha, "text": text} for sha, text in sorted(suffix_lists.items())]
     history.update(extra or {})
     return history
 
@@ -3044,7 +3129,7 @@ def aggregator_key_vectors() -> dict:
         "WIST-3 §3.4 end to end: a key admitted at Epoch 0 and removed at Epoch 1, "
         "every key-act failure the section lists, and the genesis key's own removal "
         "at Epoch 4.",
-        rot_id, K1, material["k1"], "2026-08-30T12:00:00Z", privs,
+        rot_id, K1, material["k1"], "2026-08-30T12:00:00Z", privs, registry=True, specs=
         [
             {"sealed_at": "2026-09-01T00:00:00Z", "entries": epoch0, "signers": [K1, K2],
              "why": "the published Checkpoint is a rotation Checkpoint: two signature "
@@ -3157,7 +3242,7 @@ def aggregator_key_vectors() -> dict:
         "keys exhausted",
         "WIST-3 §3.4: an Epoch whose accepted removals leave no key valid at its "
         "height has no valid Checkpoint and is never applied.",
-        exh_id, M1, exh[M1], "2026-08-30T12:00:00Z", exh,
+        exh_id, M1, exh[M1], "2026-08-30T12:00:00Z", exh, registry=True, specs=
         [
             {"sealed_at": "2026-09-02T00:00:00Z", "signers": [M1, M2],
              "why": "the genesis key admits a second key",
@@ -3210,7 +3295,7 @@ def aggregator_key_vectors() -> dict:
             "WIST-3 §3.4: a key removed at Epoch 1 signs both the removal and an "
             "addition sealed beside it; this history places the addition %s the "
             "removal in canonical Entry order." % side,
-            log_id, N1, order[N1], "2026-08-30T12:00:00Z", order,
+            log_id, N1, order[N1], "2026-08-30T12:00:00Z", order, registry=True, specs=
             [
                 {"sealed_at": "2026-09-03T00:00:00Z", "signers": [N1],
                  "why": "the genesis key admits the key that Epoch 1 removes",
@@ -3228,6 +3313,113 @@ def aggregator_key_vectors() -> dict:
                       "why": "the same key admits its successor in the same Epoch"},
                  ]},
             ]))
+
+    # ---- WIST-3 §3.3, Rejected Epochs: of a rejected Epoch the key acts alone
+    # apply, and only their IDs are accepted.
+    R1, R2, R3 = "test-agg-r1", "test-agg-r2", "test-agg-r3"
+    rej = {R1: agg_key("rejected r1"), R2: agg_key("rejected r2"), R3: agg_key("rejected r3")}
+    rej_list = "// a fixture snapshot\ncom\norg\n"
+    rej_list_id = "sha256:" + sha256_hex(rej_list.encode())
+    rej_add = registry_entry(key_update("aggregator_key_add", R3, KEY_ACT_GRACE_EFFECTIVE,
+                                        raw_public(rej[R3])), rej[R2], R2)
+    rej_parameter = registry_entry(parameter_update("quota_base", 1700, "2026-09-19T00:00:00Z"),
+                                   rej[R3], R3)
+    rej_suffix = registry_entry(
+        {"wist_version": "1.0.0", "action": "suffix_list_update", "subject": rej_list_id,
+         "details": {"sha256": rej_list_id, "bytes": len(rej_list.encode())},
+         "effective_at": "2026-09-19T00:00:00Z"}, rej[R3], R3)
+    histories.append(key_history(
+        "key acts of a rejected Epoch",
+        "WIST-3 §3.3, Rejected Epochs: Epoch 1 is rejected for an Entry of a type "
+        "§3.3 does not list; its key act applies and its ID is accepted, its other "
+        "acts apply nothing and their IDs are not accepted, and its Checkpoint, "
+        "signed by the key it admits, verifies.",
+        "keys-rejected.example.org", R1, rej[R1], "2026-08-30T12:00:00Z", rej,
+        registry=True, suffix_lists={rej_list_id: rej_list}, specs=[
+            {"sealed_at": "2026-09-05T00:00:00Z", "signers": [R1],
+             "why": "the genesis key admits the key that signs Epoch 1's key act",
+             "entries": [{"entry": registry_entry(
+                 key_update("aggregator_key_add", R2, KEY_ACT_GRACE_EFFECTIVE,
+                            raw_public(rej[R2])), rej[R1], R1),
+                 "why": "an accepted addition under the genesis key"}]},
+            {"sealed_at": "2026-09-05T01:00:00Z", "signers": [R3], "rejection": "WIST3-E03",
+             "why": "the Epoch is rejected whole (WIST3-E03); its key act is evaluated as "
+                    "in an accepted Epoch, so the key it admits is valid at height 1 and "
+                    "signs Checkpoint 1 alone, and replay continues at Epoch 2",
+             "entries": [
+                 {"entry": rej_add,
+                  "why": "a key act of a rejected Epoch: accepted, its ID accepted at height 1"},
+                 {"entry": rej_parameter,
+                  "why": "a parameter_change of a rejected Epoch: not judged, no amendment and "
+                         "no accepted ID"},
+                 {"entry": rej_suffix,
+                  "why": "a suffix_list_update of a rejected Epoch naming a file whose octets "
+                         "match: not judged, no snapshot in force and no accepted ID"},
+                 {"entry": {"type": "publisher_note", "body": {}},
+                  "why": "an Entry of a type §3.3 does not list, which rejects its Epoch"},
+             ]},
+            {"sealed_at": "2026-09-05T02:00:00Z", "signers": [R3],
+             "why": "an accepted Epoch sealing again the two acts of Epoch 1 octet for octet",
+             "entries": [
+                 {"entry": rej_parameter,
+                  "why": "the ID's first occurrence in an accepted Epoch: judged, accepted at "
+                         "height 2, and its amendment scheduled"},
+                 {"entry": rej_add,
+                  "why": "an ID accepted at height 1: idempotent, not evaluated, and its "
+                         "registry_update tuple keeps height 1"},
+             ]},
+        ]))
+
+    # ---- WIST-3 §3.4, WIST-4 §5.1: an accepted key act's ID sealed again.
+    P1, P2 = "test-agg-p1", "test-agg-p2"
+    rep = {P1: agg_key("repeated p1"), P2: agg_key("repeated p2")}
+    rep_add = registry_entry(key_update("aggregator_key_add", P2, KEY_ACT_GRACE_EFFECTIVE,
+                                        raw_public(rep[P2])), rep[P1], P1)
+    rep_damaged = copy.deepcopy(rep_add)
+    damaged = bytearray(raw_from_b64u(rep_damaged["body"]["sig"]["value"]))
+    damaged[0] ^= 0x01
+    rep_damaged["body"]["sig"]["value"] = b64u(bytes(damaged))
+    rep_malformed = copy.deepcopy(rep_add)
+    rep_malformed["body"]["sig"]["value"] = rep_malformed["body"]["sig"]["value"][:-1]
+    histories.append(key_history(
+        "an accepted key act sealed again",
+        "WIST-3 §3.4, WIST-4 §5.1: an occurrence of an accepted key act's ID that "
+        "passes field validation is idempotent and not evaluated, whatever its "
+        "signature; one that fails field validation keeps its code.",
+        "keys-repeated.example.org", P1, rep[P1], "2026-08-30T12:00:00Z", rep,
+        registry=True, specs=[
+            {"sealed_at": "2026-09-06T00:00:00Z", "signers": [P1],
+             "why": "the genesis key admits a second key",
+             "entries": [{"entry": rep_add, "why": "the addition accepted at height 0"}]},
+            {"sealed_at": "2026-09-06T01:00:00Z", "signers": [P2],
+             "why": "the genesis key removes itself beside a copy of the addition",
+             "entries": [
+                 {"entry": rep_add,
+                  "why": "the addition sealed again octet for octet under a key valid at "
+                         "height 0: idempotent, where evaluating it would fail it as an "
+                         "addition naming an admitted key (WIST4-E04)"},
+                 {"entry": registry_entry(key_update("aggregator_key_remove", P1,
+                                                     KEY_ACT_GRACE_EFFECTIVE), rep[P1], P1),
+                  "why": "the genesis key signs its own removal"},
+             ]},
+            {"sealed_at": "2026-09-06T02:00:00Z", "signers": [P2],
+             "why": "three more occurrences of the addition's ID: nothing is applied, the "
+                    "key registry and its registry_update tuple keep height 0, and only "
+                    "the occurrence failing field validation is rejected",
+             "entries": [
+                 {"entry": rep_add,
+                  "why": "sealed again octet for octet under a key removed at height 1: "
+                         "idempotent, where authenticating it at height 1 would fail it "
+                         "(WIST4-E11)"},
+                 {"entry": rep_damaged,
+                  "why": "the same update under a signature value of the right form that "
+                         "does not verify: idempotent, never authenticated"},
+                 {"entry": rep_malformed,
+                  "why": "the same update under a sig value of another form: field "
+                         "validation fails it (WIST4-E11) whether or not its ID was "
+                         "accepted earlier"},
+             ]},
+        ]))
 
     anchor_priv, anchor_id = agg_key("anchor a"), "test-agg-a1"
     anchor_base = {"wist_version": "1.0.0", "log_id": "keys-anchor.example.org",
@@ -3260,14 +3452,29 @@ def aggregator_key_vectors() -> dict:
                 "is a key-act failure is WIST4-E04, ignored, with the Epoch kept. "
                 "Each history is a separate Log with its own Anchor and cumulative "
                 "tree; `epochs` are in Log order, `entries` in canonical Entry order "
-                "(§3.3), `acts` carries one disposition per Entry index, "
-                "`expected_state` the WIST-3 §7 aggregator_key tuples a Consumer "
-                "holds after the Epoch, and `valid_at` the key_ids valid at each "
-                "listed height. `checkpoint` is the Checkpoint the Aggregator "
-                "publishes; `checkpoint_cases` are candidates judged beside it. "
-                "The parameter_change Entries are here only to fix the "
-                "authentication height of a non-key act; their §5 schedule rules are "
-                "exercised by vectors/wist4/parameter-combinations.json. "
+                "(§3.3), an Entry of a type §3.3 does not list after the "
+                "registry_update Entries, `acts` carries one disposition per "
+                "registry_update Entry index, `expected_state` the WIST-3 §7 "
+                "aggregator_key tuples a Consumer holds after the Epoch, and "
+                "`valid_at` the key_ids valid at each listed height. `applied` is "
+                "false for an Epoch no Checkpoint verifies, which is never applied. "
+                "`rejection` is WIST3-E03 for an Epoch an Entry of an unlisted type "
+                "rejects whole (§3.3, Rejected Epochs) and null otherwise: of a "
+                "rejected Epoch the key acts are judged as in an accepted one and "
+                "every other act carries WIST3-E03, is not judged and applies "
+                "nothing. An occurrence of a Registry Update ID accepted at a lower "
+                "Epoch or earlier in its Epoch that passes field validation is "
+                "idempotent (WIST-4 §5.1): it is neither authenticated nor "
+                "evaluated, and its disposition is null; one that fails field "
+                "validation carries that failure's code. "
+                "`expected_registry_state` lists the WIST-3 §7 parameter, "
+                "suffix_list and registry_update tuples a Consumer holds after the "
+                "Epoch; a suffix_list_update names a snapshot whose octets "
+                "`suffix_lists` carries as text. Every parameter_change meets the "
+                "§5 grace period and bounds, and an amendment superseded by a later "
+                "one of the same identifier and effective_at has no tuple; the §5 "
+                "schedule rules are exercised by "
+                "vectors/wist4/parameter-combinations.json. "
                 "`anchor_cases` judge a Log Anchor Envelope: it is validated against "
                 "schemas/log-anchor.schema.json first, one that fails being rejected "
                 "with WIST3-E03 before its signature is verified, and a member present "

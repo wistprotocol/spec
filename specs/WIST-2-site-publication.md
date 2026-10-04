@@ -907,7 +907,9 @@ carries `wist_version`, the `domain` it describes, and:
   `recovery_window`, `capacity`, `catalog_waiting` and `latest_fails_i4`,
   and `held`, `true` where none applied and the hold of a Declaration that
   reduces authority (WIST-1 §5.2) kept it out of that Epoch;
-- `rejections` — the pending typed rejections, each with its `code` (a
+- `rejections` — the pending typed rejections, in an order this edition
+  fixes only among the Labels and disputes that leave at one Epoch
+  (WIST-3 §3.3), each with its `code` (a
   WIST-1 or WIST-2 error code, §7 and WIST-1 §7), the `at` it was
   recorded, a free-text `detail`, and where one applies: `id`, the ID of
   the object it concerns — a Declaration's

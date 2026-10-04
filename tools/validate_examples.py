@@ -2202,7 +2202,7 @@ def _dc3_materialization_preference():
     assert "The record materialized is then the **nearest ancestor**'s" in prose
     assert "among such Publishers the least domain in ascending octet order does" in prose
     assert "return when the preferred record leaves" in prose
-    assert ("From the height of the first accepted Epoch (WIST-1 §5.2) that seals a `publisher_declaration` Entry "
+    assert ("From the height of the first accepted Epoch (§3.3) that seals a `publisher_declaration` Entry "
             "whose `domain` is the host") in prose
 check("vectors:wist3-materialization-preference", _dc3_materialization_preference)
 
@@ -2919,6 +2919,13 @@ NON_CONTENT_VALUES = {
         "the key acts, which carry governance acts and no page content",
     ("vectors/wist3/aggregator-keys.json", "entries"):
         "WIST-3 §7 aggregator_key tuples in the Snapshot state cases, as above",
+    ("vectors/wist3/aggregator-keys.json", "expected_registry_state"):
+        "WIST-3 §7 registry_update tuples: Registry Update IDs, which hash governance acts "
+        "carrying no page content",
+    ("vectors/wist3/aggregator-keys.json", "sha256"):
+        "a Public Suffix List snapshot identifier (WIST-4 §3.1), naming no page content",
+    ("vectors/wist3/aggregator-keys.json", "subject"):
+        "a Public Suffix List snapshot identifier, the subject of a suffix_list_update",
     ("vectors/wist3/snapshot-keys.json", "public_key"):
         "an Ed25519 Aggregator key, in a Log Anchor, an aggregator_key_add or a §7 "
         "aggregator_key tuple (WIST-3 §3.4)",
@@ -7718,23 +7725,92 @@ def _verify_checkpoint_keyset(text: str, log_id: str, pubkeys: dict) -> dict:
     return parsed
 
 
+ENTRY_TYPES = ("publisher_declaration", "registry_update", "publisher_catalog",
+               "publisher_item", "label", "dispute")
+
+
+def _key_epoch_rejection(entries):
+    """WIST-3 §3.3: an Entry that is not an object of exactly `type` and `body`
+    of a listed type rejects its Epoch whole. No other whole-Epoch rejection is
+    reachable in a family whose Entries are Registry Updates."""
+    formed = [isinstance(e, dict) and set(e) == {"type", "body"} and e["type"] in ENTRY_TYPES
+              for e in entries]
+    assert all(e["type"] == "registry_update" for e, ok in zip(entries, formed) if ok), \
+        "an Entry of a listed type other than registry_update, which this replay does not judge"
+    return None if all(formed) else "WIST3-E03"
+
+
+def _registry_after_act(registry, update, height, suffix_lists, sealed_at):
+    """WIST-4 §§3.1, 5, 5.1 for an authenticated non-key act of an accepted
+    Epoch: a parameter_change is an amendment once it meets the grace period,
+    a suffix_list_update puts its snapshot in force once its `bytes` is the
+    octet count of the file it names, and either's ID is accepted."""
+    if update["action"] == "parameter_change":
+        assert log_seconds(update["effective_at"]) - log_seconds(sealed_at) >= 7 * 86400, \
+            "a parameter_change short of the grace period, which this family does not carry"
+        registry["amendments"].append((update["subject"], update["effective_at"],
+                                       update["details"]["value"]))
+    elif update["action"] == "suffix_list_update":
+        octets = suffix_lists[update["details"]["sha256"]]
+        assert "sha256:" + hashlib.sha256(octets).hexdigest() == update["details"]["sha256"] \
+            and len(octets) == update["details"]["bytes"], "a suffix_list_update failing its contract"
+        if registry["suffix_list"] is None or registry["suffix_list"][0] != update["details"]["sha256"]:
+            registry["suffix_list"] = (update["details"]["sha256"], height)
+    else:
+        raise AssertionError(f"an act this replay does not judge: {update['action']}")
+    registry["accepted"].setdefault(_registry_update_id(update), height)
+
+
+def _registry_tuples(registry):
+    """WIST-3 §7: a parameter tuple per amendment that no later one of its
+    identifier and effective_at supersedes (WIST-4 §5), the suffix_list tuple
+    of the snapshot in force, one registry_update tuple per accepted ID."""
+    tuples = []
+    for i, (parameter, effective_at, value) in enumerate(registry["amendments"]):
+        if not any(p == parameter and at == effective_at
+                   for p, at, _ in registry["amendments"][i + 1:]):
+            tuples.append(["parameter", parameter, effective_at, value])
+    if registry["suffix_list"] is not None:
+        tuples.append(["suffix_list", *registry["suffix_list"]])
+    tuples += [["registry_update", i, h] for i, h in registry["accepted"].items()]
+    return tuples
+
+
 def _replay_key_epoch(tuples, log_id, genesis_key_id, height, entries, validator,
                       key_act_authentication="previous height", admitted="ever admitted",
                       note_key_id_collisions=True, removal_reads="previous height",
-                      entry_order="ascending", other_act_authentication="own Epoch"):
+                      entry_order="ascending", other_act_authentication="own Epoch",
+                      registry=None, rejected=False, suffix_lists=None, sealed_at=None,
+                      idempotence="after field validation", rejected_key_acts="applied",
+                      rejected_ids="key acts", rejected_other_acts="not applied"):
     """WIST-3 §3.4 over one Epoch: authenticated key acts first, in canonical
     Entry index order, each read at height-1 and evaluated against the admitted
     set, then every other act read at the height the accepted key acts leave.
     Returns (`aggregator_key` tuples after the Epoch, one disposition per
     Entry); each tuple carries the accepted key acts §7 keeps, the removal at
-    the lower Entry index where an Epoch accepts two of one key. The keyword
-    arguments spell the readings §3.4 fixes; the mutation twin flips each and
-    requires the outcome to move."""
+    the lower Entry index where an Epoch accepts two of one key. With
+    `registry` (accepted IDs, amendments, snapshot in force; updated in place)
+    an occurrence of an accepted ID that passes field validation is idempotent
+    (WIST-4 §5.1), and of a `rejected` Epoch the key acts alone apply and only
+    their IDs are accepted (WIST-3 §3.3, Rejected Epochs). The keyword
+    arguments spell the readings §3.3 and §3.4 fix; the mutation twin flips
+    each and requires the outcome to move."""
     before = [list(t) for t in tuples]
     after = [list(t) for t in before]
     codes = [None] * len(entries)
-    key_act_indexes = [i for i, e in enumerate(entries)
-                       if e["body"]["update"]["action"] in KEY_ACTS]
+    act_indexes = [i for i, e in enumerate(entries) if e["type"] == "registry_update"]
+    accepted = registry["accepted"] if registry is not None else None
+
+    def idempotent(index):
+        return accepted is not None and idempotence != "none" \
+            and _registry_update_id(entries[index]["body"]["update"]) in accepted
+
+    if idempotence == "before field validation":
+        act_indexes = [i for i in act_indexes if not idempotent(i)]
+    key_act_indexes = [i for i in act_indexes
+                       if entries[i]["body"]["update"]["action"] in KEY_ACTS]
+    if rejected and rejected_key_acts == "ignored":
+        key_act_indexes = []
     if entry_order == "descending":
         key_act_indexes = key_act_indexes[::-1]
 
@@ -7760,6 +7836,8 @@ def _replay_key_epoch(tuples, log_id, genesis_key_id, height, entries, validator
         if code is not None:
             codes[index] = code
             continue
+        if idempotent(index):
+            continue
         if auth_set is not None:
             signer = body["sig"]["key_id"]
             raw = public_before.get(signer)
@@ -7781,9 +7859,9 @@ def _replay_key_epoch(tuples, log_id, genesis_key_id, height, entries, validator
         else:
             reference = _keys_valid_at(before, genesis_key_id, height - 1)
             if removal_reads != "previous height":
-                reference = reference | {e["body"]["update"]["details"]["key_id"]
-                                         for e in entries
-                                         if e["body"]["update"]["action"] == "aggregator_key_add"}
+                reference = reference | {entries[i]["body"]["update"]["details"]["key_id"]
+                                         for i in key_act_indexes
+                                         if entries[i]["body"]["update"]["action"] == "aggregator_key_add"}
             if named not in reference:
                 codes[index] = "WIST4-E04"
                 continue
@@ -7792,29 +7870,39 @@ def _replay_key_epoch(tuples, log_id, genesis_key_id, height, entries, validator
                     tuple_[4] = height
                     if tuple_[6] is None:
                         tuple_[6] = body
+        if accepted is not None and not (rejected and rejected_ids == "none"):
+            accepted.setdefault(_registry_update_id(doc["update"]), height)
 
     other_set = (_keys_valid_at(after, genesis_key_id, height)
                  if other_act_authentication == "own Epoch"
                  else _keys_valid_at(before, genesis_key_id, height - 1))
     public_after = {t[1]: t[2] for t in after}
-    for index, entry in enumerate(entries):
+    for index in act_indexes:
+        entry = entries[index]
         if entry["body"]["update"]["action"] in KEY_ACTS:
             continue
-        code, _ = _registry_update_eligibility(json.dumps(entry["body"]), validator)
-        if code is None:
+        code, doc = _registry_update_eligibility(json.dumps(entry["body"]), validator)
+        if code is None and rejected and rejected_other_acts == "not applied":
+            code = "WIST3-E03"
+            if rejected_ids == "all":
+                accepted.setdefault(_registry_update_id(doc["update"]), height)
+        elif code is None and not idempotent(index):
             signer = entry["body"]["sig"]["key_id"]
             raw = public_after.get(signer)
             if signer not in other_set or raw is None or not _envelope_verifies(b64u_decode(raw), entry["body"]):
                 code = "WIST4-E11"
+            elif registry is not None:
+                _registry_after_act(registry, doc["update"], height, suffix_lists, sealed_at)
         codes[index] = code
     return after, codes
 
 
 def _canonical_entry_order(entries) -> bool:
     """WIST-3 §3.3: one type group here, so canonical order is ascending
-    leaf-hash order."""
-    hashes = [leaf_hash(rfc8785.dumps(e)) for e in entries]
-    return hashes == sorted(hashes)
+    leaf-hash order; an Entry of no listed type, which has no group, comes
+    after it."""
+    ranks = [(e.get("type") != "registry_update", leaf_hash(rfc8785.dumps(e))) for e in entries]
+    return ranks == sorted(ranks)
 
 
 def _replay_key_history(history, validator, **variant):
@@ -7831,13 +7919,21 @@ def _replay_key_history(history, validator, **variant):
                0, None, None, None]]
     states, dispositions, key_sets, pubkeys = {}, [], {-1: {genesis_key_id}}, {}
     leaves, cumulative, head = [], {}, None
+    registry = {"accepted": {}, "amendments": [], "suffix_list": None}
+    suffix_lists = {s["sha256"]: s["text"].encode() for s in history.get("suffix_lists", [])}
+    rejections, registry_states = {}, {}
     for epoch in history["epochs"]:
         height = epoch["epoch_number"]
         entries = epoch["entries"]
         leaves = leaves + [leaf_hash(rfc8785.dumps(e)) for e in entries]
         cumulative[height] = [h.hex() for h in leaves]
+        rejections[height] = _key_epoch_rejection(entries)
+        candidate = copy.deepcopy(registry)
         after, codes = _replay_key_epoch(tuples, log_id, genesis_key_id, height, entries,
-                                         validator, **variant)
+                                         validator, registry=candidate,
+                                         rejected=rejections[height] is not None,
+                                         suffix_lists=suffix_lists, sealed_at=epoch["sealed_at"],
+                                         **variant)
         dispositions.append(codes)
         key_sets[height] = _keys_valid_at(after, genesis_key_id, height)
         pubkeys[height] = {t[1]: b64u_decode(t[2]) for t in after if t[1] in key_sets[height]}
@@ -7849,8 +7945,11 @@ def _replay_key_history(history, validator, **variant):
                 f"{history['name']} epoch {height}: the Checkpoint does not state this Epoch"
             head = height
             tuples = after
+            registry = candidate
         states[height] = [list(t) for t in tuples]
+        registry_states[height] = _registry_tuples(registry)
     return {"dispositions": dispositions, "states": states, "key_sets": key_sets,
+            "rejections": rejections, "registry_states": registry_states,
             "pubkeys": pubkeys, "head": head, "genesis_key_id": genesis_key_id,
             "leaf_hashes": cumulative}
 
@@ -7860,7 +7959,8 @@ def _wist3_aggregator_keys():
     authenticates under the keys valid at N-1, every other act of Epoch N and
     Checkpoint N under the keys valid at N; an authenticated key act that is a
     key-act failure is WIST4-E04 with the Epoch kept, and an unauthenticated
-    one is WIST4-E11."""
+    one is WIST4-E11. Of a rejected Epoch the key acts alone apply (§3.3), and
+    an occurrence of an accepted ID passing field validation is idempotent."""
     v = _aggregator_keys_vector()
     validator = Draft202012Validator(
         json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
@@ -7870,6 +7970,7 @@ def _wist3_aggregator_keys():
         json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text()))
     seen_codes, seen_ties, seen_unapplied = set(), 0, 0
     seen_rotation, seen_ignored_line = 0, 0
+    seen_rejected, seen_idempotent, seen_field_failure_repeat = 0, 0, 0
     origins = set()
     for history in v["histories"]:
         log_id = history["log_id"]
@@ -7884,37 +7985,40 @@ def _wist3_aggregator_keys():
             f"{history['name']}: the Anchor is not self-signed under its own genesis_key"
 
         replay = _replay_key_history(history, validator)
-        # WIST-4 §5.1 makes a repeated Registry Update ID idempotent and §3.4
-        # leaves it unevaluated; no history relies on that, so every act here is
-        # a distinct ID and every disposition below is the §3.4 rule's.
-        ids = ["sha256:" + hashlib.sha256(rfc8785.dumps(e["body"]["update"])).hexdigest()
-               for epoch in history["epochs"] for e in epoch["entries"]]
-        assert len(ids) == len(set(ids)), f"{history['name']}: a Registry Update ID repeats"
         expected_sets = {q["height"]: set(q["key_ids"]) for q in history["valid_at"]}
         assert expected_sets[-1] == {genesis["key_id"]}, \
             f"{history['name']}: the key set valid at height -1 is the genesis key alone"
-        previous_sealed = None
+        previous_sealed, seen_ids = None, set()
         for epoch, codes in zip(history["epochs"], replay["dispositions"]):
             height = epoch["epoch_number"]
             where = f"{history['name']} epoch {height}"
             entries = epoch["entries"]
-            assert all(e["type"] == "registry_update" for e in entries), where
             assert _canonical_entry_order(entries), f"{where}: Entries are not in canonical order"
             assert epoch["leaf_hashes"] == replay["leaf_hashes"][height], \
                 f"{where}: leaf_hashes is not the cumulative tree through this Epoch"
             assert epoch["tree_size"] == len(epoch["leaf_hashes"]), where
-            for entry in entries:
-                code, _ = _registry_update_eligibility(json.dumps(entry["body"]), validator)
-                assert code is None, \
-                    f"{where}: an Entry fails WIST-4 §5.1 field validation ({code}); every " \
-                    "disposition in this family must come from the §3.4 rules"
+            assert epoch["rejection"] == replay["rejections"][height], \
+                f"{where}: replayed rejection {replay['rejections'][height]}, vector says {epoch['rejection']}"
+            seen_rejected += epoch["rejection"] is not None and epoch["applied"]
+            acts = [i for i, e in enumerate(entries) if e["type"] == "registry_update"]
+            for index in acts:
+                code, _ = _registry_update_eligibility(json.dumps(entries[index]["body"]), validator)
+                identifier = _registry_update_id(entries[index]["body"]["update"])
+                assert code is None or identifier in seen_ids, \
+                    f"{where}: an Entry fails WIST-4 §5.1 field validation ({code}) other than " \
+                    "an occurrence of an ID sealed before; every other disposition in this " \
+                    "family must come from the §3.3 and §3.4 rules"
+                seen_field_failure_repeat += code is not None
+                seen_idempotent += code is None and identifier in seen_ids and codes[index] is None
+                seen_ids.add(identifier)
             sealed = log_seconds(epoch["sealed_at"])
             assert sealed % 3600 == 0, f"{where}: sealed_at is off the hourly grid"
             assert previous_sealed is None or sealed > previous_sealed, \
                 f"{where}: sealed_at is not strictly increasing"
             previous_sealed = sealed
-            assert [a["entry_index"] for a in epoch["acts"]] == list(range(len(entries))), where
-            for act, code, entry in zip(epoch["acts"], codes, entries):
+            assert [a["entry_index"] for a in epoch["acts"]] == acts, where
+            for act in epoch["acts"]:
+                entry, code = entries[act["entry_index"]], codes[act["entry_index"]]
                 update = entry["body"]["update"]
                 assert act["action"] == update["action"] and act["subject"] == update["subject"] \
                     and act["signer_key_id"] == entry["body"]["sig"]["key_id"], \
@@ -7922,6 +8026,9 @@ def _wist3_aggregator_keys():
                 assert code == act["code"], \
                     f"{where}: act {act['entry_index']} replayed as {code}, vector says {act['code']}"
                 seen_codes.add(code)
+            assert sorted(map(rfc8785.dumps, replay["registry_states"][height])) \
+                == sorted(map(rfc8785.dumps, epoch["expected_registry_state"])), \
+                f"{where}: the parameter, suffix_list and registry_update tuples the replay leaves"
             assert replay["key_sets"][height] == expected_sets[height], \
                 f"{where}: the key set valid at this height"
             assert epoch["applied"] == (epoch["checkpoint"] is not None), where
@@ -7988,23 +8095,8 @@ def _wist3_aggregator_keys():
             assert snapshot["tree_size"] == head_epoch["tree_size"] \
                 and snapshot["epoch_number"] == history["verified_head"], \
                 f"{history['name']}: the Snapshot position is not the verified head's"
-            complete = {json.dumps(t) for t in replay["states"][history["verified_head"]]}
-            # WIST-3 §7: an accepted parameter_change is live state at the head
-            # too — one tuple per amendment, keyed by identifier and effective_at.
-            for epoch, codes in zip(history["epochs"], replay["dispositions"]):
-                if not epoch["applied"]:
-                    continue
-                for entry, code in zip(epoch["entries"], codes):
-                    update = entry["body"]["update"]
-                    if code is None and update["action"] == "parameter_change":
-                        complete.add(json.dumps(["parameter", update["subject"],
-                                                 update["effective_at"],
-                                                 update["details"]["value"]]))
-                    if code is None and epoch["epoch_number"] <= history["verified_head"] and not any(
-                            json.loads(t)[0] == "registry_update" and json.loads(t)[1] == _registry_update_id(update)
-                            for t in complete):
-                        complete.add(json.dumps(["registry_update", _registry_update_id(update),
-                                                 epoch["epoch_number"]]))
+            complete = {json.dumps(t) for t in replay["states"][history["verified_head"]]
+                        + replay["registry_states"][history["verified_head"]]}
             envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
             saw_removed_tuple, omitted_updates = False, False
             for case in snapshot["cases"]:
@@ -8028,12 +8120,38 @@ def _wist3_aggregator_keys():
             assert saw_removed_tuple, "no verifying state file carries a removed key's tuple"
             assert omitted_updates, "no state file omitting the registry_update tuples is refused"
 
-    assert seen_codes == {None, "WIST4-E04", "WIST4-E11"}, \
+    assert seen_codes == {None, "WIST3-E03", "WIST4-E04", "WIST4-E11"}, \
         f"the histories do not exercise every disposition: {sorted(map(str, seen_codes))}"
     assert seen_ties >= 2 and seen_unapplied >= 1 and seen_rotation >= 1 and seen_ignored_line >= 1, \
         "the vector must exercise both tie-breaks, an Epoch no Checkpoint verifies, a " \
         "rotation Checkpoint whose two signature lines both verify under keys valid at " \
         "its height, and a Checkpoint whose line from a key not valid there is ignored"
+    assert seen_rejected >= 1 and seen_idempotent >= 3 and seen_field_failure_repeat >= 1, \
+        "the vector must exercise a rejected Epoch whose Checkpoint verifies, repeated IDs " \
+        "left idempotent, and a repeated ID failing field validation"
+
+    # WIST-3 §3.3, Rejected Epochs: a rejected Epoch admits a key that alone
+    # signs its Checkpoint, and carries a parameter_change and another non-key
+    # act; the parameter_change, sealed again in a later accepted Epoch, is
+    # accepted at that later height.
+    shown = False
+    for history in v["histories"]:
+        replay = _replay_key_history(history, validator)
+        heads = [b for b in history["epochs"] if b["rejection"] and b["applied"]]
+        for epoch in heads:
+            height = epoch["epoch_number"]
+            admitted = {t[1] for t in replay["states"][height]} - {t[1] for t in replay["states"][height - 1]}
+            signers = _verify_checkpoint_keyset(epoch["checkpoint"], history["log_id"],
+                                                replay["pubkeys"][height])["verified_key_ids"]
+            others = [e["body"]["update"] for e in epoch["entries"] if e["type"] == "registry_update"
+                      and e["body"]["update"]["action"] not in KEY_ACTS]
+            later = {t[1]: t[2] for t in replay["registry_states"][history["epochs"][-1]["epoch_number"]]
+                     if t[0] == "registry_update"}
+            parameter = [_registry_update_id(u) for u in others if u["action"] == "parameter_change"]
+            shown |= bool(admitted) and set(signers) <= admitted \
+                and len({u["action"] for u in others}) >= 2 \
+                and any(later.get(i, height) > height for i in parameter)
+    assert shown, "no rejected Epoch shows its key act alone applied and a parameter_change accepted later"
 
     # WIST-3 §3.4: the key set at N does not depend on the order two key acts of
     # one Epoch are evaluated in. The two histories' additions differ in the
@@ -8096,32 +8214,56 @@ def _wist3_aggregator_keys_twin():
         json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
     stated = {h["name"]: [[a["code"] for a in b["acts"]] for b in h["epochs"]]
               for h in v["histories"]}
-    states = {h["name"]: [b["expected_state"] for b in h["epochs"]] for h in v["histories"]}
+    states = {h["name"]: [(b["expected_state"], sorted(map(rfc8785.dumps, b["expected_registry_state"])))
+                          for b in h["epochs"]] for h in v["histories"]}
 
-    def outcome(variant):
+    def outcome(variant, names=None):
         seen = {}
         for history in v["histories"]:
-            replay = _replay_key_history(history, validator, **variant)
-            seen[history["name"]] = (replay["dispositions"],
-                                     [replay["states"][b["epoch_number"]]
-                                      for b in history["epochs"]])
+            if names is not None and history["name"] not in names:
+                continue
+            try:
+                replay = _replay_key_history(history, validator, **variant)
+            except (AssertionError, ValueError) as e:
+                seen[history["name"]] = f"halted: {e}"   # a Checkpoint the flipped reading cannot verify
+                continue
+            seen[history["name"]] = (
+                [[codes[a["entry_index"]] for a in b["acts"]]
+                 for b, codes in zip(history["epochs"], replay["dispositions"])],
+                [(replay["states"][b["epoch_number"]],
+                  sorted(map(rfc8785.dumps, replay["registry_states"][b["epoch_number"]])))
+                 for b in history["epochs"]])
         return seen
 
     control = outcome({})
     for name in stated:
-        assert control[name][0] == stated[name] and control[name][1] == states[name], \
-            f"positive control: {name}"
+        assert control[name] == (stated[name], states[name]), f"positive control: {name}"
     for variant in ({"key_act_authentication": "own Epoch"},
                     {"other_act_authentication": "previous height"},
                     {"admitted": "valid only"},
                     {"note_key_id_collisions": False},
                     {"removal_reads": "own Epoch"},
                     {"entry_order": "descending"}):
-        try:
-            moved = outcome(variant) != control
-        except (AssertionError, ValueError):
-            moved = True                 # a Checkpoint the flipped reading cannot verify
-        assert moved, f"flipping {variant} changed no outcome the vector states"
+        assert outcome(variant) != control, f"flipping {variant} changed no outcome the vector states"
+
+    # WIST-3 §3.3, Rejected Epochs, and WIST-4 §5.1's idempotence: each reading
+    # flipped must move the history built to decide it.
+    rejected = {h["name"] for h in v["histories"]
+                if any(b["rejection"] and b["applied"] for b in h["epochs"])}
+    repeated = {h["name"] for h in v["histories"]
+                if not any(b["rejection"] for b in h["epochs"]) and len(
+                    {_registry_update_id(e["body"]["update"]) for b in h["epochs"] for e in b["entries"]})
+                < sum(len(b["entries"]) for b in h["epochs"])}
+    assert rejected and repeated
+    for names, variant in ((rejected, {"rejected_key_acts": "ignored"}),
+                           (rejected, {"rejected_ids": "none"}),
+                           (rejected, {"rejected_ids": "all"}),
+                           (rejected, {"rejected_other_acts": "applied"}),
+                           (repeated, {"idempotence": "none"}),
+                           (repeated, {"idempotence": "before field validation"})):
+        flipped = outcome(variant, names)
+        assert all(flipped[n] != control[n] for n in names), \
+            f"flipping {variant} changed no outcome of {sorted(names)}"
 
     # Each flip, at the Entry it is supposed to decide.
     rotation = next(h for h in v["histories"] if h.get("equivocation_cases"))

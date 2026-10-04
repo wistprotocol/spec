@@ -7,9 +7,10 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from verify_collection_vectors import (
-    LOG_TIME_MAX, Rejected, VerifierError, apply_group, canonical_host, check_keys_block, check_parameter_map,
-    collection_names, declaration_hash, fetch_declaration, log_seconds, narrow, new_state, publisher_instant,
-    pull_sources, pulled_collections, reductions, repeats_head, strict_load, validate)
+    LOG_TIME_MAX, Rejected, VerifierError, apply_group, authority, b64u_canonical, canonical_host, check_keys_block,
+    check_parameter_map, collection_names, declaration_hash, fetch_declaration, log_seconds, narrow, new_state,
+    public_raw, publisher_instant, pull_sources, pulled_collections, reductions, repeats_head, signature_verifies,
+    strict_load, url_host, usable_public, validate)
 from verify_catalog_vectors import (
     ACCEPTED, BODY_MEMBERS, HASH, NAME, REMOVAL_RETENTION_SECONDS, VERSION, Refused, Report, binding_code, catalog_id,
     catalog_inner_form, covered, integer, item_form, item_id, jcs, judge_item, judge_payload, leaf_of, merkle_root,
@@ -461,15 +462,43 @@ def label_identity(envelope):
     return kinds[0], "sha256:" + hashlib.sha256(jcs(inner)).hexdigest(), inner[LABEL_HOSTS[kinds[0]]]
 
 
-def label_check(envelope, sealed_at, parameters):
-    # WIST-3 section 3.3: the WIST-2 section 3.3 checks that read the map and the clock, repeated at the turn.
+def subject_host(subject):
+    return url_host(subject) if subject.startswith("https://") else subject
+
+
+def label_check(envelope, publisher, sealed_at, parameters, disputed):
+    # WIST-3 section 3.3 Waiting: the judgment of a label or dispute Entry of the candidate Epoch. The form
+    # checks other than the subject cap read neither the map, the clock nor a Declaration; the fixture meets them.
     kind, _, _ = label_identity(envelope)
-    inner = envelope[kind]
+    inner, sig = envelope[kind], envelope["sig"]
+    asserted = publisher_instant(inner["asserted_at"])
+    codes = set()
     if kind == "label" and len(jcs(inner["subject"])) > parameters["url_cap_bytes"]:
-        return "WIST2-E06"
-    if publisher_instant(inner["asserted_at"]) > sealed_at + parameters["clock_skew_seconds"]:
-        return "WIST2-E06"
-    return None
+        codes.add("WIST2-E06")
+    if asserted > sealed_at + parameters["clock_skew_seconds"]:
+        codes.add("WIST2-E06")
+    if publisher is None:
+        codes.add("WIST1-E02")
+    else:
+        hosts = authority(publisher)
+        if kind == "label" and subject_host(inner["subject"]) in hosts:
+            codes.add("WIST2-E06")
+        if kind == "dispute":
+            if disputed is None:
+                raise VerifierError("a dispute accepted while its Label was unsealed is outside this fixture")
+            if subject_host(disputed["subject"]) not in hosts:
+                codes.add("WIST2-E06")
+        eligible = [entry for entry in publisher["keys"]
+                    if entry["kid"] == sig["key_id"] and usable_public(public_raw(entry))
+                    and entry["nbf"] <= asserted and ("exp" not in entry or asserted < entry["exp"])]
+        if not eligible:
+            codes.add("WIST1-E02")
+        elif not any(signature_verifies(public_raw(entry), b64u_canonical(sig["value"], 64), jcs(inner))
+                     for entry in eligible):
+            codes.add("WIST1-E01")
+    if not codes:
+        return None
+    return codes.pop() if len(codes) == 1 else OneOf(codes)
 
 
 def read_schedule(schedule):
@@ -999,6 +1028,15 @@ class Replay:
             rows.append({"type": kind, "label": identifier, "outcome": "accepted", "place": place})
         return rows
 
+    def sealed_label(self, envelope):
+        if "dispute" not in envelope:
+            return None
+        for candidate in self.label_envelopes.values():
+            kind, identifier, _ = label_identity(candidate)
+            if kind == "label" and identifier == envelope["dispute"]["label"] and identifier in self.sealed_labels:
+                return candidate["label"]
+        return None
+
     def log_window(self, domain):
         state = self.log["domains"].get(domain)
         return None if state is None else state["window"]
@@ -1270,7 +1308,9 @@ class Replay:
                 if ("label", url) in unsealed:
                     leave_unsealed(row, entry["place"], entry["eligibility"])
                     continue
-                code = label_check(self.label_envelopes[entry["name"]], sealed_at, parameters)
+                envelope = self.label_envelopes[entry["name"]]
+                code = label_check(envelope, in_force(plan, publisher), sealed_at, parameters,
+                                   self.sealed_label(envelope))
                 if code is not None:
                     out.setdefault("rejections", []).append({"id": url, "code": code})
                     left_labels.append(url)

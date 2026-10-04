@@ -542,8 +542,10 @@ Collection name and signing key, settlement at a pull and at the Epoch,
 equal instants decided by Catalog ID, places after settlement, a survivor
 refused by a Declaration of the settlement Epoch, an idempotent re-serve
 inside the window, a competitor that reduces authority, a recovery that
-narrows a Scope, records sealed under a key an attacker held, and a
-rotation that fails at its candidate Epoch. The events stand for pulls and
+narrows a Scope, records sealed under a key an attacker held, a
+rotation that fails at its candidate Epoch, and a settlement that retains
+a recovery-signed follower not yet sealed, read with the Declaration it
+names until its sealing. The events stand for pulls and
 Epochs; the histories do not establish live fetches, durable queues,
 Payload retrieval, status publication or restart.
 
@@ -647,11 +649,17 @@ places at one pull after its Catalogs and URLs, in the order the pull
 accepts them, their eligibility Epoch, inclusion ceiling and `capacity`
 deferral under the per-domain capacity and under the per-Labeler cap, an
 eligible Item and Label left unsealed taking no room, a Label and a
-dispute leaving with a `WIST2-E06` rejection when the check of WIST-2
-§3.3 repeated at their turn fails under the candidate Epoch's map and
-clock, each beside a twin sealed before the map changes, and the
-inclusion ceiling read from the map in force at the eligibility Epoch
-and again when a deferral moves it.
+dispute leaving with a `WIST2-E06` rejection when their judgment at
+their turn fails under the candidate Epoch's map and clock, each beside
+a twin sealed before the map changes, a Label leaving with `WIST1-E02`
+when a Declaration sealed in the candidate Epoch no longer binds its
+key, taking no room under the per-Labeler cap, two such Labels reported
+in the order of their places, a dispute leaving with `WIST2-E06` when a
+Declaration sealed in the candidate Epoch removes its Label's subject
+from the disputant's authority, and the inclusion ceiling read from the
+map in force at the eligibility Epoch and again when a deferral moves
+it. No vector carries a Label that becomes self-labeling at its turn, or
+one that fails checks of two codes there.
 
 WIST-3 §3.3 does not fix whether a recovery window open for a Labeler or
 a disputant defers its Labels and disputes: an implementation may defer
@@ -687,7 +695,7 @@ arithmetic checks do not establish live-service behavior.
 | WIST-3 §§3.1, 4–5 proofs and head adoption | Consistency Proofs generated and verified by independent implementations across every tree size, including the empty-tree and equal-size cases and the size-0 root compared rather than the empty proof skipped; every Checkpoint from the verified head to the adopted one verified in `epoch_number` order; a lower `epoch_number` rejected as rollback and an equal one with differing note text treated as equivocation; each of §5's three equivocation forms recognized from its stated evidence bundle; §3.1's sequence failures distinguished at a live head — a Checkpoint above an unobtainable one reported as `WIST3-E01` while remaining a valid object, a `sealed_at` not later than the previous Checkpoint's or off the cadence grid rejected as `WIST3-E03` whatever its signature does, and a tree size below the previous Checkpoint's judged under the key set valid at the previous height — `WIST3-E02` only where its signature verifies under that set and its root is not that tree's root at the smaller size, and `WIST3-E02` for a Checkpoint failing several rules where that form applies. The vectors supply the cadence rather than replaying an `epoch_cadence_seconds` schedule across an amendment, run the tree-size cases under a single Log key, and supply no source retry |
 | WIST-3 §5, WIST-4 §5 Witness quorum | Cosignatures verified against a Consumer-configured Witness roster, distinct trusted names counted against `checkpoint_witness_quorum` as in force at the Checkpoint's `sealed_at`, a short-of-quorum Checkpoint neither adopted nor reported as an error, and every acceptance made while the quorum is 0 recorded as unwitnessed with the retained Checkpoint |
 | WIST-3 §§7–8 Snapshot position | A manifest's `epoch_number` selecting the archived Checkpoint and its `tree_size` and `root_hash` reconciled against that Checkpoint at cold start and at every later manifest read, with the state file's `tree_size` checked against the manifest's (`WIST3-E04`) and a file at the selected path stating another `epoch_number` re-fetched as a source fault (`WIST3-E03`) rather than read as divergence; the transport bound bootstrapped from the manifest's authenticated parameter tuples. `vectors/wist3/checkpoints.json` fixes the dispositions; the re-fetch across sources, the per-file hash and size checks and shard coverage are separate obligations |
-| WIST-3 §§3.4, 5 Log key succession | A rotated Aggregator key authenticates Checkpoints at the correct height, including rejected keys. `vectors/wist3/aggregator-keys.json` replays the key acts themselves: each read at the height §3.4 fixes, every key-act failure ignored as `WIST4-E04` with its Epoch kept, an Epoch whose accepted removals leave no valid key never applied, a Checkpoint at or below the head judged under the keys valid at its own height, and the `aggregator_key` tuples §7 keeps for removed keys. Not supplied: an operating Log rotating across serving and Snapshot production, the Aggregator-side refusal to seal a key-act failure, and a successor Anchor's `predecessor` carry |
+| WIST-3 §§3.4, 5 Log key succession | A rotated Aggregator key authenticates Checkpoints at the correct height, including rejected keys. `vectors/wist3/aggregator-keys.json` replays the key acts themselves: each read at the height §3.4 fixes, every key-act failure ignored as `WIST4-E04` with its Epoch kept, an Epoch whose accepted removals leave no valid key never applied, a Checkpoint at or below the head judged under the keys valid at its own height, the `aggregator_key` tuples §7 keeps for removed keys, the key act of a rejected Epoch applied and accepted while its other acts apply nothing and their IDs stay unaccepted (§3.3), and an accepted key act's ID sealed again left idempotent whatever its signature. Not supplied: an operating Log rotating across serving and Snapshot production, the Aggregator-side refusal to seal a key-act failure, and a successor Anchor's `predecessor` carry |
 | WIST-3 §§3.4, 7–8 Snapshot key authentication | A resuming Consumer authenticates a state file's `aggregator_key` tuples from the Anchor's genesis key before it uses any of them, persists nothing derived from the Snapshot until the index, the manifest and every state file verify under the keys valid at the adopted Checkpoint's height, and reports `WIST3-E04` on any failure. `vectors/wist3/snapshot-keys.json` supplies whole Snapshots of one signed Log: §7's rules 1 through 5 each broken alone, forgeries whose Checkpoint and documents verify under the tuples they carry, each document judged at the adopted head against a signer removed at or below it, a signer admitted above the Snapshot's Epoch and learned from the walked Epochs' key acts, and a signature failing under its named tuple, each of the catch-up clauses falsified in turn against a Consumer-held registry beside a registry the tuples agree with, and the two `state_digest`s two removals of one key in one Epoch produce, which rules 1 through 5 do not separate. Not supplied: an Aggregator re-signing every unsealed document it still serves under a key valid at a removing Epoch's height, adding a replacement below the removal it answers, the re-fetch across Mirrors a rejected Snapshot triggers, and a sharded Snapshot (the sharded layout is exercised without key rotation by the row above) |
 | WIST-3 §5 Mirror list | The list verifies under the keys valid at the Consumer's adopted head (§3.4) and one that does not verify — a since-removed signer, or a list read before the Consumer has a head — is no error: its entries stay location hints, never evidence of authorship, Log membership or source independence, and §6.1 already permits retrieval from any source. `vectors/wist3/snapshot-keys.json` carries all three signed cases. Not supplied: live fetching and refresh of the list, its staleness handling, retention of Mirror URLs from other trusted sources, and the Aggregator's rewrite of the list across a rotation |
 | WIST-4 §5 inclusion | Acceptance, places and the turn of Catalogs, Items, Labels and disputes in the per-domain capacity and the per-Labeler cap under backlog, overload and recovery, the inclusion ceiling read at the eligibility Epoch, and the discovery sealing deadline counted from the first Epoch sealed after the discovery; the Log alone does not reveal acceptance or discovery time |

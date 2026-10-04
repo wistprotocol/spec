@@ -755,7 +755,9 @@ Epoch inside it with the window alone.
 **Settlement.** The queue is settled once, where no event of Discovery
 settles it first, at the first event at or after the window's end: a
 pull, which settles before it reads anything and is then a pull
-outside a window, the settlement and the pull being two events, the
+outside a window, or a pull from the discovery where the settlement
+retains a recovery-signed follower (ADR-0051), the settlement and the
+pull being two events, the
 settlement first, so the places taken at the settlement precede those
 the pull gives; or the Epoch of settlement S, before any Declaration
 of S applies. Every queued Catalog is judged again by C1 under the

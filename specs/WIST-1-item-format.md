@@ -1174,10 +1174,9 @@ installing the first member. A repeated Envelope does not waive any ordinary
 sequence, predecessor, key or signature check on its first installation.
 
 An Aggregator MUST NOT seal an Epoch with a conflicting Declaration group.
-A Consumer encountering one MUST reject the entire Epoch, retaining its
-previous accepted prefix and state; no Entry, settlement or activation
-from that Epoch takes effect, and one due there takes effect at the first
-accepted Epoch the rules below select. The same whole-Epoch rejection
+A Consumer encountering one MUST reject the entire Epoch (WIST-3 §3.3,
+**Rejected Epochs**); a settlement or activation due there takes effect
+at the first accepted Epoch the rules below select. The same whole-Epoch rejection
 applies when a Declaration
 fails its acceptance checks during Epoch replay, with that check's error
 code. If different domains have different acceptance failures, a validator
@@ -1588,7 +1587,7 @@ pull proceeds, are WIST-2 §5's.
 |---|---|---|
 | A current Declaration, with no pending head, no open recovery window and no recovery rotation discovered and not yet sealed | The current Declaration | Its Collections |
 | A pending head, with no recovery rotation discovered and not yet sealed | The current Declaration alone. The pending head names no Collection to pull and supplies no candidate: a Catalog that verifies under its keys alone is `WIST1-E02` | The current Declaration's. A history's first Declaration is current, so a pending head always has one beside it |
-| An open recovery window, or a recovery rotation discovered and not yet sealed | The two **frozen sources**: the Declaration in effect before the recovery and the recovery Declaration that owns the window or, before its sealing, was discovered. No Declaration accepted later is read | Those of the Declaration in effect before the recovery, then those the recovery Declaration alone names. A name both carry is pulled once |
+| An open recovery window, or a recovery rotation discovered and not yet sealed. From an admission settlement until it is sealed, the first recovery-signed follower the settlement retains (**Unsealed Declarations at settlement**), in predecessor order, is such a rotation, the settlement standing for its discovery here and in **Publications during recovery** | The two **frozen sources**: the Declaration in effect before the recovery, for a retained follower the Declaration it names, and the recovery Declaration that owns the window or, before its sealing, was discovered. No Declaration accepted later is read | Those of the Declaration in effect before the recovery, then those the recovery Declaration alone names. A name both carry is pulled once |
 
 A recovery rotation that leaves the eligible sealing set unsealed leaves
 the pulls after it under the sources of the other rows. A replacement that
@@ -1690,9 +1689,11 @@ at each Epoch inside it with the window alone.
 *Settlement.* The queue is settled once, where no event of *Discovery*
 settles it first, at the first event at or after the window's end: a pull,
 which settles before it reads anything and is then a pull outside a window,
-the settlement and the pull being two events, the settlement first, so the
-places taken at the settlement precede those the pull gives; or the Epoch
-of settlement S, before any Declaration of S applies. Every queued Catalog
+or a pull from the discovery where the settlement retains a recovery-signed
+follower (**Sources of a pull**), the settlement and the pull being two
+events, the settlement first, so the places taken at the settlement precede
+those the pull gives; or the Epoch of settlement S, before any Declaration
+of S applies. Every queued Catalog
 is judged again by C1 (WIST-3 §3.3) under the settlement source, with the
 instant of that event as the clock, a pull's own instant or S's
 `sealed_at`. A Catalog that fails is rejected with `WIST1-E13` and reported

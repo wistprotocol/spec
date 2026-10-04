@@ -254,7 +254,7 @@ bounds its own sealing.
 |---|---|---|
 | A current Declaration, with no pending head, no open recovery window and no recovery rotation discovered and not yet sealed | The current Declaration | Its Collections |
 | A pending head, with no recovery rotation discovered and not yet sealed | The current Declaration alone. The pending head names no Collection to pull and supplies no candidate: a publication that verifies under its keys alone is `WIST1-E02` | The current Declaration's. A history's first Declaration is current (WIST-1 §5.2), so a pending head always has one beside it |
-| An open recovery window, or a recovery rotation discovered and not yet sealed | The two frozen sources of WIST-1 §5.2: the Declaration in effect before the recovery and the recovery Declaration that owns the window or, before its sealing, was discovered. No Declaration accepted later is read | Those of the Declaration in effect before the recovery, then those the recovery Declaration alone names. A name both carry is pulled once |
+| An open recovery window, or a recovery rotation discovered and not yet sealed. From an admission settlement until it is sealed, the first recovery-signed follower the settlement retains (WIST-1 §5.2), in predecessor order, is such a rotation, the settlement standing for its discovery here and in ADR-0052, Recovery | The two frozen sources of WIST-1 §5.2: the Declaration in effect before the recovery, for a retained follower the Declaration it names, and the recovery Declaration that owns the window or, before its sealing, was discovered. No Declaration accepted later is read | Those of the Declaration in effect before the recovery, then those the recovery Declaration alone names. A name both carry is pulled once |
 
 A recovery rotation that leaves the eligible sealing set unsealed
 (Size) leaves the pulls after it under the sources of the other rows.
@@ -373,6 +373,20 @@ that failed and for each that leaves with it. A hold it placed ends
   `collections`.** Changes what
   a change of `subdomain_scope` does to records already sealed, for
   Publishers that never asked for Collections.
+- **An ordinary pull after a settlement that retains a recovery-signed
+  follower not yet sealed.** The settlement makes the follower current,
+  so a pull would read the current Declaration and accept a Catalog
+  under a key that only a later replacement of the follower lists,
+  until the Epoch that seals the follower opens its window. A
+  recovery-signed Declaration puts the Publisher's keys in dispute, so
+  what is accepted under it is queued and not sealed, and an intervening
+  settlement changes nothing in that: the pulls between the settlement
+  and the follower's sealing follow the pulls between the discovery and
+  the sealing of a recovery rotation. The first frozen source is the
+  Declaration the follower names. The Declaration current when the
+  follower was accepted may be a competitor the settlement supersedes,
+  and the earlier source of the settled window predates the recovery
+  that settled it.
 
 ## Consequences
 
@@ -451,7 +465,12 @@ not noise; a competitor superseded at settlement, then an answer 304, a
 failed fetch; the recovery-chain head served again while a competitor is
 current, a success of the fetch under which the Collections of both
 frozen sources are pulled and a Catalog under the recovery key is
-queued; a recovery rotation that adds a Collection, discovered and not
+queued; a settlement at a pull that retains a recovery-signed follower
+not yet sealed, after which pulls read the Declaration it names and the
+follower, queue, and refuse with `WIST1-E02` a Catalog under a key that
+only the follower's later replacement, a superseded competitor or the
+settled window's earlier source lists; a recovery rotation that adds a
+Collection, discovered and not
 yet sealed, under which a pull accepts a Catalog of that Collection
 signed by a key the recovery alone lists, with that pull's place, and
 admits no Item that a Catalog signed by a key the earlier Declaration

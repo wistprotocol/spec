@@ -354,10 +354,9 @@ with equal-sequence groups handled by WIST-1 §5.2: conflicting first-install
 Envelopes invalidate the entire Epoch under `WIST1-E08`; current-Declaration
 re-serves and exact duplicates install no additional state or signature.
 Narrowing applies with them (WIST-1 §5.2).
-Every Declaration must pass its acceptance checks; on failure reject the
-whole Epoch with the applicable error, preserving the previously accepted
-prefix and all its state, including recovery windows due to settle in the
-rejected Epoch. Then apply `registry_update` Entries (key acts first, in
+Every Declaration must pass its acceptance checks; on failure the whole
+Epoch is rejected with the applicable error (WIST-1 §5.2, and **Rejected
+Epochs** below). Then apply `registry_update` Entries (key acts first, in
 canonical Entry index order, each authenticated under the keys valid at
 the previous height; then every other act, authenticated under the keys
 valid at this Epoch, §3.4;
@@ -372,9 +371,24 @@ stored order, which WIST-2 §3.3 reads to order two Labels of one Labeler
 sealed in one Epoch, and `dispute` Entries last, in the same order, which
 orders two disputes of one Label by one disputant; a dispute applies
 nothing to the Label it names. No conforming behavior depends on any ordering freedom this
-paragraph does not name. An Epoch that meets more than one whole-Epoch
-rejection of §3.2, this section or WIST-1 §5.2 is rejected; a validator
-MAY report the code of any it has established.
+paragraph does not name.
+
+**Rejected Epochs.** An Epoch that meets one or more whole-Epoch
+rejections of §3.2, this section, §6 or WIST-1 §5.2 is **rejected**, and
+a validator MAY report the code of any it has established; one that
+meets none is **accepted**. A rejected Epoch stays in the Log: its leaves
+stay in the tree, its Checkpoint is verified as any other (§5), and
+replay continues at the next Epoch. Its key acts are evaluated and
+applied as in an accepted Epoch (§3.4), in ascending leaf index (§4)
+where its Entries are out of canonical order, since its Checkpoint and
+every later one are verified under the keys those acts leave valid; the
+Registry Update ID of each accepted key act is accepted at its height
+(WIST-4 §5.1) and carries its `registry_update` tuple (§7). Nothing else
+of a rejected Epoch applies: no Declaration, settlement or activation
+(WIST-1 §5.2), no other Registry Update, Catalog, Item, Label or dispute
+changes state or enters a table of §7, and the ID of such a Registry
+Update is not accepted there, so WIST-4 §5.1 judges the ID's first
+occurrence in an accepted Epoch as a first occurrence.
 
 **Declaration sealing obligation.** An Aggregator MUST seal every
 Declaration under which a pull read at or below the Epoch that seals the
@@ -388,9 +402,10 @@ under the Declaration in force for its Publisher once every transition
 of Epoch N has applied (WIST-1 §5.2, **Historical verification**), under
 the parameter map in force at N's `sealed_at` (WIST-4 §5), and with N's
 `sealed_at` as the clock (WIST-1 §3.4). The Publisher of a
-`publisher_catalog` Entry is `catalog.publisher`, and that of a
+`publisher_catalog` Entry is `catalog.publisher`, that of a
 `publisher_item` Entry is the `publisher` of its named Catalog (I3),
-whatever `item.publisher` spells. A Catalog of a Publisher with no
+whatever `item.publisher` spells, and that of a `label` or `dispute`
+Entry its `label.labeler` or `dispute.disputant`. A Catalog of a Publisher with no
 Declaration in force has no candidate and fails C1 with `WIST1-E02`.
 Whether a recovery window of the Publisher is open at N is WIST-1 §5.2's
 (**Publications during recovery**).
@@ -490,12 +505,14 @@ Publisher and URL at most one Item.
 | Leaves | When sealed. When it fails C1 at its turn, whether or not it fails C4: it is reported with C1's code alone at the status endpoint (WIST-2 §7.1) and is no longer the last accepted Catalog. When it fails C4 alone at its turn: it is not reported and stays the last accepted Catalog | When sealed. When the URL no longer waits: an Item for which I7 no longer holds once the Epoch's transitions and Catalogs have applied leaves unreported, whatever other condition it fails. When the Item fails I5 at its turn: it is reported with the code and is a refused Item of its list |
 
 A Label or a dispute waits from the pull that accepts it. It leaves when
-sealed, or when it fails at its turn a check of WIST-2 §3.3 that the
-Aggregator repeats before sealing under the candidate Epoch's parameter
-map and clock (WIST-4 §5, WIST-1 §§3.4, 3.6): it is then not sealed and
-is reported among the status endpoint's `rejections` (WIST-2 §7.1) with
-the code of that check and its Label or Dispute ID. It leaves no other
-way.
+sealed, or when, at its turn in a candidate Epoch that does not defer
+it, it fails any check of the judgment a replaying Consumer gives a
+`label` or `dispute` Entry of that Epoch (**Judgment**), those that read
+the Declaration in force once the Epoch's transitions have applied
+included: it is then not sealed and is reported among the
+status endpoint's `rejections` (WIST-2 §7.1) with the code that judgment
+gives and its Label or Dispute ID, those that leave at one Epoch in the
+order of their places. It leaves no other way.
 
 An idempotent re-serve replaces no Catalog and gives no waiting Item
 another place. Where the last accepted Catalogs of two Collections of a
@@ -601,8 +618,9 @@ the withdrawals of earlier Epochs alone.
 taken first by its Catalogs, then by its Items of kind `removed`, then by
 its Items of kind `page`, its Labels and its disputes together, and
 within each of the three in the order of the places; the per-Labeler cap
-(§3.2) applies inside it. A Catalog or an Item that fails its judgment at
-its turn takes no room, and the next in order takes it. Nor does an
+(§3.2) applies inside it. A Catalog, an Item, a Label or a dispute that
+fails its judgment at its turn takes no room, and the next in order takes
+it. Nor does an
 eligible Catalog, Item, Label or dispute that the Aggregator leaves
 unsealed in the Epoch: `capacity` defers only what does not fit, under
 the capacity or the per-Labeler cap, after the Entries sealed before it
@@ -1678,7 +1696,7 @@ authorities at once: its own domain's, and that of a Publisher whose
 domain, Normalized URL), so the same URL can carry a record under each
 Publisher, and a query needs one. Of the records of one URL whose Item no
 withdrawal sealed at or below the height names, one is **materialized**.
-From the height of the first accepted Epoch (WIST-1 §5.2) that seals a
+From the height of the first accepted Epoch (§3.3) that seals a
 `publisher_declaration` Entry whose `domain` is the host, only the
 record of the host's own Publisher is materialized, and none where that
 Publisher holds none: self-declaration prevails, and no later Entry
@@ -2148,7 +2166,8 @@ above, treats its coverage as partial.
    §5 requires: parse it; fetch the entry bundles covering its Epoch's
    leaves and the tiles the two proofs need (§6); verify the Consistency
    Proof from the previous Checkpoint's tree size and the Epoch's leaves
-   against its root (§3.1, §4); apply the Epoch's Registry Updates; then
+   against its root (§3.1, §4); apply the Epoch's Registry Updates, of a
+   rejected Epoch only those §3.3 applies (**Rejected Epochs**); then
    verify the Log's signature under the key set valid at its height.
 8. Choose the Checkpoint to adopt: the newest verified one, the head of
    step 5 included, carrying the Witness quorum §5 requires, recorded as
@@ -2557,6 +2576,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       Registrable Domain under the snapshot in force, obtained and
       verified by its identifier, over the per-Labeler cap, or carrying
       an Entry over 65 535 octets (§3.1–§3.3, §6, WIST-4 §3.1)
+- [ ] Of a rejected Epoch, applies the key acts alone, accepting their
+      Registry Update IDs and no other, verifies its Checkpoint and
+      continues at the next Epoch (§3.3, **Rejected Epochs**)
 - [ ] Authenticates a state file's `aggregator_key` tuples from the
       Anchor's genesis key before using them, and verifies the index,
       manifest and state file signatures under the keys valid at the

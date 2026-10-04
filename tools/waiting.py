@@ -17,7 +17,6 @@ REVERSAL_KINDS = ("reversal_ordinary_rotation", "reversal_recovery_rotation")
 PENDING_KINDS = ("fresh_identity_pending", "pending_replacement")
 NOT_DISCOVERED = ("idempotent", "recovery_chain_head")
 KIND_ORDER = ("removed", "page")
-LABEL_REJECTED = "WIST2-E06"
 
 
 def refusal(check, *arguments):
@@ -641,13 +640,11 @@ class Aggregator:
             return True
         return refusal(catalogs.binding, envelope, declaration) is not None
 
-    def label_refusal(self, entry, sealed_at, parameters):
-        inner = entry["envelope"][entry["type"]]
-        if entry["type"] == "label" and len(items.jcs(inner["subject"])) > parameters["url_cap_bytes"]:
-            return LABEL_REJECTED
-        if items.instant(inner["asserted_at"]) > seconds(sealed_at) + parameters["clock_skew_seconds"]:
-            return LABEL_REJECTED
-        return None
+    def label_refusal(self, entry, probe, sealed_at, parameters):
+        failure = probe.judge_label(entry["type"], entry["envelope"], sealed_at, parameters)
+        if failure == "unsealed":
+            raise ValueError("a dispute accepted while its Label was unsealed is outside this model")
+        return None if failure is None else sealing.LABEL_CODES[failure]
 
     def plan(self, height, parameters, held, deferred_i4, probe, gone, unsealed=frozenset(), sealed_at=None):
         room, planned, deferred, holding, sealed_names, deferred_names, dropped = {}, [], [], [], {}, set(), []
@@ -680,7 +677,7 @@ class Aggregator:
             if ("label", identifier) in unsealed:
                 leave_unsealed(ref, entry["place"], entry["eligibility"])
                 return
-            code = self.label_refusal(entry, sealed_at, parameters)
+            code = self.label_refusal(entry, probe, sealed_at, parameters)
             if code is not None:
                 rejected.append({"id": identifier, "code": code})
                 return
