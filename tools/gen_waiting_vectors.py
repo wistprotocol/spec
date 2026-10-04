@@ -2560,6 +2560,47 @@ def recovery_vectors():
 
     histories.append(run(h, window_alone))
 
+    h = History("an Item held inside a window that the latest Catalog does not list",
+                "J1 lists a and is sealed with it at height 1. J2, listing a and b, is accepted at pull 2 and waits "
+                "with b, which J1, the latest Catalog, does not list. R, discovered at pull 3 and sealed at height 2, "
+                "keeps the journal key and opens the window over J2 and b. Height 2 defers both with the window; "
+                "from it J2 is queued and b held, and heights 3 and 4 report b with the window alone. At height 5, "
+                "the Epoch of settlement, J2 survives with the place it had and b keeps its own; both are eligible "
+                "for height 5. With domain_epoch_entries_max 1 from height 5, J2 is sealed there and b, deferred by "
+                "capacity with its place, at height 6.")
+    h.declare("G", "owner", G)
+    h.declare("R", "recovery", keeping)
+    h.epoch("G")
+    pa, pb = page(J + "a"), page(J + "b")
+    j1 = h.cat("J1", [pa], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J1"})
+    h.epoch()
+    j2 = h.cat("J2", [pa, pb], h.at(4 * MINUTE), "journal")
+    h.pull(5 * MINUTE, "G", {"journal": "J2"})
+    h.pull(10 * MINUTE, "R", {})
+    h.epoch("R")
+    start = h.last
+    h.epoch()
+    h.epoch()
+    h.epoch(sealed_at=start + 7 * DAY, domain_epoch_entries_max=1)
+    h.epoch(domain_epoch_entries_max=1)
+
+    def held_unlisted(v):
+        b_place = [3, 0, [i["url"] for i in j2.listed].index(J + "b")]
+        assert J + "b" not in [i["url"] for i in j1.listed] and v.urls(3)[J + "b"]["place"] == b_place
+        assert v.deferred(5) == {"J2": ["recovery_window"], J + "b": ["recovery_window"]}
+        for event in (6, 7):
+            assert v.deferred(event) == {J + "b": ["recovery_window"]} and v.held(event) == {}
+            assert [v.ids[q["catalog"]] for q in v.expected[event]["state"]["queue"]] == ["J2"]
+            assert v.urls(event)[J + "b"]["place"] == b_place and v.urls(event)[J + "b"]["ceiling"] is None
+        assert {v.ids[s["catalog"]]: s["outcome"] for s in v.expected[8]["settlement"]} == {"J2": "survivor"}
+        assert v.sealed(8) == ["J2"] and v.eligibility(8) == {"J2": (5, 9)}
+        assert v.deferred(8) == {J + "b": ["capacity"]} and v.expected[8]["deferred"][0]["place"] == b_place
+        assert v.collection(7, "journal")["waiting"] is None and v.last_accepted(8, "journal") == "J2"
+        assert v.sealed(9) == [J + "b"] and v.eligibility(9) == {J + "b": (6, 10)}
+
+    histories.append(run(h, held_unlisted))
+
     h = History("an Item admitted at a pull from the discovery takes its place at the next Epoch",
                 "J0 lists a and u and waits from pull 1, where u's Payload is unavailable. At pull 2 the Aggregator "
                 "discovers R, and J0 served again with u's Payload is an idempotent re-serve that admits u; no URL "
@@ -3211,10 +3252,11 @@ NOTE_COMMON = (
     "acceptance, a pending replacement a failed reversal had discarded included, and the sequence floor does not "
     "change, except that where none remains the domain returns to first contact with no floor. Every Declaration "
     "discovered at a pull that does not reduce authority and is still in the eligible sealing set is sealed in the "
-    "next Epoch, which ADR-0051 requires of a prompt Aggregator, unless the epoch event lists it in "
+    "next Epoch unless the epoch event lists it in "
     "`sealed_later`, which a history uses for a recovery rotation none of whose pulls' publications is sealed "
-    "before settlement; one that reduces authority may be sealed later, at or below the last Epoch the earliest "
-    "ceiling among its Publisher's waiting publications allows, and the fixture uses that to show the hold. The "
+    "before settlement; one that reduces authority is sealed in the Epoch whose event lists it, at or below the "
+    "last Epoch the earliest ceiling among its Publisher's waiting publications allows, and the fixture uses that "
+    "to show the hold. The "
     "eligible sealing set loses a competitor accepted inside a window, and its descendants, at the settlement of "
     "that window at a pull or an Epoch; a pending replacement that a reversal discards stays in it and is sealed "
     "at or below the reversal's Epoch, its hold ending at the Epoch that seals it. A `pull` "
@@ -3235,7 +3277,10 @@ NOTE_COMMON = (
     "not modelled (its read bound is carried by vectors/wist1/catalog-fields.json). record_seal_epochs is "
     "constant within each history, and max_inclusion_epochs too unless the history carries `inclusion_schedule`, "
     "rows [height, value] giving the max_inclusion_epochs of the map in force at every Epoch from that height, a "
-    "schedule the Log sealed in advance, which every Epoch's map follows. Every Canonical Host is its own capacity "
+    "schedule the Log sealed in advance, which every Epoch's map follows. Each event's map, Epoch 0's included, is "
+    "given directly as the map in force, which may differ from the Registry defaults: the histories do not model "
+    "the `parameter_change` acts by which a Log brings a map into force (WIST-4 section 5), and a replay takes "
+    "each map from its event. Every Canonical Host is its own capacity "
     "unit unless the "
     "history carries `suffix_list`, the rules of a Public Suffix List snapshot in force at every event, from which "
     "the Registrable Domain is derived as WIST-4 section 3.1 states. A history may carry `labels`, signed Label and "
@@ -3356,9 +3401,14 @@ NOTE_COMMON = (
     "of kind page whose Payload is not held at its turn is treated as one whose Payload fails (`payload`, "
     "WIST2-E03, no `payload_code`). Deferrals are listed in the order window, capacity, waiting Catalog, latest "
     "Catalog failing I4. The planned Entries replay as valid under "
-    "the rules of vectors/wist3/catalog-sealing.json, whose capacity check counts per Canonical Host. The fixture "
-    "asserts nothing about an Aggregator that seals later within the ceiling, nor about Consumers, which cannot "
-    "derive these rules from the Log. Keys derive from the stated test-only seeds.")
+    "the rules of vectors/wist3/catalog-sealing.json, whose capacity check counts per Canonical Host. Sealing a "
+    "Declaration after the next Epoch and leaving an eligible Entry unsealed are choices the protocol leaves an "
+    "Aggregator within the bounds of WIST-1 section 5.2 (Reaching the Log), WIST-3 section 3.3 (Declaration "
+    "sealing obligation, Capacity order) and the inclusion ceiling of WIST-4 section 5; an epoch event fixes "
+    "each such choice so that the results are determined, and an Aggregator that would choose otherwise, "
+    "sealing at the first eligible Epoch included, does not diverge by that but replays the history with the "
+    "choice given. The fixture asserts nothing about the results of choices it does not give, nor about "
+    "Consumers, which cannot derive these rules from the Log. Keys derive from the stated test-only seeds.")
 
 
 write_json(WIST3 / "catalog-waiting.json", waiting_vectors())
