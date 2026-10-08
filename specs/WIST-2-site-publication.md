@@ -71,6 +71,10 @@ A conforming Publisher serves, over HTTPS only:
 serves (WIST-1 §5.1); the implicit `default` Collection is served under the
 name `default`. The Label paths exist only for a Publisher that labels or
 disputes; a Publisher serving none of them is a Publisher with no Labels.
+Publishers SHOULD serve `publisher.json` with `Cache-Control: no-cache`
+and an `ETag`, as §3.1 asks of a Catalog: a stale Declaration served to a
+validator at first contact installs a superseded identity there (WIST-1
+§5.2, **First contact**).
 
 ### 3.1. Collection Files
 
@@ -562,7 +566,10 @@ is the requested Canonical Host: `catalog.json`, `tree/<hex>`,
 
    A domain is in **first contact** while no accepted Declaration of it
    remains (WIST-1 §5.2): first contact ends at the pull that accepts the
-   domain's first Declaration, sealed or not. A first-contact pull whose
+   domain's first Declaration, sealed or not. That Declaration is accepted
+   at any `seq` (WIST-1 §5.2, **First contact**): an Aggregator that first
+   meets a Publisher after its rotations admits the Declaration it serves
+   then. A first-contact pull whose
    `publisher.json` is missing, unreachable, malformed, or fails WIST-1
    §5.1 or §5.2 is `WIST2-E04`. Outside first contact, a pull stopped at
    its Declaration is one failed fetch, `WIST2-E01`: retried on §7's

@@ -830,8 +830,8 @@ The document is an Envelope whose inner object is `publisher` (schema:
 [`schemas/publisher.schema.json`](../schemas/publisher.schema.json)),
 containing: `wist_version`, `domain`, `seq` (a monotonic Declaration
 counter, starting at 0; see §5.2), `prev_declaration` (the hash of the
-Declaration this one replaces; REQUIRED when `seq` > 0, absent only for
-`seq` 0; see §5.2), optional `subdomain_scope` (hostnames the Publisher's
+Declaration this one replaces; present exactly when `seq` > 0; see
+§5.2), optional `subdomain_scope` (hostnames the Publisher's
 authority also covers), the `keys` array of signing entries (see **Key
 entries** below), optional `recovery_keys` (same item shape as `keys`; see
 §5.2), optional `next_keys` (a Key Set fingerprint committing to the next
@@ -1042,13 +1042,15 @@ Every Publisher Declaration carries a monotonic `seq`, starting at 0. A
 Declaration with `seq` > 0 MUST include `prev_declaration`,
 `"sha256:" + hex(SHA-256(JCS(publisher)))` computed over the *previous*
 Declaration's inner `publisher` object — the Declaration this one
-replaces. A validator MUST reject a Declaration under `WIST1-E08` when:
-`seq` is not greater than the highest it has already accepted for that
-domain; or `seq` > 0 and `prev_declaration` is absent; or
-`prev_declaration` does not equal the hash of an eligible predecessor's
-`publisher` object under the recovery-head rules below. Outside recovery,
-that predecessor is the current Declaration. This makes replay of a
-superseded Declaration detectable rather than silent.
+replaces; a Declaration with `seq` 0 MUST NOT include it. A validator
+MUST reject a Declaration under `WIST1-E08` when: `prev_declaration` is
+present with `seq` 0 or absent with `seq` > 0; or, outside first contact
+(below), `seq` is not greater than the highest it has already accepted for
+that domain, or `prev_declaration` does not equal the hash of an eligible
+predecessor's `publisher` object under the recovery-head rules below.
+Outside recovery, that predecessor is the current Declaration. This makes
+replay of a superseded Declaration detectable rather than silent at every
+validator that holds its successor.
 
 Re-serving the current Declaration is not that replay: a Declaration
 whose inner `publisher` object is byte-identical under JCS to the one
@@ -1060,9 +1062,43 @@ the system. A Declaration carrying an already-accepted `seq` with any other
 bytes is `WIST1-E08` as above — that is precisely the superseded-replay and
 same-`seq`-mutation case the rule exists to catch.
 
+**First contact.** A validator is in first contact with a domain while it
+holds no accepted Declaration of it: an Aggregator until the pull that
+accepts one (WIST-2 §5.1 step 0), a replaying Consumer until the domain's
+first `publisher_declaration` Entry applies, and either again where every
+accepted Declaration leaves (**An accepted Declaration that fails at
+sealing**, below). The Declaration it then accepts is the domain's
+**initial Declaration** at that validator, whatever its `seq`: its
+`prev_declaration` is compared with nothing, since the validator holds
+nothing it could name; its signer is resolved from its own `keys` alone
+(**Declaration signer resolution**); it is classified `initial`, opening
+no recovery window and no pending head; and its `seq` becomes the
+sequence floor, so every later Declaration is checked against it as
+against any current Declaration. A Publisher that rotated before a
+validator first met it serves a Declaration with `seq` > 0 and nothing
+of the chain behind it: a validator admitting only `seq` 0 could never
+admit that Publisher, and would gain nothing, since at first contact the
+binding of a Declaration to its domain rests on the HTTPS fetch alone, at
+`seq` 0 as at any other. Because the signer resolves from its own `keys`,
+a Declaration verifies at first contact only under a key it lists: a rotation signed by a key it drops, or
+a recovery rotation, whose signer `keys` cannot also list (**Unique
+keys**), is admissible only by a validator that holds its predecessor. A
+Publisher SHOULD follow such a Declaration with one signed by a key in
+its `keys`, so that a validator meeting the domain later can admit it.
+A validator at first contact cannot tell the current Declaration from a
+superseded one served again, by a stale cache or a replay of genuinely
+signed bytes: it installs what it is served, and then refuses the
+Publisher's later Declarations as naming an ineligible predecessor, which
+the Publisher cannot repair without breaking its chain at every other
+validator. A Publisher therefore keeps every host that serves its
+Declaration current (WIST-2 §3). A Consumer reads nothing of a domain
+before its initial Declaration from a Log: that Declaration's `seq` and
+`prev_declaration` are the Publisher's claims, verified by no validator.
+
 Key rotation is performed by publishing a Declaration whose envelope is
 signed by a key from the **previous** Key Set. The first Declaration a
-domain publishes (`seq` 0) is self-signed. A key is revoked by publishing
+domain publishes (`seq` 0) is self-signed, and so is every initial
+Declaration a validator accepts (**First contact**). A key is revoked by publishing
 a Declaration that omits it. A Declaration that lists the outgoing key
 with an `exp` beside the incoming key gives the two an overlap window in
 which Catalogs verify under either (§5.1); the outgoing key keeps its
@@ -1122,7 +1158,7 @@ would leave two defensible answers.
 within `keys`, within `recovery_keys` or within one Collection's `keys`,
 or in any two of `keys`, `recovery_keys` and the `keys` of each Collection,
 even when the repeated entries are identical. Reject such a Declaration
-with `WIST1-E08`, including a first (`seq` 0) Declaration. Because `kid` is
+with `WIST1-E08`, including an initial Declaration. Because `kid` is
 the key's thumbprint (§5.1), an identifier names at most one key and a key
 carries one identifier: for a Catalog, `sig.key_id` selects at most one
 entry within each authorized source, and §5.1 checks the selected
@@ -1138,8 +1174,8 @@ incoming Declaration's. Verify the Envelope against those candidate public
 keys using §4's signature profile, excluding unusable bindings under §4
 first. No usable named candidate is `WIST1-E02`; usable named candidates
 but no verifying signature is `WIST1-E01`. The same `kid` in both sources
-names the same key. The first Declaration instead resolves its signer only
-from its own `keys`. A Declaration signed by a key its predecessor lists in
+names the same key. An initial Declaration (**First contact**) instead
+resolves its signer only from its own `keys`. A Declaration signed by a key its predecessor lists in
 a Collection therefore authenticates only when it lists that key in its own
 `keys`, and is then a fresh identity; otherwise it is `WIST1-E02`.
 
@@ -1167,7 +1203,7 @@ member's signature; do not filter invalid signatures to select a winner.
 Distinct Envelopes in such a group invalidate the entire Epoch
 under `WIST1-E08`, even if each would be admissible alone, or they differ
 only in signatures over the same `publisher` object. This applies to initial
-(`seq` 0) Declarations and inside recovery windows as well as outside them.
+Declarations and inside recovery windows as well as outside them.
 Equal sequences for different domains do not conflict. Canonical leaf order
 MUST NOT select a winner or make another member an idempotent re-serve by
 installing the first member. A repeated Envelope does not waive any ordinary
@@ -1861,7 +1897,7 @@ WIST-2 §5's `WIST2-E03` remain required.
 | WIST1-E05 | Invalid canonicalization: the object is not valid JCS input (§4). For a number this means it denotes no IEEE-754 double — a magnitude beyond the finite range, or a form outside JSON's grammar. A finite double is always canonicalizable, fractional part included |
 | WIST1-E06 | A Catalog's `generated_at` beyond the clock plus the active signed allowance selected by §3.4; an Item's `observed_at` later than its Catalog's `generated_at` |
 | WIST1-E07 | Retired; not reused |
-| WIST1-E08 | Declaration sequence or key violation: `seq` not greater than the highest accepted, including superseded and pending Declarations, except an idempotent re-serve of the current Declaration's or the pending head's own `publisher` object (§5.2); a conflicting same-domain, same-sequence Declaration group in an Epoch (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2, including a fresh identity naming the current Declaration beside a pending head; an ordinary rotation that neither keeps nor installs the predecessor's `next_keys` commitment (§5.2); the named predecessor's nonempty `recovery_keys` changed without a signature from that set; a public key listed twice within or across `keys`, `recovery_keys` and the `keys` of any Collection (§5.2); a recovery Declaration whose window would end after `9999-12-31T23:59:59Z`, at its fetch or at the Epoch that seals it (§5.2) |
+| WIST1-E08 | Declaration sequence or key violation: outside first contact, `seq` not greater than the highest accepted, including superseded and pending Declarations, except an idempotent re-serve of the current Declaration's or the pending head's own `publisher` object (§5.2); a conflicting same-domain, same-sequence Declaration group in an Epoch (§5.2); `prev_declaration` present with `seq` 0 or absent with `seq` > 0, or outside first contact not naming an eligible predecessor under §5.2, including a fresh identity naming the current Declaration beside a pending head; an ordinary rotation that neither keeps nor installs the predecessor's `next_keys` commitment (§5.2); the named predecessor's nonempty `recovery_keys` changed without a signature from that set; a public key listed twice within or across `keys`, `recovery_keys` and the `keys` of any Collection (§5.2); a recovery Declaration whose window would end after `9999-12-31T23:59:59Z`, at its fetch or at the Epoch that seals it (§5.2) |
 | WIST1-E09 | Retired; not reused |
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce its Item's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | An Item of kind `page` whose `JCS(url)` exceeds `url_cap_bytes` octets |

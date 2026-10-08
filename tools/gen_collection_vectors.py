@@ -1304,6 +1304,38 @@ def state_pulls():
         "first contact: pulled under the fetched Declaration",
         {"G": ("owner", N_G)}, [], {"fetch_outcome": "new_octets", "fetched": "G",
                                     "expect": {"acceptance": "initial", "sources": ["G"]}}))
+    first_rotated = successor(N_G, collections=NARROW_2026)
+    cases.append(state_pull(
+        "first contact at seq 1: pulled under the fetched Declaration",
+        {"G": ("owner", N_G), "N": ("owner", first_rotated)}, [],
+        {"fetch_outcome": "new_octets", "fetched": "N",
+         "expect": {"acceptance": "initial", "sources": ["N"], "collections_pulled": ["journal", "default"]}}))
+    cases.append(state_pull(
+        "initial Declaration at seq 1 sealed: a rotation naming it is an ordinary rotation",
+        {"N": ("owner", first_rotated),
+         "N2": ("owner", successor(first_rotated, keys=[key("owner"), key("owner2")]))},
+        [(["N"], None)],
+        {"fetch_outcome": "new_octets", "fetched": "N2",
+         "expect": {"acceptance": "ordinary_rotation", "sources": ["N2"],
+                    "collections_pulled": ["journal", "default"]}}))
+    second_rotated = successor(first_rotated, contact="mailto:owner@example.com")
+    cases.append(state_pull(
+        "initial Declaration at seq 2 sets the floor: a lower seq naming it is WIST1-E08",
+        {"G": ("owner", N_G), "N1": ("owner", first_rotated), "N2": ("owner", second_rotated),
+         "F": ("owner", successor(second_rotated, seq=1))},
+        [(["N2"], None)],
+        {"fetch_outcome": "new_octets", "fetched": "F",
+         "expect": {"acceptance": "WIST1-E08", "proceeds": False, "disposition": "WIST2-E01", "noise": False}}))
+    for label, inner, signer, acceptance in (
+            ("first contact at seq 1 without prev_declaration", successor(N_G, prev_declaration=None), "owner",
+             "WIST1-E08"),
+            ("first contact at seq 0 carrying prev_declaration", successor(N_G, seq=0), "owner", "WIST1-E08"),
+            ("recovery rotation met at first contact", recovery, "recovery", "WIST1-E02")):
+        cases.append(state_pull(
+            f"{label}: " + ("WIST1-E02, " if acceptance == "WIST1-E02" else "") + "the pull stops with WIST2-E04",
+            {"G": ("owner", N_G), "F": (signer, inner)}, [],
+            {"fetch_outcome": "new_octets", "fetched": "F",
+             "expect": {"acceptance": acceptance, "proceeds": False, "disposition": "WIST2-E04", "noise": True}}))
     return cases
 
 

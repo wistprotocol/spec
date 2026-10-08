@@ -501,12 +501,15 @@ def classify(envelope, predecessor):
     return result
 
 
+def check_prev_presence(publisher):
+    if ("prev_declaration" in publisher) != (publisher["seq"] > 0):
+        raise Rejected("WIST1-E08", "prev_declaration presence does not match seq")
+
+
 def standalone(envelope, parameters):
     try:
         validate(envelope, parameters)
-        publisher = envelope["publisher"]
-        if publisher["seq"] != 0 or "prev_declaration" in publisher:
-            raise VerifierError("a standalone Declaration must be an initial one")
+        check_prev_presence(envelope["publisher"])
         resolve_signer(envelope, None)
         return "accepted"
     except Rejected as rejection:
@@ -631,15 +634,13 @@ def apply_group(state, labels, height, sealed_at, parameters, sizes=None):
     semantic_check(envelope, sizes or None)
     prior = state["current"]
     if state["current"] is None:
-        if incoming["seq"] != 0 or "prev_declaration" in incoming:
-            raise Rejected("WIST1-E08", "first Declaration is not seq 0")
+        check_prev_presence(incoming)
         resolve_signer(envelope, None)
         state["current"], state["floor"] = label, incoming["seq"]
         return {"kind": "initial", "declaration": label, "class": "initial"}
+    check_prev_presence(incoming)
     if incoming["seq"] <= state["floor"]:
         raise Rejected("WIST1-E08", "seq not above the accepted floor")
-    if "prev_declaration" not in incoming:
-        raise Rejected("WIST1-E08", "prev_declaration absent")
     eligible = [state["current"]]
     if state["pending"] is not None:
         eligible.append(state["pending"])

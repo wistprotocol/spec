@@ -172,10 +172,10 @@ class Replay:
             return
         validated(envelope, self.parameters, read_parameters)
         if self.current is None:
-            if incoming["seq"] != 0 or "prev_declaration" in incoming:
-                raise HistoryRejected("WIST1-E08", "the first Declaration of a history is not seq 0")
+            if (incoming["seq"] == 0) != ("prev_declaration" not in incoming):
+                raise HistoryRejected("WIST1-E08", "prev_declaration present with seq 0 or absent with seq above 0")
             authenticate(None, envelope)
-            self.current, self.floor = incoming, 0
+            self.current, self.floor = incoming, incoming["seq"]
             self.still("initial", incoming, transitions)
             return
         if incoming["seq"] <= self.floor:
