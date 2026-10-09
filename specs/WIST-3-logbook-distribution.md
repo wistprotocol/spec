@@ -1928,7 +1928,7 @@ The kinds, their key fields and their value fields are:
 | `record` | publisher, URL | the Item, its Collection name, the Catalog ID and `generated_at` of the Catalog it was proved against | §7 |
 | `removal` | publisher, URL | the Item ID, the Catalog ID and `generated_at` of the Catalog it was proved against | §7 |
 | `withdrawal` | Item ID | the Publisher's domain, sealing height | §6.2 |
-| `label` | labeler, subject, name | value or `null`, `asserted_at`, `expires_at` or `null`, `delta` or `null`, Label ID, sealing height | WIST-2 §3.3 |
+| `label` | labeler, subject, name | value or `null`, `asserted_at`, `retracted`, `expires_at` or `null`, `delta` or `null`, Label ID, sealing height | WIST-2 §3.3 |
 | `dispute` | Label ID, disputant | `reason` or `null`, `asserted_at`, sealing height | WIST-2 §3.3 |
 
 An `aggregator_key` tuple exists for every key admitted at or below
@@ -2063,14 +2063,21 @@ followers against the head's Key Set and holds no Epoch to fetch it from;
 verbatim, its sealing height and the activation height frozen at the first
 pending Declaration (WIST-1 §5.2), carried in full for the same reason,
 and present only while a pending head exists; a `label` tuple exists for
-each (labeler, subject, name) whose current Label at `tree_size` is not
-retracted and not expired at Epoch `epoch_number`'s `sealed_at` (WIST-2
-§3.3), carrying that Label's value or `null`, its `asserted_at`, its
-`expires_at` or `null`, its `delta` or `null`, its Label ID and its
-sealing height, so that a resuming Consumer orders a later Label of the
-same triple, drops the Label at its expiry, reads its binding and checks a
-later dispute naming the Label (WIST-2 §3.3) exactly as a replaying one
-does; a `dispute` tuple exists for each (Label ID, disputant) with a
+each (labeler, subject, name) with a current Label at `tree_size`
+(WIST-2 §3.3), a current Label whose `retracted` is `true` or that is
+expired at Epoch `epoch_number`'s `sealed_at` included, carrying that
+Label's value or `null`, its `asserted_at`, its `retracted` as a JSON
+boolean (`false` where the Label omits the member), its `expires_at` or
+`null`, its `delta` or `null`, its Label ID and its sealing height, so
+that a resuming Consumer orders a later Label of the same triple, drops
+the Label at its expiry, reads its binding and checks a later dispute
+naming the Label (WIST-2 §3.3) exactly as a replaying one does. The
+retracted or expired current Label is what a Label sealed above
+`tree_size` with an earlier `asserted_at` is compared with: it stays
+sealed and applies nothing on replay (WIST-2 §3.3), and a state file
+that omitted the tuple would let it become current on the resumed path
+(§8). Only `tier1/labels.parquet` (above) leaves a retracted or expired
+Label out; a `dispute` tuple exists for each (Label ID, disputant) with a
 sealed dispute, carrying the current dispute's `reason` or `null`, its
 `asserted_at` and its sealing height; a `withdrawal` tuple exists for
 every Item ID a withdrawal that meets its contract names, with the height
@@ -2133,9 +2140,10 @@ above, treats its coverage as partial.
    exactly as a replaying Consumer validates against state it derived
    itself: a signature under a key the state does not admit, a
    `publisher_item` Entry naming a Catalog that is not a latest Catalog
-   the state holds, an Item that is its URL's record, a Label older than
-   the one the state holds for its triple, all fail as they would on full
-   replay. A `recovery_window` tuple makes its head an
+   the state holds, an Item that is its URL's record, all fail as they
+   would on full replay, and a Label older than the one the state holds
+   for its triple, retracted or expired included, is sealed and applies
+   nothing as on full replay (WIST-2 §3.3). A `recovery_window` tuple makes its head an
    eligible predecessor beside the current Declaration, and the Consumer
    settles it at the Epoch WIST-1 §5.2 selects, exactly as that section
    directs: the head becomes current and the `declaration`

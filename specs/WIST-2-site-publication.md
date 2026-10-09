@@ -431,10 +431,12 @@ at an Epoch whose `sealed_at` is at or after that instant — compared as
 instants, the Publisher timestamp converted exactly — and it stays the
 current Label, so an earlier unexpired Label does not return; a Labeler
 that wants the subject labeled again asserts anew. Consumers read
-Labels through their Snapshot tuples and `tier1/labels.parquet` (WIST-3
-§7), which carry the current, unretracted, unexpired Labels with their
-`expires_at` and `delta`, and apply only the Labelers they subscribe to
-(WIST-4 §6).
+Labels through their Snapshot tuples, which carry every current Label,
+retracted and expired ones included since a later Label of the triple
+is ordered against it, with its `retracted`, `expires_at` and `delta`,
+and through `tier1/labels.parquet`, which carries only the current
+Labels that are unretracted and unexpired (WIST-3 §7); they apply only
+the Labelers they subscribe to (WIST-4 §6).
 
 **Label definitions.** A Labeler SHOULD publish, for every `name` it
 uses, a **label definition**: an Envelope whose inner object is

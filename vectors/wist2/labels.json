@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration, every case validated at clock under clock_skew_seconds: accepted means the Label validates and its label_id seals; fields, clock and self are WIST2-E06, clock being an asserted_at beyond the inclusive allowance clock + clock_skew_seconds (WIST-1 section 3.4's rule read over asserted_at: the validator's clock before sealing, the committing Epoch's sealed_at once sealed); signature and binding keep WIST-1 codes. The key check is WIST-1 section 5.1's binding check for a Catalog over `keys` alone, with asserted_at in the place of generated_at: binding (WIST1-E02) where no usable entry of `keys` named by sig.key_id has a window holding asserted_at, a Collection's keys taking no part; signature (WIST1-E01) where none of those verifies. A case naming `declaration` is judged under that entry of `declarations` instead of the example Declaration. Every asserted_at a key window is compared with is a whole second. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, null where the current Label is retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a Label's delta, an Item ID, against the Item the subject URL's record carries (record_item, null where no record stands): a bound Label applies only while the record carries that Item. materialized_binding_cases give the records of one subject URL held by two Publishers, example.com, an ancestor of the URL's host, and zeta.example, which is not, each with its Item ID and whether a withdrawal names it, and whether a publisher_declaration Entry of the host is sealed (host_declared): the Label reads the materialized record that WIST-3 section 7's One URL, one Publisher rule selects (materialized, null where it selects none), and applies only while that record carries the Item delta names, whatever the other record carries. A value is an integer by the number it denotes (WIST-1 section 4): a case naming envelope_json is judged over that JSON text, which denotes the same value as envelope in another spelling, and a value spelled with a zero fraction, an exponent or a negative zero has the Label ID of the plain spelling.",
+  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration, every case validated at clock under clock_skew_seconds: accepted means the Label validates and its label_id seals; fields, clock and self are WIST2-E06, clock being an asserted_at beyond the inclusive allowance clock + clock_skew_seconds (WIST-1 section 3.4's rule read over asserted_at: the validator's clock before sealing, the committing Epoch's sealed_at once sealed); signature and binding keep WIST-1 codes. The key check is WIST-1 section 5.1's binding check for a Catalog over `keys` alone, with asserted_at in the place of generated_at: binding (WIST1-E02) where no usable entry of `keys` named by sig.key_id has a window holding asserted_at, a Collection's keys taking no part; signature (WIST1-E01) where none of those verifies. A case naming `declaration` is judged under that entry of `declarations` instead of the example Declaration. Every asserted_at a key window is compared with is a whole second. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, retracted and expired current Labels included (retracted is the tuple's boolean member after asserted_at); sealed_at is the Snapshot Epoch's instant. resume_cases give the sealed Labels of one (labeler, subject, name) at or below snapshot_height, the Snapshot Epoch's instant snapshot_sealed_at, the tuple the state carries at that Snapshot (state_tuple, the current Label's), the Labels of the same triple sealed above snapshot_height (later), and the Label current at the Epoch whose instant is probe_sealed_at (current), the same whether sealed and later are replayed from genesis or state_tuple alone is resumed and later walked by the WIST-2 section 3.3 rule; applies is whether that Label is neither retracted nor expired at probe_sealed_at. binding_cases read a Label's delta, an Item ID, against the Item the subject URL's record carries (record_item, null where no record stands): a bound Label applies only while the record carries that Item. materialized_binding_cases give the records of one subject URL held by two Publishers, example.com, an ancestor of the URL's host, and zeta.example, which is not, each with its Item ID and whether a withdrawal names it, and whether a publisher_declaration Entry of the host is sealed (host_declared): the Label reads the materialized record that WIST-3 section 7's One URL, one Publisher rule selects (materialized, null where it selects none), and applies only while that record carries the Item delta names, whatever the other record carries. A value is an integer by the number it denotes (WIST-1 section 4): a case naming envelope_json is judged over that JSON text, which denotes the same value as envelope in another spelling, and a value spelled with a zero fraction, an exponent or a negative zero has the Label ID of the plain spelling.",
   "declaration": {
     "publisher": {
       "wist_version": "1.0.0",
@@ -1802,6 +1802,7 @@
         "wist:spam",
         null,
         "2026-08-02T12:30:00Z",
+        false,
         null,
         null,
         "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
@@ -1847,6 +1848,7 @@
         "wist:spam",
         700000,
         "2026-08-02T12:30:00Z",
+        false,
         null,
         null,
         "sha256:22b515903db37546a690bdb29b77070ddb7c7c65c94040dd49fd833d866e2c1e",
@@ -1892,6 +1894,7 @@
         "wist:spam",
         500000,
         "2026-08-02T12:30:00Z",
+        false,
         null,
         null,
         "sha256:1b92ccff938ae27c715ba4dbe4ce4199d308d3a3f6fc937342b777d2cd52b331",
@@ -1899,7 +1902,7 @@
       ]
     },
     {
-      "name": "a later retraction leaves no tuple",
+      "name": "a later retraction is the tuple, retracted",
       "sealed": [
         {
           "label": {
@@ -1929,7 +1932,19 @@
       ],
       "sealed_at": "2026-08-03T12:00:00Z",
       "current": "sha256:ff753b9ae3aaf50b3b7d7632f9ffd3433721c59752b9249f4d63d315337e769e",
-      "state_tuple": null
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        null,
+        "2026-08-03T09:00:00Z",
+        true,
+        null,
+        null,
+        "sha256:ff753b9ae3aaf50b3b7d7632f9ffd3433721c59752b9249f4d63d315337e769e",
+        2
+      ]
     },
     {
       "name": "a retraction older than the assertion applies nothing",
@@ -1969,6 +1984,7 @@
         "wist:spam",
         null,
         "2026-08-03T09:00:00Z",
+        false,
         null,
         null,
         "sha256:2ee1806f58e29dfe0ac69f0039682e2bc338108afe8701fecba692274fa53812",
@@ -2012,6 +2028,7 @@
         "wist:spam",
         null,
         "2026-08-02T14:30:01+02:00",
+        false,
         null,
         null,
         "sha256:c2104778c30c216aa633ff7e1d1704ec91b6e8a36884f4ea5165a4604de660bb",
@@ -2044,6 +2061,7 @@
         "wist:spam",
         null,
         "2026-08-02T12:30:00Z",
+        false,
         "2026-08-03T12:00:01Z",
         null,
         "sha256:628c132b167917e0dd8d318952b17df19c4428ad51b99986f3f6326f7f8bd938",
@@ -2051,7 +2069,7 @@
       ]
     },
     {
-      "name": "a Label expired at the Snapshot's Epoch leaves no tuple",
+      "name": "a Label expired at the Snapshot's Epoch keeps its tuple",
       "sealed": [
         {
           "label": {
@@ -2069,7 +2087,19 @@
       ],
       "sealed_at": "2026-08-03T12:00:00Z",
       "current": "sha256:3ef21e9759a32251bc97a75a27ab17c00e6e1753743af8dc75634a4074c02817",
-      "state_tuple": null
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        null,
+        "2026-08-02T12:30:00Z",
+        false,
+        "2026-08-03T12:00:00Z",
+        null,
+        "sha256:3ef21e9759a32251bc97a75a27ab17c00e6e1753743af8dc75634a4074c02817",
+        1
+      ]
     },
     {
       "name": "an expired Label is still the current one",
@@ -2102,7 +2132,19 @@
       ],
       "sealed_at": "2026-08-03T12:00:00Z",
       "current": "sha256:3c4ca3514c43af7ed436d72efd7d9bd0f775acc8008919c3ed4d105ea0832be6",
-      "state_tuple": null
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        null,
+        "2026-08-02T12:30:00Z",
+        false,
+        "2026-08-03T00:00:00Z",
+        null,
+        "sha256:3c4ca3514c43af7ed436d72efd7d9bd0f775acc8008919c3ed4d105ea0832be6",
+        1
+      ]
     },
     {
       "name": "a bound Label carries its Item ID",
@@ -2130,11 +2172,356 @@
         "wist:spam",
         null,
         "2026-08-02T12:30:00Z",
+        false,
         null,
         "sha256:d807cca1e53ef2260d01a6405d2519d2967b437058320bc1b42113b894c8a006",
         "sha256:f1403b881bd201586748f064350ae13a695f1d751a766a6625726a76253402da",
         1
       ]
+    }
+  ],
+  "resume_cases": [
+    {
+      "name": "a retraction held at the Snapshot outranks an older Label sealed above it",
+      "why": "A Label sealed above the Snapshot with an asserted_at older than the retracted current Label is not current on the resumed path, as on full replay.",
+      "sealed": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z"
+          },
+          "label_id": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "height": 1,
+          "entry_index": 0
+        },
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-03T09:00:00Z",
+            "retracted": true
+          },
+          "label_id": "sha256:ff753b9ae3aaf50b3b7d7632f9ffd3433721c59752b9249f4d63d315337e769e",
+          "height": 2,
+          "entry_index": 0
+        }
+      ],
+      "snapshot_height": 2,
+      "snapshot_sealed_at": "2026-08-03T12:00:00Z",
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        null,
+        "2026-08-03T09:00:00Z",
+        true,
+        null,
+        null,
+        "sha256:ff753b9ae3aaf50b3b7d7632f9ffd3433721c59752b9249f4d63d315337e769e",
+        2
+      ],
+      "later": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T18:00:00Z"
+          },
+          "label_id": "sha256:99f62c2692df635fe1eb779e298204df7ae8b2300a749a415defcb3ec0c5eafa",
+          "height": 3,
+          "entry_index": 0
+        }
+      ],
+      "probe_sealed_at": "2026-08-04T12:00:00Z",
+      "current": "sha256:ff753b9ae3aaf50b3b7d7632f9ffd3433721c59752b9249f4d63d315337e769e",
+      "applies": false
+    },
+    {
+      "name": "an expired Label held at the Snapshot outranks an older Label sealed above it",
+      "why": "A Label sealed above the Snapshot with an asserted_at older than the current Label expired at the Snapshot's Epoch is not current on the resumed path, as on full replay.",
+      "sealed": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T18:00:00Z",
+            "expires_at": "2026-08-03T12:00:00Z"
+          },
+          "label_id": "sha256:82ad40a00a76a76afd3a9e09743b37af195b5704aebbf3bba4a0c4bc58ba4be2",
+          "height": 1,
+          "entry_index": 0
+        }
+      ],
+      "snapshot_height": 1,
+      "snapshot_sealed_at": "2026-08-03T12:00:00Z",
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        null,
+        "2026-08-02T18:00:00Z",
+        false,
+        "2026-08-03T12:00:00Z",
+        null,
+        "sha256:82ad40a00a76a76afd3a9e09743b37af195b5704aebbf3bba4a0c4bc58ba4be2",
+        1
+      ],
+      "later": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z"
+          },
+          "label_id": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "height": 2,
+          "entry_index": 0
+        }
+      ],
+      "probe_sealed_at": "2026-08-04T12:00:00Z",
+      "current": "sha256:82ad40a00a76a76afd3a9e09743b37af195b5704aebbf3bba4a0c4bc58ba4be2",
+      "applies": false
+    },
+    {
+      "name": "a newer Label sealed above a held retraction becomes current",
+      "why": "A Label sealed above the Snapshot with an asserted_at later than the retracted current Label replaces it and applies.",
+      "sealed": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z"
+          },
+          "label_id": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "height": 1,
+          "entry_index": 0
+        },
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-03T09:00:00Z",
+            "retracted": true
+          },
+          "label_id": "sha256:ff753b9ae3aaf50b3b7d7632f9ffd3433721c59752b9249f4d63d315337e769e",
+          "height": 2,
+          "entry_index": 0
+        }
+      ],
+      "snapshot_height": 2,
+      "snapshot_sealed_at": "2026-08-03T12:00:00Z",
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        null,
+        "2026-08-03T09:00:00Z",
+        true,
+        null,
+        null,
+        "sha256:ff753b9ae3aaf50b3b7d7632f9ffd3433721c59752b9249f4d63d315337e769e",
+        2
+      ],
+      "later": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-04T09:00:00Z"
+          },
+          "label_id": "sha256:7f07f5dbf43c458ebd2be4680538c99a139b22b4d3cb9ecc81c2618b408999e2",
+          "height": 3,
+          "entry_index": 0
+        }
+      ],
+      "probe_sealed_at": "2026-08-04T12:00:00Z",
+      "current": "sha256:7f07f5dbf43c458ebd2be4680538c99a139b22b4d3cb9ecc81c2618b408999e2",
+      "applies": true
+    },
+    {
+      "name": "an older retraction sealed above a held Label applies nothing",
+      "why": "A retraction sealed above the Snapshot with an asserted_at older than the held current Label leaves that Label current and applying.",
+      "sealed": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-03T09:00:00Z"
+          },
+          "label_id": "sha256:2ee1806f58e29dfe0ac69f0039682e2bc338108afe8701fecba692274fa53812",
+          "height": 1,
+          "entry_index": 0
+        }
+      ],
+      "snapshot_height": 1,
+      "snapshot_sealed_at": "2026-08-03T12:00:00Z",
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        null,
+        "2026-08-03T09:00:00Z",
+        false,
+        null,
+        null,
+        "sha256:2ee1806f58e29dfe0ac69f0039682e2bc338108afe8701fecba692274fa53812",
+        1
+      ],
+      "later": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z",
+            "retracted": true
+          },
+          "label_id": "sha256:fac5df714fe30efcc4f942be2ddb9edf64780c566f476e56295a931c0093258a",
+          "height": 2,
+          "entry_index": 0
+        }
+      ],
+      "probe_sealed_at": "2026-08-04T12:00:00Z",
+      "current": "sha256:2ee1806f58e29dfe0ac69f0039682e2bc338108afe8701fecba692274fa53812",
+      "applies": true
+    },
+    {
+      "name": "equal instants across the Snapshot break by Epoch number",
+      "why": "A Label sealed above the Snapshot whose asserted_at, written with an offset, is the same instant as the held retraction's replaces it by its later Log position.",
+      "sealed": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z"
+          },
+          "label_id": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "height": 1,
+          "entry_index": 0
+        },
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-03T09:00:00Z",
+            "retracted": true
+          },
+          "label_id": "sha256:ff753b9ae3aaf50b3b7d7632f9ffd3433721c59752b9249f4d63d315337e769e",
+          "height": 2,
+          "entry_index": 0
+        }
+      ],
+      "snapshot_height": 2,
+      "snapshot_sealed_at": "2026-08-03T12:00:00Z",
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        null,
+        "2026-08-03T09:00:00Z",
+        true,
+        null,
+        null,
+        "sha256:ff753b9ae3aaf50b3b7d7632f9ffd3433721c59752b9249f4d63d315337e769e",
+        2
+      ],
+      "later": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-03T11:00:00+02:00"
+          },
+          "label_id": "sha256:de41294d5899ac75c2a14cd7fe2f5234ad4f02e77407dfc2a53a94eb35081707",
+          "height": 3,
+          "entry_index": 0
+        }
+      ],
+      "probe_sealed_at": "2026-08-04T12:00:00Z",
+      "current": "sha256:de41294d5899ac75c2a14cd7fe2f5234ad4f02e77407dfc2a53a94eb35081707",
+      "applies": true
+    },
+    {
+      "name": "a newer Label sealed above a held expired Label becomes current",
+      "why": "A Label without expires_at sealed above the Snapshot with an asserted_at later than the expired current Label replaces it and applies.",
+      "sealed": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z",
+            "expires_at": "2026-08-03T00:00:00Z"
+          },
+          "label_id": "sha256:3c4ca3514c43af7ed436d72efd7d9bd0f775acc8008919c3ed4d105ea0832be6",
+          "height": 1,
+          "entry_index": 0
+        }
+      ],
+      "snapshot_height": 1,
+      "snapshot_sealed_at": "2026-08-03T12:00:00Z",
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        null,
+        "2026-08-02T12:30:00Z",
+        false,
+        "2026-08-03T00:00:00Z",
+        null,
+        "sha256:3c4ca3514c43af7ed436d72efd7d9bd0f775acc8008919c3ed4d105ea0832be6",
+        1
+      ],
+      "later": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-04T09:00:00Z"
+          },
+          "label_id": "sha256:7f07f5dbf43c458ebd2be4680538c99a139b22b4d3cb9ecc81c2618b408999e2",
+          "height": 2,
+          "entry_index": 0
+        }
+      ],
+      "probe_sealed_at": "2026-08-04T12:00:00Z",
+      "current": "sha256:7f07f5dbf43c458ebd2be4680538c99a139b22b4d3cb9ecc81c2618b408999e2",
+      "applies": true
     }
   ],
   "binding_cases": [

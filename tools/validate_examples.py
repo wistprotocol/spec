@@ -2813,8 +2813,8 @@ NON_CONTENT_DIGESTS = {
     ("dispute.schema.json", "properties/dispute/properties/log"): "a Log's `log_id`, a Canonical Host, not a content digest",
     ("label-definition.schema.json", "properties/definition/properties/labeler"): "the signed Canonical Host of the Labeler, not a content digest",
     ("label-definition.schema.json", "properties/definition/properties/name"): "a Label Registry name, `<prefix>:<term>` (WIST-4 §6), not a content digest",
-    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[7]/oneOf[0]"): "the Item ID a Label binds to (WIST-2 §3.3): SHA-256 over an Item that carries only a salted commitment",
-    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[8]"): "the current Label's ID (WIST-2 §3.3): SHA-256 over a Label, which carries a subject, a name and an integer, no page content",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[8]/oneOf[0]"): "the Item ID a Label binds to (WIST-2 §3.3): SHA-256 over an Item that carries only a salted commitment",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[9]"): "the current Label's ID (WIST-2 §3.3): SHA-256 over a Label, which carries a subject, a name and an integer, no page content",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[9]/prefixItems[1]"): "the disputed Label's ID (WIST-2 §3.3): SHA-256 over a Label, no page content",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[9]/prefixItems[2]"): "a Canonical Host identifying the disputant, not a content digest",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[3]"): "a Label Registry name, `<prefix>:<term>` (WIST-4 §6), not a content digest",
@@ -6187,7 +6187,7 @@ TIMESTAMP_FIELDS = {
         "Publisher-supplied: the instant from which the Label applies nothing (WIST-2 §3.3), compared "
         "to `asserted_at` at validation and to an Epoch's `sealed_at` only when the Label is applied, "
         "as an instant the Publisher chose and the Epoch does not anchor",
-    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[6]/oneOf[0]"):
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[7]/oneOf[0]"):
         "the Label's own `expires_at`, carried verbatim so a resuming Consumer drops the Label at the "
         "same instant a replaying one does (WIST-3 §7); a Publisher timestamp the Epoch does not anchor",
     ("dispute.schema.json", "properties/dispute/properties/asserted_at"):
@@ -6283,7 +6283,7 @@ def _timestamp_anchoring():
             publisher_field = (schema_name in ("item.schema.json", "emission.schema.json", "publisher.schema.json",
                                                "label.schema.json", "dispute.schema.json",
                                                "label-definition.schema.json")
-                               or spath.endswith(("oneOf[6]/prefixItems[5]", "oneOf[6]/prefixItems[6]/oneOf[0]",
+                               or spath.endswith(("oneOf[6]/prefixItems[5]", "oneOf[6]/prefixItems[7]/oneOf[0]",
                                                   "oneOf[9]/prefixItems[4]")))
             assert pattern == (PUBLISHER_TIMESTAMP_PATTERN if publisher_field else None), (
                 f"{schema_name}: {spath} has an unexpected unanchored timestamp pattern")
@@ -9523,6 +9523,29 @@ def _materialized_binding(case, any_record=False):
     chosen = _materialization_preference(_url_host(case["subject"]), case["host_declared"], list(live))
     return chosen, chosen is not None and live[chosen] == case["delta"]
 
+def _label_rank(sealed):
+    return (publisher_instant(sealed["label"]["asserted_at"]), sealed["height"], sealed["entry_index"])
+
+def _current_label(sealed):
+    return max(sealed, key=_label_rank) if sealed else None
+
+def _label_state_tuple(sealed):
+    inner = sealed["label"]
+    return ["label", inner["labeler"], inner["subject"], inner["name"], inner.get("value"),
+            inner["asserted_at"], inner.get("retracted", False), inner.get("expires_at"), inner.get("delta"),
+            sealed["label_id"], sealed["height"]]
+
+def _resumed_current(held, later):
+    current = held
+    rank = (publisher_instant(held[5]), held[10], -1) if held is not None else None
+    for sealed in later:
+        if rank is None or _label_rank(sealed) > rank:
+            current, rank = _label_state_tuple(sealed), _label_rank(sealed)
+    return current
+
+def _label_applies(row, sealed_at):
+    return row[6] is False and (row[7] is None or publisher_instant(row[7]) > log_seconds(sealed_at))
+
 def _label_vectors():
     """WIST-2 §3.3 and WIST-4 §6: every case's disposition is recomputed over
     the example Declaration, the accepted Label IDs reproduce, and the
@@ -9575,22 +9598,21 @@ def _label_vectors():
     state = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text()))
     envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
     for case in v["current_cases"]:
-        ranked = max(case["sealed"], key=lambda s: (publisher_instant(s["label"]["asserted_at"]),
-                                                     s["height"], s["entry_index"]))
+        ranked = _current_label(case["sealed"])
         assert ranked["label_id"] == case["current"], case["name"]
-        inner = ranked["label"]
-        expired = "expires_at" in inner and publisher_instant(inner["expires_at"]) <= log_seconds(case["sealed_at"])
-        expected = None if inner.get("retracted") or expired else [
-            "label", inner["labeler"], inner["subject"], inner["name"], inner.get("value"),
-            inner["asserted_at"], inner.get("expires_at"), inner.get("delta"), ranked["label_id"],
-            ranked["height"]]
+        expected = _label_state_tuple(ranked)
         assert case["state_tuple"] == expected, case["name"]
-        if expected is not None:
-            envelope["state"]["entries"] = [expected]
-            state.validate(envelope)
-    assert any(c["state_tuple"] is None and not c["sealed"][0]["label"].get("retracted")
-               and "expires_at" in c["sealed"][0]["label"] for c in v["current_cases"]), "no expiry drops a tuple"
-    assert any(c["state_tuple"] is not None and c["state_tuple"][7] is not None for c in v["current_cases"])
+        envelope["state"]["entries"] = [expected]
+        state.validate(envelope)
+    assert any(c["state_tuple"][6] is True and c["sealed"][-1]["label"].get("retracted") is True
+               for c in v["current_cases"]), "no retracted current Label keeps its tuple"
+    assert any(c["state_tuple"][7] is not None
+               and publisher_instant(c["state_tuple"][7]) == log_seconds(c["sealed_at"])
+               for c in v["current_cases"]), "no Label expired at sealed_at keeps its tuple"
+    assert any(c["state_tuple"][7] is not None
+               and publisher_instant(c["state_tuple"][7]) < log_seconds(c["sealed_at"]) and len(c["sealed"]) > 1
+               for c in v["current_cases"]), "no expired current Label outranks an unexpired one"
+    assert any(c["state_tuple"][8] is not None for c in v["current_cases"])
     for case in v["binding_cases"]:
         applies = case["record_item"] is not None and (case["delta"] is None or case["delta"] == case["record_item"])
         assert applies == case["applies"], case["name"]
@@ -9603,7 +9625,6 @@ def _label_vectors():
     outcomes_expiry = {c["expected"] for c in v["cases"] if "expires_at" in c["envelope"]["label"]}
     assert outcomes_expiry == {"accepted", "fields"}, "expiry cases do not cover both dispositions"
     assert {c["expected"] for c in v["cases"] if "delta" in c["envelope"]["label"]} == {"accepted", "fields"}
-    assert any(c["state_tuple"] is None for c in v["current_cases"])
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
     assert "the sealed Label with the greatest `asserted_at`, and among equal instants the one later in Log order" in prose
     assert "it is rejected under `WIST2-E06` and never sealed" in prose
@@ -9651,6 +9672,60 @@ def _label_vectors_twin():
     reversed_order = min(tie["sealed"], key=lambda s: (s["height"], s["entry_index"]))
     assert reversed_order["label_id"] != tie["current"]
 check("negative:wist2-labels", _label_vectors_twin)
+
+def _label_resume_vectors():
+    v = _label_vector()
+    state = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text()))
+    envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+    for case in v["resume_cases"]:
+        name = case["name"]
+        triples = {(s["label"]["labeler"], s["label"]["subject"], s["label"]["name"])
+                   for s in case["sealed"] + case["later"]}
+        assert len(triples) == 1, name
+        for sealed in case["sealed"] + case["later"]:
+            assert sealed["label_id"] == \
+                "sha256:" + hashlib.sha256(rfc8785.dumps(sealed["label"])).hexdigest(), name
+        assert all(s["height"] <= case["snapshot_height"] for s in case["sealed"]), name
+        assert case["later"] and all(s["height"] > case["snapshot_height"] for s in case["later"]), name
+        assert log_seconds(case["probe_sealed_at"]) > log_seconds(case["snapshot_sealed_at"]), name
+        held = _label_state_tuple(_current_label(case["sealed"]))
+        assert case["state_tuple"] == held, name
+        envelope["state"]["entries"] = [held]
+        state.validate(envelope)
+        replayed = _current_label(case["sealed"] + case["later"])
+        resumed = _resumed_current(case["state_tuple"], case["later"])
+        assert replayed["label_id"] == resumed[9] == case["current"], name
+        assert _label_applies(resumed, case["probe_sealed_at"]) == case["applies"], name
+    def held_expired(c):
+        t = c["state_tuple"]
+        return t[7] is not None and publisher_instant(t[7]) <= log_seconds(c["snapshot_sealed_at"])
+    def older_above(c):
+        return any(publisher_instant(s["label"]["asserted_at"]) < publisher_instant(c["state_tuple"][5])
+                   for s in c["later"])
+    cases = v["resume_cases"]
+    assert any(c["state_tuple"][6] and older_above(c) and c["current"] == c["state_tuple"][9]
+               and not c["applies"] for c in cases), "no held retraction outranks an older Label above"
+    assert any(held_expired(c) and older_above(c) and c["current"] == c["state_tuple"][9]
+               and not c["applies"] for c in cases), "no held expired Label outranks an older Label above"
+    assert any(c["state_tuple"][6] and c["applies"] and any(
+        s["label_id"] == c["current"]
+        and publisher_instant(s["label"]["asserted_at"]) > publisher_instant(c["state_tuple"][5])
+        for s in c["later"]) for c in cases), "no later-asserted Label above a held retraction"
+    assert any(any(s["label_id"] == c["current"]
+                   and publisher_instant(s["label"]["asserted_at"]) == publisher_instant(c["state_tuple"][5])
+                   for s in c["later"]) for c in cases), "no equal-instant tie across the Snapshot"
+check("vectors:wist2-labels-resume", _label_resume_vectors)
+
+def _label_resume_vectors_twin():
+    v = _label_vector()
+    differs = False
+    for case in v["resume_cases"]:
+        t = case["state_tuple"]
+        dropped = t[6] or (t[7] is not None and publisher_instant(t[7]) <= log_seconds(case["snapshot_sealed_at"]))
+        resumed = _resumed_current(None if dropped else t, case["later"])
+        differs |= resumed is None or resumed[9] != case["current"]
+    assert differs, "a resume that drops retracted and expired current Labels passes"
+check("negative:wist2-labels-resume", _label_resume_vectors_twin)
 check("vectors:wist2-declaration-refresh", _declaration_refresh_vectors)
 
 

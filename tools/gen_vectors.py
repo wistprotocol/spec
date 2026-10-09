@@ -4564,16 +4564,37 @@ def label_vectors():
     def label_tuple(chosen):
         inner = chosen["label"]
         return ["label", inner["labeler"], inner["subject"], inner["name"], inner.get("value"),
-                inner["asserted_at"], inner.get("expires_at"), inner.get("delta"), chosen["label_id"],
-                chosen["height"]]
+                inner["asserted_at"], bool(inner.get("retracted")), inner.get("expires_at"), inner.get("delta"),
+                chosen["label_id"], chosen["height"]]
+
+    def rank(item):
+        return (publisher_instant_s(item["label"]["asserted_at"]), item["height"], item["entry_index"])
 
     def current_case(name, items, winner, sealed_at="2026-08-03T12:00:00Z"):
         chosen = items[winner]
-        expired = (chosen["label"].get("expires_at") is not None
-                   and publisher_instant_s(chosen["label"]["expires_at"]) <= log_instant_s(sealed_at))
-        tuple_ = None if chosen["label"].get("retracted") or expired else label_tuple(chosen)
+        assert max(items, key=rank) is chosen, name
         return {"name": name, "sealed": items, "sealed_at": sealed_at, "current": chosen["label_id"],
-                "state_tuple": tuple_}
+                "state_tuple": label_tuple(chosen)}
+
+    def resume_case(name, why, before, snapshot_sealed_at, later, probe_sealed_at):
+        snapshot_height = max(item["height"] for item in before)
+        assert all(item["height"] > snapshot_height for item in later), name
+        assert log_instant_s(probe_sealed_at) > log_instant_s(snapshot_sealed_at), name
+        state_tuple = label_tuple(max(before, key=rank))
+        replayed = max(before + later, key=rank)
+        resumed_key = (publisher_instant_s(state_tuple[5]), state_tuple[10])
+        resumed_id = state_tuple[9]
+        for item in later:
+            if rank(item)[:len(resumed_key)] > resumed_key:
+                resumed_key, resumed_id = rank(item), item["label_id"]
+        assert resumed_id == replayed["label_id"], name
+        inner = replayed["label"]
+        expired = (inner.get("expires_at") is not None
+                   and publisher_instant_s(inner["expires_at"]) <= log_instant_s(probe_sealed_at))
+        return {"name": name, "why": why, "sealed": before, "snapshot_height": snapshot_height,
+                "snapshot_sealed_at": snapshot_sealed_at, "state_tuple": state_tuple, "later": later,
+                "probe_sealed_at": probe_sealed_at, "current": replayed["label_id"],
+                "applies": not inner.get("retracted") and not expired}
 
     current = [
         current_case("greatest asserted_at wins whatever sealed later",
@@ -4582,7 +4603,7 @@ def label_vectors():
                      [sealed("2026-08-02T12:30:00Z", 1, 0, 500000), sealed("2026-08-02T12:30:00Z", 2, 0, 700000)], 1),
         current_case("equal instants in one Epoch break by Entry index",
                      [sealed("2026-08-02T12:30:00Z", 3, 4, 500000), sealed("2026-08-02T12:30:00Z", 3, 2, 700000)], 0),
-        current_case("a later retraction leaves no tuple",
+        current_case("a later retraction is the tuple, retracted",
                      [sealed("2026-08-02T12:30:00Z", 1, 0), sealed("2026-08-03T09:00:00Z", 2, 0, retracted=True)], 1),
         current_case("a retraction older than the assertion applies nothing",
                      [sealed("2026-08-03T09:00:00Z", 1, 0), sealed("2026-08-02T12:30:00Z", 2, 0, retracted=True)], 0),
@@ -4590,13 +4611,47 @@ def label_vectors():
                      [sealed("2026-08-02T12:30:00Z", 1, 0), sealed("2026-08-02T14:30:01+02:00", 2, 0)], 1),
         current_case("an unexpired Label keeps its tuple",
                      [sealed("2026-08-02T12:30:00Z", 1, 0, expires_at="2026-08-03T12:00:01Z")], 0),
-        current_case("a Label expired at the Snapshot's Epoch leaves no tuple",
+        current_case("a Label expired at the Snapshot's Epoch keeps its tuple",
                      [sealed("2026-08-02T12:30:00Z", 1, 0, expires_at="2026-08-03T12:00:00Z")], 0),
         current_case("an expired Label is still the current one",
                      [sealed("2026-08-02T12:30:00Z", 1, 0, expires_at="2026-08-03T00:00:00Z"),
                       sealed("2026-08-02T12:00:00Z", 2, 0)], 0),
         current_case("a bound Label carries its Item ID",
                      [sealed("2026-08-02T12:30:00Z", 1, 0, delta=example_item_id)], 0),
+    ]
+    snapshot_at = "2026-08-03T12:00:00Z"
+    probe_at = "2026-08-04T12:00:00Z"
+    resume = [
+        resume_case("a retraction held at the Snapshot outranks an older Label sealed above it",
+                    "A Label sealed above the Snapshot with an asserted_at older than the retracted current "
+                    "Label is not current on the resumed path, as on full replay.",
+                    [sealed("2026-08-02T12:30:00Z", 1, 0), sealed("2026-08-03T09:00:00Z", 2, 0, retracted=True)],
+                    snapshot_at, [sealed("2026-08-02T18:00:00Z", 3, 0)], probe_at),
+        resume_case("an expired Label held at the Snapshot outranks an older Label sealed above it",
+                    "A Label sealed above the Snapshot with an asserted_at older than the current Label expired "
+                    "at the Snapshot's Epoch is not current on the resumed path, as on full replay.",
+                    [sealed("2026-08-02T18:00:00Z", 1, 0, expires_at=snapshot_at)],
+                    snapshot_at, [sealed("2026-08-02T12:30:00Z", 2, 0)], probe_at),
+        resume_case("a newer Label sealed above a held retraction becomes current",
+                    "A Label sealed above the Snapshot with an asserted_at later than the retracted current "
+                    "Label replaces it and applies.",
+                    [sealed("2026-08-02T12:30:00Z", 1, 0), sealed("2026-08-03T09:00:00Z", 2, 0, retracted=True)],
+                    snapshot_at, [sealed("2026-08-04T09:00:00Z", 3, 0)], probe_at),
+        resume_case("an older retraction sealed above a held Label applies nothing",
+                    "A retraction sealed above the Snapshot with an asserted_at older than the held current "
+                    "Label leaves that Label current and applying.",
+                    [sealed("2026-08-03T09:00:00Z", 1, 0)],
+                    snapshot_at, [sealed("2026-08-02T12:30:00Z", 2, 0, retracted=True)], probe_at),
+        resume_case("equal instants across the Snapshot break by Epoch number",
+                    "A Label sealed above the Snapshot whose asserted_at, written with an offset, is the same "
+                    "instant as the held retraction's replaces it by its later Log position.",
+                    [sealed("2026-08-02T12:30:00Z", 1, 0), sealed("2026-08-03T09:00:00Z", 2, 0, retracted=True)],
+                    snapshot_at, [sealed("2026-08-03T11:00:00+02:00", 3, 0)], probe_at),
+        resume_case("a newer Label sealed above a held expired Label becomes current",
+                    "A Label without expires_at sealed above the Snapshot with an asserted_at later than the "
+                    "expired current Label replaces it and applies.",
+                    [sealed("2026-08-02T12:30:00Z", 1, 0, expires_at="2026-08-03T00:00:00Z")],
+                    snapshot_at, [sealed("2026-08-04T09:00:00Z", 2, 0)], probe_at),
     ]
     later_item_id = items.item_id(dict(example_item, observed_at="2026-08-03T12:00:00Z"))
     binding = []
@@ -4647,8 +4702,16 @@ def label_vectors():
               "`declarations` instead of the example Declaration. Every asserted_at a key window "
               "is compared with is a whole second. current_cases "
               "replay sealed Labels of one (labeler, subject, name) and give the current Label at the "
-              "end and the WIST-3 section 7 tuple the state carries, null where the current Label is "
-              "retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a "
+              "end and the WIST-3 section 7 tuple the state carries, retracted and expired current Labels "
+              "included (retracted is the tuple's boolean member after asserted_at); sealed_at is the "
+              "Snapshot Epoch's instant. resume_cases give the sealed Labels of one (labeler, subject, "
+              "name) at or below snapshot_height, the Snapshot Epoch's instant snapshot_sealed_at, the "
+              "tuple the state carries at that Snapshot (state_tuple, the current Label's), the Labels "
+              "of the same triple sealed above snapshot_height (later), and the Label current at the "
+              "Epoch whose instant is probe_sealed_at (current), the same whether sealed and later are "
+              "replayed from genesis or state_tuple alone is resumed and later walked by the WIST-2 "
+              "section 3.3 rule; applies is whether that Label is neither retracted nor expired at "
+              "probe_sealed_at. binding_cases read a "
               "Label's delta, an Item ID, against the Item the subject URL's record carries "
               "(record_item, null where no record stands): a bound Label applies only while the record "
               "carries that Item. materialized_binding_cases give the records of one subject URL held by "
@@ -4663,7 +4726,7 @@ def label_vectors():
               "negative zero has the Label ID of the plain spelling."),
         declaration=example_declaration, declarations=declarations,
         url_cap_bytes=2048, clock="2026-08-03T12:00:00Z", clock_skew_seconds=600,
-        cases=cases, current_cases=current, binding_cases=binding,
+        cases=cases, current_cases=current, resume_cases=resume, binding_cases=binding,
         materialized_binding_cases=materialized_binding)
 
 
@@ -6229,8 +6292,8 @@ timestamp_probe = "2017-01-01T00:00:00Z"
 for entry, path in (
     (["parameter", "record_seal_epochs", timestamp_probe, 2], [2]),
     (["recovery_window", "example.com", 1, timestamp_probe, {}, 1], [3]),
-    (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, timestamp_probe, None, None, "sha256:" + "0" * 64, 1], [5]),
-    (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, "2026-08-02T12:00:00Z", timestamp_probe, None, "sha256:" + "0" * 64, 1], [6]),
+    (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, timestamp_probe, False, None, None, "sha256:" + "0" * 64, 1], [5]),
+    (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, "2026-08-02T12:00:00Z", False, timestamp_probe, None, "sha256:" + "0" * 64, 1], [7]),
     (["dispute", "sha256:" + "0" * 64, "example.com", None, timestamp_probe, 1], [4]),
     (["record", "example.com", ITEM_URL, example_item, "default", example_catalog_id, timestamp_probe], [6]),
     (["removal", "example.com", DELETED_URL, items.item_id(retired_item), catalogs.catalog_id(retired_catalog),

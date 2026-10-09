@@ -262,10 +262,14 @@ Feed, self-labeling, the registry name form and which Label is current.
 Declaration with field, form, cap, self-labeling, expiry, `delta`-binding
 and signature dispositions, the binding check over `keys` alone with a
 Collection's key taking no part, current-Label replays with the WIST-3 §7
-tuple each leaves at a Snapshot instant, and binding cases against the Item
-the subject URL's record carries; the reference recomputes every disposition, the
-Label IDs and the tuples, and its twins flip the self-labeling scope,
-the registry term set and the tie order. Every case is validated at the
+tuple each leaves, a retracted or expired current Label's included, resume
+cases where a Label sealed above a Snapshot is ordered against that tuple
+on the resumed path and against the sealed Labels on replay, and binding
+cases against the Item the subject URL's record carries; the reference
+recomputes every disposition, the Label IDs, the tuples and both paths'
+current Label, and its twins flip the self-labeling scope, the registry
+term set, the tie order and the tuple a retracted or expired current
+Label leaves. Every case is validated at the
 vector's `clock` under its `clock_skew_seconds`, with `asserted_at` at
 the inclusive bound in two spellings, a second beyond it and a fraction
 beyond it (WIST-1 §3.4's clock rule read over a Label); which clock an
