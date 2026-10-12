@@ -2596,6 +2596,9 @@ assert _seq_below_root != _seq_prefix_root
 _seq_below = checkpoint_note(LOG_ID, priv, 5, _seq_below_root, 3, "2026-08-02T16:00:00Z")
 _seq_below_prefix = checkpoint_note(LOG_ID, priv, 5, _seq_prefix_root, 3, "2026-08-02T16:00:00Z")
 _seq_below_off_grid = checkpoint_note(LOG_ID, priv, 5, _seq_below_root, 3, "2026-08-02T15:30:00Z")
+_seq_genesis_off_grid = checkpoint_note(LOG_ID, priv, 4, root_bytes, 0, "2026-08-02T12:30:00Z")
+assert nbf_at("2026-08-02T12:30:00Z") % EPOCH_CADENCE_SECONDS
+assert nbf_at(note_field(epoch["checkpoint"], "sealed_at")) % EPOCH_CADENCE_SECONDS == 0
 
 sequence_cases = [
     {"name": "empty Epoch one cadence after the verified head",
@@ -2658,6 +2661,18 @@ sequence_cases = [
              "one is off the grid and states a smaller tree under a root "
              "that is not the prefix root, so the off-grid WIST3-E03 does "
              "not displace the evidence."},
+    {"name": "Epoch 0 sealed on the default cadence grid",
+     "verified_head_epoch_number": None, "verified_checkpoint": None,
+     "offered_checkpoint": epoch["checkpoint"], "signature_verifies": True,
+     "expected": "valid", "expected_head_epoch_number": 0},
+    {"name": "Epoch 0 sealed off the default cadence grid",
+     "verified_head_epoch_number": None, "verified_checkpoint": None,
+     "offered_checkpoint": _seq_genesis_off_grid, "signature_verifies": True,
+     "expected": "WIST3-E03", "expected_head_epoch_number": None,
+     "note": "WIST-3 §3.1: with no previous Checkpoint, Epoch 0's sealed_at "
+             "lands on the grid of the cadence in force before genesis, "
+             "the Registry default epoch_cadence_seconds for a Log whose "
+             "Anchor names no predecessor."},
 ]
 
 # WIST-3 §8 steps 4-5: the state file against the manifest, then the
@@ -2696,7 +2711,9 @@ cold_start_cases = [
 
 write_json(WIST3 / "checkpoints.json", {
     "note": "WIST-3 §§3.1, 4-6, 8-10: Checkpoint note form, the §3.1 "
-            "sequence failures, Consistency Proofs, rollback, the three "
+            "sequence failures (a null verified_checkpoint and "
+            "verified_head_epoch_number judge Checkpoint 0 with no previous "
+            "Checkpoint against the epoch_cadence_seconds grid), Consistency Proofs, rollback, the three "
             "Equivocation forms, the archive path rule, "
             "Witness quorum (WIST-4 §5 checkpoint_witness_quorum), the "
             "§4 size-0 root comparison, and the "
@@ -5145,10 +5162,13 @@ print("wist4 parameter-in-force vector written")
 # mirror_retention_days × 6 ≥ payload_window_days.
 PROSPECTIVE_DEFAULTS = {"links_cap_bytes": 4096, "link_url_cap_bytes": 2048,
                         "mirror_retention_days": 90, "payload_window_days": 180,
-                        "labeler_epoch_entries_max": 1000, "domain_epoch_entries_max": 10000}
+                        "labeler_epoch_entries_max": 1000, "domain_epoch_entries_max": 10000,
+                        "param_grace_days": 7, "epoch_cadence_seconds": 3600}
 PROSPECTIVE_FLOORS = {"links_cap_bytes": 4096, "link_url_cap_bytes": 2048,
                       "mirror_retention_days": 30, "payload_window_days": 30,
-                      "labeler_epoch_entries_max": 1, "domain_epoch_entries_max": 1}
+                      "labeler_epoch_entries_max": 1, "domain_epoch_entries_max": 1,
+                      "param_grace_days": 1, "epoch_cadence_seconds": 1}
+PROSPECTIVE_CEILINGS = {"epoch_cadence_seconds": 86400}
 
 
 def combinations_hold(values):
@@ -5167,14 +5187,25 @@ def prospective_map(changes, at_s):
     return result
 
 
-def prospective_acceptance(changes):
+def grace_seconds(accepted, height, sealed_at_s, successor):
+    if height == 0 and not successor:
+        return 0
+    return prospective_map(accepted, sealed_at_s)["param_grace_days"] * DAY_S
+
+
+def within_bounds(parameter, value):
+    return PROSPECTIVE_FLOORS[parameter] <= value <= PROSPECTIVE_CEILINGS.get(parameter, value)
+
+
+def prospective_acceptance(changes, successor=False):
     accepted, rejected = [], []
     for i, candidate in sorted(enumerate(changes), key=lambda pair: (pair[1]["epoch_height"], pair[1]["entry_index"])):
         tentative = accepted + [candidate]
         instants = {candidate["sealed_at_s"]} | {c["effective_at_s"] for c in tentative
                                                  if c["effective_at_s"] >= candidate["sealed_at_s"]}
-        valid = (candidate["value"] >= PROSPECTIVE_FLOORS[candidate["parameter"]]
-                 and candidate["effective_at_s"] >= candidate["sealed_at_s"] + 7 * DAY_S)
+        grace = grace_seconds(accepted, candidate["epoch_height"], candidate["sealed_at_s"], successor)
+        valid = (within_bounds(candidate["parameter"], candidate["value"])
+                 and candidate["effective_at_s"] >= candidate["sealed_at_s"] + grace)
         for instant in instants:
             valid = valid and combinations_hold(prospective_map(tentative, instant))
         if valid:
@@ -5194,7 +5225,7 @@ for label, rows, rejected in (
     ("rejected candidate is not retried", [(0, 0, "links_cap_bytes", 8000, 9), (1, 0, "link_url_cap_bytes", 5000, 10), (2, 0, "links_cap_bytes", 5010, 10), (3, 0, "link_url_cap_bytes", 4000, 10)], [2]),
     ("canonical same Epoch order", [(0, 0, "links_cap_bytes", 8000, 9), (1, 1, "link_url_cap_bytes", 5000, 10), (1, 0, "links_cap_bytes", 5010, 10)], [1]),
     ("invalid bound cannot hide behind replacement", [(0, 0, "links_cap_bytes", 4095, 10), (1, 0, "links_cap_bytes", 4096, 10)], [0]),
-    ("grace period required", [(0, 0, "links_cap_bytes", 5000, 6)], [0]),
+    ("grace period required", [(1, 0, "links_cap_bytes", 5000, 7)], [0]),
     ("aggregate cap exactly the link cap plus its structure", [(0, 0, "links_cap_bytes", 5021, 9), (1, 0, "link_url_cap_bytes", 5000, 10)], []),
     ("links cap one below its floor", [(0, 0, "links_cap_bytes", 4095, 10)], [0]),
     ("links cap at its floor", [(0, 0, "links_cap_bytes", 4096, 10)], []),
@@ -5218,6 +5249,33 @@ for label, rows, rejected in (
     instants = sorted({c["effective_at_s"] for c in changes})
     prospective_cases.append({"label": label, "changes": changes, "rejected_indices": got,
         "maps": [{"at_s": t, "values": prospective_map(accepted, t)} for t in instants]})
+
+# WIST-4 §5: Epoch 0 of a Log whose Anchor names no predecessor is exempt
+# from the grace period; a successor's Epoch 0 is not.
+for label, successor, rows, rejected in (
+    ("genesis amendment effective at the first sealing", False,
+     [(0, 0, 0, "epoch_cadence_seconds", 900, 0)], []),
+    ("genesis grace does not reach Epoch 1", False,
+     [(1, 0, 3600, "links_cap_bytes", 5000, 3600)], [0]),
+    ("genesis amendment effective before its sealing", False,
+     [(0, 0, 7200, "links_cap_bytes", 5000, 3600)], [0]),
+    ("a successor's Epoch 0 keeps the grace period", True,
+     [(0, 0, 0, "links_cap_bytes", 5000, 0), (0, 1, 0, "links_cap_bytes", 6000, 7 * DAY_S)], [0]),
+    ("genesis grace period governs later amendments", False,
+     [(0, 0, 0, "param_grace_days", 1, 0), (24, 0, DAY_S, "epoch_cadence_seconds", 1800, 2 * DAY_S),
+      (24, 1, DAY_S, "epoch_cadence_seconds", 900, 2 * DAY_S - 1)], [2]),
+):
+    changes = [{"epoch_height": height, "entry_index": index, "sealed_at_s": sealed,
+                "parameter": parameter, "value": value, "effective_at_s": effective}
+               for height, index, sealed, parameter, value, effective in rows]
+    got, accepted = prospective_acceptance(changes, successor)
+    assert got == rejected, label
+    instants = sorted({c["effective_at_s"] for c in changes})
+    case = {"label": label}
+    if successor:
+        case["successor"] = True
+    prospective_cases.append(dict(case, changes=changes, rejected_indices=got,
+        maps=[{"at_s": t, "values": prospective_map(accepted, t)} for t in instants]))
 
 CLOCK_DEFAULTS = {"record_seal_epochs": 24, "recovery_window_days": 7,
                   "payload_window_days": 180, "param_grace_days": 7}
@@ -5342,7 +5400,7 @@ def epoch_cap_trace(epochs):
         for index, amendment in enumerate(epoch["amendments"]):
             change = dict(amendment, epoch_height=height, entry_index=index)
             trial = working + [change]
-            if not isinstance(change["value"], int) or change["value"] < EPOCH_SIZE_FLOOR or change["effective_at_s"] < epoch["sealed_at_s"] + 7 * DAY_S or epoch_cap_bounds(trial, epoch["sealed_at_s"])[0] < tentative_max:
+            if not isinstance(change["value"], int) or change["value"] < EPOCH_SIZE_FLOOR or change["effective_at_s"] < epoch["sealed_at_s"] + (0 if height == 0 else 7 * DAY_S) or epoch_cap_bounds(trial, epoch["sealed_at_s"])[0] < tentative_max:
                 rejected.append(index)
             else:
                 working = trial
@@ -5476,7 +5534,7 @@ assert [[e["sealable"] for e in c["eligible_recoveries"]] for c in recovery_wind
 assert [len(c["rejected_amendments"]) for c in recovery_window_cases] == [0, 0, 0, 0, 0, 0, 0, 1, 0]
 
 write_json(WIST4 / "parameter-combinations.json", spaced_labels({
-    "note": "WIST-4 §5 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. epoch_size_cases and epoch_transport_cases: the Epoch-size guarantee over the sealed prefix and the transport bound it fixes. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract, each with `code`, its disposition through JSON/JCS eligibility, the schema, authentication under wire_public_key and the fixed bounds of WIST-4 section 5 (null for a candidate): a string details.parameter that names no identifier with the same subject, and an integer value outside its bound, are WIST4-E03 once authenticated. clock_cases: a parameter read for work already begun stays attached to its anchor.",
+    "note": "WIST-4 §5 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. A candidate's effective_at_s MUST be at least its sealed_at_s plus the param_grace_days in force at that sealed_at_s, except in Epoch 0 of a Log whose Anchor names no predecessor, where it MUST be at least Epoch 0's sealed_at_s; a case with `successor` true (false when absent) is a successor Log, whose Epoch 0 keeps the grace period. A map lists the six parameters the combination rules read, param_grace_days and epoch_cadence_seconds. epoch_size_cases and epoch_transport_cases: the Epoch-size guarantee over the sealed prefix and the transport bound it fixes. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract, each with `code`, its disposition through JSON/JCS eligibility, the schema, authentication under wire_public_key and the fixed bounds of WIST-4 section 5 (null for a candidate): a string details.parameter that names no identifier with the same subject, and an integer value outside its bound, are WIST4-E03 once authenticated. clock_cases: a parameter read for work already begun stays attached to its anchor.",
     "prospective_defaults": PROSPECTIVE_DEFAULTS,
     "prospective_floors": PROSPECTIVE_FLOORS,
     "prospective_cases": prospective_cases,

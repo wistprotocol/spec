@@ -220,7 +220,17 @@ default. Values the suite fixes for every Log, which no Log amends and no
 parameter map carries, are stated where they are defined and are not in
 this registry. Changes are made by `parameter_change` Registry Updates
 and MUST have `effective_at` ≥ 7 days after the Epoch's `sealed_at` (the
-grace period — itself a parameter, changeable only by the same process).
+grace period — itself a parameter, changeable only by the same process),
+except in Epoch 0 of a Log whose Anchor names no `predecessor` (WIST-3
+§3.4), where `effective_at` MUST be ≥ that Epoch's own `sealed_at`: a
+**genesis amendment** may be in force from the Log's first instant. The
+grace period is notice to parties holding duties under the map it
+replaces, and before a Log's Epoch 0 seals no party holds a duty under
+any map of that Log; a successor's Epoch 0 carries its predecessor's
+duties (WIST-3 §3.4) and keeps the grace period. The Anchor carries no
+parameter value: a Log's initial values are its Epoch 0 genesis
+amendments, verified from the Anchor's key like every other Entry, and
+every other check of this section applies to them unchanged.
 The
 **Identifier** column is the value `details.parameter` MUST carry
 (schema: `schemas/registry-update.schema.json`, §5.1).
@@ -288,7 +298,7 @@ anchor instant is included.
 | WIST-1 §5.2 recovery window length | Window owner Declaration's Epoch; freeze the end through later amendments and in-window recoveries |
 | WIST-1 §5.2 discovery sealing deadline (`record_seal_epochs`) of a recovery Declaration and of a Declaration that reduces authority | The first Epoch sealed after the discovery, from which WIST-1 §5.2 counts the deadline |
 | WIST-2 §3.3 Label field caps | The Epoch sealing the `label` Entry; an unsealed Label reads the map WIST-1 §3.6, **Size-cap parameter time**, selects for a Catalog at the same stage |
-| WIST-3 §3.2 cadence, per-domain capacity and per-Labeler cap | The previous Epoch's `sealed_at` for the cadence; the sealing Epoch for the capacity and the cap |
+| WIST-3 §3.2 cadence, per-domain capacity and per-Labeler cap | The previous Epoch's `sealed_at` for the cadence, and for Epoch 0 the map in force before genesis (WIST-3 §3.1); the sealing Epoch for the capacity and the cap |
 | WIST-3 §3.3 inclusion ceiling of a Catalog, an Item, a Label or a dispute | The Epoch it is eligible for; a deferral that moves that Epoch reads the map again at the new one |
 | WIST-3 §5 Witness quorum | The Checkpoint's own `sealed_at` |
 
@@ -504,7 +514,8 @@ itself.
   table above, and `value` — an **integer** in that parameter's own unit,
   bounded by the table of bounds above where a fixed bound exists;
   `subject` is the identifier; `effective_at` MUST be ≥ `param_grace_days`
-  days after the Epoch's `sealed_at`, as stated above.
+  days after the Epoch's `sealed_at`, or ≥ that `sealed_at` itself for a
+  genesis amendment, as stated above.
 - `payload_withdrawal`: `delta_id`, the Item ID of the Item whose
   Payload is withdrawn (the member keeps its name), `legal_basis`, and `jurisdiction` (WIST-3 §6.2); `subject` is the
   Publisher's Canonical Host. All three are REQUIRED. The act meets its
@@ -813,8 +824,8 @@ enters the Log.
       WIST-3 §3.4 fixes for it, admits or removes its own keys only
       in-band and seals no key-act failure (§3, WIST-3 §3.4)
 - [ ] Changes parameters only via `parameter_change` with the grace
-      period, validating the prospective schedule and the Epoch-size
-      guarantee at sealing (§5)
+      period, genesis amendments excepted, validating the prospective
+      schedule and the Epoch-size guarantee at sealing (§5)
 - [ ] Withdraws a Payload only by a `payload_withdrawal` naming the
       Item ID of an Item of kind `page` sealed against a Catalog of
       `subject`, the legal basis and the jurisdiction, and seals none that

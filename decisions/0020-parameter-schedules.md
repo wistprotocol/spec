@@ -133,6 +133,26 @@ Epoch and replay its amendments before enforcing the tighter current and
 prospective size bounds. Exceeded Epoch bounds reject as `WIST3-E03`;
 infeasible amendments reject as `WIST4-E03`.
 
+### Genesis amendments
+
+A `parameter_change` sealed in Epoch 0 of a Log whose Anchor names no
+predecessor is exempt from the grace period: its `effective_at` may equal
+Epoch 0's `sealed_at`, so the Log's first schedule is its own. Epoch 0
+itself seals on the Registry default grid, the map in force before
+genesis; a successor Log reads the carried map and keeps the grace
+period, since the duties it carries were opened under it.
+
+Rejected: initial values carried in the Log Anchor. A second signed
+source of parameter state would need its own schedule restoration, while
+a Snapshot's `parameter` tuples represent amendments only; a genesis
+amendment is an ordinary Entry, verified, replayed and restored like any
+other. Rejected: no exception, every Log running its first grace period
+at the defaults. The grace period gives notice to parties holding duties
+under the replaced map, and before Epoch 0 seals nobody holds one; the
+week at the default cadence would buy no notice and would leave a Log's
+operating cadence unstated by any signed artifact for its first seven
+days.
+
 ## Consequences and alternatives
 
 No invalid intermediate map can hide behind a later valid one. Replacing
@@ -151,7 +171,9 @@ necessary. Pending reductions constrain production immediately.
 
 `vectors/wist4/parameter-combinations.json` exercises prospective maps,
 cadence transitions, retention, wire bounds and Epoch-size guarantees,
-including ordering, exact endpoints, pending increases and restoration.
+including ordering, exact endpoints, pending increases, restoration,
+genesis amendments and a successor's Epoch 0.
+`vectors/wist3/checkpoints.json` rejects an Epoch 0 off the default grid.
 `vectors/wist1/item-fields.json` and `vectors/wist3/catalog-sealing.json`
 carry the size-cap maps an Item is judged under at admission and at its
 candidate Epoch, an Item whose Payload fails a cap amended before that

@@ -1,12 +1,14 @@
 {
-  "note": "WIST-4 \u00a75 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. epoch_size_cases and epoch_transport_cases: the Epoch-size guarantee over the sealed prefix and the transport bound it fixes. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract, each with `code`, its disposition through JSON/JCS eligibility, the schema, authentication under wire_public_key and the fixed bounds of WIST-4 section 5 (null for a candidate): a string details.parameter that names no identifier with the same subject, and an integer value outside its bound, are WIST4-E03 once authenticated. clock_cases: a parameter read for work already begun stays attached to its anchor.",
+  "note": "WIST-4 \u00a75 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. A candidate's effective_at_s MUST be at least its sealed_at_s plus the param_grace_days in force at that sealed_at_s, except in Epoch 0 of a Log whose Anchor names no predecessor, where it MUST be at least Epoch 0's sealed_at_s; a case with `successor` true (false when absent) is a successor Log, whose Epoch 0 keeps the grace period. A map lists the six parameters the combination rules read, param_grace_days and epoch_cadence_seconds. epoch_size_cases and epoch_transport_cases: the Epoch-size guarantee over the sealed prefix and the transport bound it fixes. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract, each with `code`, its disposition through JSON/JCS eligibility, the schema, authentication under wire_public_key and the fixed bounds of WIST-4 section 5 (null for a candidate): a string details.parameter that names no identifier with the same subject, and an integer value outside its bound, are WIST4-E03 once authenticated. clock_cases: a parameter read for work already begun stays attached to its anchor.",
   "prospective_defaults": {
     "links_cap_bytes": 4096,
     "link_url_cap_bytes": 2048,
     "mirror_retention_days": 90,
     "payload_window_days": 180,
     "labeler_epoch_entries_max": 1000,
-    "domain_epoch_entries_max": 10000
+    "domain_epoch_entries_max": 10000,
+    "param_grace_days": 7,
+    "epoch_cadence_seconds": 3600
   },
   "prospective_floors": {
     "links_cap_bytes": 4096,
@@ -14,7 +16,9 @@
     "mirror_retention_days": 30,
     "payload_window_days": 30,
     "labeler_epoch_entries_max": 1,
-    "domain_epoch_entries_max": 1
+    "domain_epoch_entries_max": 1,
+    "param_grace_days": 1,
+    "epoch_cadence_seconds": 1
   },
   "prospective_cases": [
     {
@@ -49,7 +53,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -60,7 +66,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -105,7 +113,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -116,7 +126,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -127,7 +139,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -172,7 +186,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -183,7 +199,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -194,7 +212,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -245,7 +265,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -256,7 +278,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -267,7 +291,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -278,7 +304,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -323,7 +351,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -334,7 +364,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -387,7 +419,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -398,7 +432,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -443,7 +479,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -454,7 +492,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -491,7 +531,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -500,12 +542,12 @@
       "label": "grace period required",
       "changes": [
         {
-          "epoch_height": 0,
+          "epoch_height": 24,
           "entry_index": 0,
-          "sealed_at_s": 0,
+          "sealed_at_s": 86400,
           "parameter": "links_cap_bytes",
           "value": 5000,
-          "effective_at_s": 518400
+          "effective_at_s": 604800
         }
       ],
       "rejected_indices": [
@@ -513,14 +555,16 @@
       ],
       "maps": [
         {
-          "at_s": 518400,
+          "at_s": 604800,
           "values": {
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -555,7 +599,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -566,7 +612,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -595,7 +643,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -622,7 +672,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -651,7 +703,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -678,7 +732,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -707,7 +763,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -734,7 +792,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 540,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -769,7 +829,9 @@
             "mirror_retention_days": 120,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -780,7 +842,9 @@
             "mirror_retention_days": 120,
             "payload_window_days": 720,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -817,7 +881,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 540,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -846,7 +912,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -873,7 +941,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 10000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -902,7 +972,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -937,7 +1009,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 200,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -948,7 +1022,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 200,
-            "domain_epoch_entries_max": 500
+            "domain_epoch_entries_max": 500,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         }
       ]
@@ -985,7 +1061,9 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 1000,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
           }
         },
         {
@@ -996,7 +1074,226 @@
             "mirror_retention_days": 90,
             "payload_window_days": 180,
             "labeler_epoch_entries_max": 200,
-            "domain_epoch_entries_max": 10000
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
+          }
+        }
+      ]
+    },
+    {
+      "label": "genesis amendment effective at the first sealing",
+      "changes": [
+        {
+          "epoch_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "epoch_cadence_seconds",
+          "value": 900,
+          "effective_at_s": 0
+        }
+      ],
+      "rejected_indices": [],
+      "maps": [
+        {
+          "at_s": 0,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_epoch_entries_max": 1000,
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 900
+          }
+        }
+      ]
+    },
+    {
+      "label": "genesis grace does not reach Epoch 1",
+      "changes": [
+        {
+          "epoch_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 3600,
+          "parameter": "links_cap_bytes",
+          "value": 5000,
+          "effective_at_s": 3600
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "maps": [
+        {
+          "at_s": 3600,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_epoch_entries_max": 1000,
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
+          }
+        }
+      ]
+    },
+    {
+      "label": "genesis amendment effective before its sealing",
+      "changes": [
+        {
+          "epoch_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 7200,
+          "parameter": "links_cap_bytes",
+          "value": 5000,
+          "effective_at_s": 3600
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "maps": [
+        {
+          "at_s": 3600,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_epoch_entries_max": 1000,
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
+          }
+        }
+      ]
+    },
+    {
+      "label": "a successor's Epoch 0 keeps the grace period",
+      "successor": true,
+      "changes": [
+        {
+          "epoch_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "links_cap_bytes",
+          "value": 5000,
+          "effective_at_s": 0
+        },
+        {
+          "epoch_height": 0,
+          "entry_index": 1,
+          "sealed_at_s": 0,
+          "parameter": "links_cap_bytes",
+          "value": 6000,
+          "effective_at_s": 604800
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "maps": [
+        {
+          "at_s": 0,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_epoch_entries_max": 1000,
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
+          }
+        },
+        {
+          "at_s": 604800,
+          "values": {
+            "links_cap_bytes": 6000,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_epoch_entries_max": 1000,
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 7,
+            "epoch_cadence_seconds": 3600
+          }
+        }
+      ]
+    },
+    {
+      "label": "genesis grace period governs later amendments",
+      "changes": [
+        {
+          "epoch_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "param_grace_days",
+          "value": 1,
+          "effective_at_s": 0
+        },
+        {
+          "epoch_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "epoch_cadence_seconds",
+          "value": 1800,
+          "effective_at_s": 172800
+        },
+        {
+          "epoch_height": 24,
+          "entry_index": 1,
+          "sealed_at_s": 86400,
+          "parameter": "epoch_cadence_seconds",
+          "value": 900,
+          "effective_at_s": 172799
+        }
+      ],
+      "rejected_indices": [
+        2
+      ],
+      "maps": [
+        {
+          "at_s": 0,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_epoch_entries_max": 1000,
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 1,
+            "epoch_cadence_seconds": 3600
+          }
+        },
+        {
+          "at_s": 172799,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_epoch_entries_max": 1000,
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 1,
+            "epoch_cadence_seconds": 3600
+          }
+        },
+        {
+          "at_s": 172800,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_epoch_entries_max": 1000,
+            "domain_epoch_entries_max": 10000,
+            "param_grace_days": 1,
+            "epoch_cadence_seconds": 1800
           }
         }
       ]

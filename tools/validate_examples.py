@@ -2487,9 +2487,21 @@ def _recovery_parameter_windows():
 check("vectors:wist4-recovery-parameter-windows", _recovery_parameter_windows)
 
 
+_PROSPECTIVE_CEILINGS = {"epoch_cadence_seconds": 86400}
+
+def _prospective_in_bounds(floors, parameter, value):
+    return floors[parameter] <= value <= _PROSPECTIVE_CEILINGS.get(parameter, value)
+
+def _prospective_grace_s(defaults, accepted, change, successor):
+    if change["epoch_height"] == 0 and not successor:
+        return 0
+    return _prospective_values(defaults, accepted, change["sealed_at_s"])["param_grace_days"] * 86400
+
 def _dc4_prospective_parameters():
     v = json.loads((ROOT / "vectors" / "wist4" / "parameter-combinations.json").read_text())
     for case in v["prospective_cases"]:
+        successor = case.get("successor", False)
+        assert isinstance(successor, bool), case["label"]
         accepted, rejected = [], []
         order = sorted(range(len(case["changes"])), key=lambda i: (case["changes"][i]["epoch_height"], case["changes"][i]["entry_index"]))
         for i in order:
@@ -2497,8 +2509,8 @@ def _dc4_prospective_parameters():
             candidate = accepted + [c]
             instants = sorted({c["sealed_at_s"]} | {a["effective_at_s"] for a in candidate if a["effective_at_s"] >= c["sealed_at_s"]})
             maps = [_prospective_values(v["prospective_defaults"], candidate, t) for t in instants]
-            if (c["value"] < v["prospective_floors"][c["parameter"]]
-                    or c["effective_at_s"] - c["sealed_at_s"] < 7 * 86400
+            if (not _prospective_in_bounds(v["prospective_floors"], c["parameter"], c["value"])
+                    or c["effective_at_s"] - c["sealed_at_s"] < _prospective_grace_s(v["prospective_defaults"], accepted, c, successor)
                     or not all(_combinations_hold(m) for m in maps)):
                 rejected.append(i)
             else:
@@ -2508,7 +2520,10 @@ def _dc4_prospective_parameters():
             assert _prospective_values(v["prospective_defaults"], accepted, probe["at_s"]) == probe["values"], case["label"]
     labels = {c["label"] for c in v["prospective_cases"]}
     for needed in ("retention below a sixth of the window", "retention exactly a sixth of the window",
-                   "aggregate cap exactly the link cap plus its structure", "canonical same Epoch order"):
+                   "aggregate cap exactly the link cap plus its structure", "canonical same Epoch order",
+                   "genesis amendment effective at the first sealing", "genesis grace does not reach Epoch 1",
+                   "genesis amendment effective before its sealing", "a successor's Epoch 0 keeps the grace period",
+                   "genesis grace period governs later amendments"):
         assert needed in labels, needed
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
     assert "`links_cap_bytes` MUST NOT be below `link_url_cap_bytes` + 21" in prose
@@ -2524,6 +2539,20 @@ def _dc4_prospective_parameters_twin():
     assert case["rejected_indices"] == [1]
     future = _prospective_values(v["prospective_defaults"], case["changes"], 11 * 86400)
     assert not _combinations_hold(future)
+    cases = {c["label"]: c for c in v["prospective_cases"]}
+    genesis = cases["genesis amendment effective at the first sealing"]["changes"][0]
+    assert genesis["epoch_height"] == 0 and genesis["effective_at_s"] == genesis["sealed_at_s"]
+    assert cases["genesis amendment effective at the first sealing"]["rejected_indices"] == []
+    assert _prospective_grace_s(v["prospective_defaults"], [], genesis, True) > 0
+    successor = cases["a successor's Epoch 0 keeps the grace period"]
+    assert successor["successor"] and successor["changes"][0]["epoch_height"] == 0
+    assert successor["changes"][0]["effective_at_s"] == successor["changes"][0]["sealed_at_s"]
+    assert successor["rejected_indices"] == [0]
+    assert _prospective_grace_s(v["prospective_defaults"], [], successor["changes"][0], False) == 0
+    later = cases["genesis grace period governs later amendments"]
+    assert later["rejected_indices"] == [2]
+    assert _prospective_grace_s(v["prospective_defaults"], [], later["changes"][1], False) == 7 * 86400
+    assert later["changes"][1]["effective_at_s"] - later["changes"][1]["sealed_at_s"] < 7 * 86400
 check("negative:wist4-prospective-parameters", _dc4_prospective_parameters_twin)
 
 def _epoch_size_maps(default, accepted, instant):
@@ -2543,7 +2572,7 @@ def _replay_epoch_size(default, epochs, restart_after=()):
         for index, change in enumerate(epoch["amendments"]):
             candidate = dict(change,epoch_height=height,entry_index=index)
             proposed = trial+[candidate]
-            valid = isinstance(candidate["value"], int) and 65537 <= candidate["value"] <= 9007199254740991 and candidate["effective_at_s"]-epoch["sealed_at_s"] >= 7*86400
+            valid = isinstance(candidate["value"], int) and 65537 <= candidate["value"] <= 9007199254740991 and candidate["effective_at_s"]-epoch["sealed_at_s"] >= (0 if height == 0 else 7*86400)
             if valid and all(cap >= maximum for cap in _epoch_size_maps(default,proposed,epoch["sealed_at_s"])):
                 trial = proposed
             else:
@@ -3886,8 +3915,12 @@ def _wist3_checkpoints():
     # offered one that breaks no rule itself.
     cadence = v["epoch_cadence_seconds"]
     for case in v["sequence_cases"]:
-        held = verify_checkpoint(case["verified_checkpoint"], log_id, keys)
-        assert held["epoch_number"] == case["verified_head_epoch_number"], case["name"]
+        if case["verified_checkpoint"] is None:
+            assert case["verified_head_epoch_number"] is None, case["name"]
+            held = None
+        else:
+            held = verify_checkpoint(case["verified_checkpoint"], log_id, keys)
+            assert held["epoch_number"] == case["verified_head_epoch_number"], case["name"]
         try:
             offered = verify_checkpoint(case["offered_checkpoint"], log_id, keys)
             signed = True
@@ -3896,6 +3929,14 @@ def _wist3_checkpoints():
             offered = parse_checkpoint(case["offered_checkpoint"])
             signed = False
         assert signed == case["signature_verifies"], case["name"]
+        if held is None:
+            assert offered["epoch_number"] == 0 and "unobtainable_epoch_number" not in case, case["name"]
+            sealed = log_seconds(offered["sealed_at"])
+            result = "WIST3-E03" if not signed or sealed % cadence else "valid"
+            assert result == case["expected"], f"{case['name']}: got {result}"
+            assert case["expected_head_epoch_number"] == (0 if result == "valid" else None), case["name"]
+            assert "evidence" not in case and "larger_tree_leaf_hashes" not in case, case["name"]
+            continue
         assert offered["epoch_number"] > held["epoch_number"], case["name"]
         sealed = log_seconds(offered["sealed_at"])
         below = offered["tree_size"] < held["tree_size"]
@@ -3927,9 +3968,19 @@ def _wist3_checkpoints():
     assert {c["expected"] for c in v["sequence_cases"]} == \
         {"valid", "WIST3-E01", "WIST3-E02", "WIST3-E03"}, \
         "the sequence cases must exercise acceptance and all three codes"
+    genesis = {c["expected"]: c for c in v["sequence_cases"] if c["verified_checkpoint"] is None}
+    assert set(genesis) == {"valid", "WIST3-E03"}, "the genesis sequence cases must exercise both outcomes"
+    assert genesis["valid"]["offered_checkpoint"] == v["epochs"][0]["checkpoint"], \
+        "the accepted genesis case is not the cumulative tree's Checkpoint 0"
+    genesis_on = verify_checkpoint(genesis["valid"]["offered_checkpoint"], log_id, keys)
+    genesis_off = verify_checkpoint(genesis["WIST3-E03"]["offered_checkpoint"], log_id, keys)
+    assert (genesis_off["tree_size"], genesis_off["root"], genesis_off["epoch_number"]) == \
+        (genesis_on["tree_size"], genesis_on["root"], 0) and log_seconds(genesis_off["sealed_at"]) % cadence, \
+        "the rejected genesis case differs from Checkpoint 0 in more than its off-grid sealed_at"
     combined = next(c for c in v["sequence_cases"]
                     if c["name"].startswith("off-grid sealed_at and a tree size below"))
     combined_cp = verify_checkpoint(combined["offered_checkpoint"], log_id, keys)
+    held = verify_checkpoint(combined["verified_checkpoint"], log_id, keys)
     assert log_seconds(combined_cp["sealed_at"]) % cadence \
         and combined_cp["tree_size"] < held["tree_size"] \
         and combined["expected"] == "WIST3-E02", \
@@ -4086,7 +4137,8 @@ def _wist3_checkpoints_twin():
                  "tree size below the previous Checkpoint's, validly signed"):
         case = next(c for c in v["sequence_cases"] if c["name"] == name)
         verify_checkpoint(case["offered_checkpoint"], log_id, keys)
-    control = next(c for c in v["sequence_cases"] if c["expected"] == "valid")
+    control = next(c for c in v["sequence_cases"]
+                   if c["expected"] == "valid" and c["verified_checkpoint"] is not None)
     held = verify_checkpoint(control["verified_checkpoint"], log_id, keys)
     offered = verify_checkpoint(control["offered_checkpoint"], log_id, keys)
     assert log_seconds(offered["sealed_at"]) % cadence == 0 \
@@ -4095,7 +4147,7 @@ def _wist3_checkpoints_twin():
         and offered["epoch_number"] == held["epoch_number"] + 1, \
         "the accepted control does not satisfy every §3.1 sequence rule"
     for broken in v["sequence_cases"]:
-        if broken["expected"] == "valid":
+        if broken["expected"] == "valid" or broken["verified_checkpoint"] is None:
             continue
         assert broken["offered_checkpoint"] != control["offered_checkpoint"], \
             f"{broken['name']}: the rejected candidate is the accepted control"

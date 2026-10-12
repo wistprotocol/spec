@@ -149,8 +149,14 @@ of `epoch_cadence_seconds` as in force at the previous Epoch's
 grid. The grid leaves the Aggregator its sealing cadence and removes
 its choice of digits, so an Epoch's instant is a fact of the schedule
 rather than an operator's choice. The first Epoch after a `parameter_change` to
-`epoch_cadence_seconds` takes effect lands on the new grid; the Anchor's
-own `created_at` is not an Epoch and is unconstrained.
+`epoch_cadence_seconds` takes effect lands on the new grid. Epoch 0 has
+no previous Epoch and reads the map in force before genesis: the
+Registry defaults for a Log whose Anchor names no `predecessor`, so its
+`sealed_at` is a multiple of the default cadence, or the map at the
+predecessor's final Epoch for a successor Log (§3.4). A genesis
+amendment to the cadence (WIST-4 §5) is in force at Epoch 0's
+`sealed_at` and governs Epoch 1 onward. The Anchor's own `created_at`
+is not an Epoch and is unconstrained.
 
 The table's rules fail as follows. A gap is never an object a Consumer
 holds: it verifies Checkpoints in `epoch_number` order (§5), so it
@@ -636,7 +642,9 @@ inner object is `anchor` (schema:
 served at `/log/anchor.json`. It declares `wist_version`, the `log_id` (the
 Log's hostname identity, and the origin line of its Checkpoints, §5), the `genesis_key` — an object carrying that key's
 `key_id`, `alg` and raw base64url `public_key` — and `created_at`, the
-instant the Log was established. A party MUST validate an Anchor against
+instant the Log was established; it carries no parameter value, a Log's
+initial parameters being the genesis amendments of its Epoch 0 (WIST-4
+§5). A party MUST validate an Anchor against
 its schema before it verifies the signature, and MUST reject one that
 fails it with `WIST3-E03`. A member present with a value the schema does
 not admit fails it: an Anchor carrying `"predecessor": null` is rejected,

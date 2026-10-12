@@ -1,5 +1,5 @@
 {
-  "note": "WIST-3 \u00a7\u00a73.1, 4-6, 8-10: Checkpoint note form, the \u00a73.1 sequence failures, Consistency Proofs, rollback, the three Equivocation forms, the archive path rule, Witness quorum (WIST-4 \u00a75 checkpoint_witness_quorum), the \u00a74 size-0 root comparison, and the \u00a78 steps 4-5 Snapshot cold-start match, over one cumulative tree of 7 leaves (Epoch 0 of vectors/wist3/epoch.json, the empty Epoch 1 of empty-epoch.json, and Epoch 2 below, which seals a later Catalog of the same Collection and two more of its Items; `payloads` carries the Payloads of the sealed Items). Each case list judges its own candidates: note_form_cases, sequence_cases, cold_start_cases, size_zero_cases and equivocation_cases deliberately carry Checkpoints that contradict, or continue past, the epochs above them.",
+  "note": "WIST-3 \u00a7\u00a73.1, 4-6, 8-10: Checkpoint note form, the \u00a73.1 sequence failures (a null verified_checkpoint and verified_head_epoch_number judge Checkpoint 0 with no previous Checkpoint against the epoch_cadence_seconds grid), Consistency Proofs, rollback, the three Equivocation forms, the archive path rule, Witness quorum (WIST-4 \u00a75 checkpoint_witness_quorum), the \u00a74 size-0 root comparison, and the \u00a78 steps 4-5 Snapshot cold-start match, over one cumulative tree of 7 leaves (Epoch 0 of vectors/wist3/epoch.json, the empty Epoch 1 of empty-epoch.json, and Epoch 2 below, which seals a later Catalog of the same Collection and two more of its Items; `payloads` carries the Payloads of the sealed Items). Each case list judges its own candidates: note_form_cases, sequence_cases, cold_start_cases, size_zero_cases and equivocation_cases deliberately carry Checkpoints that contradict, or continue past, the epochs above them.",
   "log_id": "log.example.org",
   "epoch_cadence_seconds": 3600,
   "epochs": [
@@ -465,6 +465,25 @@
         "8a53cc3183242d6377eca70f24ac89337be3274db245b3ca0332b5053a32933f"
       ],
       "note": "WIST-3 \u00a73.1: a Checkpoint failing more than one of these rules is WIST3-E02 where the Equivocation form applies. This one is off the grid and states a smaller tree under a root that is not the prefix root, so the off-grid WIST3-E03 does not displace the evidence."
+    },
+    {
+      "name": "Epoch 0 sealed on the default cadence grid",
+      "verified_head_epoch_number": null,
+      "verified_checkpoint": null,
+      "offered_checkpoint": "log.example.org\n4\nP5cwNNJjNrxit7TCA61T/zHZGe8/UPRedZIsobyJXYs=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE21A0JPa2I+qCqMkqGic1Ca32a3vs19RIo9G5WockqSXt5gcznA3qeI6yb2lpSbl2PFmPYS7kn2uMB9K0olQTgA=\n",
+      "signature_verifies": true,
+      "expected": "valid",
+      "expected_head_epoch_number": 0
+    },
+    {
+      "name": "Epoch 0 sealed off the default cadence grid",
+      "verified_head_epoch_number": null,
+      "verified_checkpoint": null,
+      "offered_checkpoint": "log.example.org\n4\nP5cwNNJjNrxit7TCA61T/zHZGe8/UPRedZIsobyJXYs=\nepoch_number 0\nsealed_at 2026-08-02T12:30:00Z\n\n\u2014 log.example.org sdtYE4rSKxk3tMw83RexJfMM3f31McvHgLr3rpzLRJJtF75fH20nig4D+FUbXxFYaI3lQ/I+vysJPKWAx343Ywf+rAw=\n",
+      "signature_verifies": true,
+      "expected": "WIST3-E03",
+      "expected_head_epoch_number": null,
+      "note": "WIST-3 \u00a73.1: with no previous Checkpoint, Epoch 0's sealed_at lands on the grid of the cadence in force before genesis, the Registry default epoch_cadence_seconds for a Log whose Anchor names no predecessor."
     }
   ],
   "consistency_cases": [
