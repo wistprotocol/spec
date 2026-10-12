@@ -121,11 +121,15 @@ Canary readiness additionally checks actual service opportunities under
 ### Epoch sizes and transport
 
 Every candidate's prospective caps cover the largest Epoch size (WIST-3 §6)
-through its own height. Every new Epoch respects the current cap and all
-accepted pending caps, so production cannot invalidate an accepted
-reduction. Historical replay uses the running maximum at each height;
-restoration preserves or reconstructs that maximum and the accepted
-schedule, including pending amendments.
+through its own height among the Epochs not rejected for their size.
+Every new Epoch respects the current cap and all accepted pending caps,
+so production cannot invalidate an accepted reduction. An Epoch sealed
+over its bound is rejected and never binds a later amendment: no accepted
+cap covered it, and counting it would fail every later amendment against
+the map that bound it, freezing the schedule after one Aggregator fault.
+Historical replay uses the running maximum at each height; restoration
+preserves or reconstructs that maximum and the accepted schedule,
+including pending amendments.
 
 Before fetching an Epoch, use the greatest current or future cap in the
 verified prefix, or the Registry default before genesis. Authenticate the

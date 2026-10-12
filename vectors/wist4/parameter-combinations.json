@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a75 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. A candidate's effective_at_s MUST be at least its sealed_at_s plus the param_grace_days in force at that sealed_at_s, except in Epoch 0 of a Log whose Anchor names no predecessor, where it MUST be at least Epoch 0's sealed_at_s; a case with `successor` true (false when absent) is a successor Log, whose Epoch 0 keeps the grace period. A map lists the six parameters the combination rules read, param_grace_days and epoch_cadence_seconds. epoch_size_cases and epoch_transport_cases: the Epoch-size guarantee over the sealed prefix and the transport bound it fixes. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract, each with `code`, its disposition through JSON/JCS eligibility, the schema, authentication under wire_public_key and the fixed bounds of WIST-4 section 5 (null for a candidate): a string details.parameter that names no identifier with the same subject, and an integer value outside its bound, are WIST4-E03 once authenticated. clock_cases: a parameter read for work already begun stays attached to its anchor.",
+  "note": "WIST-4 \u00a75 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. A candidate's effective_at_s MUST be at least its sealed_at_s plus the param_grace_days in force at that sealed_at_s, except in Epoch 0 of a Log whose Anchor names no predecessor, where it MUST be at least Epoch 0's sealed_at_s; a case with `successor` true (false when absent) is a successor Log, whose Epoch 0 keeps the grace period. A map lists the six parameters the combination rules read, param_grace_days and epoch_cadence_seconds. epoch_size_cases and epoch_transport_cases: the Epoch-size guarantee over the sealed prefix and the transport bound it fixes; an Epoch with epoch_valid false is rejected for its size, leaves the accepted schedule and largest_bytes unchanged, and replay continues at the next Epoch. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract, each with `code`, its disposition through JSON/JCS eligibility, the schema, authentication under wire_public_key and the fixed bounds of WIST-4 section 5 (null for a candidate): a string details.parameter that names no identifier with the same subject, and an integer value outside its bound, are WIST4-E03 once authenticated. clock_cases: a parameter read for work already begun stays attached to its anchor.",
   "prospective_defaults": {
     "links_cap_bytes": 4096,
     "link_url_cap_bytes": 2048,
@@ -1484,6 +1484,63 @@
       ],
       "restart_after": [
         0
+      ]
+    },
+    {
+      "label": "an Epoch rejected for its size does not bind later amendments",
+      "epochs": [
+        {
+          "sealed_at_s": 0,
+          "jcs_bytes": 131074,
+          "amendments": [
+            {
+              "value": 262148,
+              "effective_at_s": 604800
+            }
+          ]
+        },
+        {
+          "sealed_at_s": 86400,
+          "jcs_bytes": 262149,
+          "amendments": []
+        },
+        {
+          "sealed_at_s": 172800,
+          "jcs_bytes": 131074,
+          "amendments": [
+            {
+              "value": 196611,
+              "effective_at_s": 777600
+            }
+          ]
+        }
+      ],
+      "expected": [
+        {
+          "rejected_indices": [],
+          "sealing_cap": 262148,
+          "epoch_valid": true,
+          "largest_bytes": 131074,
+          "transport_bound_before": 268435456
+        },
+        {
+          "rejected_indices": [],
+          "sealing_cap": 262148,
+          "epoch_valid": false,
+          "largest_bytes": 131074,
+          "transport_bound_before": 268435456
+        },
+        {
+          "rejected_indices": [],
+          "sealing_cap": 196611,
+          "epoch_valid": true,
+          "largest_bytes": 131074,
+          "transport_bound_before": 268435456
+        }
+      ],
+      "restart_after": [
+        0,
+        1
       ]
     },
     {

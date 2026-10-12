@@ -1226,8 +1226,9 @@ derives a transport bound from its already verified prefix: the greatest
 `sealed_at` and at every accepted future `effective_at`. With no verified
 Epoch, use the Registry default. Accepted pending amendments participate;
 rejected candidates and the Epoch being fetched do not. This bound also
-covers historical Epoch fetches because each accepted cap covers the
-entire sealed prefix (WIST-4 §5). A Consumer restoring from a Snapshot uses
+covers the historical fetch of every Epoch not rejected for its size,
+because each accepted cap covers those Epochs (WIST-4 §5); an Epoch
+rejected for its size may exceed it. A Consumer restoring from a Snapshot uses
 its authenticated parameter tuples, including pending amendments (§7),
 and its manifest's `epoch_number` as its prefix. This
 bootstrap bound cannot be raised by unauthenticated state. The size

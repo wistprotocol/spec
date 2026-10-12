@@ -2585,8 +2585,6 @@ def _replay_epoch_size(default, epochs, restart_after=()):
             "largest_bytes":state["maximum"],"transport_bound_before":before})
         if height in restart_after:
             state = json.loads(json.dumps(state))
-        if not valid:
-            break
     return probes
 
 
@@ -2623,6 +2621,13 @@ def _dc4_epoch_sizes_twin():
     pending = cases["pending reduction constrains an intervening Epoch"]
     assert pending["epochs"][-1]["jcs_bytes"] < v["epoch_cap_default"]
     assert not pending["expected"][-1]["epoch_valid"]
+    unbound = cases["an Epoch rejected for its size does not bind later amendments"]
+    assert not unbound["expected"][1]["epoch_valid"]
+    assert unbound["expected"][1]["largest_bytes"] == unbound["expected"][0]["largest_bytes"]
+    assert unbound["epochs"][2]["amendments"][0]["value"] < unbound["epochs"][1]["jcs_bytes"]
+    assert unbound["expected"][2]["rejected_indices"] == [] and unbound["expected"][2]["epoch_valid"]
+    counted = copy.deepcopy(unbound["epochs"][2]); counted["jcs_bytes"] = unbound["epochs"][1]["jcs_bytes"]
+    assert _replay_epoch_size(v["epoch_cap_default"],unbound["epochs"][:1]+[counted])[1]["rejected_indices"] == [0]
     transport = next(c for c in v["epoch_transport_cases"] if c["label"] == "an accepted future effective_at raises the bound before it takes effect")
     assert transport["entries_bytes"] > v["epoch_cap_default"] and transport["valid"]
     excluded = next(c for c in v["epoch_transport_cases"] if c["label"] == "a rejected candidate does not raise the bound")

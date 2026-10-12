@@ -397,22 +397,30 @@ later than that `effective_at` can still reach past the range; WIST-1
 §5.2 then withholds the recovery Declaration from sealing.
 
 **Epoch-size guarantees include the sealed prefix.** For a candidate in
-Epoch B, let M be the greatest Epoch size (WIST-3 §6) among Epochs 0
-through B, including B's complete contents regardless of which Entries
-are accepted. Every prospective map checked for that candidate MUST have
-`epoch_cap_bytes` ≥ M. Otherwise reject the candidate as
-`WIST4-E03`, preserving the accepted prefix. Later Entries do not change
-B's size input and cannot rescue a rejected candidate. Equality is valid.
+Epoch B, let M be the greatest Epoch size (WIST-3 §6) among B, whose
+complete contents count regardless of which Entries are accepted, and
+the Epochs 0 through B−1 not rejected for their size (below). Every
+prospective map checked for that candidate MUST have `epoch_cap_bytes`
+≥ M. Otherwise reject the candidate as `WIST4-E03`, preserving the
+accepted prefix. Later Entries do not change B's size input and cannot
+rescue a rejected candidate. Equality is valid.
 
 After all B's parameter candidates have been processed, every map at
 B's `sealed_at` and every accepted `effective_at` at or after it MUST
 still have a cap ≥ M. An Aggregator MUST constrain the complete Epoch it
 seals to the smallest of those caps, even before a scheduled reduction
-takes effect. A later Epoch exceeding this bound is invalid; it does not
-revoke an earlier accepted amendment. A Consumer MUST reject that
-Epoch (`WIST3-E03`; WIST-3 §3.3, **Rejected Epochs**). An increase permits larger Epochs only from its
-`effective_at`, the endpoint included; replacing a pending reduction can
-relax the bound only when the replacement itself passes admission.
+takes effect. An Epoch exceeding this bound is **rejected for its
+size**: a Consumer MUST reject it (`WIST3-E03`; WIST-3 §3.3, **Rejected
+Epochs**), the rejection does not revoke an earlier accepted amendment,
+and its size never enters M for a later candidate. No accepted cap
+covered that Epoch, and were its size to enter M, the map that bound it
+would fail every later candidate, one raising the cap included, and the
+Log could amend nothing again. An Epoch rejected on other grounds enters
+M as an accepted one does: its Checkpoint and key acts are read under
+the caps that cover it (WIST-3 §3.3). An increase permits larger Epochs
+only from its `effective_at`, the endpoint included; replacing a pending
+reduction can relax the bound only when the replacement itself passes
+admission.
 
 Replay uses the actual sizes at each historical height, never the largest
 Epoch at the eventual query height to reconsider an earlier candidate.

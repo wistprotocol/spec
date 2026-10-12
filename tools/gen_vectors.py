@@ -5409,10 +5409,8 @@ def epoch_cap_trace(epochs):
         probes.append({"rejected_indices": rejected, "sealing_cap": cap, "epoch_valid": valid,
             "largest_bytes": tentative_max if valid else largest,
             "transport_bound_before": EPOCH_CAP_DEFAULT if not probes else epoch_cap_bounds(accepted, epochs[height-1]["sealed_at_s"])[1]})
-        if not valid:
-            assert height == len(epochs)-1
-            break
-        accepted, largest = working, tentative_max
+        if valid:
+            accepted, largest = working, tentative_max
     return probes
 
 
@@ -5428,6 +5426,7 @@ for label, rows, rejected, valid in (
     ("reduction equals the current Epoch size", [(0,U4,[(U4,7)]), (7,U4,[])], [[],[]], [True,True]),
     ("pending reduction constrains an intervening Epoch", [(0,U2,[(U4,7)]), (1,U4+1,[])], [[],[]], [True,False]),
     ("pending reduction equality before effectiveness", [(0,U2,[(U4,7)]), (1,U4,[])], [[],[]], [True,True]),
+    ("an Epoch rejected for its size does not bind later amendments", [(0,U2,[(U4,7)]), (1,U4+1,[]), (2,U2,[(U3,9)])], [[],[],[]], [True,False,True]),
     ("increase is unavailable one second before effectiveness", [(0,U2,[(U4,7),(U8,8)]), (8,U4+1,[])], [[],[]], [True,False]),
     ("increase is available exactly at effectiveness", [(0,U2,[(U4,7),(U8,8)]), (8,U8,[])], [[],[]], [True,True]),
     ("rejected candidate is not rescued by later replacement", [(0,300000,[(U4,7),(U8,7)])], [[0]], [True]),
@@ -5534,7 +5533,7 @@ assert [[e["sealable"] for e in c["eligible_recoveries"]] for c in recovery_wind
 assert [len(c["rejected_amendments"]) for c in recovery_window_cases] == [0, 0, 0, 0, 0, 0, 0, 1, 0]
 
 write_json(WIST4 / "parameter-combinations.json", spaced_labels({
-    "note": "WIST-4 §5 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. A candidate's effective_at_s MUST be at least its sealed_at_s plus the param_grace_days in force at that sealed_at_s, except in Epoch 0 of a Log whose Anchor names no predecessor, where it MUST be at least Epoch 0's sealed_at_s; a case with `successor` true (false when absent) is a successor Log, whose Epoch 0 keeps the grace period. A map lists the six parameters the combination rules read, param_grace_days and epoch_cadence_seconds. epoch_size_cases and epoch_transport_cases: the Epoch-size guarantee over the sealed prefix and the transport bound it fixes. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract, each with `code`, its disposition through JSON/JCS eligibility, the schema, authentication under wire_public_key and the fixed bounds of WIST-4 section 5 (null for a candidate): a string details.parameter that names no identifier with the same subject, and an integer value outside its bound, are WIST4-E03 once authenticated. clock_cases: a parameter read for work already begun stays attached to its anchor.",
+    "note": "WIST-4 §5 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. A candidate's effective_at_s MUST be at least its sealed_at_s plus the param_grace_days in force at that sealed_at_s, except in Epoch 0 of a Log whose Anchor names no predecessor, where it MUST be at least Epoch 0's sealed_at_s; a case with `successor` true (false when absent) is a successor Log, whose Epoch 0 keeps the grace period. A map lists the six parameters the combination rules read, param_grace_days and epoch_cadence_seconds. epoch_size_cases and epoch_transport_cases: the Epoch-size guarantee over the sealed prefix and the transport bound it fixes; an Epoch with epoch_valid false is rejected for its size, leaves the accepted schedule and largest_bytes unchanged, and replay continues at the next Epoch. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract, each with `code`, its disposition through JSON/JCS eligibility, the schema, authentication under wire_public_key and the fixed bounds of WIST-4 section 5 (null for a candidate): a string details.parameter that names no identifier with the same subject, and an integer value outside its bound, are WIST4-E03 once authenticated. clock_cases: a parameter read for work already begun stays attached to its anchor.",
     "prospective_defaults": PROSPECTIVE_DEFAULTS,
     "prospective_floors": PROSPECTIVE_FLOORS,
     "prospective_cases": prospective_cases,
