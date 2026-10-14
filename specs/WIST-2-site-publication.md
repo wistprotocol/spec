@@ -845,8 +845,9 @@ serves one, walk it under §3.2's rules and the ingest budget (§5.2), fetch
 dispute under §3.3 and WIST-1 §4, and queue it for sealing as a `label` or
 `dispute` Entry under the eligibility and inclusion ceiling of WIST-3
 §3.3 and the per-Labeler cap of WIST-3 §3.2. A Label or Dispute ID
-is **seen** when the Aggregator has sealed it or holds it accepted for
-sealing — queued, or held under a recovery window — and not otherwise. A
+is **seen** when the Aggregator has sealed it in an accepted Epoch
+(WIST-3 §3.3) or holds it accepted for sealing — queued, or held under a
+recovery window — and not otherwise. A
 Label or dispute that fails is `WIST2-E06`, a signature or key-binding
 failure keeping `WIST1-E01`/`WIST1-E02` (§7), reported at the status
 endpoint (§7.1) with its ID, and pulled again on the next pull and,

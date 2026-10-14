@@ -308,6 +308,12 @@ def urls_of(results, height):
     return [r["url"] for r in results[height]["state"]["records"]]
 
 
+def assert_labels_only(results, height, entry):
+    state = results[height]["state"]
+    assert [r["label"] for r in state["labels"]] == [sealing.label_id(entry["body"]["label"])]
+    assert state["disputes"] == []
+
+
 E06 = "WIST3-E06"
 E03 = "WIST3-E03"
 E08 = "WIST1-E08"
@@ -1359,6 +1365,22 @@ def sealing_vectors():
          {"entries": [("L late, sealed again", late)]},
          {"entries": [("L", label("store2", spam(J + "a", T0 + HOUR)))]}],
         {"L late": ("WIST2-E06", ["clock"]), "L": "valid"}, rejected={2: [E03]}))
+
+    resealed = label("store2", spam(J + "a", T0 + HOUR))
+    histories.append(history(
+        "a Label of a rejected Epoch sealed again",
+        "Height 1 carries a valid Label L of shop.example.net and an Entry of type publisher_note, which WIST-3 "
+        "section 3.3 does not list: the Epoch is rejected (WIST3-E03), and its label Entry carries nothing into "
+        "the rule that a Label is sealed once (WIST-3 section 3.2, A Label is sealed once; section 3.3, Rejected "
+        "Epochs). Height 2 seals L again: accepted, L entering the label table; an implementation counting a "
+        "rejected Epoch's label Entry rejects it. Height 3 seals L a third time: a lower Entry of an accepted "
+        "Epoch carries its Label ID, and the Epoch is rejected (WIST3-E03).",
+        [{"entries": [("G", decl("owner", G)), ("H", decl("store2", H))]},
+         {"entries": [("L", resealed), ("publisher_note", {"type": "publisher_note", "body": {}})]},
+         {"entries": [("L, sealed again", resealed)]},
+         {"entries": [("L, sealed a third time", resealed)]}],
+        {"L, sealed again": "valid"}, rejected={1: [E03], 3: [E03]},
+        check=lambda results: assert_labels_only(results, 2, resealed)))
 
     histories.append(history(
         "an Entry of an unknown type",

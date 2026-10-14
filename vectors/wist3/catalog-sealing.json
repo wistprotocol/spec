@@ -33216,6 +33216,408 @@
       ]
     },
     {
+      "name": "a Label of a rejected Epoch sealed again",
+      "why": "Height 1 carries a valid Label L of shop.example.net and an Entry of type publisher_note, which WIST-3 section 3.3 does not list: the Epoch is rejected (WIST3-E03), and its label Entry carries nothing into the rule that a Label is sealed once (WIST-3 section 3.2, A Label is sealed once; section 3.3, Rejected Epochs). Height 2 seals L again: accepted, L entering the label table; an implementation counting a rejected Epoch's label Entry rejects it. Height 3 seals L a third time: a lower Entry of an accepted Epoch carries its Label ID, and the Epoch is rejected (WIST3-E03).",
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24,
+            "labeler_epoch_entries_max": 1000
+          },
+          "entries": [
+            {
+              "name": "H",
+              "entry": {
+                "type": "publisher_declaration",
+                "body": {
+                  "publisher": {
+                    "wist_version": "1.0.0",
+                    "seq": 0,
+                    "domain": "shop.example.net",
+                    "keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "ujthHiiCwbaqSyrj7HjqBzbjrZkjg1NFAXFQekufFbU",
+                        "kid": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA",
+                        "nbf": 1788220800
+                      }
+                    ]
+                  },
+                  "sig": {
+                    "key_id": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA",
+                    "alg": "Ed25519",
+                    "value": "mmpqi3gDPi3_Hof2r1ePG0A-7mwCt4jjHyGs1DEEe1xaTC7FQYcjBf5PFK0z8XkwlxhFrCZ-kWZZAqOlULVtDg"
+                  }
+                }
+              }
+            },
+            {
+              "name": "G",
+              "entry": {
+                "type": "publisher_declaration",
+                "body": {
+                  "publisher": {
+                    "wist_version": "1.0.0",
+                    "seq": 0,
+                    "domain": "example.com",
+                    "subdomain_scope": [
+                      "www.example.com"
+                    ],
+                    "keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                        "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "recovery_keys": [
+                      {
+                        "kty": "OKP",
+                        "crv": "Ed25519",
+                        "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                        "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                        "nbf": 1788220800
+                      }
+                    ],
+                    "collections": [
+                      {
+                        "name": "journal",
+                        "scope": [
+                          {
+                            "url": "https://example.com/journal/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                            "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      },
+                      {
+                        "name": "store",
+                        "scope": [
+                          {
+                            "url": "https://example.com/store/",
+                            "match": "prefix"
+                          }
+                        ],
+                        "keys": [
+                          {
+                            "kty": "OKP",
+                            "crv": "Ed25519",
+                            "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                            "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                            "nbf": 1788220800
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "sig": {
+                    "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                    "alg": "Ed25519",
+                    "value": "AlaHtQ4tup9Rsn3Ke1O6DInuQDT7o-yPnzhdgxDyfq9fqNZ746EE7yqvKrlmhg_7p9h68b7S4MS28tEebsBDDQ"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24,
+            "labeler_epoch_entries_max": 1000
+          },
+          "entries": [
+            {
+              "name": "L",
+              "entry": {
+                "type": "label",
+                "body": {
+                  "label": {
+                    "wist_version": "1.0.0",
+                    "labeler": "shop.example.net",
+                    "subject": "https://example.com/journal/a",
+                    "name": "wist:spam",
+                    "asserted_at": "2026-10-01T01:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA",
+                    "alg": "Ed25519",
+                    "value": "lFTk1VDFgIhM-r0DKdqX6dbxfwLJ6Kpy_48HYOLlQf9CoKCO8bHbe-hxoftA2DISU345-0ouYtVOUWEsMD1iAw"
+                  }
+                }
+              }
+            },
+            {
+              "name": "publisher_note",
+              "entry": {
+                "type": "publisher_note",
+                "body": {}
+              }
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24,
+            "labeler_epoch_entries_max": 1000
+          },
+          "entries": [
+            {
+              "name": "L, sealed again",
+              "entry": {
+                "type": "label",
+                "body": {
+                  "label": {
+                    "wist_version": "1.0.0",
+                    "labeler": "shop.example.net",
+                    "subject": "https://example.com/journal/a",
+                    "name": "wist:spam",
+                    "asserted_at": "2026-10-01T01:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA",
+                    "alg": "Ed25519",
+                    "value": "lFTk1VDFgIhM-r0DKdqX6dbxfwLJ6Kpy_48HYOLlQf9CoKCO8bHbe-hxoftA2DISU345-0ouYtVOUWEsMD1iAw"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "parameters": {
+            "clock_skew_seconds": 600,
+            "catalog_items_max": 16777216,
+            "catalog_refresh_seconds": 604800,
+            "payload_window_days": 180,
+            "domain_epoch_entries_max": 10000,
+            "url_cap_bytes": 2048,
+            "extract_cap_bytes": 32768,
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "summary_cap_bytes": 2048,
+            "collections_max": 16,
+            "scope_entries_max": 32,
+            "recovery_window_days": 7,
+            "declaration_activation_epochs": 24,
+            "labeler_epoch_entries_max": 1000
+          },
+          "entries": [
+            {
+              "name": "L, sealed a third time",
+              "entry": {
+                "type": "label",
+                "body": {
+                  "label": {
+                    "wist_version": "1.0.0",
+                    "labeler": "shop.example.net",
+                    "subject": "https://example.com/journal/a",
+                    "name": "wist:spam",
+                    "asserted_at": "2026-10-01T01:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA",
+                    "alg": "Ed25519",
+                    "value": "lFTk1VDFgIhM-r0DKdqX6dbxfwLJ6Kpy_48HYOLlQf9CoKCO8bHbe-hxoftA2DISU345-0ouYtVOUWEsMD1iAw"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "expected": [
+        {
+          "height": 0,
+          "status": "accepted",
+          "entries": [],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              },
+              {
+                "publisher": "shop.example.net",
+                "current": "H",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [],
+            "records": [],
+            "removals": [],
+            "labels": [],
+            "disputes": []
+          }
+        },
+        {
+          "height": 1,
+          "status": "rejected",
+          "codes": [
+            "WIST3-E03"
+          ],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              },
+              {
+                "publisher": "shop.example.net",
+                "current": "H",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [],
+            "records": [],
+            "removals": [],
+            "labels": [],
+            "disputes": []
+          }
+        },
+        {
+          "height": 2,
+          "status": "accepted",
+          "entries": [
+            {
+              "name": "L, sealed again",
+              "disposition": "valid"
+            }
+          ],
+          "records_removed": [],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              },
+              {
+                "publisher": "shop.example.net",
+                "current": "H",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [],
+            "records": [],
+            "removals": [],
+            "labels": [
+              {
+                "label": "sha256:e58c6738168db3aaf628d0620e7d51b76a8f125ac5641aeefa6510a1b698e1d6",
+                "labeler": "shop.example.net",
+                "subject": "https://example.com/journal/a",
+                "name": "wist:spam",
+                "height": 2
+              }
+            ],
+            "disputes": []
+          }
+        },
+        {
+          "height": 3,
+          "status": "rejected",
+          "codes": [
+            "WIST3-E03"
+          ],
+          "state": {
+            "declarations": [
+              {
+                "publisher": "example.com",
+                "current": "G",
+                "pending_head": null,
+                "window_end": null
+              },
+              {
+                "publisher": "shop.example.net",
+                "current": "H",
+                "pending_head": null,
+                "window_end": null
+              }
+            ],
+            "catalogs": [],
+            "records": [],
+            "removals": [],
+            "labels": [
+              {
+                "label": "sha256:e58c6738168db3aaf628d0620e7d51b76a8f125ac5641aeefa6510a1b698e1d6",
+                "labeler": "shop.example.net",
+                "subject": "https://example.com/journal/a",
+                "name": "wist:spam",
+                "height": 2
+              }
+            ],
+            "disputes": []
+          }
+        }
+      ]
+    },
+    {
       "name": "an Entry of an unknown type",
       "why": "Height 2 carries c against J1 and an Entry of type publisher_note, which WIST-3 section 3.3 does not list and which is listed after every group: rejected (WIST3-E03), the state staying that of height 1. Height 3 carries c alone: accepted.",
       "epochs": [

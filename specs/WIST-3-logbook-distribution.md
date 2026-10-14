@@ -258,11 +258,15 @@ deserve a consumer's attention is ranking, decided at consumption
 (ADR-0006, ADR-0008), not admission.
 
 **A Label is sealed once.** A Label ID (WIST-2 §3.3) MUST appear in at
-most one `label` Entry in the whole Log. An Aggregator that pulls a Label
-it has already sealed holds it as seen (WIST-2 §5.5) and MUST NOT seal it
-a second time; a Consumer replaying the Log MUST reject an Epoch
-containing a `label` Entry whose Label ID a lower Entry — in the same
-Epoch or an earlier one — already carries (`WIST3-E03`). A `label` Entry
+most one `label` Entry of an accepted Epoch (§3.3) in the whole Log. An
+Aggregator that pulls a Label it has already sealed in an accepted Epoch
+holds it as seen (WIST-2 §5.5) and MUST NOT seal it a second time; a
+Consumer replaying the Log MUST reject an Epoch containing a `label`
+Entry whose Label ID a lower Entry — in the same Epoch or an earlier
+accepted one — already carries (`WIST3-E03`). A `label` Entry of a
+rejected Epoch carries nothing into this rule, as nothing else of that
+Epoch applies (§3.3): the Label is unseen and is sealed again, as a
+Declaration or Registry Update of that Epoch is. A `label` Entry
 carries a Label ID whenever its `body` is an object whose `label` member
 is valid JCS input (WIST-1 §4), whether its judgment (§3.3) finds it
 valid or ignores it, since an Aggregator holds every ID it sealed as
